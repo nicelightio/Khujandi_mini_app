@@ -34,19 +34,6 @@ Telegram передаёт токен (hash) в заголовке `X-Telegram-Au
 
 ---
 
-## 4. Формат ошибок
-
-```json
-{
-  "detail": "Courier not found",
-  "code": "COURIER_404",
-  "trace_id": "97fed1…",
-  "errors": [
-    { "loc": ["body", "price"], "msg": "Price must be > 0" }
-  ]
-}
-```
-
 | HTTP Code | Код   | Ситуация               |
 |-----------|-------|------------------------|
 | 400       | *_400 | Валидация данных       |

@@ -63,34 +63,6 @@ frontend-svelte5/
 
 ---
 
-## 4. API-слой (lib/api.ts)
-
-```ts
-export async function request<T>(
-  method: "GET" | "POST" | "PUT" | "DELETE",
-  url: string,
-  body?: unknown
-): Promise<T> {
-  const res = await fetch(`/api/v1${url}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Telegram-Auth": get(user).token
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw err;
-  }
-  return res.json();
-}
-```
-
-Каждый эндпоинт инкапсулируется: `getProducts()`, `createOrder()`, …
-
----
-
 ## 5. i18n
 
 - Paraglide.js генерирует `t('key')`.  
