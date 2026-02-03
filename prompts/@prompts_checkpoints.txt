@@ -1,0 +1,6 @@
+[UTC_TIMESTAMP] Реализована архитектура и заглушка для оплаты заказа через 
+endpoint /orders/{order_id}/pay, добавлена функция get_order_by_id в db/order_crud.py. 
+
+[UTC_TIMESTAMP] Централизован enum статусов заказа OrderStatus и человеко-читаемые лейблы 
+ORDER_STATUS_LABELS в models/order_models.py. 
+

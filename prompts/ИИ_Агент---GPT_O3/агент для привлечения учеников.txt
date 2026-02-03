@@ -1,0 +1,169 @@
+Ниже — план R&D и референс-архитектура «привлекающего» ИИ-агента.
+Формулирую поэтапно: от бизнес-целей и фич до технической реализации на FastAPI + aiogram3. При необходимости берите отдельные блоки и адаптируйте под свой стек.
+────────────────────────────────────────────────────────
+Постановка бизнес-целей и KPI
+────────────────────────────────────────────────────────
+• Цель: увеличить количество лидов (e-mail / телефон) и записей на пробный урок.
+• KPI: CPL ≤ X ₽, CR (лид → запись) ≥ Y %, CAC ≤ Z ₽.
+• Каналы: мессенджеры (Telegram — must-have для 16-28), web-chat, соцсети, офлайн-QR.
+────────────────────────────────────────────────────────
+Функционал «сильного» агента-продавца
+────────────────────────────────────────────────────────
+Multichannel-чат: Telegram, WhatsApp, VK, WebSocket chat.
+Интерактивная квалификация лида
+• квизы «Какой ты программист?»
+• подбор курса по возрасту/интересам.
+Демонстрация value
+• instant-show проектов (GIF/видео роботов)
+• мини-IDE прямо в чате (реакция на /code — проверка ответа тестами).
+Персонализация ✨
+• хранение intent-history, сегментация «родитель / школьник / студент».
+• генерация оффера (скидка, подарочный набор).
+Автоматический подбор расписания
+• интеграция с календарём преподавателей.
+Follow-up sequence
+• отложенные сообщения push/email, ремаркетинг, напоминания о вебинарах.
+A/B-тестирование контента и тональности (formal <-> friendly).
+Голосовой режим (WebRTC + STT / TTS) — необязательная, но «вау».
+CRM-синхронизация: Pipedrive, AmoCRM, HubSpot.
+Аналитика поведения: heatmap вопросов, drop-off точки, scoring.
+────────────────────────────────────────────────────────
+Пошаговый план реализации
+────────────────────────────────────────────────────────
+Шаг 0. Discovery
+• Интервью 10–15 родителей и 10+ студентов → pain points / objections.
+• Сбор FAQ, objections list, success stories.
+Шаг 1. Архитектурное проектирование
+• Определяем атомарные сервисы (см. пункт 4).
+• Выбор LLM: OpenAI GPT-4o или локальный Llama3-70B-Q + RAG on-prem (родители нервничают о данных?).
+• Дизайн conversation flow (MindMap / YAML).
+Шаг 2. Сбор дата-сет-корпуса
+• FAQ, скрипты продаж, кейсы учеников, документы («Безопасность детей»).
+• Размечаем intents / slots → fine-tune или используем Few-Shot.
+Шаг 3. MVP (1 канал = Telegram)
+• aiogram3 бот с простым state-machine.
+• FastAPI backend:
+– POST /chat — маршрутизация запроса в Dialog Manager
+– Webhook для Telegram → POST /chat.
+Шаг 4. Продвинутая DM логика
+• Graph-based dialog (NetworkX, агенты-узлы).
+• Интент-enrichment (LLM + tools: calculator, scheduler).
+• Контекстное хранилище (Redis JSON).
+Шаг 5. Канал-экспансия + функции из п. 2
+• WhatsApp (Official API), web-widget.
+• Интерактивные квизы, мини-IDE (Judge0 API).
+Шаг 6. Метрики & A/B
+• Prometheus + Grafana, event-stream в ClickHouse.
+Шаг 7. Production Hardening
+• rate-limit, tracing, секреты (K8s secrets).
+• disaster-plan (LLM fallback → pre-canned response).
+────────────────────────────────────────────────────────
+Референс-архитектура (узлы и связи)
+────────────────────────────────────────────────────────
+Пишу в текстовом виде:
+[User Channels] ──► [Gateway / BotRouter] ──► [NLU + LLM]
+└──► [Static FAQ KB] (Redis/PGVector)
+│
+▼
+[Dialogue Manager] ─────► [Personalization Engine]
+│ │
+│ ▼
+│ [Scheduler Service (FastAPI)]
+│ │
+▼ ▼
+[CRM / Lead DB] ◄─────── [Analytics & A/B]
+│
+▼
+[Async Task Queue] (RabbitMQ / Celery)
+│
+▼
+[Email / Push Service]
+Все сервисы статeless → Kubernetes / Docker Compose.
+────────────────────────────────────────────────────────
+Мини-пример кода (FastAPI + aiogram3)
+────────────────────────────────────────────────────────
+Пример только ядра; детали скрыты ради компактности:
+```
+# bot_factory.py
+from aiogram import Bot, Dispatcher
+from config import settings
+
+def create_telegram_bot() -> tuple[Bot, Dispatcher]:
+    bot = Bot(settings.telegram_token, parse_mode="HTML")
+    dp = Dispatcher()
+    return bot, dp
+```
+
+
+```
+# routers/telegram_router.py
+from aiogram import Router, F
+from aiogram.types import Message
+from services.dialogue import handle_message
+
+router = Router()
+
+@router.message(F.text)
+async def on_text(msg: Message) -> None:
+    response = await handle_message(user_id=msg.from_user.id, text=msg.text)
+    await msg.answer(response.content, reply_markup=response.reply_markup)
+```
+
+
+```
+# services/dialogue.py
+async def handle_message(user_id: int, text: str) -> "BotResponse":
+    intent = await nlu_infer(text)
+    # guard-clauses
+    if intent.name == "schedule_lesson":
+        return await schedule_flow(user_id)
+    if intent.confidence < 0.4:
+        return await small_talk(text)
+    # happy-path
+    return await provide_course_offer(user_id, intent)
+```
+
+
+```
+# main.py (FastAPI)
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from routers.telegram_router import router as tg_router
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    bot, dp = create_telegram_bot()
+    app.state.dp = dp
+    yield
+    await bot.session.close()
+
+app = FastAPI(lifespan=lifespan)
+app.include_router(tg_router, prefix="/telegram")
+```
+
+────────────────────────────────────────────────────────
+Практические советы и «подводные камни»
+────────────────────────────────────────────────────────
+• Нужна детская и родительская лексика → 2 персоны, 2 tone-of-voice.
+• Родители любят гарантии: добавьте блок «безопасность, результаты, отзывы».
+• 16-28 года ценят геймификацию и челлендж-баттлы — поддержите leaderboard.
+• Закон «О персональных данных» (RU) + GDPR: explicit consent до обработки.
+• Делайте fallback: «извините, не понял» → живая поддержка (handoff).
+• Критично измерять воронку. Часто drop-off на шаге «Оставьте телефон».
+• Первые 3-5 секунд UI решают: яркий call-to-action + примеры роботов.
+────────────────────────────────────────────────────────
+Checklist “готов к продакшену?”
+────────────────────────────────────────────────────────
+☑ Нагрузочные тесты (≈ RPS * 3).
+☑ Retention-цепочки расписаны и автоматизированы.
+☑ Pydantic-валидация входных web-hook payload’ов.
+☑ Claims-based rate-limit (по IP + по user_id).
+☑ Observability: traces (OTel), logs (ELK), metrics (Prometheus).
+☑ Disaster-fallback (LLM timeout → статический FAQ).
+☑ Фин-модель: сколько стоит inference vs доход с ученика.
+При следовании этим шагам вы получите масштабируемого ИИ-агента, который:
+• общается «на языке клиента»,
+• автоматически квалифицирует и греет лидов,
+• синхронизируется с CRM,
+• даёт замеряемый рост записей на курс.
+Удачного внедрения!
