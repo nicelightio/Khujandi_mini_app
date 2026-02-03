@@ -22,6 +22,7 @@
 ## 3. Архитектура и стек
 
 - Backend: **NestJS + TypeScript + Prisma + PostgreSQL**.
+- Frontend: **React + Vite + TypeScript**.
 - **Модульный монолит** с вертикальными срезами: каждый use‑case в отдельной папке, файлы до 300 строк.
 - Telegram‑бот — модуль внутри монолита.
 - Команды (create/update/delete) — только REST.

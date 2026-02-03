@@ -10,3 +10,12 @@
 - [x] US 000.GOV — инициализация governance и memory bank
   - [x] CONSULT — подтвержден формат AGENTS.md
   - [x] T 000.1 — создать базовые файлы WORKLOG/CODEMAP/memory
+- [x] US 001.GOV — глоссарий терминов memory bank
+  - [x] T 001.1 — добавить .memory/GLOSSARY.md и синхронизировать TASKS/WORKLOG
+
+## Шаблон карточки решения
+- [ ] ADR {id} — краткое название решения
+  - Контекст:
+  - Решение:
+  - Альтернативы:
+  - Последствия:
