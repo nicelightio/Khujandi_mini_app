@@ -172,3 +172,43 @@ UX
 
 
 Так вы покрываете максимум пользователей и даёте самый быстрый путь тем, кто живёт на DC Next.
+
+---
+
+## Полезные ссылки
+Dushanbe City — Acquiring и QR (технически)
+
+### Интернет‑эквайринг (Acquiring)
+
+Документация API формы оплаты (v1.8) — параметры, подпись, Approve/Decline, CheckPay, Payment_QR:
+https://acquiring.dc.tj/doc/form_action_v_1_8.pdf
+
+Главная страница эквайринга (описание, тарифы, личный кабинет, тест):
+https://acquiring.dc.tj/
+
+Раздел «Документы» (перечень для подключения мерчанта):
+https://acquiring.dc.tj/documents/
+
+
+### QR / СБП / Deep link
+
+Описание метода Payment_QR в API (пример ссылки qr.nspk.ru, параметры sum/cur, статус через CheckPay):
+см. form_action_v_1_8.pdf (раздел Payment_QR)
+
+Национальная система быстрых платежей (как работают ссылки вида qr.nspk.ru):
+https://sbp.nspk.ru
+
+Официальная страница DC Next (приложение‑кошелёк, поддержка единого QR):
+https://dc.tj/dc-next/
+
+Новость о внедрении единого QR в DC Next (контекст рынка):
+https://asiaplustj.info/ru/news/tajikistan/society/20230824/oplachivaite-s-pomoshchyu-edinogo-qr-koda-v-prilozhenii-dc-next
+
+
+Dev / интеграции
+
+Портал для разработчиков DC (материалы и контакты):
+https://dev.dc.tj/
+
+Контакты техподдержки эквайринга (получение тестовых ключей):
+https://acquiring.dc.tj/contacts/
