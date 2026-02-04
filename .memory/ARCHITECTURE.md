@@ -5,7 +5,7 @@
 
 ## Общая схема (TBD)
 - Backend: NestJS + Prisma + PostgreSQL.
-- Frontend: React + Vite.
+- Frontend: Next.js (App Router).
 - Telegram Bot: модуль внутри backend.
 - Events: polling через `GET /events?since=<cursor>`.
 
