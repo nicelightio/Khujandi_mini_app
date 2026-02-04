@@ -1,7 +1,7 @@
-# FRONTEND_COMPONENT_GUIDE.md — Паттерны и структура React + Vite фронтенда
+# FRONTEND_COMPONENT_GUIDE.md — Паттерны и структура Next.js фронтенда
 
-_Версия: 0.2  
-Дата: 2026-02-03_
+_Версия: 0.3  
+Дата: 2026-02-04_
 
 ---
 
@@ -9,38 +9,37 @@ _Версия: 0.2
 
 ```
 frontend/
-  ├─ src/
-  │  ├─ main.tsx             # точка входа
-  │  ├─ App.tsx              # роутер и layout
-  │  ├─ routes/              # страницы (React Router)
-  │  │   ├─ Home.tsx
-  │  │   ├─ Shops.tsx
-  │  │   ├─ ShopDetails.tsx
-  │  │   ├─ Products.tsx
-  │  │   ├─ Orders.tsx
-  │  │   ├─ OrderDetails.tsx
-  │  │   ├─ Profile.tsx
-  │  │   └─ Auth.tsx
-  │  ├─ components/
-  │  │   ├─ ui/
-  │  │   ├─ ShopCard.tsx
-  │  │   ├─ ProductCard.tsx
-  │  │   └─ MainBanner.tsx
-  │  ├─ lib/
-  │  │   ├─ api.ts            # REST-обёртка
-  │  │   ├─ telegram.ts       # Telegram WebApp API
-  │  │   ├─ i18n.ts           # Paraglide.js
-  │  │   ├─ storage.ts        # sessionStorage helpers
-  │  │   └─ types.ts          # общие TS-типы
-  │  ├─ state/
-  │  │   ├─ useUserStore.ts
-  │  │   ├─ useCartStore.ts
-  │  │   └─ useUiStore.ts
-  │  ├─ languages/            # ru.ts, en.ts, tj.ts
-  │  └─ styles/               # global.css, variables.css
-  ├─ public/                  # assets
-  ├─ vite.config.ts
-  └─ tsconfig.json
+  ├─ app/
+  │  ├─ layout.tsx            # корневой layout
+  │  ├─ page.tsx              # витрина
+  │  ├─ shops/
+  │  │  ├─ page.tsx
+  │  │  └─ [id]/page.tsx
+  │  ├─ products/page.tsx
+  │  ├─ orders/
+  │  │  ├─ page.tsx
+  │  │  └─ [id]/page.tsx
+  │  ├─ profile/page.tsx
+  │  └─ auth/page.tsx
+  ├─ components/
+  │  ├─ ui/
+  │  ├─ ShopCard.tsx
+  │  ├─ ProductCard.tsx
+  │  └─ MainBanner.tsx
+  ├─ lib/
+  │  ├─ api.ts                # REST-обёртка
+  │  ├─ telegram.ts           # Telegram WebApp API
+  │  ├─ i18n.ts               # Paraglide.js
+  │  ├─ storage.ts            # sessionStorage helpers
+  │  └─ types.ts              # общие TS-типы
+  ├─ state/
+  │  ├─ useUserStore.ts
+  │  ├─ useCartStore.ts
+  │  └─ useUiStore.ts
+  ├─ styles/
+  │  ├─ globals.css
+  │  └─ variables.css
+  └─ public/
 ```
 
 ---
@@ -49,8 +48,10 @@ frontend/
 
 | Тип | Расположение | Ответственность |
 |-----|--------------|-----------------|
-| **Smart** | `routes/*.tsx` | Запрашивает данные, управляет состоянием, передаёт props |
+| **Smart** | `app/**/page.tsx` + `app/**/layout.tsx` | Запрашивает данные, управляет состоянием, передаёт props |
 | **Dumb**  | `components/**` | Только UI-рендер по props, не знает о API |
+
+Для компонентов, использующих hooks или доступ к Telegram WebApp, добавляем директиву `"use client"`.
 
 ---
 
@@ -70,7 +71,7 @@ frontend/
 
 - Paraglide.js генерирует `t('key')`.  
 - Файлы переводов разделены по пространствам: `home`, `shop`, `order`, `common`.  
-- Строки UI хранятся в `languages/{lang}.ts` и импортируются “tree-shakable”.
+- Строки UI хранятся в `languages/{lang}.ts` или `frontend/messages/*.ts` (по выбранной структуре).
 
 ---
 
@@ -88,7 +89,7 @@ frontend/
 
 ## 6. Гладкий Telegram WebView UI
 
-- Вызываем `Telegram.WebApp.ready()` как можно раньше (в `main.tsx` или `App.tsx`).
+- Вызываем `Telegram.WebApp.ready()` как можно раньше (в клиентском layout или корневом компоненте страницы).
 - Используем `Telegram.WebApp.expand()` для минимизации “сжатого” viewport.
 - Поддерживаем safe-area через `env(safe-area-inset-*)` и паддинги контейнеров.
 - Стабилизируем высоту: ставим CSS-переменную из `WebApp.viewportStableHeight`, обновляем на событие `viewportChanged`.
@@ -101,7 +102,7 @@ frontend/
 
 | Уровень | Инструмент | Папка |
 |---------|-----------|-------|
-| Unit    | Vitest    | `src/tests/*.test.ts` |
+| Unit    | Jest + React Testing Library | `frontend/__tests__/*.test.tsx` |
 | UI      | Playwright| `frontend-tests/` (план) |
 
 ---

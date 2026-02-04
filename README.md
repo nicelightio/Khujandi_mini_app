@@ -1,6 +1,6 @@
 # Khujandi_mini_app
 
-Telegram Mini App для заказа готовой еды и доставки по городу. Проект включает NestJS backend, React + Vite frontend и Telegram-бота.
+Telegram Mini App для заказа готовой еды и доставки по городу. Проект включает NestJS backend, Next.js frontend и Telegram-бота.
 
 **Стек backend**: NestJS + TypeScript + Prisma + PostgreSQL.
 

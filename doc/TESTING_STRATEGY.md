@@ -1,7 +1,7 @@
 # TESTING_STRATEGY.md — Подход к тестированию
 
-_Версия: 0.2  
-Дата: 2026-02-03_
+_Версия: 0.3  
+Дата: 2026-02-04_
 
 ---
 
@@ -10,7 +10,7 @@ _Версия: 0.2
 | Слой | Инструмент |
 |------|------------|
 | Backend | Jest + @nestjs/testing + Supertest |
-| Frontend | Vitest (unit), Playwright (E2E, позже) |
+| Frontend | Jest + React Testing Library (unit), Playwright (E2E, позже) |
 
 ---
 

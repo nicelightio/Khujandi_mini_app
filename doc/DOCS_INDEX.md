@@ -1,6 +1,6 @@
 # 📚 Документация проекта *Худжанди* — индекс
 
-_Дата: 2026-02-03_
+_Дата: 2026-02-04_
 
 В каталоге `doc/` собраны ключевые документы по проекту.
 
@@ -13,7 +13,7 @@ _Дата: 2026-02-03_
 | [`PROJECT_SPECIFICATION.md`](PROJECT_SPECIFICATION.md) | Повествовательное ТЗ и бизнес-правила | Сценарии • Роли • Ограничения |
 | [`DATA_MODEL.md`](DATA_MODEL.md) | Обзор схемы БД | Users • Orders • Events |
 | [`API_GUIDELINES.md`](API_GUIDELINES.md) | REST + Events API | Авторизация • Ошибки • Polling |
-| [`FRONTEND_COMPONENT_GUIDE.md`](FRONTEND_COMPONENT_GUIDE.md) | Структура фронтенда (React + Vite) | Routes • Stores • i18n |
+| [`FRONTEND_COMPONENT_GUIDE.md`](FRONTEND_COMPONENT_GUIDE.md) | Структура фронтенда (Next.js) | Routes • Stores • i18n |
 | [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) | Подход к тестированию | Unit • E2E • Coverage |
 
 ## Как пользоваться

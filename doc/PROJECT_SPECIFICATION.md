@@ -1,13 +1,13 @@
 # Техническое задание: Telegram Mini App «Худжанди»
 
-_Версия: 1.1  
-Дата: 2026-02-03_
+_Версия: 1.2  
+Дата: 2026-02-04_
 
 ---
 
 ## Введение
 
-«Худжанди» — Telegram Mini App для заказа готовой еды и доставки по городу. Проект включает Backend (NestJS + TypeScript + Prisma), Frontend (React + Vite) и Telegram-бота, который уведомляет участников процесса.
+«Худжанди» — Telegram Mini App для заказа готовой еды и доставки по городу. Проект включает Backend (NestJS + TypeScript + Prisma), Frontend (Next.js) и Telegram-бота, который уведомляет участников процесса.
 
 ---
 
@@ -61,6 +61,7 @@ _Версия: 1.1
 - Backend: **NestJS + TypeScript + Prisma + PostgreSQL**.  
 - Монолит с модулями и вертикальными срезами (каждый use-case в отдельной папке; файлы до 300 строк).  
 - Telegram-бот — модуль внутри монолита.  
+- Frontend: **Next.js (App Router)** с клиентскими компонентами для Telegram WebApp.  
 - API: REST для команд (создать/изменить/удалить), polling для чтения через `GET /events?since=<cursor>`.
 
 ### Авторизация
@@ -92,11 +93,11 @@ Telegram WebAppData передаётся на `POST /auth/telegram`. Backend п�
 
 ## Требования к Frontend
 
-1. **React + Vite** + TypeScript + Tailwind (по желанию).  
+1. **Next.js (App Router)** + TypeScript + Tailwind (по желанию).  
 2. Главная страница — витрина магазинов/товаров, доступна до авторизации.  
 3. При первом запуске: overlay с выбором языка (Ru, En, Tj).  
 4. Авторизация инициируется при попытке оформить заказ (Telegram WebAppData).  
-5. Интернационализация через Paraglide.js; файлы переводов `src/languages/*.ts`.  
+5. Интернационализация через Paraglide.js; файлы переводов `src/languages/*.ts` или `frontend/messages/*.ts` (по выбранной структуре).  
 6. Адаптивность под Telegram WebView, поддержка светлой / тёмной темы, safe-area и стабильная высота (WebApp viewport).  
 7. Компоненты UI отделены от бизнес-логики (`lib/`).  
 8. Визуальные подтверждения всех действий (toast, loader, disable-кнопка).  

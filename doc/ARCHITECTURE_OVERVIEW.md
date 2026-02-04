@@ -1,15 +1,15 @@
 # Архитектура проекта *Khujandi Mini App*
 
-_Версия: 0.2  
-Дата: 2026-02-03_
+_Версия: 0.3  
+Дата: 2026-02-04_
 
 ---
 
 ## 1. Общая картина
 
-Проект строится как модульный монолит на NestJS. Основные потоки — REST-команды и polling чтение событий. Telegram-бот — модуль внутри того же backend-приложения.
+Проект строится как модульный монолит на NestJS. Основные потоки — REST-команды и polling чтение событий. Telegram-бот — модуль внутри того же backend-приложения. Клиентская часть — Next.js приложение, ориентированное на работу внутри Telegram WebApp.
 
-**Стек**: NestJS + TypeScript + Prisma + PostgreSQL, Docker/Compose для окружения.
+**Стек**: NestJS + TypeScript + Prisma + PostgreSQL, Next.js (App Router), Docker/Compose для окружения.
 
 ---
 
@@ -33,7 +33,42 @@ backend/
       errors/
       utils/
 frontend/
-  src/...
+  app/
+    layout.tsx
+    page.tsx
+    shops/
+      page.tsx
+      [id]/
+        page.tsx
+    products/
+      page.tsx
+    orders/
+      page.tsx
+      [id]/
+        page.tsx
+    profile/
+      page.tsx
+    auth/
+      page.tsx
+  components/
+    ui/
+    ShopCard.tsx
+    ProductCard.tsx
+    MainBanner.tsx
+  lib/
+    api.ts
+    telegram.ts
+    i18n.ts
+    storage.ts
+    types.ts
+  state/
+    useUserStore.ts
+    useCartStore.ts
+    useUiStore.ts
+  styles/
+    globals.css
+    variables.css
+  public/
 ```
 
 **Принцип модульности**: каждый use-case в отдельной папке, файлы до 300 строк. Контроллеры, DTO, сервисы и мапперы дробятся по назначению.
@@ -44,7 +79,7 @@ frontend/
 
 ```mermaid
 graph TD
-    FE[🌐 React + Vite Frontend] -- REST JSON --> BE[⚙️ NestJS API]
+    FE[🌐 Next.js Frontend] -- REST JSON --> BE[⚙️ NestJS API]
     BE --> DB[(PostgreSQL)]
     BE -- Notifications --> TG[🤖 Telegram Bot Module]
     BE -- Domain Events --> EV[(events table)]
@@ -94,7 +129,7 @@ sequenceDiagram
 | `JWT_SECRET` | Секрет для подписи JWT | `supersecret` |
 | `TELEGRAM_BOT_TOKEN` | Токен бота | `123456:ABC...` |
 | `ADMIN_IDS` | ID админов для алёртов | `12345,98765` |
-| `CORS_ORIGINS` | Разрешённые источники | `http://localhost:5173` |
+| `CORS_ORIGINS` | Разрешённые источники | `http://localhost:3000` |
 
 ---
 

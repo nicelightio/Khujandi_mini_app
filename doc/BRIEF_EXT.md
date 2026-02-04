@@ -22,7 +22,7 @@
 ## 3. Архитектура и стек
 
 - Backend: **NestJS + TypeScript + Prisma + PostgreSQL**.
-- Frontend: **React + Vite + TypeScript**.
+- Frontend: **Next.js + TypeScript**.
 - **Модульный монолит** с вертикальными срезами: каждый use‑case в отдельной папке, файлы до 300 строк.
 - Telegram‑бот — модуль внутри монолита.
 - Команды (create/update/delete) — только REST.
@@ -135,7 +135,7 @@
 
 ---
 
-## 10. UX и фронтенд (React + Vite)
+## 10. UX и фронтенд (Next.js)
 
 - Витрина доступна до авторизации.
 - Авторизация инициируется при попытке оформить заказ.
@@ -170,7 +170,7 @@
 ## 13. Тестирование
 
 - Backend: Jest + @nestjs/testing + Supertest.
-- Frontend: Vitest (unit), Playwright (E2E позже).
+- Frontend: Jest + React Testing Library (unit), Playwright (E2E позже).
 - MVP‑минимум: CRUD, RBAC, переходы статусов, генерация событий.
 
 ---
