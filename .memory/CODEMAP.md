@@ -3,7 +3,7 @@
 ## Обзор репозитория
 - backend/ — серверная часть (NestJS, Prisma).
 - frontend/ — клиент (Next.js).
-- doc/ — спецификации, архитектура, API, тестирование.
+- doc/ — спецификации, архитектура, API, тестирование (BRIEF.md, BRIEF_EXT.md — ключевые требования по заказам).
 - prompts/ — внутренние заметки и шаблоны.
 - .memory/ — memory bank (WORKLOG, TASKS, GLOSSARY и т.д.).
 
