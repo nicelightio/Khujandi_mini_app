@@ -2,7 +2,6 @@
 node_modules/
 
 # Generated when testing the skill pack locally
-.memory-bank/
 .tasks/
 .protocols/
 .claude/
