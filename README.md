@@ -2,6 +2,11 @@
 
 Telegram Mini App для заказа готовой еды и доставки по городу. Проект включает NestJS backend, React + Vite frontend и Telegram-бота.
 
-**Стек backend**: NestJS + TypeScript + Prisma + PostgreSQL.
+Архитектурная модель проекта: `layered monolith` + `vertical slices`.
 
-Документация находится в каталоге `doc/` — начните с `doc/PROJECT_SPECIFICATION.md` и `doc/ARCHITECTURE_OVERVIEW.md`.
+- Слои задают правило зависимостей: `presentation -> application -> domain -> infrastructure`.
+- Вертикальный слайс является основной единицей поставки ценности, планирования и тестирования.
+- MVP покрывает end-to-end цепочку: витрина -> checkout и оплата -> назначение курьера -> доставка -> отзывы.
+
+Документация находится в каталоге `doc/`.
+Рекомендуемый старт: `doc/PRD.md`, `doc/ARCHITECTURE.md`, `doc/TESTING_STRATEGY.md`.

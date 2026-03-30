@@ -1,0 +1,9 @@
+:root {
+  color-scheme: light dark;
+}
+
+[data-shell="page"] {
+  min-height: 100vh;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}

@@ -8,7 +8,7 @@
 - doc/BRIEF_EXT.md — расширенный бриф и контекст.
 - doc/PRD.md — продуктовые требования (PRD).
 - doc/PROJECT_SPECIFICATION.md — бизнес-требования и сценарии.
-- doc/ARCHITECTURE_OVERVIEW.md — архитектура и структура.
+- doc/ARCHITECTURE.md — единая архитектурная модель, слайсы и правила реализации.
 - doc/API_GUIDELINES.md — правила REST + Events API.
 - doc/DATA_MODEL.md — обзор схемы БД.
 - doc/TESTING_STRATEGY.md — подход к тестированию.

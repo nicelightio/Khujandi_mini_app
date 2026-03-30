@@ -1,13 +1,15 @@
 # Техническое задание: Telegram Mini App «Худжанди»
 
-_Версия: 1.1  
-Дата: 2026-02-03_
+_Версия: 1.3  
+Дата: 2026-03-27_
 
 ---
 
 ## Введение
 
 «Худжанди» — Telegram Mini App для заказа готовой еды и доставки по городу. Проект включает Backend (NestJS + TypeScript + Prisma), Frontend (React + Vite) и Telegram-бота, который уведомляет участников процесса.
+
+Проект реализуется как `layered monolith`, организованный вокруг вертикальных слайсов (`vertical slices`), выделенных по capability. Это означает, что каждая значимая фича проектируется как end-to-end цепочка от интерфейса до инфраструктуры, опирается на acceptance-сценарий и дает быстрый демо-результат.
 
 ---
 
@@ -59,9 +61,28 @@ _Версия: 1.1
 ## Архитектура и стек
 
 - Backend: **NestJS + TypeScript + Prisma + PostgreSQL**.  
-- Монолит с модулями и вертикальными срезами (каждый use-case в отдельной папке; файлы до 300 строк).  
+- Frontend: **React + Vite + TypeScript**.  
+- Архитектура: **layered monolith + vertical slices**.  
+- Вертикальный слайс является основной единицей поставки ценности; модули допустимы как контейнеры слайсов и общих технических возможностей (`shared`).  
 - Telegram-бот — модуль внутри монолита.  
 - API: REST для команд (создать/изменить/удалить), polling для чтения через `GET /events?since=<cursor>`.
+
+### Канонические capability slices MVP
+
+- `catalog`
+- `checkout-payment`
+- `delivery-assignment`
+- `delivery-tracking`
+- `order-cancellation`
+- `reviews-feedback`
+- `admin-access`
+
+### Слои внутри каждого slice
+
+- `presentation` — интерфейсы React, интерфейсы веб-админки, обработчики Telegram-бота, REST-контроллеры.
+- `application` — прикладные сценарии, оркестрация и политики.
+- `domain` — инварианты, state machine, правила и сущности.
+- `infrastructure` — Prisma-репозитории, внешние провайдеры, транспорт Telegram-бота, auth-адаптеры.
 
 ### Авторизация
 
@@ -76,7 +97,7 @@ Telegram WebAppData передаётся на `POST /auth/telegram`. Backend п�
 
 ## Модель данных (в общих чертах)
 
-- **users** — единая таблица пользователей, `telegram_id` как ключ; роли: client/courier/seller/admin.  
+- **users** — единая таблица пользователей, `telegram_id` как ключ; роли: `boss/manager/admin/seller/courier/client`.  
 - Профили 1:1: **clients_profile**, **couriers_profile**, **admins_profile**, **sellers_profile**.  
 - **shops**, **products**, **orders**, **order_status_history**, **reviews**, **events**.
 
@@ -119,10 +140,10 @@ Telegram WebAppData передаётся на `POST /auth/telegram`. Backend п�
 
 | Версия | Основные фичи |
 |--------|---------------|
-| **v0.1** | MVP: CRUD магазинов, товаров, заказов; overlay языка; бот-уведомления |
-| **v0.2** | Админ-панель, назначение курьеров, история статусов |
-| **v0.3** | Система репутации и VIP, auto-assignment курьера |
-| **v0.4** | Альфа продакшн-релиз, оптимизация, нагрузочное тестирование |
+| **v0.1** | `catalog` + `checkout-payment`; overlay языка; базовые уведомления Telegram-бота |
+| **v0.2** | `delivery-assignment` + `delivery-tracking` + `order-cancellation` |
+| **v0.3** | `admin-access`, усиление безопасности и аудита |
+| **v0.4** | `reviews-feedback`, regression, оптимизация, нагрузочное тестирование |
 
 ---
 

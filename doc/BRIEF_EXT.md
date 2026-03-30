@@ -22,11 +22,21 @@
 ## 3. Архитектура и стек
 
 - Backend: **NestJS + TypeScript + Prisma + PostgreSQL**.
-- Frontend: **React + Vite + TypeScript**.
-- **Модульный монолит** с вертикальными срезами: каждый use‑case в отдельной папке, файлы до 300 строк.
+- Frontend: **React + TypeScript + Vite**; отдельная веб-админка может жить в том же репозитории до физического выделения.
+- Архитектура: **layered monolith + vertical slices**. Вертикальный слайс является основной единицей поставки ценности; модули допустимы как способ упаковки слайсов и общих технических возможностей (`shared`).
 - Telegram‑бот — модуль внутри монолита.
 - Команды (create/update/delete) — только REST.
 - Чтение — через polling событий: `GET /events?since=<cursor>`.
+
+### Канонические capability slices MVP
+
+- `catalog` — витрина магазинов и товаров.
+- `checkout-payment` — checkout, Telegram auth на границе checkout и создание заказа после успешной оплаты.
+- `delivery-assignment` — назначение курьера администратором.
+- `delivery-tracking` — жизненный цикл заказа, история статусов и polling обновлений.
+- `order-cancellation` — операционная отмена и ручной refund workflow.
+- `reviews-feedback` — двусторонние отзывы и негативные алерты.
+- `admin-access` — login/password контур веб-админки.
 
 ---
 
@@ -102,7 +112,7 @@
 ## 8. REST‑контуры (в общих чертах)
 
 - `/auth/telegram` — авторизация и выдача JWT.
-- `/orders` — создание, обновление, soft‑delete, просмотр деталей.
+- `/orders` — checkout, назначение, смена статуса, отмена, просмотр деталей.
 - `/shops` и `/products` — CRUD сущностей.
 - `/reviews` — создание и чтение отзывов.
 - `/events?since=<cursor>` — получение изменений.
@@ -154,11 +164,11 @@
 
 - Backend: Jest + @nestjs/testing + Supertest.
 - Frontend: Vitest (unit), Playwright (E2E позже).
-- MVP‑минимум: CRUD, RBAC, переходы статусов, генерация событий.
+- MVP‑минимум: acceptance-сценарий и e2e smoke на каждый capability slice, плюс integration/unit для критичных правил.
 
 ---
 
-## 14. Bottlenecks и ограничения
+## 14. Узкие места и ограничения
 
 - Polling дает нагрузку при росте клиентов — обязательны `revision/updated_at`.
 - Без очередей сложнее ретраи и массовые уведомления.
@@ -170,7 +180,7 @@
 
 ## 15. Дорожная карта
 
-- **v0.1**: CRUD магазинов, товаров, заказов; бот‑уведомления; выбор языка.
-- **v0.2**: админ‑панель, история статусов.
-- **v0.3**: репутация и VIP, авто‑назначение курьера.
-- **v0.4**: оптимизация, нагрузочное тестирование.
+- **v0.1**: `catalog` + `checkout-payment`; выбор языка; базовые уведомления Telegram-бота.
+- **v0.2**: `delivery-assignment` + `delivery-tracking` + `order-cancellation`.
+- **v0.3**: `admin-access`; усиление безопасности и аудита.
+- **v0.4**: `reviews-feedback`; оптимизация и нагрузочное тестирование.

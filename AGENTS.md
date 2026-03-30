@@ -1,46 +1,146 @@
-# AGENTS.md
+# Agent Operating Guide (Project Map)
 
-## Роль
-Ты — сабагент @inceptor. Отвечаешь только за правила и поддержку артефакта `AGENTS.md`.
-Не реализуешь фичи и не пишешь продуктовый код.
 
-## Принципы
-- KISS: только критически необходимые проверки и валидации.
-- Философия разработки: AI‑driven + Spec Driven с declarative architecture.
 
-## Роли и консультации
-- Пользователь — тимлид: ставит цели, утверждает архитектуру и приоритеты, направляет агентов.
-- Агенты — исполнители: проектируют архитектуру, генерируют декларации и спецификации, декомпозируют задачи, действуют после согласования ключевых развилок с тимлидом.
+## Prime before work
+1. Read `.memory-bank/mbb/index.md` (rules)
+2. Read `.memory-bank/spec-index.md` if it exists; treat the specifications listed there as the project source of truth
+3. Read `.memory-bank/index.md` (table of contents)
+4. Read the core spec layer:
+   - `.memory-bank/product.md`
+   - `.memory-bank/requirements.md`
+5. Read the smallest sufficient task-scoped spec subset for the current task:
+   - relevant `.memory-bank/epics/EP-*.md`
+   - relevant `.memory-bank/features/FT-*.md`
+   - relevant `.memory-bank/architecture/*.md`
+   - relevant `.memory-bank/diagrams/*`
+   - relevant `.memory-bank/lld/*`
+   - relevant `.memory-bank/contracts/*`
+   - relevant `.memory-bank/states/*`
+   - relevant `.memory-bank/adrs/*`
+   - relevant `.memory-bank/runbooks/*`
+6. Only after spec priming inspect code, `.tasks/`, and implementation details
 
-## Обязанности
-- В начале работы читать файлы memory bank из `.memory`.
-- По завершению задачи: рапортовать в `WORKLOG.md`, обновлять `CODEMAP.md` и нужные файлы memory bank.
-- Для обновления спецификаций и деклараций использовать сабагента `@memspec`.
-- При неоднозначностях или развилках — остановиться и инициировать консультацию с тимлидом.
-- При альтернативных подходах или усложнении архитектуры — запрашивать консультацию тимлида до продолжения.
+Fallback rule:
+- if `.memory-bank/spec-index.md` does not exist yet, use `.memory-bank/index.md` plus the core/task-scoped spec layers above.
 
-## Практика CONSULT/REFLECT
-- Перед запросом фиксировать контекст и вопросы в `.memory/TASKS.md` (префиксы `CONSULT`/`REFLECT`) и в `.memory/WORKLOG.md`.
-- Каждую нетривиальную развилку предварять задачей `CONSULT — …`.
-- Если нужен анализ рисков/альтернатив — создавать `REFLECT — …`.
-- При декомпозиции фаз проверять наличие `CONSULT/REFLECT` для каждой крупной области.
-- После консультации переносить решения в `.memory/WORKLOG.md`, обновлять статус задач и при необходимости создавать имплементационные подзадачи.
-- Для каждой ветки Kanban заводить `US {id}.GOV` (или `US {id}.Discovery`) и размещать `CONSULT/REFLECT` первым потомком.
-- Перед стартом дочерних `US/T` убедиться, что `US {id}.GOV` помечен `[x]`.
-- В `.memory/TASKS.md` поддерживать шаблон блока с `GOV`‑узлом.
+## Spec Driven Context Policy
+- Спецификации из `.memory-bank/spec-index.md` являются источником истины проекта.
+- `PRD.md` не является рабочей спецификацией для реализации; это входной артефакт для генерации и обновления спецификаций.
+- Сначала искать ответ в spec-driven документах, потом в коде и только потом делать выводы.
+- Код — источник implementation truth, но не product/behavior intent truth.
+- Если код расходится со спецификациями, не выбирать молча одну из сторон: явно фиксировать drift.
+- Если для задачи не хватает спецификаций, сначала дополни/уточни `.memory-bank/`, потом переходи к реализации.
+- Для feature-задач обязательно грузить `product.md`, `requirements.md`, соответствующие `EP-*` и `FT-*`.
+- Для API/runtime задач обязательно дополнительно грузить `architecture/*`, `contracts/*`, `states/*`, `adrs/*`.
+- Для retrieval/repair/manual-review задач обязательно дополнительно грузить соответствующие `runbooks/*`.
 
-## Canonical Spec‑Driven процесс
-1) Любые изменения поведения/публичных интерфейсов — сначала `@memspec` и только через него.
-2) Добавить/обновить unit + contract‑тесты при необходимости; прогон pre‑commit чек‑листа (см. CONTEXT).
-3) Внести минимально достаточные изменения кода.
+## Docs First
+After finishing a meaningful unit of work:
+1) Update `.memory-bank/` (WHY/WHERE + navigation)
+2) Then commit code changes
 
-## Отчетность
-- В отчете указывать команды запуска тестов/линта и краткие логи/снимки версий контрактов.
-- Общение и документация на русском, допускаются устойчивые англ. термины.
+Before meaningful implementation work:
+1) Read and align with the relevant spec set
+2) If needed, refresh or repair the spec set first
 
-## Кодировочная дисциплина
-- Все текстовые артефакты в UTF‑8 без BOM.
-- После правок проверять чтение UTF‑8 и отсутствие артефактов в `git diff`.
+## Runtime vs durable memory
+- Durable knowledge base: `.memory-bank/`
+- Operational artifacts: `.tasks/` (NOT part of Memory Bank)
+- Long-running plans/logs: `.protocols/`
 
-## Выход
-- Результат — корректный `AGENTS.md`, соответствующий правилам среды и проекта.
+## Where skills live (don’t confuse)
+- Codex CLI reads project skills from `.agents/skills/<name>/SKILL.md` (not from `.codex/`).
+- `.codex/` is only for project configuration (e.g. `.codex/config.toml`).
+
+## Subagents
+- Orchestrator → workers only (max depth = 2)
+- Workers write details into `.tasks/TASK-XXX/`
+- Orchestrator reads only short summaries
+
+## Clean context (recommended)
+- If running in **Codex**: you can run each `TASK-XXX` in a fresh session via `codex exec` (see `/execute`).
+- Sequencing: independent tasks may run in parallel clean sessions; dependent/shared-file tasks must run sequentially.
+
+Codex (fresh session):
+- `codex exec --ephemeral --full-auto -m gpt-5.2-high 'TASK_ID=TASK-123. Read AGENTS.md + .memory-bank/mbb/index.md + .memory-bank/spec-index.md (if exists) + relevant spec files + .protocols/TASK-123/{context,plan,progress}.md. Keep context.md updated. Implement. Update progress. Report → .tasks/TASK-123/…'`
+
+
+## Two modes (interactive vs autonomous)
+- **Interactive**: run `/prd` → pick one `FT-<NNN>` → `/prd-to-tasks FT-<NNN>` → execute tasks one-by-one with `/execute TASK-<ID>` and review after each wave.
+- **Autonomous (batch)**: use `/autonomous` for full `PRD → done`, or `/autopilot` if backlog already exists. See: `.memory-bank/workflows/execute-loop.md` and `.memory-bank/workflows/autonomy-policy.md`.
+
+Naming:
+- Folder: `.tasks/TASK-<ID>/`
+- Files: `TASK-<ID>-S-<STAGE>-final-report-<code|docs>-<NN>.md`
+
+## Quality gates (before merge)
+- lint / typecheck / build
+- unit tests
+- e2e tests (if UI/flow)
+
+
+## General
+1. Do not overengineer! 
+2. Главная цель агентов: делать минимальные, проверяемые и согласованные изменения в рамках **AI-driven + Spec Driven** подхода.
+3. Вносить **минимально достаточные** изменения (KISS, без лишней архитектурной сложности).
+4. Specs-first: не придумывать поведение, уже ограниченное спецификациями.
+5. При недостаточности спецификаций сначала уточнить spec layer, затем код.
+
+## Разработка архитектуры проекта
+- по умолчанию выбирать modular monolith, если нет явной причины для микросервисов;
+- каждая крупная capability оформляется как вертикальный модуль;
+- внутри модуля структура слоистая: ui/app -> application -> domain -> infra;
+- shared code разрешён только для реально общих primitives, а не для “удобного склада функций”;
+- feature/task должны быть спроектированы так, чтобы агент мог реализовать их в узком scope;
+- boundaries модулей выражаются через contracts/interfaces/schemas;
+- cross-module calls должны быть минимальны и явны.
+- AI-first default: сначала проектировать узкие vertical slices и их boundary contracts, затем implementation;
+- не создавать широкие shared abstractions заранее; shared слой добавлять только при явном и повторяемом доказательстве общности;
+- каждая TASK по умолчанию должна укладываться в один slice и 1-2 слоя; более широкие изменения сначала дробить на boundary/contract-first -> implementation -> integration шаги.
+
+
+## Communication 
+- Коммуникация и документация: русский язык, допустимы устойчивые англоязычные термины.
+
+## Кодовая дисциплина
+- Все текстовые файлы: UTF-8 без BOM.
+- После правок проверять, что в `git diff` нет артефактов кодировки (например, "Р...").
+- Не делать destructive git-операции без явного запроса (например, `reset --hard`, force push).
+- Не коммитить и не пушить без явной команды тимлида.
+
+- Предпочитать специализированные инструменты для файловых операций и поиска.
+- Сохранять существующие паттерны проекта; не делать разрушительных переписей без необходимости.
+- При неоднозначности, влияющей на архитектуру/риски/стоимость, остановиться и запросить консультацию тимлида.
+- Для любой нетривиальной задачи сначала определить, какие спецификации из `.memory-bank/spec-index.md` относятся к задаче, и загрузить их в контекст.
+
+### Windows 10 / PowerShell
+- В Windows считать кодировку подозрительной по умолчанию и явно предпочитать UTF-8 при чтении и записи.
+- Не доверять только выводу PowerShell: консоль может показывать кракозябры даже при нормальном файле.
+- После первой правки сразу проверять `git diff`; только после чистого diff продолжать остальные изменения.
+- Не использовать инструменты, которые могут молча сохранить файл в ANSI, CP1251 или UTF-8 с BOM.
+- 
+## Entry points
+- /cold-start → .memory-bank/commands/cold-start.md
+- /mb → .memory-bank/commands/mb.md
+- /mb-init → .memory-bank/commands/mb-init.md
+- /prd → .memory-bank/commands/prd.md
+- /prd-to-tasks → .memory-bank/commands/prd-to-tasks.md
+- /mb-from-prd → .memory-bank/commands/mb-from-prd.md (alias)
+- /mb-execute → .memory-bank/commands/mb-execute.md (alias)
+- /execute → .memory-bank/commands/execute.md
+- /verify → .memory-bank/commands/verify.md
+- /mb-verify → .memory-bank/commands/mb-verify.md (alias)
+- /autopilot → .memory-bank/commands/autopilot.md
+- /autonomous → .memory-bank/commands/autonomous.md
+- /map-codebase → .memory-bank/commands/map-codebase.md
+- /mb-map-codebase → .memory-bank/commands/mb-map-codebase.md (alias)
+- /mb-sync → .memory-bank/commands/mb-sync.md
+- /discuss → .memory-bank/commands/discuss.md
+- /add-tests → .memory-bank/commands/add-tests.md
+- /review → .memory-bank/commands/review.md
+- /mb-review → .memory-bank/commands/mb-review.md (alias)
+- /mb-garden → .memory-bank/commands/mb-garden.md
+- /mb-harness → .memory-bank/commands/mb-harness.md
+- /find-skills → .memory-bank/commands/find-skills.md
+- /find-skill → .memory-bank/commands/find-skill.md (alias)

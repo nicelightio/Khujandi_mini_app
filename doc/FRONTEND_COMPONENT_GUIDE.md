@@ -1,80 +1,112 @@
 # FRONTEND_COMPONENT_GUIDE.md — Паттерны и структура React + Vite фронтенда
 
-_Версия: 0.2  
-Дата: 2026-02-03_
+_Версия: 1.0_  
+_Дата: 2026-03-27_
 
----
+## 1. Роль фронтенда в архитектуре
 
-## 1. Дерево каталогов
+Фронтенд следует общей архитектурной модели проекта: `Layered architecture` + `Vertical slices`.
 
-```
+- Основная единица организации UI-кода — capability slice.
+- Каждый slice закрывает одну пользовательскую ценность end-to-end.
+- Общий код хранится в `shared/`, но только если он действительно нужен нескольким slices.
+- UI-слой не должен становиться местом, куда стекается размытая бизнес-логика.
+
+## 2. Рекомендуемая структура каталогов
+
+```text
 frontend/
-  ├─ src/
-  │  ├─ main.tsx             # точка входа
-  │  ├─ App.tsx              # роутер и layout
-  │  ├─ routes/              # страницы (React Router)
-  │  │   ├─ Home.tsx
-  │  │   ├─ Shops.tsx
-  │  │   ├─ ShopDetails.tsx
-  │  │   ├─ Products.tsx
-  │  │   ├─ Orders.tsx
-  │  │   ├─ OrderDetails.tsx
-  │  │   ├─ Profile.tsx
-  │  │   └─ Auth.tsx
-  │  ├─ components/
-  │  │   ├─ ui/
-  │  │   ├─ ShopCard.tsx
-  │  │   ├─ ProductCard.tsx
-  │  │   └─ MainBanner.tsx
-  │  ├─ lib/
-  │  │   ├─ api.ts            # REST-обёртка
-  │  │   ├─ telegram.ts       # Telegram WebApp API
-  │  │   ├─ i18n.ts           # Paraglide.js
-  │  │   ├─ storage.ts        # sessionStorage helpers
-  │  │   └─ types.ts          # общие TS-типы
-  │  ├─ state/
-  │  │   ├─ useUserStore.ts
-  │  │   ├─ useCartStore.ts
-  │  │   └─ useUiStore.ts
-  │  ├─ languages/            # ru.ts, en.ts, tj.ts
-  │  └─ styles/               # global.css, variables.css
-  ├─ public/                  # assets
-  ├─ vite.config.ts
-  └─ tsconfig.json
+  src/
+    app/
+      main.tsx              # точка входа
+      router.tsx            # корневой роутер
+      providers/            # app-level providers
+    slices/
+      catalog/
+        routes/
+        components/
+        hooks/
+        api/
+        model/
+      checkout-payment/
+        routes/
+        components/
+        hooks/
+        api/
+        model/
+      delivery-tracking/
+        routes/
+        components/
+        hooks/
+        api/
+        model/
+      reviews-feedback/
+        routes/
+        components/
+        hooks/
+        api/
+        model/
+      admin-access/         # если admin-space временно живет в том же приложении
+      delivery-assignment/
+      order-cancellation/
+    shared/
+      ui/                   # переиспользуемые примитивы
+      lib/                  # api client, storage, formatters
+      state/                # user/session/ui stores
+      telegram/             # интеграция с Telegram WebApp API
+      i18n/                 # Paraglide.js и языковые настройки
+      styles/               # global.css, variables.css
+    tests/
+      slices/
+      shared/
 ```
 
----
+Если `admin-web/` выделяется в отдельное приложение, оно повторяет те же принципы: `app/`, `slices/`, `shared/`.
 
-## 2. Паттерн “Smart vs. Dumb”
+## 3. Как раскладывать код внутри slice
+
+| Папка | Что хранит |
+|------|------------|
+| `routes/` | route-level экраны и контейнеры slice |
+| `components/` | UI-компоненты, специфичные для slice |
+| `hooks/` | локальные hooks и orchestration клиентского поведения |
+| `api/` | запросы и маппинг контрактов конкретного slice |
+| `model/` | локальное состояние, селекторы, типы и view-model правила |
+
+Правило: если код относится только к одному slice, он остается внутри этого slice.
+
+## 4. Контейнеры и презентационные компоненты
 
 | Тип | Расположение | Ответственность |
 |-----|--------------|-----------------|
-| **Smart** | `routes/*.tsx` | Запрашивает данные, управляет состоянием, передаёт props |
-| **Dumb**  | `components/**` | Только UI-рендер по props, не знает о API |
+| **Container** | `slices/*/routes` или `slices/*/hooks` | Собирает данные, управляет локальным состоянием, вызывает API и stores |
+| **Presentational** | `slices/*/components` или `shared/ui` | Рендерит UI по props, не знает о сетевых деталях |
 
----
+Компонент переносится в `shared/ui` только тогда, когда он реально переиспользуется между несколькими slices без встраивания бизнес-смысла.
 
-## 3. State
+## 5. State management
 
-| Store            | Тип      | Содержимое                           |
-|------------------|----------|--------------------------------------|
-| `useUserStore`   | Zustand  | `{ id, role, lang, token }`          |
-| `useCartStore`   | Zustand  | `{ items: CartItem[], total }`       |
-| `useUiStore`     | Zustand  | `{ loading, toasts }`                |
+Рекомендуемое разделение состояния:
 
-Правило: **нет** прямого обращения к `localStorage`; persist делаем через `sessionStorage` в `storage.ts` и `useEffect`.
+| Store / state | Где живет | Что хранит |
+|---------------|-----------|------------|
+| `user/session` | `shared/state` | профиль пользователя, токен, роль, язык |
+| `ui` | `shared/state` | loader, toasts, модальные окна, глобальные флаги |
+| `cart` | `slices/checkout-payment/model` или `shared/state` | товары корзины и суммы |
+| slice-local state | `slices/*/model` | локальные фильтры, stepper-стейт, временные view-model данные |
 
----
+Правила:
+- нет прямого обращения к `localStorage` из компонентов;
+- persist выполняется через helpers в `shared/lib/storage.ts`;
+- глобальный store не должен подменять собой границы slices.
 
-## 4. i18n
+## 6. i18n
 
-- Paraglide.js генерирует `t('key')`.  
-- Файлы переводов разделены по пространствам: `home`, `shop`, `order`, `common`.  
-- Строки UI хранятся в `languages/{lang}.ts` и импортируются “tree-shakable”.
+- Paraglide.js генерирует функции переводов.
+- Переводы лучше группировать по slices и `shared/common`, а не по абстрактным экранам.
+- Язык выбирается один раз при первом запуске и затем хранится в session-level persistence.
 
----
-
-## 5. Overlay выбора языка
+Пример логики:
 
 ```tsx
 {showLangOverlay && (
@@ -82,38 +114,34 @@ frontend/
 )}
 ```
 
-Скрываем после первого выбора, сохраняем `sessionStorage.setItem('lang', lang)`.
+## 7. Telegram WebApp UI
 
----
+- Вызываем `Telegram.WebApp.ready()` как можно раньше.
+- Используем `Telegram.WebApp.expand()` для минимизации сжатого viewport.
+- Поддерживаем safe-area через `env(safe-area-inset-*)`.
+- Стабилизируем высоту через `WebApp.viewportStableHeight` и событие `viewportChanged`.
+- Применяем тему через `WebApp.themeParams` и обновляем CSS-переменные на `themeChanged`.
+- Убираем «прыжки» интерфейса через аккуратные контейнеры и `overscroll-behavior: none`.
 
-## 6. Гладкий Telegram WebView UI
+## 8. Тестирование фронтенда
 
-- Вызываем `Telegram.WebApp.ready()` как можно раньше (в `main.tsx` или `App.tsx`).
-- Используем `Telegram.WebApp.expand()` для минимизации “сжатого” viewport.
-- Поддерживаем safe-area через `env(safe-area-inset-*)` и паддинги контейнеров.
-- Стабилизируем высоту: ставим CSS-переменную из `WebApp.viewportStableHeight`, обновляем на событие `viewportChanged`.
-- Применяем тему через `WebApp.themeParams` и обновляем переменные на событие `themeChanged`.
-- Убираем «прыжки» и скролл: `overscroll-behavior: none;` и аккуратные контейнеры.
+| Уровень | Инструмент | Организация |
+|---------|-----------|-------------|
+| Unit | Vitest | `src/tests/slices/*` и `src/tests/shared/*` |
+| UI / E2E | Playwright | сценарии по capability slices |
 
----
+Фронтенд-тесты должны повторять архитектурную логику проекта: сначала capability slice, затем конкретные компоненты и утилиты.
 
-## 7. Тестирование
+## 9. Практические правила
 
-| Уровень | Инструмент | Папка |
-|---------|-----------|-------|
-| Unit    | Vitest    | `src/tests/*.test.ts` |
-| UI      | Playwright| `frontend-tests/` (план) |
-
----
-
-## 8. Best Practices
-
-1. **No Business Logic in Components** — максимум map/format.  
-2. Фетчи и Telegram WebApp API — в hooks (`useEffect`) или `lib/telegram.ts`.  
-3. Глобальный loader через `<Loader visible={loading} />`.  
-4. Ошибки API показываем toast-ом и логируем в Sentry (в будущем).  
+1. Не переносить бизнес-логику в UI-компоненты.
+2. Не делать `shared` свалкой для slice-specific кода.
+3. Не строить фронтенд вокруг глобального набора страниц, если фича естественно укладывается в slice.
+4. API-вызовы, Telegram WebApp API и orchestration держать в hooks, model или shared-lib, а не в JSX-разметке.
 5. Имена: PascalCase для компонентов, camelCase для hooks и функций.
 
----
+## 10. Связь с общей архитектурой проекта
 
-Конец документа.
+- `catalog`, `checkout-payment`, `delivery-tracking` и `reviews-feedback` являются основными клиентскими slices Mini App.
+- `admin-access`, `delivery-assignment` и `order-cancellation` живут либо в отдельной веб-админке, либо во временном admin-space внутри того же фронтенда.
+- Если один slice затрагивает несколько UI-контуров, каждый контур все равно реализует только свой `presentation`-слой этого slice.
