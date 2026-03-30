@@ -7,9 +7,10 @@ const createRepository = (): CatalogRepository => ({
 });
 
 describe("catalog service scaffold", () => {
-  it("keeps behavior behind the owning repository boundary", async () => {
+  it("keeps public browse behavior behind the owning repository boundary", async () => {
     const service = new CatalogService(createRepository());
 
     await expect(service.listPublicShops()).resolves.toEqual([]);
+    await expect(service.listPublicProductsByShop("shop-1")).resolves.toEqual([]);
   });
 });

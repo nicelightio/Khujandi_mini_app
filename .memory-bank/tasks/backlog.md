@@ -68,7 +68,7 @@ status: active
 
 ### TASK-FT001-04 — Implement public shop and product reads with soft-delete filtering
 - TASK-ID: `TASK-FT001-04`
-- Status: `ready`
+- Status: `in_progress`
 - Wave: `W2`
 - Feature: `FT-001`
 - REQs: `REQ-001`

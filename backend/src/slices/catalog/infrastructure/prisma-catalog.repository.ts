@@ -10,16 +10,32 @@ export class PrismaCatalogRepository implements CatalogRepository {
   constructor(private readonly prisma: PrismaProvider) {}
 
   async listPublicShops(): Promise<CatalogShop[]> {
-    void this.prisma;
-
-    // Scaffold only: runtime query wiring lands in TASK-FT001-04.
-    return [];
+    return this.prisma.client.shop.findMany({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
   }
 
-  async listPublicProductsByShop(_shopId: ShopId): Promise<CatalogProduct[]> {
-    void this.prisma;
-
-    // Scaffold only: runtime query wiring lands in TASK-FT001-04.
-    return [];
+  async listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]> {
+    return this.prisma.client.product.findMany({
+      where: {
+        shopId,
+        isDeleted: false,
+        shop: {
+          isDeleted: false,
+        },
+      },
+      select: {
+        id: true,
+        shopId: true,
+        name: true,
+        priceMinor: true,
+      },
+    });
   }
 }
