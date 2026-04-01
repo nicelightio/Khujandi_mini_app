@@ -77,3 +77,13 @@ status: active
 - `/verify TASK-FT001-07` found that task-level evidence does not cover customer-facing route/page rendering.
 - Direct Jest runs for existing `catalog-page.spec.tsx` and `catalog-route.spec.tsx` returned `No tests found` because the repo-local harness matches only `*.spec.ts` files.
 - Marked `TASK-FT001-07` as `failed`, created an active bug record, and blocked dependent `TASK-FT001-08` until route/page verification is added.
+
+## [2026-04-01] TASK-FT001-07 verification pass after route/page smoke fix
+- Extended the repo-local catalog Jest harness to execute frontend `*.spec.tsx` route/page smoke tests.
+- Added deterministic public browse rendering coverage for `CatalogPage` and `CatalogRoute`, including loading, empty, error, and ready states.
+- Re-ran `npm run test:catalog` and route/page smoke specs successfully, archived the verification bug, and restored `TASK-FT001-07` to `done`.
+
+## [2026-04-01] TASK-FT001-08 final catalog verification and RTM sync
+- Re-ran repo-local typecheck, unit, integration, and combined catalog verification gates for `FT-001`.
+- Synced `REQ-001`, `REQ-002`, and `REQ-020` to `done` based on route/page smoke, seller ownership integration, and rename/snapshot-scope evidence.
+- Marked `TASK-FT001-08` done and closed the remaining feature-wide verification/docs sync for the current repo scope.

@@ -42,8 +42,8 @@ status: active
 ## Traceability (RTM)
 | REQ | Epic | Feature | Test | Lifecycle |
 |---|---|---|---|---|
-| REQ-001 | EP-001 | FT-001 | e2e: public catalog browse | planned |
-| REQ-002 | EP-001 | FT-001 | integration: seller ownership + soft-delete | planned |
+| REQ-001 | EP-001 | FT-001 | e2e: public catalog browse | done |
+| REQ-002 | EP-001 | FT-001 | integration: seller ownership + soft-delete | done |
 | REQ-003 | EP-001 | FT-003 | e2e: first-run language selection | planned |
 | REQ-004 | EP-001 | FT-002 | integration: telegram initData validation | planned |
 | REQ-005 | EP-001 | FT-002 | e2e: successful payment creates order | planned |
@@ -64,7 +64,7 @@ status: active
 | REQ-018 | EP-002 | FT-006 | integration: cancellation audit and error contract | planned |
 | REQ-018 | EP-003 | FT-007 | integration: auth audit and error contract | planned |
 | REQ-019 | EP-001 | FT-009 | e2e: Telegram WebView shell baseline | planned |
-| REQ-020 | EP-001 | FT-001 | unit: rename policy and shop name snapshot | planned |
+| REQ-020 | EP-001 | FT-001 | unit: rename policy and shop name snapshot | done |
 | REQ-021 | EP-001 | FT-002 | integration: trusted payment callback and replay protection | planned |
 
 ## Source artifacts

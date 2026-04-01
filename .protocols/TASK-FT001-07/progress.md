@@ -15,8 +15,10 @@ status: active
 - 2026-04-01: Completed Memory Bank sync and moved the task to `done`.
 - 2026-04-01: `/verify TASK-FT001-07` found that route/page-level rendering evidence is missing; current `.spec.tsx` files are not executed by the repo-local Jest harness.
 - 2026-04-01: Recorded active bug, changed task state to `failed`, and blocked `TASK-FT001-08` pending deterministic route/page verification.
+- 2026-04-01: Extended the repo-local Jest harness to run `*.spec.tsx` route/page smoke tests and added executable `CatalogPage`/`CatalogRoute` verification.
+- 2026-04-01: Re-ran catalog suite and restored formal verification to `PASS`.
 
 ## Current status
 
-- State: `failed`
-- Current focus: implementation remains in place, but formal verification is incomplete until route/page smoke coverage is added.
+- State: `done`
+- Current focus: implementation and formal verification are complete.

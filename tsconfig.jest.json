@@ -7,7 +7,8 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "jsx": "react-jsx",
     "types": ["jest", "node"]
   },
-  "include": ["backend/src/**/*.ts", "tests/**/*.ts", "frontend/src/**/*.ts"]
+  "include": ["backend/src/**/*.ts", "tests/**/*.ts", "frontend/src/**/*.ts", "frontend/src/**/*.tsx"]
 }

@@ -42,4 +42,4 @@ status: active
 
 - `npm run test:catalog:unit` runs `tests/slices/catalog/catalog.unit.spec.ts`.
 - `npm run test:catalog:integration` runs `tests/slices/catalog/catalog.integration.spec.ts`.
-- `npm run test:catalog` runs the checked-in backend catalog specs plus frontend catalog API/view-model smoke specs through the root Jest config.
+- `npm run test:catalog` runs the checked-in backend catalog specs plus frontend catalog API/view-model and route/page smoke specs through the root Jest config.

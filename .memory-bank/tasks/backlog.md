@@ -108,7 +108,7 @@ status: active
 
 ### TASK-FT001-07 — Wire public catalog UI to backend read path
 - TASK-ID: `TASK-FT001-07`
-- Status: `failed`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-001`
 - REQs: `REQ-001`
@@ -120,7 +120,7 @@ status: active
 
 ### TASK-FT001-08 — Add catalog verification suite and final docs sync
 - TASK-ID: `TASK-FT001-08`
-- Status: `blocked`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-001`
 - REQs: `REQ-001`, `REQ-002`, `REQ-020`

@@ -1,6 +1,6 @@
 ---
 description: Verification failure for TASK-FT001-07 due to missing route/page-level public catalog smoke coverage.
-status: active
+status: archived
 ---
 # BUG-2026-04-01 TASK-FT001-07 Missing Route Render Verification
 
@@ -29,3 +29,10 @@ status: active
 
 - Extend the repo-local frontend harness to include `*.spec.tsx` route/page tests or add another deterministic rendering verification path.
 - Add route/page smoke tests that assert visible shop/product rendering and loading/error states through the customer-facing `catalog` route.
+
+## Resolution
+
+- Date: `2026-04-01`
+- `jest.config.cjs` and `tsconfig.jest.json` were extended to execute `*.spec.tsx` frontend tests.
+- Added executable `catalog-page.spec.tsx` and `catalog-route.spec.tsx` route/page smoke coverage.
+- `npx jest --config jest.config.cjs "frontend/src/tests/slices/catalog/catalog-page.spec.tsx" "frontend/src/tests/slices/catalog/catalog-route.spec.tsx"` now passes.

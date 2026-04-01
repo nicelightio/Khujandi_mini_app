@@ -37,6 +37,8 @@ status: active
 - `FT-001`: seller-scoped shop writes and rename marker logic are implemented and verified via `TASK-FT001-05`.
 - `FT-001`: seller-scoped product writes with shop linkage validation are implemented and verified via `TASK-FT001-06`.
 - `FT-001`: frontend public catalog route now loads backend browse data and covers loading/empty/error states via `TASK-FT001-07`.
+- `FT-001`: repo-local frontend route/page smoke coverage now verifies public catalog rendering for `TASK-FT001-07`.
+- `FT-001`: final verification/docs sync completed in `TASK-FT001-08`, and RTM for `REQ-001/002/020` is now marked `done`.
 - `FT-001`: repo-local backend Jest runner for catalog specs was added via `TASK-FT001-09` and now underpins backend verification.
 
 ## Current MVP map

@@ -16,9 +16,9 @@ status: active
 - `TASK-FT001-04` completed and verified the backend public browse read path for `shops/products` with soft-delete filtering.
 - `TASK-FT001-05` completed and verified seller-scoped shop writes and rename marker logic.
 - `TASK-FT001-06` completed and verified seller-scoped product writes with shop linkage validation.
-- `TASK-FT001-07` completed the frontend public catalog wiring to backend browse reads, but formal verify failed because route/page rendering smoke coverage is still missing.
+- `TASK-FT001-07` completed and verified the frontend public catalog wiring to backend browse reads, including route/page smoke coverage for loading, empty, error, and ready states.
 - `TASK-FT001-09` added the minimal repo-local backend Jest runner for catalog unit/integration specs.
-- Final feature-wide acceptance and e2e closure remain pending; `TASK-FT001-08` is currently blocked by the `TASK-FT001-07` verification gap.
+- `TASK-FT001-08` completed the final verification/docs sync for `REQ-001`, `REQ-002`, and `REQ-020`, including route/page smoke coverage and RTM updates.
 
 ## Use cases
 
@@ -55,3 +55,9 @@ status: active
 - e2e: public catalog browse without login.
 - integration: seller ownership checks and soft-delete filtering.
 - unit: rename pricing rule and snapshot preservation.
+
+## Verification closure
+
+- `REQ-001` is covered by public browse route/page smoke plus backend public read tests.
+- `REQ-002` is covered by backend integration/unit checks for seller ownership and soft-delete filtering.
+- `REQ-020` is covered by rename policy unit/integration checks and by persistence scoping evidence that rename mutates only `catalog` shop data without cross-slice snapshot writes.
