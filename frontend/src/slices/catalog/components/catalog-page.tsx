@@ -7,11 +7,35 @@ type CatalogPageProps = {
 
 export const CatalogPage = ({ viewModel }: CatalogPageProps) => {
   return (
-    <PageShell title="Catalog">
-      <section>
-        <p>{viewModel.headline}</p>
+    <PageShell title={viewModel.headline}>
+      <section aria-live="polite">
         <p>{viewModel.statusLabel}</p>
+        {viewModel.isLoading ? <p>Loading catalog...</p> : null}
+        {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
       </section>
+
+      {viewModel.isLoading || viewModel.errorMessage !== null || viewModel.isEmpty ? null : (
+        <section>
+          {viewModel.shops.map((shop) => (
+            <article key={shop.id} data-shop-id={shop.id}>
+              <h2>{shop.name}</h2>
+
+              {shop.emptyLabel !== null ? (
+                <p>{shop.emptyLabel}</p>
+              ) : (
+                <ul>
+                  {shop.products.map((product) => (
+                    <li key={product.id}>
+                      <strong>{product.name}</strong>
+                      <span>{` ${product.priceLabel}`}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          ))}
+        </section>
+      )}
     </PageShell>
   );
 };

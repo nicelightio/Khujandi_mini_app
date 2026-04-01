@@ -13,7 +13,12 @@ status: active
 - `TASK-FT001-01` completed the docs-first freeze for public browse and seller write boundaries.
 - `TASK-FT001-02` completed the backend `catalog` scaffold, Prisma baseline, and backend test skeleton.
 - `TASK-FT001-03` completed the frontend `catalog` scaffold and public route shell.
-- Runtime behavior for browse and seller writes remains pending in follow-up tasks, so RTM lifecycle stays `planned` until code and tests land.
+- `TASK-FT001-04` completed and verified the backend public browse read path for `shops/products` with soft-delete filtering.
+- `TASK-FT001-05` completed and verified seller-scoped shop writes and rename marker logic.
+- `TASK-FT001-06` completed and verified seller-scoped product writes with shop linkage validation.
+- `TASK-FT001-07` completed the frontend public catalog wiring to backend browse reads, but formal verify failed because route/page rendering smoke coverage is still missing.
+- `TASK-FT001-09` added the minimal repo-local backend Jest runner for catalog unit/integration specs.
+- Final feature-wide acceptance and e2e closure remain pending; `TASK-FT001-08` is currently blocked by the `TASK-FT001-07` verification gap.
 
 ## Use cases
 

@@ -2,8 +2,6 @@
 node_modules/
 
 # Generated when testing the skill pack locally
-.tasks/
-.protocols/
 .claude/
 .agents/
 .codex/

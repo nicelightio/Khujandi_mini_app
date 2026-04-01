@@ -33,6 +33,11 @@ status: active
 - `FT-001`: contract layer extended with `catalog-public-api` and `seller-catalog-write-policy` for docs-first implementation.
 - `FT-001`: backend `catalog` scaffold, Prisma baseline, and backend test skeleton added for `TASK-FT001-02`.
 - `FT-001`: frontend `catalog` scaffold and public route shell added for `TASK-FT001-03`.
+- `FT-001`: backend public browse read path for `shops/products` is implemented and verified via `TASK-FT001-04`.
+- `FT-001`: seller-scoped shop writes and rename marker logic are implemented and verified via `TASK-FT001-05`.
+- `FT-001`: seller-scoped product writes with shop linkage validation are implemented and verified via `TASK-FT001-06`.
+- `FT-001`: frontend public catalog route now loads backend browse data and covers loading/empty/error states via `TASK-FT001-07`.
+- `FT-001`: repo-local backend Jest runner for catalog specs was added via `TASK-FT001-09` and now underpins backend verification.
 
 ## Current MVP map
 

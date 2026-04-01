@@ -68,7 +68,7 @@ status: active
 
 ### TASK-FT001-04 — Implement public shop and product reads with soft-delete filtering
 - TASK-ID: `TASK-FT001-04`
-- Status: `in_progress`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-001`
 - REQs: `REQ-001`
@@ -81,7 +81,7 @@ status: active
 
 ### TASK-FT001-05 — Implement seller-scoped shop writes and rename policy flags
 - TASK-ID: `TASK-FT001-05`
-- Status: `ready`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-001`
 - REQs: `REQ-002`, `REQ-020`
@@ -94,7 +94,7 @@ status: active
 
 ### TASK-FT001-06 — Implement seller-scoped product writes
 - TASK-ID: `TASK-FT001-06`
-- Status: `ready`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-001`
 - REQs: `REQ-002`
@@ -108,7 +108,7 @@ status: active
 
 ### TASK-FT001-07 — Wire public catalog UI to backend read path
 - TASK-ID: `TASK-FT001-07`
-- Status: `planned`
+- Status: `failed`
 - Wave: `W3`
 - Feature: `FT-001`
 - REQs: `REQ-001`
@@ -120,7 +120,7 @@ status: active
 
 ### TASK-FT001-08 — Add catalog verification suite and final docs sync
 - TASK-ID: `TASK-FT001-08`
-- Status: `planned`
+- Status: `blocked`
 - Wave: `W3`
 - Feature: `FT-001`
 - REQs: `REQ-001`, `REQ-002`, `REQ-020`
@@ -130,6 +130,18 @@ status: active
 - Verify: acceptance criteria из `FT-001` полностью покрыты tests/UAT и RTM остается согласованной
 - Docs: `features/FT-001`, `requirements.md`, `changelog.md`, при необходимости `contracts/*`
 - Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`
+
+### TASK-FT001-09 — Add repo test runner config for catalog specs
+- TASK-ID: `TASK-FT001-09`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-001`
+- REQs: `REQ-001`
+- Depends on: `none`
+- Touched files: `package.json`, `jest.config.*`, `tsconfig*.json`, `tests/**/*`, `backend/**/*`
+- Tests: run `catalog.unit.spec.ts` and `catalog.integration.spec.ts` through repo-local harness
+- Verify: repo can execute backend catalog `.spec.ts` files without temporary ad-hoc CLI tooling
+- Docs: `tasks/backlog.md`, `changelog.md`, if needed `testing/index.md`
 
 ## Conventions
 Each task should include:
