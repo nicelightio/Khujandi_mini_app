@@ -94,23 +94,17 @@ npm -v
 
 ## 4. Prepare app directory
 
-Рекомендуемый путь:
-
 ```bash
 mkdir -p /var/www/tgmeal
-cd /var/www/tgmeal
 ```
 
-Дальше либо клонируй репозиторий, либо скопируй текущий workspace на сервер.
-
-Пример с git:
+Дальше клонируй репозиторий.
 
 ```bash
+cd /var/www/tgmeal
 git clone https://github.com/nicelightio/Khujandi_mini_app.git app
 cd /var/www/tgmeal/app
 ```
-
-Если репозиторий не в remote, загрузи файлы любым удобным способом и перейди в каталог проекта.
 
 ## 5. Install dependencies and build frontend
 
@@ -314,75 +308,71 @@ curl -I https://tgmeal.natureonzoom.win
 - Это достаточно для `FT-009` shell/runtime verify.
 - Для production-like auth verify нужен отдельный backend deploy с реальным `POST /auth/telegram`, `bot token`, replay guard и session contour; этот runbook этого не покрывает.
 
-## 13. What to verify on Android now
+## 13. Android verify procedure
 
 См. checklist:
 
 - `.tasks/TASK-FT009-06/android-evidence-checklist.md`
 
-Минимальные обязательные проверки:
+Рекомендуемый порядок проверки:
 
-1. bootstrap без долгого placeholder;
-2. safe-area на catalog;
-3. safe-area и bottom CTA на checkout;
-4. keyboard behavior без layout jump;
-5. theme change;
-6. deactivate/reactivate;
-7. back/swipe policy.
+1. Запусти Mini App из Telegram Android через menu button бота.
+2. На первом запуске выбери язык и дождись открытия каталога.
+3. Проверь `bootstrap`:
+   - приложение открывается без длинного зависшего placeholder;
+   - shell выглядит готовым сразу после загрузки.
+4. Проверь каталог:
+   - safe-area не ломает верх/низ экрана;
+   - карточки и нижняя часть экрана не упираются в системные области.
+5. Проверь keyboard/viewport:
+   - открой тестовое поле ввода на каталоге;
+   - убедись, что при открытии клавиатуры layout не прыгает и контент не ломается.
+6. Проверь checkout:
+   - открой checkout route;
+   - убедись, что safe-area и нижняя CTA ведут себя корректно внутри Telegram WebView.
+7. Проверь runtime behavior:
+   - переключи тему Telegram `light/dark`, если доступно;
+   - сверни и верни приложение, чтобы проверить `activated/deactivated` behavior;
+   - проверь back/swipe policy.
+8. Запиши итог в `.tasks/TASK-FT009-06/android-notes.md`.
 
-## 14. Evidence collection
+Минимум для closure:
 
-Сохраняй в `.tasks/TASK-FT009-06/`:
+- operator-confirmed notes по `bootstrap`, `catalog safe-area`, `checkout`, `keyboard viewport`, `theme/lifecycle`, `back/swipe`;
+- screenshots/videos можно приложить дополнительно, но они не обязательны.
 
-- `android-01-bootstrap.png`
-- `android-02-catalog-safe-area.png`
-- `android-03-checkout-safe-area.png`
-- `android-04-checkout-keyboard.mp4`
-- `android-05-theme-change.mp4`
-- `android-06-lifecycle-resume.mp4`
-- `android-07-back-swipe-policy.mp4`
-- `android-notes.md`
+## 14. Updating the test server after `git pull`
 
-Минимальный шаблон notes:
+Базовое правило:
 
-```md
-- Device model:
-- Android version:
-- Telegram version:
-- Scenario:
-- Result: PASS/FAIL
-- What is visible:
-- Issues:
-```
+- после `git pull` почти всегда безопасно выполнять `npm ci` и `npm run build:frontend`, если ты не уверен, какие именно файлы изменились;
+- `npm ci` обязательно нужно делать, если изменились `package.json` или `package-lock.json`;
+- `npm run build:frontend` обязательно нужно делать, если изменился любой код frontend или статические assets;
+- `systemctl restart tgmeal-demo-api.service` нужен, если изменились `scripts/dev-api.mjs` или другой код, который использует demo API process;
+- `systemctl reload nginx` нужен только если менялся nginx config или ты хочешь безопасно перечитать конфиг после деплоя.
 
-## 15. Quick health checks
-
-На сервере:
-
-```bash
-systemctl status tgmeal-demo-api.service
-nginx -t
-curl http://127.0.0.1:3001/api/v1/shops
-curl -I https://tgmeal.natureonzoom.win
-```
-
-Проверка nginx-конфига напрямую на origin с Host header:
-
-```bash
-curl -I http://127.0.0.1 -H "Host: tgmeal.natureonzoom.win"
-```
-
-Если frontend не обновился после новой сборки:
+Рекомендуемая безопасная последовательность после обновления:
 
 ```bash
 cd /var/www/tgmeal/app
+git pull
 npm ci
 npm run build:frontend
 systemctl restart tgmeal-demo-api.service
 systemctl reload nginx
 ```
 
-## 16. Known limitations
+Если знаешь, что менялся только frontend и зависимости не менялись, можно короче:
+
+```bash
+cd /var/www/tgmeal/app
+git pull
+npm run build:frontend
+systemctl reload nginx
+```
+
+
+## 15. Known limitations
 
 - Текущий test server deploy дает real Telegram runtime для `FT-009`, но не production-complete backend contour.
 - Checkout здесь годится для UI/runtime verify, а не для trusted payment verification.

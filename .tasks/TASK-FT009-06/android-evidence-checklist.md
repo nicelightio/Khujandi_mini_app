@@ -6,7 +6,7 @@ Environment:
 - Telegram version:
 - Date/time:
 
-Required captures:
+Required scenarios:
 1. App bootstrap in Telegram without long placeholder
 2. Catalog screen safe-area and bottom layout
 3. Checkout screen safe-area and bottom CTA
@@ -15,11 +15,11 @@ Required captures:
 6. App deactivate/reactivate behavior
 7. Back button / swipe policy behavior
 
-For each capture save:
-- screenshot or short video
-- 1-2 lines of notes with PASS/FAIL
+For each scenario save:
+- operator notes with PASS/FAIL
+- screenshot or short video only if you want optional supporting evidence
 
-Suggested filenames:
+Suggested optional media filenames:
 - `android-01-bootstrap.png`
 - `android-02-catalog-safe-area.png`
 - `android-03-checkout-safe-area.png`

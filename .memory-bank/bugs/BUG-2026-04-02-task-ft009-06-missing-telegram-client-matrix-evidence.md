@@ -1,12 +1,12 @@
 ---
-description: Verification failure for TASK-FT009-06 due to missing real Telegram client-matrix evidence for FT-009 closure.
-status: active
+description: Historical verification failure for TASK-FT009-06 due to previously missing real Android Telegram evidence.
+status: archived
 ---
 # BUG-2026-04-02 TASK-FT009-06 Missing Telegram Client-Matrix Evidence
 
 ## Summary
 
-`TASK-FT009-06` reached the final `FT-009` quality gate, but formal verification still cannot close because the workspace does not contain the required real `Android Telegram` evidence for customer-facing shell/runtime behavior.
+`TASK-FT009-06` initially failed because the workspace lacked real `Android Telegram` evidence for customer-facing shell/runtime behavior. The issue is now closed after operator-confirmed Android verification and docs sync.
 
 ## Detection
 
@@ -19,18 +19,26 @@ status: active
 
 - Repo-local shell/runtime verification passes: `7` suites and `26` tests.
 - TypeScript verification for the frontend/Jest surface passes.
-- `.tasks/TASK-FT009-06/` does not contain the required screenshots, videos, traces, or operator notes for a real `Android Telegram` run.
+- At failure time, `.tasks/TASK-FT009-06/` did not contain operator notes for a real `Android Telegram` run.
 - `iOS/Desktop` evidence is no longer treated as blocking for current closure, but may still be added later as optional hardening.
 - `.memory-bank/runbooks/telegram-mini-app-verification.md` and `.memory-bank/testing/index.md` require real Android Telegram evidence for final `FT-009` closure.
 
 ## Impact
 
-- `TASK-FT009-06` cannot be marked `done`.
-- `REQ-019` and the remaining shared `REQ-022` / `REQ-023` shell-runtime closure cannot move to `done`.
-- The current `/autopilot` run must stop at a quality-gate blocker until the Android evidence bundle is supplied.
+- At failure time, `TASK-FT009-06` could not be marked `done`.
+- At failure time, `REQ-019` and the remaining shared `REQ-022` / `REQ-023` shell-runtime closure could not move to `done`.
+- At failure time, the current `/autopilot` run had to stop at a quality-gate blocker until Android evidence was supplied.
 
 ## Suggested fix
 
-- Collect a real Telegram Android evidence bundle under `.tasks/TASK-FT009-06/`.
+- Collect real Telegram Android operator notes under `.tasks/TASK-FT009-06/`.
 - Cover at minimum: safe-area and bottom CTA behavior, stable viewport plus keyboard behavior, live theme change, `activated/deactivated` resume, centralized back/swipe policy, and customer-facing checkout UI.
 - Re-run `/verify TASK-FT009-06` after the evidence bundle is present.
+
+## Resolution
+
+- Date: `2026-04-02`
+- Operator-confirmed Android Telegram run was completed on `https://tgmeal.natureonzoom.win` via Telegram bot launch.
+- Repo-local shell/runtime suite was re-run and passed: `7` suites, `26` tests; `npx tsc -p tsconfig.jest.json` also passed.
+- Memory Bank policy was updated so operator notes are sufficient blocking evidence for the current Android verify baseline; screenshots/videos remain optional supporting artifacts.
+- `TASK-FT009-06`, `REQ-019`, shared `REQ-022`, and `REQ-023` are now closed.

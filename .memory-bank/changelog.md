@@ -217,6 +217,15 @@ status: active
 ## [2026-04-02] Catalog keyboard test field for Android verify
 - Added a minimal localized text input on the catalog page so real Telegram Android runs can explicitly open the keyboard and capture `FT-009` viewport behavior evidence.
 
+## [2026-04-02] FT-009 final Android verification closure
+- Updated the verification policy so screenshots/videos are optional supporting artifacts and operator-confirmed Android Telegram notes are the blocking evidence for current closure.
+- Recorded a successful Android Telegram run on the deployed test server, archived the prior evidence bug, and marked `TASK-FT009-06` done.
+- Synced RTM and autonomous-run state: `REQ-019`, shared `REQ-022`, and `REQ-023` are now `done`, and the current `/autopilot` run is back to `SUCCESS`.
+
+## [2026-04-02] Test-server runbook cleanup
+- Reworked section 13 of the Telegram test-server runbook into a practical Android verification procedure instead of a loose checklist.
+- Added a dedicated deployment update section documenting when `npm ci`, `npm run build:frontend`, demo API restart, and nginx reload are actually needed after `git pull`.
+
 ## [2026-04-02] MB sync after TASK-FT009-01 docs-first freeze
 - Froze `FT-009` ownership against `FT-002` and `FT-003` across feature, runtime contract, runbook, testing docs, and implementation plan.
 - Marked `TASK-FT009-01` done, promoted `TASK-FT009-02` to `ready`, and updated Memory Bank navigation for the next app-level shell scaffolding step.

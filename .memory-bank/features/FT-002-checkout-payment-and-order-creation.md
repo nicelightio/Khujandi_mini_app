@@ -18,7 +18,7 @@ status: active
 - `TASK-FT002-05` completed and verified trusted payment finalization, provider/source verification, and idempotent paid-only order creation.
 - `TASK-FT002-06` completed and verified retry-safe failed, canceled, and timeout payment handling without order side effects.
 - `TASK-FT002-07` completed and verified frontend checkout wiring to Telegram auth and backend checkout flow, including retry UX and blocked outside-Telegram behavior.
-- `TASK-FT002-08` completed the final repo-local verification/docs sync for `FT-002`, kept Telegram-sensitive evidence limited to auth/payment runtime plus transport/source verification, and left real customer-facing checkout client-matrix coverage under `FT-009`.
+- `TASK-FT002-08` completed the final repo-local verification/docs sync for `FT-002`, kept Telegram-sensitive evidence limited to auth/payment runtime plus transport/source verification, and left real customer-facing checkout runtime evidence to `FT-009`, where it is now closed.
 
 ## Use cases
 
@@ -37,7 +37,7 @@ status: active
 - Client-only payment UX signals (`invoiceClosed` и аналоги) не являются основанием для создания заказа.
 - Если используется Telegram/Bot payment transport, webhook/update проходит `secret_token`/source verification и идемпотентную обработку до domain side effects.
 - Session transport policy и CSRF/XSS trade-offs для Mini App auth explicitly documented до реализации.
-- Telegram-sensitive verify baseline фиксируется через runtime contract/runbook; для `checkout-payment` в рамках `FT-002` это означает mock/runtime contract tests и transport verification, а real Mini App client-matrix evidence для customer-facing checkout UI закрывается в `FT-009`, когда shell/runtime контур готов.
+- Telegram-sensitive verify baseline фиксируется через runtime contract/runbook; для `checkout-payment` в рамках `FT-002` это означает mock/runtime contract tests и transport verification, а real Mini App runtime evidence для customer-facing checkout UI закрывается в `FT-009`.
 
 ## Edge cases & failure modes
 
@@ -74,7 +74,7 @@ status: active
 - integration: idempotency and provider callback handling.
 - unit: auth TTL/signature validation helpers.
 - integration: command responses include `updated_at` and `revision` when needed for downstream polling.
-- verify: Telegram auth/payment runtime contract tests и Telegram/Bot transport evidence, если такой transport используется; real Mini App client-matrix evidence для checkout UI закрывается в `FT-009`.
+- verify: Telegram auth/payment runtime contract tests и Telegram/Bot transport evidence, если такой transport используется; real Mini App runtime evidence для checkout UI закрывается в `FT-009`.
 
 ## Verification closure
 
@@ -82,4 +82,4 @@ status: active
 - `REQ-005` is covered by trusted paid checkout integration/unit tests plus frontend checkout smoke that only marks success from backend confirmation.
 - `REQ-006` is covered by backend controlled error-contract checks for `FAILED`, `CANCELED`, and `PENDING` payment outcomes and frontend retry UX smoke.
 - `REQ-021` is covered by provider/source verification, verification-token enforcement, and duplicate trusted payment idempotency checks that keep single-order creation on repeated delivery.
-- Real Telegram client-matrix evidence for the customer-facing checkout UI remains intentionally deferred to `FT-009`; `FT-002` closes only the repo-local runtime and transport/source verification baseline defined by the current runbook.
+- Real Telegram runtime evidence for the customer-facing checkout UI is intentionally owned by `FT-009`; `FT-002` closes only the repo-local runtime and transport/source verification baseline defined by the current runbook, and the shared UI/runtime closure is now complete.
