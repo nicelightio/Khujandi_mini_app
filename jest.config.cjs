@@ -4,8 +4,14 @@ module.exports = {
   roots: ["<rootDir>/tests", "<rootDir>/backend", "<rootDir>/frontend/src/tests"],
   testMatch: [
     "<rootDir>/tests/slices/catalog/*.spec.ts",
+    "<rootDir>/tests/slices/checkout-payment/*.spec.ts",
     "<rootDir>/frontend/src/tests/slices/catalog/*.spec.ts",
-    "<rootDir>/frontend/src/tests/slices/catalog/*.spec.tsx"
+    "<rootDir>/frontend/src/tests/slices/catalog/*.spec.tsx",
+    "<rootDir>/frontend/src/tests/slices/checkout-payment/*.spec.ts",
+    "<rootDir>/frontend/src/tests/slices/checkout-payment/*.spec.tsx",
+    "<rootDir>/frontend/src/tests/shared/**/*.spec.ts",
+    "<rootDir>/frontend/src/tests/shared/**/*.spec.tsx",
+    "<rootDir>/frontend/src/tests/app/*.spec.tsx"
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "json"],
   transform: {

@@ -1,5 +1,5 @@
 ---
-description: Контракт Telegram Mini App auth для `POST /auth/telegram` и server-side validation `initData`.
+description: Контракт Telegram Mini App auth для `POST /auth/telegram`, server-side validation `initData` и session issuance policy.
 status: active
 ---
 # Telegram Mini App Auth Contract
@@ -10,8 +10,10 @@ status: active
 
 ## Request boundary
 
-- Клиент передает `initData` от Telegram WebApp.
+- Клиент передает raw `initData` string от Telegram WebApp.
 - `initDataUnsafe` не считается trusted input и не используется для auth decisions.
+- Empty/missing `initData` в unsupported launch modes не создает trusted auth context и должен вести в controlled recovery path.
+- Парсер обязан безопасно обрабатывать дополнительные поля Telegram payload, не ломая hash validation.
 
 ## Server-side validation rules
 
@@ -20,17 +22,21 @@ status: active
 - Derivation secret задается недвусмысленно: `secret_key = HMAC_SHA256(key="WebAppData", message=bot_token)`.
 - Проверочный hash считается как `HMAC_SHA256(key=secret_key, message=data_check_string)`.
 - `auth_date` проверяется на актуальность; max age policy для MVP: `10 minutes`.
+- Replay того же `initData` в пределах TTL должен блокироваться server-side idempotency/replay guard.
 
 ## Successful outcome
 
 - Backend создает или обновляет пользователя.
-- Выдается JWT для Mini App user contour.
+- Backend выдает Mini App session согласно выбранному session transport policy; production-preferred baseline для чувствительного контура: HttpOnly cookie session. Если используется bearer/JWT, это должно быть явно обосновано.
+- Для cookie-based Mini App session minimal MVP CSRF baseline: `SameSite` cookie + server-side `Origin/Referer` validation.
+- Для auth/session surface должен быть зафиксирован явный CSP/XSS-hardening baseline; session identifiers не попадают в JS-readable persistent storage.
 
 ## Failure rules
 
 - Invalid signature -> `401 AUTH_REQUIRED`.
 - Expired `auth_date` -> `401 AUTH_REQUIRED`.
 - Missing/invalid payload -> `400 VALIDATION_ERROR`.
+- Replay-detected `initData` -> controlled security rejection по deploy policy.
 
 ## Source artifacts
 

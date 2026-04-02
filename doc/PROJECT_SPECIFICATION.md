@@ -86,8 +86,8 @@ _Версия: 1.3
 
 ### Авторизация
 
-Telegram WebAppData передаётся на `POST /auth/telegram`. Backend проверяет подпись, создаёт/обновляет пользователя и выдаёт JWT. Все дальнейшие запросы используют `Authorization: Bearer <token>`.
-`initDataUnsafe` на клиенте не используется для доверенных решений; подпись валидируется на backend через HMAC SHA‑256 по `data_check_string` и секрету `HMAC_SHA256(bot_token, "WebAppData")`, дополнительно проверяется `auth_date` на актуальность.
+Raw `initData` передаётся на `POST /auth/telegram`. Backend проверяет подпись, создаёт/обновляет пользователя и выдаёт Mini App session по выбранной policy; bearer/JWT не считается безусловным default и должен быть явно обоснован, если выбран.
+`initDataUnsafe` на клиенте не используется для доверенных решений; подпись валидируется на backend через HMAC SHA‑256 по `data_check_string` и секрету `HMAC_SHA256(bot_token, "WebAppData")`, дополнительно проверяется `auth_date` на актуальность и replay в пределах TTL.
 
 ### События и polling
 
@@ -118,10 +118,11 @@ Telegram WebAppData передаётся на `POST /auth/telegram`. Backend п�
 3. При первом запуске: overlay с выбором языка (Ru, En, Tj).  
 4. Авторизация инициируется при попытке оформить заказ (Telegram WebAppData).  
 5. Интернационализация через Paraglide.js; файлы переводов `src/languages/*.ts`.  
-6. Адаптивность под Telegram WebView, поддержка светлой / тёмной темы, safe-area и стабильная высота (WebApp viewport).  
+6. Адаптивность под Telegram WebView, поддержка светлой / тёмной темы, Telegram safe-area fields/CSS variables и стабильная высота через `viewportStableHeight`.  
 7. Компоненты UI отделены от бизнес-логики (`lib/`).  
 8. Визуальные подтверждения всех действий (toast, loader, disable-кнопка).  
 9. Запрет сторонних трекеров, соответствие UX-гайдам Telegram Mini Apps.
+10. Доступ к `Telegram.WebApp.*` — только через единый shell/runtime adapter слой; feature-код не владеет прямыми подписками на theme/viewport/safe-area/lifecycle.
 
 ---
 

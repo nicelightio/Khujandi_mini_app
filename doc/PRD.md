@@ -212,7 +212,7 @@ MVP покрывает полный операционный цикл:
 - Негативный отзыв (`<=2`) -> обязательный алерт админам через Telegram-бота.
 
 ### 10.4 Авторизация и RBAC
-- Mini App: `POST /auth/telegram`, проверка `initData` на backend, выдача JWT.
+- Mini App: `POST /auth/telegram`, проверка `initData` на backend, выдача Mini App session; production-preferred baseline для Mini App — HttpOnly cookie, bearer/JWT допустим только как явно обоснованное исключение.
 - `initDataUnsafe` не используется для доверенных решений.
 - Веб-админка: отдельный login/password auth-контур.
 - Админ-аккаунты только через provisioning ролью `boss`, без self-signup.
@@ -239,6 +239,9 @@ MVP покрывает полный операционный цикл:
 
 ### 11.2 Security
 - Mini App auth: строгая серверная валидация Telegram `initData` + `auth_date`.
+- Для cookie-based Mini App session minimal MVP CSRF baseline: `SameSite` cookie + server-side `Origin/Referer` validation.
+- Пустой или отсутствующий `initData` в некоторых launch modes не должен обходить auth boundary и требует controlled recovery path.
+- Для Mini App auth/payment contour обязателен явный CSP/XSS-hardening baseline.
 - Веб-админка:
   - пароль >= 12 символов;
   - без 2FA в MVP;
@@ -256,6 +259,7 @@ MVP покрывает полный операционный цикл:
 
 ### 11.4 Observability
 - Единый формат ошибок: `{ error: { code, message, details }, trace_id }`.
+- Payment/webhook contour обязан иметь мониторинг доступности, alerting по non-2xx/latency и documented manual recovery path.
 - Аудит:
   - входы/неудачные попытки/блокировки;
   - операции изменения статуса;

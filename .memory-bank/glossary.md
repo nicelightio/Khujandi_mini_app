@@ -21,7 +21,7 @@ status: active
 - `initDataUnsafe`: клиентские данные без доверия; можно использовать для UI, но не для доверенных решений.
 - `Data Check String`: каноническая строка для проверки подписи Telegram `initData`.
 - `auth_date`: timestamp формирования `initData`, валидируемый на TTL сервером.
-- `JWT`: токен авторизации API, передаваемый как `Authorization: Bearer <token>`.
+- `JWT`: возможный формат bearer-токена для API; для Mini App не считается безусловным baseline session transport и используется только при явно зафиксированной policy.
 - `Polling`: периодический опрос `GET /events?since=<cursor>` для получения изменений.
 - `REST`: HTTP-интерфейс для command/query операций системы.
 - `Contract`: формализованное соглашение API, события или boundary-интерфейса.

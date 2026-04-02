@@ -34,6 +34,9 @@ status: active
 - cart state живет в `checkout-payment` model или явно согласованном cross-slice store;
 - session/ui state живет в `shared/state`;
 - временные review/status steppers живут в owning slice model.
+- для session identifiers baseline storage: HttpOnly cookie contour; если выбран bearer transport, это должно быть отдельно зафиксировано в spec/ADR и не использовать `localStorage` как default.
+- для non-sensitive preferences нужен deterministic fallback order: `DeviceStorage -> CloudStorage -> localStorage`.
+- client cart остается UX cache; checkout серверно пересчитывает цены и проверяет availability до trusted payment confirmation.
 
 ## Source artifacts
 

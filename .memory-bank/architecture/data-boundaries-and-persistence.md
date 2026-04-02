@@ -21,6 +21,8 @@ status: active
 - `refund_status` и `refund_note` обязательны как explicit persistence boundary для ручного refund workflow.
 - `order_status_history` является audit/state journal, а не derived convenience table.
 - Soft-delete применяется к shops/products/orders и требует явного учета в query policy.
+- Payment identity и anti-replay markers (`payment_provider_tx_id`, `telegram_payment_charge_id`, `provider_payment_charge_id`, invoice/payment reference) должны иметь явную persistence policy и DB-level uniqueness там, где это применимо.
+- Session/security persistence отделяется по чувствительности данных: session identifiers не попадают в JS-readable persistent storage baseline, а non-sensitive client preferences имеют explicit fallback policy.
 
 ## Slice to data ownership
 

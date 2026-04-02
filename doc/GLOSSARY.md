@@ -27,7 +27,7 @@
 - initDataUnsafe — клиентская версия данных без доверия; использовать только для UI, не для авторизации.
 - Data Check String — строка для проверки подписи initData (сортировка ключей, `\n` разделитель).
 - auth_date — время формирования initData; проверяется на TTL.
-- JWT — токен для авторизации API, передаётся через `Authorization: Bearer`.
+- JWT — возможный формат bearer-токена для API; для Mini App не считается безусловным baseline session transport и используется только при явно зафиксированной policy.
 - Гладкий WebView UI — ранний `WebApp.ready()`, `WebApp.expand()`, safe‑area inset и стабильная высота viewport.
 
 ## Технический стек

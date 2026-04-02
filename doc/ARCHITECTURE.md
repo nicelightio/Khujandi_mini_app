@@ -72,6 +72,7 @@ _Источник требований: `doc/PRD.md`_
 - Telegram WebApp auth через `POST /auth/telegram`.
 - Витрина, checkout и оплата через локального провайдера.
 - Основные slices: `catalog`, `checkout-payment`, частично `delivery-tracking`.
+- Session/auth boundary Mini App проектируется server-driven: frontend не принимает trusted auth decisions по `initDataUnsafe`, а session identifiers не хранятся в `localStorage` как baseline.
 
 ### 5.2 Операционный контур (веб-админка)
 
@@ -87,6 +88,7 @@ _Источник требований: `doc/PRD.md`_
 ### 5.3 Telegram-бот
 
 - Бот является частью монолита, но работает как отдельный presentation-канал для слайсов.
+- Webhook/update transport Telegram считается недоверенным до source verification, secret verification и idempotency checks.
 - Must-have уведомления:
   1. Новый заказ.
   2. Назначение курьера.
@@ -123,6 +125,7 @@ _Источник требований: `doc/PRD.md`_
 - event transport contracts;
 - базовые UI primitives;
 - универсальные utils без бизнес-смысла.
+- Telegram shell/runtime adapter: theme, safe-area, viewport, lifecycle, feature detection и storage-policy helpers.
 
 ### 7.2 Что не нужно выносить в `shared` заранее
 
@@ -179,12 +182,14 @@ admin-web/
 
 - Заказ создается только после успешной онлайн-оплаты через локального провайдера.
 - При ошибке или таймауте оплаты заказ не создается; клиент получает retry-сценарий.
+- Client-only payment events не считаются trusted payment confirmation.
 - Клиент отменять заказ не может.
 - Отмена доступна `admin` и `courier` в разрешенном операционном кейсе unavailable.
 - Refund при отмене выполняется вручную оператором.
 - Успешным заказом для KPI считается только `COMPLETED`.
 - Любая значимая write-операция порождает доменное событие.
 - Формат событий стабилен для будущего перехода на SSE/WS.
+- Telegram webhook/update replay не должен приводить к повторным domain side effects.
 
 ## 10. AI-first правила реализации
 
@@ -197,6 +202,7 @@ admin-web/
 ## 11. Наблюдаемость и надежность
 
 - Единый формат ошибок: `{ error: { code, message, details }, trace_id }`.
+- Raw `initData`, payment secrets и полные sensitive Telegram/provider payloads не логируются.
 - Аудит критичных действий:
   - входы и блокировки веб-админки;
   - смены статусов заказа;
@@ -205,6 +211,7 @@ admin-web/
 - Поддержка деградации:
   - при проблемах оплаты заказ не создается;
   - при проблемах бота ошибки фиксируются, а операционный процесс имеет fallback.
+  - для Telegram WebView используется graceful degradation через feature detection, а не предположение о наличии всех API у клиента.
 
 ## 12. Ограничения MVP и anti-overengineering rules
 

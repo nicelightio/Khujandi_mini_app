@@ -42,16 +42,20 @@ frontend/src/
 
 - вызвать `Telegram.WebApp.ready()` рано;
 - по необходимости вызвать `Telegram.WebApp.expand()`;
-- учитывать `env(safe-area-inset-*)`;
-- стабилизировать высоту через `viewportStableHeight`/`viewportChanged`;
+- использовать единый runtime adapter для всех `Telegram.WebApp.*` обращений;
+- учитывать Telegram safe-area fields/CSS variables `--tg-safe-area-inset-*` и `--tg-content-safe-area-inset-*`, а не `env(safe-area-inset-*)` как baseline;
+- стабилизировать высоту через `viewportStableHeight` и `viewportChanged(isStateStable=true)`;
 - обновлять theme variables по `themeChanged`;
+- обрабатывать `activated/deactivated` как shell lifecycle signals;
+- применять feature detection через `isVersionAtLeast()` и graceful fallback;
 - не допускать double-submit без loader/disabled state.
 
 ## i18n and persistence
 
 - first-run language overlay обязателен;
-- выбор языка хранится в session-level persistence;
+- выбор языка хранится по explicit fallback policy `DeviceStorage -> CloudStorage -> localStorage`, а после auth синхронизируется с backend profile при наличии такого контура;
 - компоненты не пишут напрямую в `localStorage`; используйте helpers в `shared/lib`.
+- session identifiers не хранятся в `localStorage`.
 
 ## Source artifacts
 

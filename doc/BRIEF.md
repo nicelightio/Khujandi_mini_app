@@ -42,13 +42,14 @@
 
 ## 4. Авторизация и безопасность
 
-- `POST /auth/telegram` принимает `initData` от Telegram WebApp.
-- Сервер проверяет подпись и выдает JWT.
-- Все защищенные запросы используют `Authorization: Bearer`.
+- `POST /auth/telegram` принимает raw `initData` от Telegram WebApp.
+- Сервер принимает raw `initData`, проверяет подпись и выдает сессию по выбранной policy.
+- Все защищенные запросы используют выбранный session transport; bearer/JWT не считается безусловным default для Mini App security baseline.
 - Ошибки авторизации возвращают `AUTH_REQUIRED` (401) и `FORBIDDEN` (403).
 - `initDataUnsafe` на клиенте не используется для доверенных решений.
 - Валидация `initData` выполняется только на backend: HMAC SHA‑256 по `data_check_string` (поля по алфавиту, `\n` как разделитель) и секрету `HMAC_SHA256(bot_token, "WebAppData")`.
 - Дополнительно проверяем `auth_date` на актуальность (TTL по политике безопасности).
+- Повторное использование `initData` в пределах TTL должно блокироваться server-side replay guard.
 
 ---
 
@@ -57,6 +58,7 @@
 - Любое изменение данных создает событие в `events`.
 - Ответы команд возвращают `updated_at` и `revision` для дешевого polling.
 - Формат событий фиксируется для будущего перехода на SSE/WS.
+- Webhook/update transport Telegram проходит source/secret verification и идемпотентную обработку до domain side effects.
 
 **Формат события:**
 
@@ -111,7 +113,7 @@
 
 ## 8. REST‑контуры (в общих чертах)
 
-- `/auth/telegram` — авторизация и выдача JWT.
+- `/auth/telegram` — авторизация и выдача Mini App session (production-preferred baseline: HttpOnly cookie).
 - `/orders` — checkout, назначение, смена статуса, отмена, просмотр деталей.
 - `/shops` и `/products` — CRUD сущностей.
 - `/reviews` — создание и чтение отзывов.
@@ -134,9 +136,10 @@
 - Авторизация инициируется при попытке оформить заказ.
 - Выбор языка при первом запуске (Ru/En/Tj) с сохранением.
 - Адаптивность под Telegram WebView, поддержка светлой/темной темы.
-- Гладкий WebView UI: ранний `WebApp.ready()`, safe-area inset, стабильная высота viewport без “прыжков”.
+- Гладкий WebView UI: ранний `WebApp.ready()`, Telegram safe-area fields/CSS variables, `viewportStableHeight`, lifecycle handling и стабильная высота viewport без “прыжков”.
 - UI‑компоненты отделены от бизнес‑логики.
 - Все действия подтверждаются визуально (toast/loader/disable‑кнопка).
+- Session identifiers не хранятся в `localStorage`; для non-sensitive preferences действует явная fallback policy `DeviceStorage -> CloudStorage -> localStorage`.
 
 ---
 
@@ -165,6 +168,7 @@
 - Backend: Jest + @nestjs/testing + Supertest.
 - Frontend: Vitest (unit), Playwright (E2E позже).
 - MVP‑минимум: acceptance-сценарий и e2e smoke на каждый capability slice, плюс integration/unit для критичных правил.
+- Для Telegram-sensitive flows нужен отдельный verify contour: Telegram test environment и минимальный client matrix, а не только browser e2e.
 
 ---
 

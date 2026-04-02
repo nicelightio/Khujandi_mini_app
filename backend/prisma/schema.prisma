@@ -7,6 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum OrderStatus {
+  CREATED
+  ASSIGNED
+  IN_PROGRESS
+  DELIVERED
+  COMPLETED
+  CANCELLED_ADMIN
+  CANCELLED_COURIER
+}
+
+enum PaymentStatus {
+  PAID
+  FAILED
+  CANCELED
+  PENDING
+}
+
+enum RefundStatus {
+  NOT_REQUIRED
+  PENDING_MANUAL
+  DONE
+  REJECTED
+}
+
+enum UserRole {
+  BOSS
+  MANAGER
+  ADMIN
+  SELLER
+  COURIER
+  CLIENT
+}
+
 model Shop {
   id                          String    @id @default(cuid())
   sellerId                    String
@@ -36,4 +69,68 @@ model Product {
 
   @@index([shopId])
   @@index([isDeleted])
+}
+
+model Order {
+  id                     String       @id @default(cuid())
+  shopId                 String
+  shopNameSnapshot       String
+  sellerId               String
+  clientId               String
+  courierId              String?
+  status                 OrderStatus   @default(CREATED)
+  itemsTotalMinor        Int
+  deliveryFeeMinor       Int
+  totalAmountMinor       Int
+  paymentProvider        String
+  paymentProviderTxId    String       @unique
+  telegramPaymentChargeId String?      @unique
+  providerPaymentChargeId String?      @unique
+  paymentStatus          PaymentStatus @default(PAID)
+  refundStatus           RefundStatus  @default(NOT_REQUIRED)
+  refundNote             String?
+  isDeleted              Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  shop                   Shop         @relation(fields: [shopId], references: [id])
+
+  @@index([clientId, createdAt(sort: Desc)])
+  @@index([courierId, status, updatedAt(sort: Desc)])
+  @@index([status, updatedAt(sort: Desc)])
+  @@index([isDeleted])
+}
+
+model User {
+  id              String           @id @default(cuid())
+  telegramId      String           @unique
+  role            UserRole         @default(CLIENT)
+  name            String
+  username        String?
+  language        String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  miniAppSessions MiniAppSession[]
+}
+
+model MiniAppSession {
+  id               String    @id @default(cuid())
+  userId           String
+  sessionTokenHash String    @unique
+  expiresAt        DateTime
+  lastUsedAt       DateTime  @default(now())
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, expiresAt])
+}
+
+model TelegramAuthReplay {
+  id           String   @id @default(cuid())
+  initDataHash String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([expiresAt])
 }

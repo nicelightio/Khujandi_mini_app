@@ -34,13 +34,16 @@ _Источник требований: `doc/PRD.md`_
 
 ### 2.1 Mini App (Telegram)
 
-1. `POST /auth/telegram` принимает `initData`.
+1. `POST /auth/telegram` принимает raw `initData` string.
 2. Backend валидирует подпись (HMAC) и `auth_date`.
-3. Выдается JWT для пользовательского контура.
+3. Backend выдает Mini App session согласно выбранной session policy; production-preferred baseline для чувствительного контура: HttpOnly cookie. Если используется bearer/JWT, это должно быть отдельно обосновано.
+4. Если используется cookie-based session, minimal MVP CSRF baseline: `SameSite` cookie + server-side `Origin/Referer` validation.
 
 Важно:
 - `initDataUnsafe` не используется для доверенных решений.
-- Все защищенные endpoint-ы требуют `Authorization: Bearer <token>`.
+- Replay `initData` в пределах TTL должен блокироваться server-side guard.
+- Empty/missing `initData` в unsupported launch mode не должен обходить auth boundary и требует controlled recovery path.
+- `Authorization: Bearer <token>` допустим только как явно зафиксированная session policy, а не как неоспоримый default.
 
 ### 2.2 Веб-админка (отдельный auth-контур)
 
@@ -98,6 +101,7 @@ _Источник требований: `doc/PRD.md`_
 
 - Заказ создается только после подтвержденной успешной оплаты.
 - При payment error/timeout заказ не создается; клиенту возвращается ошибка + retry.
+- Client-only payment UX events (`invoiceClosed` и аналоги) не считаются trusted business confirmation.
 - Клиент не может отменять заказ.
 - Отмена доступна `admin` и `courier` (операционный кейс unavailable).
 - Возврат средств в MVP фиксируется как ручной оператором.
@@ -109,6 +113,7 @@ Orders API покрывает несколько slices: `checkout-payment`, `de
 
 Примерный набор endpoint-ов:
 - `POST /orders/checkout` — checkout + оплата + создание заказа после успеха.
+- Если используется Telegram/Bot payment transport, webhook/update verification и idempotency являются обязательной частью `checkout-payment` boundary.
 - `GET /orders`
 - `GET /orders/{id}`
 - `PATCH /orders/{id}/assign-courier`
@@ -173,6 +178,13 @@ Orders API покрывает несколько slices: `checkout-payment`, `de
 - События должны покрывать все write-операции домена.
 - Целевой SLA отображения обновлений в UI через polling: p95 <= 10 секунд.
 - `events` является общим транспортом для нескольких slices, но семантика каждого события остается внутри соответствующего слайса.
+
+## 8.1 Webhook hardening baseline
+
+- Telegram/Bot webhook endpoint использует `secret_token` или эквивалентный transport verification.
+- Повторная доставка webhook/update обрабатывается идемпотентно.
+- Полные sensitive payloads не логируются; используется `trace_id` и redacted telemetry.
+- Payment/webhook contour имеет health monitoring, alerting по non-2xx/latency и documented manual recovery path.
 
 ## 9. Telegram-бот: обязательные уведомления (must-have)
 

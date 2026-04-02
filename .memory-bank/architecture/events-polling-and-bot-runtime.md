@@ -14,6 +14,7 @@ status: active
 - Polling `GET /events?since=<cursor>` является MVP delivery mechanism для read-side sync.
 - Telegram-бот выступает отдельным presentation contour: получает inbound actions и отправляет outbound notifications, не обходя серверные инварианты.
 - `review.negative` является явным fan-out exception: это единственный зафиксированный case, где notify target шире actor-targeted default.
+- Telegram webhook/update handling рассматривается как недоверенный transport до прохождения source verification, secret verification и idempotency checks.
 
 ## Boundary rules
 
@@ -21,6 +22,7 @@ status: active
 - Bot-driven commands должны проходить те же auth/RBAC/state checks, что и REST flows.
 - Event transport должен сохранять stable shape для future migration на SSE/WS.
 - Duplicate bot/polling deliveries не должны приводить к повторным domain side effects.
+- Outage/retry сценарии Telegram transport не должны менять доменную семантику: повтор update/webhook обязан быть безопасно переисполняемым или short-circuited как duplicate.
 
 ## Runtime ownership
 

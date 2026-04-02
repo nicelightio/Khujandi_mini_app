@@ -28,6 +28,7 @@ status: active
 - Дубликаты polling-запросов не должны ломать порядок или курсор.
 - Невалидный переход не должен менять состояние заказа.
 - Ошибки должны использовать единый error contract с `trace_id`.
+- Resume после `activated/deactivated` не должен приводить к двойным status fetch/update side effects.
 
 ## Constraints / invariants
 

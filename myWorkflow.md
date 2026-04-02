@@ -2,9 +2,19 @@
 
 /prd — из идеи в feature-уровень
 /prd-to-tasks FT-001 — из feature в задачи
-/execute TASK-FT001-01 — сделать задачу
-/verify TASK-FT001-01 — доказать, что она сделана правильно
-/mb-sync — зафиксировать это в Memory Bank
+  /execute TASK-FT001-01 — сделать задачу
+  /verify TASK-FT001-01 — доказать, что она сделана правильно
+  /mb-sync — зафиксировать это в Memory Bank
+/review
+/mb-sync
+
+
+/prd-to-tasks FT-00
+/autopilot - Выполняй каждую таску в отдельном сабагенте. 
+После того как сабагент выполнит таску, отдавай ему команду `/verifiy` этой таски.
+
+/review
+/mb-sync
 
 ---
 

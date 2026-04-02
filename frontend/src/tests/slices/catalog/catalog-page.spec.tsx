@@ -1,11 +1,13 @@
 import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
+import { LanguageContextProvider, type LanguageContextValue } from "../../../app/language-context";
 import { CatalogPage } from "../../../slices/catalog/components/catalog-page";
 import {
   createCatalogViewModel,
   createErrorCatalogViewModel,
   createLoadingCatalogViewModel,
 } from "../../../slices/catalog/model/catalog-view-model";
+import type { SupportedLanguage } from "../../../shared/i18n/languages";
 
 const collectText = (node: unknown): string[] => {
   if (typeof node === "string") {
@@ -47,14 +49,49 @@ afterEach(() => {
   consoleErrorSpy.mockRestore();
 });
 
+const createLanguageContextValue = (language: SupportedLanguage = "en"): LanguageContextValue => ({
+  state: {
+    language,
+    isHydrated: true,
+    isOverlayVisible: false,
+  },
+  controller: {
+    getState: () => ({
+      language,
+      isHydrated: true,
+      isOverlayVisible: false,
+    }),
+    hydrate: async () => ({
+      language,
+      isHydrated: true,
+      isOverlayVisible: false,
+    }),
+    selectLanguage: async (selectedLanguage) => ({
+      language: selectedLanguage,
+      isHydrated: true,
+      isOverlayVisible: false,
+    }),
+  },
+  selectLanguage: async () => undefined,
+});
+
+const renderWithLanguage = (
+  element: ReturnType<typeof createElement>,
+  language: SupportedLanguage = "en",
+) =>
+  create(
+    <LanguageContextProvider value={createLanguageContextValue(language)}>{element}</LanguageContextProvider>,
+  );
+
 describe("catalog page", () => {
   it("renders browse-safe shops and products for the public catalog", () => {
     let renderer!: ReactTestRenderer;
 
     act(() => {
-      renderer = create(
+      renderer = renderWithLanguage(
         createElement(CatalogPage, {
-          viewModel: createCatalogViewModel([
+          viewModel: createCatalogViewModel(
+            [
             {
               id: "shop-1",
               name: "Khujand Bakery",
@@ -67,7 +104,9 @@ describe("catalog page", () => {
                 },
               ],
             },
-          ]),
+            ],
+            "en",
+          ),
         }),
       );
     });
@@ -78,16 +117,22 @@ describe("catalog page", () => {
     expect(text).toContain("Khujand Bakery");
     expect(text).toContain("Somsa");
     expect(text).toContain("15.00 TJS");
+    expect(renderer.root.findByProps({ "data-shell": "page" }).props).toMatchObject({
+      "data-shell-back": "hidden",
+      "data-shell-swipe": "default",
+      "data-shell-action-feedback": "none",
+    });
   });
 
   it("renders loading state for public browse", () => {
     let renderer!: ReactTestRenderer;
 
     act(() => {
-      renderer = create(
+      renderer = renderWithLanguage(
         createElement(CatalogPage, {
-          viewModel: createLoadingCatalogViewModel(),
+          viewModel: createLoadingCatalogViewModel("en"),
         }),
+        "en",
       );
     });
 
@@ -102,15 +147,17 @@ describe("catalog page", () => {
     let errorRenderer!: ReactTestRenderer;
 
     act(() => {
-      emptyRenderer = create(
+      emptyRenderer = renderWithLanguage(
         createElement(CatalogPage, {
-          viewModel: createCatalogViewModel([]),
+          viewModel: createCatalogViewModel([], "en"),
         }),
+        "en",
       );
-      errorRenderer = create(
+      errorRenderer = renderWithLanguage(
         createElement(CatalogPage, {
-          viewModel: createErrorCatalogViewModel("Backend unavailable."),
+          viewModel: createErrorCatalogViewModel("Backend unavailable.", "en"),
         }),
+        "en",
       );
     });
 
@@ -118,5 +165,22 @@ describe("catalog page", () => {
     expect(collectText(errorRenderer.toJSON()).join(" ")).toContain("Backend unavailable.");
     expect(emptyRenderer.root.findAllByType("article")).toHaveLength(0);
     expect(errorRenderer.root.findAllByType("article")).toHaveLength(0);
+  });
+
+  it("renders localized loading copy for a selected language", () => {
+    let renderer!: ReactTestRenderer;
+
+    act(() => {
+      renderer = renderWithLanguage(
+        createElement(CatalogPage, {
+          viewModel: createLoadingCatalogViewModel("ru"),
+        }),
+        "ru",
+      );
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Каталог");
+    expect(text).toContain("Загрузка каталога...");
   });
 });

@@ -15,12 +15,13 @@ status: active
 - Prefer Playwright / agent-browser / CDP for UI flows when available
 - Store screenshots/videos/traces in .tasks/TASK-XXX/
 - In Memory Bank keep only links + short conclusions
+- Browser-only Playwright не считается достаточным evidence для Telegram-sensitive flows; для них нужен отдельный Telegram runtime verification layer.
 
 ## Slice-based baseline
 
 - `catalog`: public browse e2e + seller ownership / soft-delete integration coverage.
 - `checkout-payment`: paid order creation happy path, failed payment retry, auth validation.
-- `mini app shell`: first-run language overlay, WebView-safe viewport, theme and action feedback smoke.
+- `mini app shell`: first-run language overlay, WebView-safe viewport, theme, lifecycle and action feedback smoke.
 - `delivery-assignment`: admin assignment e2e + RBAC integration.
 - `delivery-tracking`: status-machine integration, polling e2e, SLA verification.
 - `order-cancellation`: allowed-role cancellation e2e + refund state/audit integration.
@@ -33,6 +34,8 @@ status: active
 - Нельзя заменять end-to-end проверку только unit coverage процентами.
 - Нельзя пропускать проверку событий, аудита и error contract для write-heavy flows.
 - Для сценариев с polling или ботом проверка должна подтверждать реальный cross-slice flow, а не только isolated handler tests.
+- Для `FT-003` и `FT-009` verify evidence включает: mock/runtime contract tests для Telegram adapter, Telegram test environment usage где применимо, и минимум один real Telegram Android прогон; дополнительные `iOS/Desktop` прогоны сейчас желательны, но не blocking для closure, если отдельно не запрошены. При этом `FT-003` владеет language persistence/fallback assertions, а `FT-009` владеет shell/runtime closure.
+- Для `FT-002` обязательны repo-local/mock runtime checks для auth/payment и transport/source verification, а real Mini App client-matrix evidence для customer-facing checkout UI закрывается в `FT-009`.
 
 ## Artifacts
 - screenshots/logs/videos → .tasks/TASK-XXX/

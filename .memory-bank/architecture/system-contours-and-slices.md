@@ -24,12 +24,14 @@ status: active
 
 - `FT-009` описывает cross-slice frontend shell baseline клиентского контура, а не отдельный domain slice.
 - Owner boundary для `FT-009`: `mini-app` presentation/shared-ui shell, который обслуживает прежде всего `catalog` и `checkout-payment`, а не переносит доменные правила из этих slices в shared.
+- Прямой доступ к `Telegram.WebApp.*` допускается только из shell/runtime adapter слоя.
 
 ## Boundary rules
 
 - Основная единица поставки ценности: vertical slice, а не технический модуль.
 - Внутри slice действуют зависимости `presentation -> application -> domain -> infrastructure`.
 - Shared допустим только для технических primitives: auth helpers, db bootstrap, error primitives, event transport, UI basics.
+- В `mini-app` shared дополнительно допустимы только runtime-enabling primitives: Telegram bootstrap, theme/safe-area/viewport/lifecycle adapters, feature detection, storage-policy helpers и shell-level navigation policies.
 - Бизнес-правила и state machine остаются внутри owning slice.
 
 ## Related guide

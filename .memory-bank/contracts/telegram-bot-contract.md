@@ -33,6 +33,7 @@ status: active
 - Inbound updates принимаются только от trusted Telegram transport boundary (webhook secret / source verification по deploy policy).
 - Duplicate delivery не должна приводить к повторной write-operation без idempotency/replay check.
 - Suspicious, spoofed или noisy bot traffic должен логироваться с `trace_id` и обрабатываться как security/operational signal.
+- Payment-related bot updates и `successful_payment`-подобные сигналы не обходят общий trusted payment confirmation contract.
 
 ## Source artifacts
 

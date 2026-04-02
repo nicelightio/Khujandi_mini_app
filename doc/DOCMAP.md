@@ -13,5 +13,6 @@
 - doc/DATA_MODEL.md — обзор схемы БД.
 - doc/TESTING_STRATEGY.md — подход к тестированию.
 - doc/FRONTEND_COMPONENT_GUIDE.md — гайд по React + Vite фронтенду.
+- .memory-bank/diagrams/index.md — ASCII-схемы для быстрого AI-онбординга по specs, коду и runtime.
 - .memory/WORKLOG.md — внутренний журнал контекста.
 - .memory/TASKS.md — задачи и GOV-шаблон.

@@ -9,6 +9,10 @@ status: active
 - [.memory-bank/architecture/events-polling-and-bot-runtime.md](events-polling-and-bot-runtime.md): WHAT/WHY для event transport, polling и Telegram-бота как runtime contour.
 - [.memory-bank/architecture/data-boundaries-and-persistence.md](data-boundaries-and-persistence.md): WHAT/WHY для data ownership, persistence boundaries и slice-aware storage model.
 
+## Visual companion
+
+- [.memory-bank/diagrams/index.md](../diagrams/index.md): ASCII-карты архитектуры, repo navigation и lifecycle ownership для быстрого входа в контекст.
+
 ## Duo pairs
 
 - `system-contours-and-slices` <-> [.memory-bank/guides/slice-implementation-playbook.md](../guides/slice-implementation-playbook.md): как раскладывать реализацию по slices без shared drift.

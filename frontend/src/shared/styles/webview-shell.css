@@ -2,8 +2,41 @@
   color-scheme: light dark;
 }
 
+[data-app-shell="root"] {
+  min-height: var(--tg-viewport-stable-height, 100vh);
+  background: Canvas;
+  color: CanvasText;
+}
+
 [data-shell="page"] {
-  min-height: 100vh;
-  padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  min-height: var(--tg-viewport-stable-height, 100vh);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: calc(16px + var(--tg-content-safe-area-inset-top, 0px))
+    calc(16px + var(--tg-content-safe-area-inset-right, 0px))
+    calc(16px + var(--tg-content-safe-area-inset-bottom, 0px))
+    calc(16px + var(--tg-content-safe-area-inset-left, 0px));
+}
+
+[data-shell-section="header"] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+[data-shell-section="body"] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+}
+
+[data-shell-back-link="visible"] {
+  width: fit-content;
+}
+
+[data-shell-action-feedback="pending"] {
+  font-weight: 600;
 }

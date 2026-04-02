@@ -104,7 +104,7 @@ frontend/
 
 - Paraglide.js генерирует функции переводов.
 - Переводы лучше группировать по slices и `shared/common`, а не по абстрактным экранам.
-- Язык выбирается один раз при первом запуске и затем хранится в session-level persistence.
+- Язык выбирается один раз при первом запуске и затем хранится по explicit fallback policy: `DeviceStorage -> CloudStorage -> localStorage`; после появления auth-контекста синхронизируется с backend profile, если такой контур доступен.
 
 Пример логики:
 
@@ -118,9 +118,11 @@ frontend/
 
 - Вызываем `Telegram.WebApp.ready()` как можно раньше.
 - Используем `Telegram.WebApp.expand()` для минимизации сжатого viewport.
-- Поддерживаем safe-area через `env(safe-area-inset-*)`.
-- Стабилизируем высоту через `WebApp.viewportStableHeight` и событие `viewportChanged`.
+- Все обращения к `Telegram.WebApp.*` держим в одном shell/runtime adapter слое, а не размазываем по feature-компонентам.
+- Поддерживаем safe-area через Telegram safe-area fields/CSS variables `--tg-safe-area-inset-*` и `--tg-content-safe-area-inset-*`; `env(safe-area-inset-*)` не считаем надежным baseline внутри Telegram WebView.
+- Стабилизируем высоту через `WebApp.viewportStableHeight` и `viewportChanged(isStateStable=true)`.
 - Применяем тему через `WebApp.themeParams` и обновляем CSS-переменные на `themeChanged`.
+- Обрабатываем `activated/deactivated`, back/swipe policy и feature detection (`isVersionAtLeast`) в shell, а не в feature коде.
 - Убираем «прыжки» интерфейса через аккуратные контейнеры и `overscroll-behavior: none`.
 
 ## 8. Тестирование фронтенда
@@ -138,7 +140,8 @@ frontend/
 2. Не делать `shared` свалкой для slice-specific кода.
 3. Не строить фронтенд вокруг глобального набора страниц, если фича естественно укладывается в slice.
 4. API-вызовы, Telegram WebApp API и orchestration держать в hooks, model или shared-lib, а не в JSX-разметке.
-5. Имена: PascalCase для компонентов, camelCase для hooks и функций.
+5. Session identifiers не хранить в `localStorage`; для Mini App security baseline предпочитать HttpOnly cookie contour или отдельно зафиксированное безопасное исключение.
+6. Имена: PascalCase для компонентов, camelCase для hooks и функций.
 
 ## 10. Связь с общей архитектурой проекта
 

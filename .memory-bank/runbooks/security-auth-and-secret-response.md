@@ -22,8 +22,14 @@ status: active
 
 1. Подготовить новый secret/token и deployment window.
 2. Обновить runtime configuration для `TELEGRAM_BOT_TOKEN` или payment secret boundary.
-3. Проверить auth/payment health после rotation.
+3. Проверить auth/payment health после rotation, включая webhook `secret_token`/source verification.
 4. Зафиксировать время rotation и затронутые контуры в operational log.
+
+## Sensitive payload handling
+
+1. Не логировать raw `initData`, payment tokens, webhook secrets и полные provider payloads.
+2. Для incident analysis использовать `trace_id`, canonical transaction ids и минимально достаточные redacted fields.
+3. При подозрении на replay/spoofing Telegram traffic сохранить только redacted evidence и verification result.
 
 ## Source artifacts
 

@@ -20,5 +20,6 @@ status: active
 
 ## Compatibility note
 - Duo docs в `architecture/` и `guides/` остаются валидными.
+- [.memory-bank/diagrams/index.md](diagrams/index.md): derived visual layer для быстрой навигации; нормативным источником остаются связанные spec docs.
 - Этот слой уточняет source-of-truth, а не отменяет duo docs.
 - Для текущего MVP baseline используй также [.memory-bank/architecture/index.md](architecture/index.md) и [.memory-bank/guides/index.md](guides/index.md).

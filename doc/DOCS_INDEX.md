@@ -5,6 +5,8 @@ _Дата: 2026-03-27_
 Основной источник продуктовых решений: `doc/PRD.md`.
 Если между документами есть расхождения, приоритет у `doc/PRD.md`, затем у `doc/ARCHITECTURE.md` для архитектурных правил реализации.
 
+Для быстрого AI-онбординга по актуальному spec-layer и структуре репозитория см. `.memory-bank/diagrams/index.md`.
+
 Каноническая архитектурная модель проекта: `Layered architecture` + `Vertical slices` без оверинжиниринга.
 
 | Файл | Назначение | Что фиксирует |
@@ -16,6 +18,7 @@ _Дата: 2026-03-27_
 | [`DATA_MODEL.md`](DATA_MODEL.md) | Концептуальная модель данных | Сущности, ключевые поля, связи и привязка к slices |
 | [`PROJECT_SPECIFICATION.md`](PROJECT_SPECIFICATION.md) | Повествовательное ТЗ | Бизнес-сценарии и реализация capability slices в продукте |
 | [`FRONTEND_COMPONENT_GUIDE.md`](FRONTEND_COMPONENT_GUIDE.md) | Гайд по фронтенду | React + Vite, UI-слой и клиентская организация |
+| [`.memory-bank/diagrams/index.md`](../.memory-bank/diagrams/index.md) | ASCII-схемы для агентов | Быстрый вход в контекст по specs, code map, runtime и lifecycle |
 | [`BRIEF.md`](BRIEF.md) | Краткий контекст | Краткое описание продукта и ценности MVP |
 | [`BRIEF_EXT.md`](BRIEF_EXT.md) | Расширенный контекст | Бизнес-детали, ограничения и подход к поставке |
 | [`GLOSSARY.md`](GLOSSARY.md) | Глоссарий | Канонические продуктовые и архитектурные термины |

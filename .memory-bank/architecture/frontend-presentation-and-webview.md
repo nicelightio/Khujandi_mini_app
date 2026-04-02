@@ -13,7 +13,7 @@ status: active
 - Frontend организуется по capability slices, а не по набору страниц или технических папок.
 - `FT-009` описывает shell baseline клиентского контура и не считается отдельным domain slice.
 - Бизнес-логика checkout, tracking и review flows остается внутри owning slices; shell предоставляет только presentation/runtime primitives.
-- Telegram WebApp integration, i18n, theme, safe-area и viewport stabilization живут в `shared` только как technical enabling layer.
+- Telegram WebApp integration, i18n, theme, safe-area, viewport stabilization, lifecycle handling и shell navigation policies живут в `shared` только как technical enabling layer.
 
 ## Boundary rules
 
@@ -21,11 +21,16 @@ status: active
 - `shared/state` содержит `session`, `ui` и другие truly cross-slice stores.
 - Slice-specific state, orchestration и API mapping остаются внутри `slices/*`.
 - Компоненты не обращаются напрямую к persistence или Telegram API без соответствующих helpers/hooks.
+- Один runtime adapter слой владеет подписками на `themeChanged`, `viewportChanged`, `safeAreaChanged`, `contentSafeAreaChanged`, `activated`, `deactivated`, BackButton/Close/swipes и feature detection через `isVersionAtLeast()`.
 
 ## Shell baseline
 
 - Первый запуск требует language overlay `ru/en/tj`.
-- Telegram WebView shell должен поддерживать safe-area, stable viewport и theme sync.
+- Telegram WebView shell должен поддерживать safe-area, stable viewport, lifecycle restore и theme sync.
+- Для pin-to-bottom layout shell использует `viewportStableHeight` и обновляется только по stable viewport signals; `viewportHeight` не считается layout source of truth.
+- Safe-area baseline использует Telegram safe-area fields/CSS variables (`--tg-safe-area-inset-*`, `--tg-content-safe-area-inset-*`), а не `env(safe-area-inset-*)` как основной механизм.
+- `Telegram.WebApp.ready()` вызывается как можно раньше после essential UI bootstrap; `expand()` и swipe/back policies централизуются в shell, а не в feature-коде.
+- Visual confirmations для critical UX допускают Telegram-native popup/confirm primitives там, где обычные web modals недостаточно надежны в WebView.
 - Visual feedback (`toast`, `loader`, disabled action states) является baseline UX, а не optional polish.
 
 ## Related guide

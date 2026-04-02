@@ -1,3 +1,5 @@
+import { useLanguageContext } from "../../../app/language-context";
+import { getCopy } from "../../../shared/i18n/copy";
 import { PageShell } from "../../../shared/ui/page-shell";
 import type { CatalogViewModel } from "../model/catalog-view-model";
 
@@ -6,11 +8,14 @@ type CatalogPageProps = {
 };
 
 export const CatalogPage = ({ viewModel }: CatalogPageProps) => {
+  const { state } = useLanguageContext();
+  const copy = getCopy(state.language).catalog;
+
   return (
     <PageShell title={viewModel.headline}>
       <section aria-live="polite">
         <p>{viewModel.statusLabel}</p>
-        {viewModel.isLoading ? <p>Loading catalog...</p> : null}
+        {viewModel.isLoading ? <p>{copy.loadingBody}</p> : null}
         {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
       </section>
 

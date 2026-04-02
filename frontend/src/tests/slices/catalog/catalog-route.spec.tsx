@@ -1,7 +1,9 @@
 import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
+import { LanguageContextProvider, type LanguageContextValue } from "../../../app/language-context";
 import type { CatalogApi } from "../../../slices/catalog/api/catalog-api";
 import { CatalogRoute } from "../../../slices/catalog/routes/catalog-route";
+import type { SupportedLanguage } from "../../../shared/i18n/languages";
 
 const collectText = (node: unknown): string[] => {
   if (typeof node === "string") {
@@ -48,6 +50,32 @@ afterEach(() => {
   consoleErrorSpy.mockRestore();
 });
 
+const createLanguageContextValue = (language: SupportedLanguage = "en"): LanguageContextValue => ({
+  state: {
+    language,
+    isHydrated: true,
+    isOverlayVisible: false,
+  },
+  controller: {
+    getState: () => ({
+      language,
+      isHydrated: true,
+      isOverlayVisible: false,
+    }),
+    hydrate: async () => ({
+      language,
+      isHydrated: true,
+      isOverlayVisible: false,
+    }),
+    selectLanguage: async (selectedLanguage) => ({
+      language: selectedLanguage,
+      isHydrated: true,
+      isOverlayVisible: false,
+    }),
+  },
+  selectLanguage: async () => undefined,
+});
+
 describe("catalog route", () => {
   it("shows loading first and then renders public shops/products from the route", async () => {
     let resolveCatalog: ((value: Awaited<ReturnType<CatalogApi["listCatalog"]>>) => void) | undefined;
@@ -61,7 +89,11 @@ describe("catalog route", () => {
     let renderer!: ReactTestRenderer;
 
     await act(async () => {
-      renderer = create(createElement(CatalogRoute, { api }));
+      renderer = create(
+        <LanguageContextProvider value={createLanguageContextValue()}>
+          <CatalogRoute api={api} />
+        </LanguageContextProvider>,
+      );
       await flushPromises();
     });
 
@@ -101,12 +133,16 @@ describe("catalog route", () => {
     let renderer!: ReactTestRenderer;
 
     await act(async () => {
-      renderer = create(createElement(CatalogRoute, { api }));
+      renderer = create(
+        <LanguageContextProvider value={createLanguageContextValue("ru")}>
+          <CatalogRoute api={api} />
+        </LanguageContextProvider>,
+      );
       await flushPromises();
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("We could not load the catalog right now.");
+    expect(text).toContain("Сейчас не удалось загрузить каталог.");
     expect(text).toContain("Catalog request failed with status 503.");
   });
 });
