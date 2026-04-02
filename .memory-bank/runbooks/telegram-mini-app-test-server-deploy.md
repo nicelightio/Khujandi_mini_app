@@ -106,7 +106,7 @@ cd /var/www/tgmeal
 Пример с git:
 
 ```bash
-git clone <YOUR_REPO_URL> app
+git clone https://github.com/nicelightio/Khujandi_mini_app.git app
 cd /var/www/tgmeal/app
 ```
 
