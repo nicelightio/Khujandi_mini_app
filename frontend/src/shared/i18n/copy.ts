@@ -14,6 +14,8 @@ type CopyDictionary = {
     unavailableMessage: string;
     emptyStatus: string;
     emptyShopLabel: string;
+    keyboardTestLabel: string;
+    keyboardTestPlaceholder: string;
     availableCount: (count: number) => string;
   };
   checkout: {
@@ -59,6 +61,8 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       unavailableMessage: "Каталог временно недоступен.",
       emptyStatus: "Сейчас нет доступных магазинов.",
       emptyShopLabel: "В этом магазине пока нет товаров.",
+      keyboardTestLabel: "Тестовое поле для клавиатуры",
+      keyboardTestPlaceholder: "Нажмите сюда, чтобы открыть клавиатуру",
       availableCount: (count) =>
         `${count} ${count === 1 ? "магазин доступен" : count < 5 ? "магазина доступны" : "магазинов доступны"} для просмотра.`,
     },
@@ -99,6 +103,8 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       unavailableMessage: "Catalog is temporarily unavailable.",
       emptyStatus: "No shops are available right now.",
       emptyShopLabel: "No products are available in this shop yet.",
+      keyboardTestLabel: "Keyboard test field",
+      keyboardTestPlaceholder: "Tap here to open the keyboard",
       availableCount: (count) => `${count} shop${count === 1 ? "" : "s"} available for browsing.`,
     },
     checkout: {
@@ -137,6 +143,8 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       unavailableMessage: "Феҳрист муваққатан дастнорас аст.",
       emptyStatus: "Ҳоло ягон мағозаи дастрас нест.",
       emptyShopLabel: "Дар ин мағоза ҳоло мол нест.",
+      keyboardTestLabel: "Майдони санҷиши клавиатура",
+      keyboardTestPlaceholder: "Барои кушодани клавиатура ин ҷоро пахш кунед",
       availableCount: (count) => `${count} мағоза барои дидан дастрас аст.`,
     },
     checkout: {

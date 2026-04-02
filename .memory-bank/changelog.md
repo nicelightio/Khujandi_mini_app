@@ -214,6 +214,9 @@ status: active
 - Updated the test-server runbook to use `Cloudflare Proxied` DNS, `Cloudflare Origin Certificate`, and `Full (strict)` as the primary HTTPS path.
 - Removed `Let's Encrypt` as the default deploy recommendation for the current `tgmeal.natureonzoom.win` setup.
 
+## [2026-04-02] Catalog keyboard test field for Android verify
+- Added a minimal localized text input on the catalog page so real Telegram Android runs can explicitly open the keyboard and capture `FT-009` viewport behavior evidence.
+
 ## [2026-04-02] MB sync after TASK-FT009-01 docs-first freeze
 - Froze `FT-009` ownership against `FT-002` and `FT-003` across feature, runtime contract, runbook, testing docs, and implementation plan.
 - Marked `TASK-FT009-01` done, promoted `TASK-FT009-02` to `ready`, and updated Memory Bank navigation for the next app-level shell scaffolding step.

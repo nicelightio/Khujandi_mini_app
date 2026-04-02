@@ -3,11 +3,11 @@ import { createServer } from "node:http";
 const shops = [
   {
     id: "shop-1",
-    name: "Khujand Pilaf House",
+    name: "Плов в парке Сомони",
   },
   {
     id: "shop-2",
-    name: "Somsa Corner",
+    name: "Бобоча самбуса",
   },
 ];
 
@@ -16,13 +16,13 @@ const productsByShopId = {
     {
       id: "product-1",
       shopId: "shop-1",
-      name: "Pilaf",
+      name: "Плов зарвода",
       priceMinor: 4500,
     },
     {
       id: "product-2",
       shopId: "shop-1",
-      name: "Shashlik",
+      name: "Плов обычный",
       priceMinor: 3800,
     },
   ],
@@ -30,13 +30,13 @@ const productsByShopId = {
     {
       id: "product-3",
       shopId: "shop-2",
-      name: "Somsa",
+      name: "Самбуса рубленная говядина",
       priceMinor: 1200,
     },
     {
       id: "product-4",
       shopId: "shop-2",
-      name: "Tea",
+      name: "Самбуса фарш",
       priceMinor: 700,
     },
   ],

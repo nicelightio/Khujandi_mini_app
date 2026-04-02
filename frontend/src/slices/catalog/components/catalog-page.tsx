@@ -19,6 +19,17 @@ export const CatalogPage = ({ viewModel }: CatalogPageProps) => {
         {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
       </section>
 
+      <section data-catalog-keyboard-test="true">
+        <label htmlFor="catalog-keyboard-test-input">{copy.keyboardTestLabel}</label>
+        <input
+          id="catalog-keyboard-test-input"
+          name="catalogKeyboardTest"
+          type="text"
+          placeholder={copy.keyboardTestPlaceholder}
+          autoComplete="off"
+        />
+      </section>
+
       {viewModel.isLoading || viewModel.errorMessage !== null || viewModel.isEmpty ? null : (
         <section>
           {viewModel.shops.map((shop) => (
