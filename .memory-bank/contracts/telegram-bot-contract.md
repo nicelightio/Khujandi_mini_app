@@ -13,9 +13,15 @@ status: active
 ## Outbound delivery rules
 
 - `order.created`: уведомление активным администраторам.
-- `order.assigned`: уведомление назначенному курьеру.
+- `order.assigned`: уведомление только назначенному курьеру; fan-out другим курьерам, администраторам или клиенту не является baseline-поведением этого события.
 - `order.status_changed`: уведомление релевантным участникам процесса по текущему state/role mapping реализации.
 - `review.negative`: fan-out активным администраторам как явное исключение к default actor-targeted policy.
+
+## Assignment delivery notes
+
+- `order.assigned` transport обязан сохранять actor-targeted semantics owning slice `delivery-assignment`.
+- Retry/duplicate delivery в bot transport не должны приводить к повторному domain assignment side effect или расширению notify target.
+- Если доставка сообщения курьеру временно недоступна, это operational/runtime проблема, а не причина менять доменную семантику assignment.
 
 ## Inbound review payload baseline
 

@@ -50,8 +50,8 @@ status: active
 | REQ-004 | EP-001 | FT-002 | integration: telegram initData validation | done |
 | REQ-005 | EP-001 | FT-002 | e2e: successful payment creates order | done |
 | REQ-006 | EP-001 | FT-002 | e2e: failed payment keeps orders absent | done |
-| REQ-007 | EP-002 | FT-004 | e2e: admin assigns courier | planned |
-| REQ-018 | EP-002 | FT-004 | integration: assignment audit and error contract | planned |
+| REQ-007 | EP-002 | FT-004 | e2e: admin assigns courier | done |
+| REQ-018 | EP-002 | FT-004 | integration: assignment audit and error contract | done |
 | REQ-008 | EP-002 | FT-005 | integration: order state machine + 409 conflict | planned |
 | REQ-009 | EP-002 | FT-005 | e2e: polling returns ordered events | planned |
 | REQ-010 | EP-002 | FT-005 | verify: polling SLA p95 <= 10s | planned |

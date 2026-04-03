@@ -11,7 +11,7 @@ status: active
 ## Current state
 
 - `FT-004` уже декомпозирован для перехода `CREATED -> ASSIGNED`, поэтому `FT-005` продолжает lifecycle только с post-assignment статусов.
-- Contracts для `/events` и order lifecycle уже зафиксированы в normative layer, но implementation plan/backlog для `delivery-tracking` пока отсутствуют.
+- `TASK-FT005-01` фиксирует docs-first boundary для post-assignment state machine, `409 CONFLICT`, string cursor polling contract и ownership SLA verification до runtime scaffolding.
 - Shared `events` и `telegram-bot` runtime contours уже описаны архитектурно; `FT-005` должен использовать их без переноса state machine semantics в shared transport.
 
 ## REQs
@@ -37,11 +37,14 @@ status: active
 ## Constraints
 
 - `FT-005` владеет только post-assignment lifecycle; assignment и cancellation остаются вне scope.
-- Все переходы валидируются server-side state machine; невалидный transition возвращает `409 CONFLICT` и не пишет side effects.
+- Только `courier` выполняет post-assignment status writes внутри `FT-005`.
+- Все переходы валидируются server-side state machine; skip/replay/regression/terminal attempts возвращают `409 CONFLICT` и не пишут side effects.
 - Каждый валидный transition обязан писать `order_status_history`, доменное событие и command response metadata (`updated_at`, `revision`) там, где это нужно для cheap polling.
-- `GET /events?since=<cursor>` обязан возвращать ordered events по возрастанию `revision` и строковый `next_cursor`.
+- `GET /events?since=<cursor>` обязан возвращать ordered events по возрастанию `revision`, а `since` / `revision` / `next_cursor` остаются string-only opaque values на API boundary.
+- Empty-window и repeated polling requests обязаны быть duplicate-safe и не создавать domain side effects.
 - Event format остается стабильным и совместимым для future SSE/WS migration.
 - Resume/retry polling и bot-driven courier actions не должны создавать duplicate domain side effects.
+- Финальное closure `REQ-010` требует отдельный SLA verify bundle и не закрывается scaffold/docs-only задачами.
 
 ## Steps
 
@@ -73,7 +76,7 @@ status: active
 - backend integration: разрешенные courier transitions проходят только по `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
 - backend integration: невалидный transition возвращает `409 CONFLICT` без изменения состояния, history и events.
 - backend integration: каждый валидный transition пишет `order_status_history`, event и command response metadata (`updated_at`, `revision`).
-- backend integration: `GET /events?since=<cursor>` возвращает ordered stream, string `next_cursor` и duplicate-safe поведение на повторных запросах.
+- backend integration: `GET /events?since=<cursor>` возвращает ordered stream, opaque string `since`/`revision`/`next_cursor` и duplicate-safe поведение на повторных/empty-window запросах.
 - e2e: courier доводит заказ до `COMPLETED`, а admin/customer polling consumers видят ordered updates.
 - verify: отдельный SLA evidence bundle подтверждает polling p95 <= 10 секунд на agreed MVP load profile.
 

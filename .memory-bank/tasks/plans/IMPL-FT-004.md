@@ -39,6 +39,7 @@ status: active
 - `FT-004` владеет только переходом `CREATED -> ASSIGNED`; следующие переходы не входят в scope.
 - Assignment write flow обязан валидировать текущее состояние заказа и не обходить server-side state machine.
 - Успешный assignment обязан писать audit trail, `order_status_history` и доменное событие `order.assigned`.
+- Успешный assignment command-response обязан нести актуальные `updated_at` и string `revision` для downstream polling/read refresh.
 - Assignment notification по умолчанию идет только назначенному курьеру; broad broadcast не допускается.
 - Error responses обязаны соответствовать `{ error: { code, message, details }, trace_id }`.
 

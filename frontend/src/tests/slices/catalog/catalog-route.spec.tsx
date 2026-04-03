@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { LanguageContextProvider, type LanguageContextValue } from "../../../app/language-context";
 import type { CatalogApi } from "../../../slices/catalog/api/catalog-api";

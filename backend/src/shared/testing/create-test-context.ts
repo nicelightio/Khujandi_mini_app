@@ -1,9 +1,7 @@
-import type { PrismaClientLike } from "../db/prisma-client";
-
-export type TestContext = {
-  prisma: PrismaClientLike;
+export type TestContext<TPrismaClient> = {
+  prisma: TPrismaClient;
 };
 
-export const createTestContext = (prisma: PrismaClientLike): TestContext => ({
+export const createTestContext = <TPrismaClient>(prisma: TPrismaClient): TestContext<TPrismaClient> => ({
   prisma,
 });

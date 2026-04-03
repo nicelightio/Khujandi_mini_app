@@ -354,7 +354,7 @@ status: active
 
 ### TASK-FT004-01 — Freeze assignment boundary, event semantics and targeted notification policy
 - TASK-ID: `TASK-FT004-01`
-- Status: `ready`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-004`
 - REQs: `REQ-007`, `REQ-018`
@@ -367,7 +367,7 @@ status: active
 
 ### TASK-FT004-02 — Scaffold backend delivery-assignment slice and persistence/test baseline
 - TASK-ID: `TASK-FT004-02`
-- Status: `planned`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-004`
 - REQs: `REQ-007`, `REQ-018`
@@ -380,7 +380,7 @@ status: active
 
 ### TASK-FT004-03 — Scaffold admin assignment route shell and frontend test harness
 - TASK-ID: `TASK-FT004-03`
-- Status: `planned`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-004`
 - REQs: `REQ-007`
@@ -395,7 +395,7 @@ status: active
 
 ### TASK-FT004-04 — Implement assignment command with RBAC, state validation, audit and event publication
 - TASK-ID: `TASK-FT004-04`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-004`
 - REQs: `REQ-007`, `REQ-018`
@@ -409,7 +409,7 @@ status: active
 
 ### TASK-FT004-05 — Implement targeted courier notification integration for assignment
 - TASK-ID: `TASK-FT004-05`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-004`
 - REQs: `REQ-007`, `REQ-018`
@@ -424,7 +424,7 @@ status: active
 
 ### TASK-FT004-06 — Wire admin assignment UX to backend flow
 - TASK-ID: `TASK-FT004-06`
-- Status: `planned`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-004`
 - REQs: `REQ-007`, `REQ-018`
@@ -436,7 +436,7 @@ status: active
 
 ### TASK-FT004-07 — Add assignment verification suite and final docs sync
 - TASK-ID: `TASK-FT004-07`
-- Status: `planned`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-004`
 - REQs: `REQ-007`, `REQ-018`
@@ -453,7 +453,7 @@ status: active
 
 ### TASK-FT005-01 — Freeze delivery tracking state machine, polling contract and SLA verify boundary
 - TASK-ID: `TASK-FT005-01`
-- Status: `ready`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-005`
 - REQs: `REQ-008`, `REQ-009`, `REQ-010`, `REQ-018`
@@ -466,7 +466,7 @@ status: active
 
 ### TASK-FT005-02 — Scaffold backend delivery-tracking slice and test baseline
 - TASK-ID: `TASK-FT005-02`
-- Status: `planned`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-005`
 - REQs: `REQ-008`, `REQ-009`, `REQ-018`
@@ -479,7 +479,7 @@ status: active
 
 ### TASK-FT005-03 — Scaffold polling consumer and courier interaction harness
 - TASK-ID: `TASK-FT005-03`
-- Status: `planned`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-005`
 - REQs: `REQ-009`, `REQ-010`
@@ -494,7 +494,7 @@ status: active
 
 ### TASK-FT005-04 — Implement courier status command flow with state validation and history/event writes
 - TASK-ID: `TASK-FT005-04`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-005`
 - REQs: `REQ-008`, `REQ-018`
@@ -508,7 +508,7 @@ status: active
 
 ### TASK-FT005-05 — Implement ordered events polling with string cursors and duplicate-safe semantics
 - TASK-ID: `TASK-FT005-05`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-005`
 - REQs: `REQ-009`, `REQ-018`
@@ -522,7 +522,7 @@ status: active
 
 ### TASK-FT005-06 — Implement status-change notifications and polling consumer wiring
 - TASK-ID: `TASK-FT005-06`
-- Status: `planned`
+- Status: `ready`
 - Wave: `W2`
 - Feature: `FT-005`
 - REQs: `REQ-008`, `REQ-009`, `REQ-018`

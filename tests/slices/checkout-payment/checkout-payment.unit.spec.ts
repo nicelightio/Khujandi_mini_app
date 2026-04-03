@@ -1,7 +1,6 @@
 import { CheckoutPaymentService } from "../../../backend/src/slices/checkout-payment/application/checkout-payment.service";
 import type {
   FinalizeCheckoutPaymentInput,
-  CheckoutPaymentMiniAppSessionRecord,
   CheckoutPaymentRepository,
   CheckoutPaymentUserRecord,
   CreateCheckoutPaymentOrderInput,

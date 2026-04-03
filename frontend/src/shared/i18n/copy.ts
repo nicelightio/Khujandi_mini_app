@@ -38,6 +38,21 @@ type CopyDictionary = {
     openInTelegramMessage: string;
     successConfirmation: string;
   };
+  orderTracking: {
+    headline: string;
+    loadingStatus: string;
+    loadingBody: string;
+    unavailableStatus: string;
+    unavailableMessage: string;
+    currentStatus: (status: string) => string;
+    updatesApplied: (count: number) => string;
+    cursorLabel: (cursor: string) => string;
+    latestRevision: (revision: string | null) => string;
+    boundaryNote: string;
+    pendingAction: string;
+    availableActionsLabel: string;
+    nextActionLabel: Record<"IN_PROGRESS" | "DELIVERED" | "COMPLETED", string>;
+  };
 };
 
 const languageOptions: Record<SupportedLanguage, string> = {
@@ -88,6 +103,27 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       openInTelegramMessage: "Откройте оформление заказа из Telegram, чтобы безопасно продолжить.",
       successConfirmation: "Заказ создан после доверенного подтверждения оплаты.",
     },
+    orderTracking: {
+      headline: "Отслеживание заказа",
+      loadingStatus: "Подготавливаем polling и статус доставки...",
+      loadingBody: "Загружаем scaffold отслеживания заказа...",
+      unavailableStatus: "Не удалось подготовить отслеживание заказа.",
+      unavailableMessage: "Отслеживание заказа временно недоступно.",
+      currentStatus: (status) => `Текущий статус: ${status}.`,
+      updatesApplied: (count) => `Применено обновлений: ${count}.`,
+      cursorLabel: (cursor) => `Cursor: ${cursor}`,
+      latestRevision: (revision) =>
+        revision === null ? "Последняя revision: пока нет." : `Последняя revision: ${revision}.`,
+      boundaryNote:
+        "Polling consumer хранит opaque cursor, а state-machine остается на backend/bot command boundary.",
+      pendingAction: "Отправляем courier action...",
+      availableActionsLabel: "Courier actions",
+      nextActionLabel: {
+        IN_PROGRESS: "Начать доставку",
+        DELIVERED: "Отметить как доставлено",
+        COMPLETED: "Завершить заказ",
+      },
+    },
   },
   en: {
     languageOverlay: {
@@ -127,6 +163,27 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       backendBoundaryNote: "Telegram auth and payment confirmation stay on the backend boundary.",
       openInTelegramMessage: "Open this checkout from Telegram to continue securely.",
       successConfirmation: "Order created after trusted payment confirmation.",
+    },
+    orderTracking: {
+      headline: "Order tracking",
+      loadingStatus: "Preparing polling and delivery status...",
+      loadingBody: "Loading the order-tracking scaffold...",
+      unavailableStatus: "We could not prepare order tracking right now.",
+      unavailableMessage: "Order tracking is temporarily unavailable.",
+      currentStatus: (status) => `Current status: ${status}.`,
+      updatesApplied: (count) => `Updates applied: ${count}.`,
+      cursorLabel: (cursor) => `Cursor: ${cursor}`,
+      latestRevision: (revision) =>
+        revision === null ? "Latest revision: none yet." : `Latest revision: ${revision}.`,
+      boundaryNote:
+        "The polling consumer stores an opaque cursor while the state machine stays on the backend/bot command boundary.",
+      pendingAction: "Sending courier action...",
+      availableActionsLabel: "Courier actions",
+      nextActionLabel: {
+        IN_PROGRESS: "Start delivery",
+        DELIVERED: "Mark as delivered",
+        COMPLETED: "Complete order",
+      },
     },
   },
   tj: {
@@ -168,6 +225,27 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
         "Иҷозати Telegram ва тасдиқи пардохт дар ҳудуди backend мемонад.",
       openInTelegramMessage: "Барои идомаи бехатар пардохтро аз дохили Telegram кушоед.",
       successConfirmation: "Фармоиш баъд аз тасдиқи боэътимоди пардохт сохта шуд.",
+    },
+    orderTracking: {
+      headline: "Пайгирии фармоиш",
+      loadingStatus: "Polling ва ҳолати расонишро омода карда истодаем...",
+      loadingBody: "Scaffold-и пайгирии фармоишро бор карда истодаем...",
+      unavailableStatus: "Ҳоло пайгирии фармоишро омода кардан нашуд.",
+      unavailableMessage: "Пайгирии фармоиш муваққатан дастнорас аст.",
+      currentStatus: (status) => `Ҳолати ҷорӣ: ${status}.`,
+      updatesApplied: (count) => `Навсозиҳои татбиқшуда: ${count}.`,
+      cursorLabel: (cursor) => `Cursor: ${cursor}`,
+      latestRevision: (revision) =>
+        revision === null ? "Revision-и охирин: ҳоло нест." : `Revision-и охирин: ${revision}.`,
+      boundaryNote:
+        "Polling consumer cursor-и opaque-ро нигоҳ медорад ва state machine дар ҳудуди backend/bot мемонад.",
+      pendingAction: "Амали courier фиристода истодаем...",
+      availableActionsLabel: "Амалҳои courier",
+      nextActionLabel: {
+        IN_PROGRESS: "Расонишро оғоз кунед",
+        DELIVERED: "Расонида шуд",
+        COMPLETED: "Фармоишро анҷом диҳед",
+      },
     },
   },
 };
