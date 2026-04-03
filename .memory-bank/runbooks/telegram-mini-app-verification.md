@@ -45,10 +45,10 @@ status: active
 ## Evidence rules
 
 - Browser-only Playwright traces недостаточны для Telegram-sensitive acceptance.
-- Сохраняй screenshots/videos/traces/notes в `.tasks/TASK-XXX/`.
+- Сохраняй operator notes в `.tasks/TASK-XXX/`; screenshots/videos/traces optional и не являются blocking artifact для текущего Android verify closure.
 - В Memory Bank фиксируй только summary + ссылки на evidence.
 - Для `FT-009` summary должен явно отделять shell/runtime evidence от уже закрытых `FT-002` auth/payment checks и `FT-003` localization checks.
-- Для текущего closure достаточно real Android Telegram evidence bundle; дополнительные `iOS/Desktop` материалы можно добавлять как non-blocking appendix.
+- Для текущего closure достаточно real Android Telegram run c operator-confirmed notes; дополнительные `iOS/Desktop` материалы и screenshots/videos можно добавлять как non-blocking appendix.
 
 ## Source artifacts
 

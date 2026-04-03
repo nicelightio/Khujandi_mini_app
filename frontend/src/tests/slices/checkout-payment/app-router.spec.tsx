@@ -1,6 +1,7 @@
 import { AppRouter, resolveAppRoute } from "../../../app/router";
 import { CatalogRoute } from "../../../slices/catalog/routes/catalog-route";
 import { CheckoutPaymentRoute } from "../../../slices/checkout-payment/routes/checkout-payment-route";
+import { OrderTrackingRoute } from "../../../slices/order-tracking/routes/order-tracking-route";
 import type { LanguageController } from "../../../shared/state/language";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 
@@ -78,6 +79,10 @@ describe("app router", () => {
 
   it("falls back to catalog when pathname is unknown", () => {
     expect(resolveAppRoute("/missing").element.type).toBe(CatalogRoute);
+  });
+
+  it("resolves the order-tracking route for the tracking pathname", () => {
+    expect(resolveAppRoute("/tracking").element.type).toBe(OrderTrackingRoute);
   });
 
   it("uses the browser pathname at runtime", async () => {

@@ -9,6 +9,7 @@ import { createTelegramWebAppBridge } from "../shared/telegram/webapp";
 import type { TelegramWebAppBridge } from "../shared/telegram/webapp";
 import { CatalogRoute } from "../slices/catalog/routes/catalog-route";
 import { CheckoutPaymentRoute } from "../slices/checkout-payment/routes/checkout-payment-route";
+import { OrderTrackingRoute } from "../slices/order-tracking/routes/order-tracking-route";
 
 export type AppRoute = {
   path: string;
@@ -23,6 +24,10 @@ export const appRoutes: AppRoute[] = [
   {
     path: routes.checkoutPayment,
     element: <CheckoutPaymentRoute />,
+  },
+  {
+    path: routes.orderTracking,
+    element: <OrderTrackingRoute />,
   },
 ];
 

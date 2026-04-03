@@ -93,11 +93,49 @@ model Order {
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
   shop                   Shop         @relation(fields: [shopId], references: [id])
+  statusHistory          OrderStatusHistory[]
+  assignmentAudits       DeliveryAssignmentAudit[]
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([courierId, status, updatedAt(sort: Desc)])
   @@index([status, updatedAt(sort: Desc)])
   @@index([isDeleted])
+}
+
+model OrderStatusHistory {
+  id              BigInt      @id @default(autoincrement())
+  orderId         String
+  oldStatus       OrderStatus
+  newStatus       OrderStatus
+  changedByUserId String
+  changedAt       DateTime    @default(now())
+  order           Order       @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, changedAt])
+}
+
+model DeliveryAssignmentAudit {
+  id            BigInt   @id @default(autoincrement())
+  orderId       String
+  adminUserId   String
+  courierUserId String
+  action        String
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, createdAt])
+  @@index([adminUserId, createdAt])
+}
+
+model Event {
+  id        BigInt   @id @default(autoincrement())
+  type      String
+  entity    String
+  entityId  String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId, id])
 }
 
 model User {

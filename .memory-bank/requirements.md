@@ -31,7 +31,7 @@ status: active
 - `REQ-020` Shop rename and snapshot policy: у магазина есть 1 бесплатное переименование; дальнейшие переименования требуют ручного учета платности без отдельного online charge, а `shop_name` в существующих заказах остается snapshot.
 - `REQ-021` Trusted payment confirmation: заказ может быть создан только после trusted server-side подтверждения успеха оплаты с проверкой подлинности provider callback/status confirmation и replay protection по payment transaction/idempotency metadata; для Telegram/Bot webhook flows обязательны transport verification (`secret_token` или эквивалент), идемпотентная обработка повторной доставки и DB uniqueness для payment identity; payment/webhook contour также требует health monitoring, alerting по non-2xx/latency и documented manual recovery path.
 - `REQ-022` Mini App session and storage security: session identifiers Mini App не хранятся в `localStorage` или другом JS-readable persistent storage как baseline; предпочтителен HttpOnly cookie contour с явной CSRF-стратегией; minimal MVP baseline для cookie-based Mini App session: `SameSite` cookie + `Origin/Referer` validation на server-side; non-sensitive client persistence (например язык) должна иметь явную политику fallback `DeviceStorage -> CloudStorage -> localStorage` и синхронизацию в backend profile после появления auth-контекста; для Mini App auth/payment contour обязателен явный CSP/XSS-hardening baseline.
-- `REQ-023` Telegram-specific verification baseline: для `checkout-payment`, `language/localization`, `mini-app shell` и других Telegram-sensitive flows definition of done включает не только browser e2e, но и Telegram-specific verification: mock/runtime contract tests, test environment usage где применимо, и минимум один прогон на реальном `Android Telegram`; более широкая cross-platform matrix (`iOS`, `Desktop/macOS`) сейчас желательна, но не является blocking gate без отдельного explicit request.
+- `REQ-023` Telegram-specific verification baseline: для `checkout-payment`, `language/localization`, `mini-app shell` и других Telegram-sensitive flows definition of done включает не только browser e2e, но и Telegram-specific verification: mock/runtime contract tests, test environment usage где применимо, и минимум один прогон на реальном `Android Telegram`; blocking evidence может подтверждаться operator-confirmed notes, а screenshots/videos остаются optional supporting artifacts. Более широкая cross-platform matrix (`iOS`, `Desktop/macOS`) сейчас желательна, но не является blocking gate без отдельного explicit request.
 
 ## Out of scope
 - Авто-назначение курьеров.
@@ -50,8 +50,8 @@ status: active
 | REQ-004 | EP-001 | FT-002 | integration: telegram initData validation | done |
 | REQ-005 | EP-001 | FT-002 | e2e: successful payment creates order | done |
 | REQ-006 | EP-001 | FT-002 | e2e: failed payment keeps orders absent | done |
-| REQ-007 | EP-002 | FT-004 | e2e: admin assigns courier | planned |
-| REQ-018 | EP-002 | FT-004 | integration: assignment audit and error contract | planned |
+| REQ-007 | EP-002 | FT-004 | e2e: admin assigns courier | done |
+| REQ-018 | EP-002 | FT-004 | integration: assignment audit and error contract | done |
 | REQ-008 | EP-002 | FT-005 | integration: order state machine + 409 conflict | planned |
 | REQ-009 | EP-002 | FT-005 | e2e: polling returns ordered events | planned |
 | REQ-010 | EP-002 | FT-005 | verify: polling SLA p95 <= 10s | planned |
@@ -65,11 +65,11 @@ status: active
 | REQ-018 | EP-002 | FT-005 | integration: error contract + audit/event generation | planned |
 | REQ-018 | EP-002 | FT-006 | integration: cancellation audit and error contract | planned |
 | REQ-018 | EP-003 | FT-007 | integration: auth audit and error contract | planned |
-| REQ-019 | EP-001 | FT-009 | verify: Android Telegram WebView shell baseline | planned |
+| REQ-019 | EP-001 | FT-009 | verify: Android Telegram WebView shell baseline | done |
 | REQ-020 | EP-001 | FT-001 | unit: rename policy and shop name snapshot | done |
 | REQ-021 | EP-001 | FT-002 | integration: trusted payment callback and replay protection | done |
-| REQ-022 | EP-001 | FT-002, FT-003, FT-009 | integration: session/storage policy + Android shell persistence evidence | planned |
-| REQ-023 | EP-001 | FT-003, FT-009 | verify: Telegram-specific test environment and Android real-client evidence | planned |
+| REQ-022 | EP-001 | FT-002, FT-003, FT-009 | integration: session/storage policy + Android shell persistence evidence | done |
+| REQ-023 | EP-001 | FT-003, FT-009 | verify: Telegram-specific test environment and Android real-client evidence | done |
 
 ## Source artifacts
 

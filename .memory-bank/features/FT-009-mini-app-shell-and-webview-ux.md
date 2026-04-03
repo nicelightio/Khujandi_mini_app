@@ -16,7 +16,7 @@ status: active
 - `TASK-FT009-02` added the app-level shell boundary, shared shell state/context scaffold, and repo-local runtime bridge test harness needed before wiring real Telegram runtime events.
 - `TASK-FT009-03` now wires `ready()/expand()`, centralized runtime event handling, stable viewport/safe-area CSS propagation, and graceful non-Telegram fallback into the shared app shell baseline.
 - `TASK-FT009-04` now connects catalog and checkout to the shared shell layout/policy layer, including centralized back/swipe metadata and shell-owned action feedback framing without moving auth/payment logic into shared UI.
-- `TASK-FT009-05` now closes deterministic repo-local verification for shell state, runtime adapter events, catalog shell rendering, and checkout action-feedback markers, leaving only real Telegram Android evidence plus final docs closure to `TASK-FT009-06`.
+- `TASK-FT009-06` completed final closure: repo-local shell/runtime gates pass and operator-confirmed Android Telegram verification now closes customer-facing catalog/checkout shell behavior without requiring screenshots as blocking artifacts.
 
 ## Use cases
 
@@ -37,7 +37,7 @@ status: active
 - Для critical WebView confirmations допускаются Telegram-native popup/confirm primitives по shell policy.
 - `FT-009` владеет только shared shell/runtime частью `REQ-022`: safe-area/theme/viewport/lifecycle policy, centralized swipe/back behavior и non-sensitive shell persistence boundary без хранения session identifiers в JS-readable storage.
 - `FT-009` не переносит в shell auth/session transport из `FT-002` и language-choice domain behavior из `FT-003`; feature использует их как already-owned boundaries.
-- Telegram-specific real-client evidence для customer-facing Mini App flows, включая checkout UI, закрывается на уровне shell/runtime verification этой feature; обязательный blocking baseline для текущего MVP ограничен `Android Telegram`.
+- Telegram-specific real-client evidence для customer-facing Mini App flows, включая checkout UI, закрывается на уровне shell/runtime verification этой feature; обязательный blocking baseline для текущего MVP ограничен `Android Telegram` и operator-confirmed notes.
 
 ## Edge cases & failure modes
 
@@ -69,4 +69,4 @@ status: active
 - unit: shell state helpers and theme/shared-persistence glue.
 - contract tests: runtime adapter for theme/viewport/safe-area/lifecycle events.
 - repo-local closure: deterministic Jest coverage for shell state, adapter events, catalog shell markers, and checkout visual feedback before real-client verify.
-- verify: Telegram test environment/manual run в `Android Telegram` для shell/runtime behavior, включая customer-facing checkout UI после интеграции shell/runtime baseline; `iOS/Desktop` evidence может добавляться дополнительно без блокировки текущего closure, while `FT-002` transport checks and `FT-003` language-domain assertions stay outside this scope.
+- verify: Telegram test environment/manual run в `Android Telegram` для shell/runtime behavior, включая customer-facing checkout UI после интеграции shell/runtime baseline; operator-confirmed notes are sufficient for closure, while `iOS/Desktop` evidence and screenshots/videos remain optional hardening artifacts. `FT-002` transport checks and `FT-003` language-domain assertions stay outside this scope.

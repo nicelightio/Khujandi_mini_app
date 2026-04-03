@@ -28,7 +28,8 @@ status: active
 
 - `catalog`: `shops`, `products`, seller ownership rules.
 - `checkout-payment`: paid order creation, payment transaction identity, order snapshots.
-- `delivery-tracking`: order lifecycle and `order_status_history`.
+- `delivery-assignment`: `orders` read/update touchpoints for `CREATED -> ASSIGNED`, `order_status_history`, slice-owned `delivery_assignment_audit`, `events`.
+- `delivery-tracking`: post-assignment order lifecycle and its `order_status_history`/`events` writes.
 - `order-cancellation`: cancellation reason, actor, refund state.
 - `reviews-feedback`: `reviews` model и negative alert semantics.
 - `admin-access`: credentials, sessions, auth audit.

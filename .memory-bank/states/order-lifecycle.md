@@ -20,6 +20,7 @@ status: active
 - Каждый валидный переход пишет `order_status_history` и доменное событие.
 - Отмена фиксирует причину и инициатора.
 - Для paid-cancel case должен быть отражен `refund_status`: `NOT_REQUIRED`, `PENDING_MANUAL`, `DONE`, `REJECTED`.
+- Для `FT-005` post-assignment lifecycle допускает только adjacent courier-driven transitions; skip/replay/regression и попытки уйти из terminal status считаются невалидными и не создают side effects.
 
 ## Transition ownership matrix
 
@@ -41,6 +42,7 @@ status: active
   `FT-004` владеет `CREATED -> ASSIGNED`,
   `FT-005` владеет `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`,
   `FT-006` владеет cancellation transitions и refund tracking semantics.
+- Внутри `FT-005` allowed chain фиксирована как `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`; переходы `ASSIGNED -> DELIVERED`, `IN_PROGRESS -> COMPLETED` и любые reverse/replay attempts нарушают state contract и возвращают `409 CONFLICT`.
 - Terminal statuses `COMPLETED` и `CANCELLED_*` не имеют исходящих переходов.
 - Для MVP нет специфицированных переходов отмены из `DELIVERED`; такие сценарии считаются out of current state contract, пока не появится отдельное уточнение.
 

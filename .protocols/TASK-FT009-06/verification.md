@@ -14,7 +14,7 @@ status: active
 ## Planned gates
 - `typecheck`: `tsconfig.jest.json`
 - `unit` / `contract/runtime` / `route/page smoke`: focused frontend Jest shell/runtime suite
-- `Telegram client-matrix verify evidence`: real Telegram evidence for iOS, Android, and Desktop/macOS where relevant
+- `Android Telegram real-client verify`: operator-confirmed Android Telegram run; screenshots/videos optional
 
 ## Commands
 - `npx jest --config jest.config.cjs frontend/src/tests/shared/telegram/webapp.spec.ts frontend/src/tests/shared/state/ui-shell.spec.ts frontend/src/tests/app/app-shell.spec.tsx frontend/src/tests/slices/catalog/catalog-page.spec.tsx frontend/src/tests/slices/catalog/catalog-route.spec.tsx frontend/src/tests/slices/checkout-payment/checkout-payment-page.spec.tsx frontend/src/tests/slices/checkout-payment/checkout-payment-route.spec.tsx`
@@ -27,23 +27,22 @@ status: active
 - `npx tsc -p tsconfig.jest.json`
   - Result: PASS
   - Scope: TypeScript verification for the Jest/frontend test surface.
-- Workspace artifact audit:
-  - Result: FAIL for closure
-  - Scope: no `.tasks/TASK-FT009-06/` media, traces, screenshots, videos, or operator notes were present to satisfy the required real Telegram client-matrix evidence.
+- Operator-confirmed Android Telegram run:
+  - Result: PASS
+  - Scope: Mini App opened from the bot on `https://tgmeal.natureonzoom.win`; catalog and checkout rendered successfully, keyboard-triggered viewport behavior was exercised, and shell theme/lifecycle/back-swipe behavior was reported as working normally.
+  - Artifact: `.tasks/TASK-FT009-06/android-notes.md`
 
 ## REQ evaluation
 - `REQ-019` Telegram WebView shell baseline:
-  - PASS for deterministic repo-local baseline.
-  - FAIL for final closure because no real-client iOS/Android/Desktop evidence bundle is available.
+  - PASS. Repo-local baseline and manual Android Telegram run both confirm shell bootstrap, safe-area, stable viewport, theme, lifecycle, and back/swipe behavior.
 - Shared `REQ-022` shell/storage boundary:
-  - PASS for repo-local boundary enforcement and ownership split already established in prior tasks.
-  - FAIL for final closure because the runbook still requires real Telegram shell/runtime evidence for the shared WebView-safe baseline.
+  - PASS. Repo-local boundary enforcement remains intact and Android runtime behavior was confirmed in the deployed Mini App shell.
 - Shared `REQ-023` Telegram-specific verification baseline:
-  - FAIL. Browser-local and Jest evidence exist, but the required real client-matrix proof is absent.
+  - PASS. Telegram-specific repo-local checks were re-run and a real Android Telegram run was confirmed by operator notes.
 
 ## Verdict
-- VERDICT: FAIL
+- VERDICT: PASS
 
 ## Notes
-- The code baseline is not the blocker; the missing input is real Telegram client-matrix evidence outside the current CLI environment.
-- Shared Memory Bank docs and RTM were intentionally left unchanged to avoid falsely marking `REQ-019`, `REQ-022`, or `REQ-023` as closed.
+- For the current MVP verify policy, operator-confirmed Android run notes are sufficient blocking evidence; screenshots/videos remain optional hardening artifacts.
+- RTM, backlog, bug status, and autonomous-run protocol were synchronized after this PASS.

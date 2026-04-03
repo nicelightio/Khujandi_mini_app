@@ -4,6 +4,90 @@ status: active
 ---
 # Changelog
 
+## [2026-04-03] TASK-FT005-05 verification sync
+- `/verify TASK-FT005-05` independently reran the focused `delivery-tracking` unit/integration Jest suite and repo-local TypeScript verification without evidence drift.
+- Kept statuses unchanged: `TASK-FT005-05` remains `done`, `TASK-FT005-06` remains `ready`, and RTM rows for `REQ-009/010/018` stay unchanged until notification/runtime wiring, final end-to-end closure, and SLA evidence land.
+
+## [2026-04-03] TASK-FT005-05 ordered polling read path
+- Implemented backend `delivery-tracking` ordered polling so `GET /events?since=<cursor>` now maps persisted events into stable read models with string `revision`, string `nextCursor`, and ISO `createdAt` while preserving ascending order.
+- Added focused unit/integration coverage for ordered polling results, empty-window cursor stability, duplicate requests with the same cursor, and explicit no-write behavior on the read path.
+- Marked `TASK-FT005-05` done and promoted `TASK-FT005-06` to `ready`; RTM rows for `REQ-009/010/018` remain unchanged because notification/runtime wiring, final end-to-end closure, and SLA evidence still belong to later `FT-005` tasks.
+
+## [2026-04-03] TASK-FT005-04 verification sync
+- `/verify TASK-FT005-04` independently reran the focused `delivery-tracking` Jest suite and repo-local TypeScript verification without evidence drift.
+- Kept statuses unchanged: `TASK-FT005-04` remains `done`, `TASK-FT005-05` remains `ready`, and RTM rows for `REQ-008/009/010/018` stay unchanged until ordered polling/runtime and final SLA closure land.
+- `npm run lint` is not available in the current repository (`Missing script: "lint"`), so the autonomous MB-SYNC lint checkpoint cannot be executed as a repo script at this time.
+
+## [2026-04-03] TASK-FT005-04 courier status command flow
+- Implemented backend `delivery-tracking` command validation for authenticated courier actors, assigned-courier ownership, adjacent post-assignment transitions, and project-standard `409 CONFLICT` / `403` / `404` handling without rejected-write side effects.
+- Tightened the transactional write path so successful status changes persist `order`, `order_status_history`, and canonical `order.status_changed`, while the command response keeps polling-friendly `updatedAt` and string `revision` metadata.
+- Marked `TASK-FT005-04` done and promoted `TASK-FT005-05` to `ready`; RTM rows for `REQ-008/009/010/018` remain unchanged because ordered polling runtime closure, notifications, and final feature verification still belong to later `FT-005` tasks.
+
+## [2026-04-03] TASK-FT005-03 verification sync
+- `/verify TASK-FT005-03` independently reran the focused backend/frontend scaffold checks plus repo-local TypeScript verification without evidence drift.
+- Kept statuses unchanged: `TASK-FT005-03` remains `done`, `TASK-FT005-04` remains `ready`, and `REQ-009/010` for `FT-005` stay `planned` until real polling runtime behavior and SLA evidence land.
+
+## [2026-04-03] TASK-FT005-02 backend delivery-tracking scaffold
+- Added `backend/src/slices/delivery-tracking` with minimal domain/application/infrastructure/presentation layers and a slice-owned repository baseline for order lookup, transactional status/history/event persistence, and ordered event reads.
+- Added repo-local `delivery-tracking` Jest coverage plus dedicated npm scripts for unit/integration execution.
+- Marked `TASK-FT005-02` done and promoted `TASK-FT005-04` to `ready`; RTM rows for `REQ-008/009/010/018` stay `planned` because state-machine enforcement, full polling behavior, and SLA evidence still belong to later `FT-005` tasks.
+
+## [2026-04-03] TASK-FT005-02 verification sync
+- `/verify TASK-FT005-02` independently reran the focused `delivery-tracking` Jest suite and repo-local TypeScript verification without evidence drift.
+- Kept statuses unchanged: `TASK-FT005-02` remains `done`, `TASK-FT005-04` remains `ready`, and `REQ-008/009/010/018` for `FT-005` stay `planned` until later runtime and SLA closure.
+
+## [2026-04-03] TASK-FT005-01 tracking contract and SLA verify freeze
+- Tightened `FT-005`, `IMPL-FT-005`, `api-events-baseline`, and `order-lifecycle` around courier-owned post-assignment transitions, explicit `409 CONFLICT` no-side-effect semantics, and opaque string cursor polling rules.
+- Tightened `testing/index.md` so `FT-005` keeps functional tracking/polling verification separate from the final `REQ-010` latency evidence gate.
+- Marked `TASK-FT005-01` done and promoted `TASK-FT005-02` plus `TASK-FT005-03` to `ready` without changing RTM rows, because runtime implementation and SLA evidence remain future work.
+
+## [2026-04-03] TASK-FT005-01 verification sync
+- `/verify TASK-FT005-01` re-checked the docs-only state-machine, polling cursor, `409 CONFLICT`, and SLA-ownership freeze against the current workspace without evidence drift.
+- Kept statuses unchanged: `TASK-FT005-01` remains `done`, `TASK-FT005-02` and `TASK-FT005-03` remain `ready`, and `REQ-008/009/010/018` RTM rows for `FT-005` stay `planned` until runtime implementation and final SLA evidence exist.
+
+## [2026-04-03] TASK-FT004-07 final assignment verification and docs sync
+- Added final admin assignment route smoke coverage for the default `fetch -> API client -> route` path, including revision-based success feedback and controlled backend error rendering.
+- Re-ran repo-local backend/frontend delivery-assignment suites plus TypeScript verification; the passing evidence now explicitly covers RBAC, `CREATED -> ASSIGNED`, audit/history/event writes, and actor-targeted courier notification semantics.
+- Marked `TASK-FT004-07` done and synced `REQ-007` plus the `FT-004` `REQ-018` RTM row to `done` without expanding into `FT-005` tracking or `FT-007` admin auth/session scope.
+
+## [2026-04-03] TASK-FT004-07 verification sync
+- `/verify TASK-FT004-07` independently reran the focused admin frontend suite, backend delivery-assignment suite, and repo-local TypeScript check without evidence drift.
+- Kept statuses unchanged: `TASK-FT004-07` remains `done`, `REQ-007` and the `FT-004` `REQ-018` RTM row remain `done`, and downstream scope ownership stays with `FT-005` / `FT-007`.
+
+## [2026-04-03] TASK-FT004-06 admin assignment UX wiring
+- Wired `frontend/src/admin` assignment submit flow to a minimal backend API client for `POST /api/v1/admin/orders/:orderId/assignment`, preserving the existing `FT-004` admin-web scope without adding `FT-007` auth/session ownership.
+- Added controlled parsing/rendering for the project error contract `{ error: { code, message, details }, trace_id }` and success confirmation based on the backend command response `revision`.
+- Added a submit-in-flight guard plus focused admin frontend tests for request wiring, loading/success/error rendering, and duplicate-submit prevention.
+- Marked `TASK-FT004-06` done and promoted dependent `TASK-FT004-07` to `ready`; RTM for `REQ-007` / `REQ-018` stays `planned` until final `FT-004` verification closure.
+
+## [2026-04-03] TASK-FT004-06 verification sync
+- `/verify TASK-FT004-06` re-ran the focused admin frontend Jest suite and repo-local TypeScript verification without evidence drift.
+- Kept backlog and RTM statuses unchanged: `TASK-FT004-06` remains `done`, `TASK-FT004-07` remains `ready`, and `REQ-007` / `REQ-018` stay `planned` until final `FT-004` closure.
+
+## [2026-04-03] TASK-FT004-05 targeted courier notification integration
+- Added a minimal `telegram-bot` notifier boundary for `order.assigned` and wired `delivery-assignment` to dispatch only to the assigned courier after the successful assignment commit.
+- Kept transport/runtime outside assignment business rules: notification failures are swallowed as operational issues so retry or duplicate delivery cannot create duplicate assignment writes.
+- Added repo-local unit/integration coverage for actor-targeted dispatch, post-event notification ordering, and notifier-failure safety.
+- Marked `TASK-FT004-05` done and promoted dependent `TASK-FT004-06` to `ready`; RTM stays unchanged because admin-web flow closure and final feature verification remain in later `FT-004` tasks.
+
+## [2026-04-03] TASK-FT004-05 verification sync
+- `/verify TASK-FT004-05` re-ran the focused `delivery-assignment` Jest suite and repo-local TypeScript verification without evidence drift.
+- Kept backlog statuses unchanged: `TASK-FT004-05` remains `done`, `TASK-FT004-06` remains `ready`, and RTM for `REQ-007` / `REQ-018` stays `planned` until final `FT-004` closure.
+
+## [2026-04-03] TASK-FT004-04 backend assignment command
+- Implemented the owning `delivery-assignment` command flow for authenticated admin assignment with RBAC, `CREATED -> ASSIGNED` validation, courier eligibility checks, and transactional order/history/audit/event persistence.
+- Added repo-local unit/integration coverage for happy path, invalid role, invalid order state, invalid courier target, and controlled `AppError` payload serialization with no persistence side effects on rejected requests.
+- Marked `TASK-FT004-04` done and promoted dependent `TASK-FT004-05` to `ready`; RTM stays unchanged because targeted bot delivery, admin-web wiring, and final feature closure still belong to later `FT-004` tasks.
+
+## [2026-04-03] TASK-FT004-03 admin assignment frontend scaffold
+- Added a dedicated `frontend/src/admin` contour scaffold with its own router, shell, and fixture-driven courier assignment page so `FT-004` stays separate from the Mini App router.
+- Added repo-local frontend Jest coverage for admin route resolution, form state, and controlled success/error rendering, plus a focused `test:delivery-assignment:frontend` script.
+- Marked `TASK-FT004-03` done and kept RTM unchanged because backend command wiring, notification delivery, and full admin-flow closure still belong to later `FT-004` tasks.
+
+## [2026-04-03] TASK-FT004-03 verification sync
+- `/verify TASK-FT004-03` re-ran the focused admin frontend Jest suite and repo-local TypeScript check without evidence drift.
+- Kept backlog status `done` and RTM unchanged: this task closes only the admin-web scaffold/harness layer, while feature-complete assignment behavior still belongs to later `FT-004` tasks.
+
 ## [2026-03-29] Initial setup
 - Created Memory Bank skeleton
 - Seeded core docs (product, requirements, testing, backlog)
@@ -181,6 +265,20 @@ status: active
 - Kept `REQ-003` RTM lifecycle unchanged because final feature-wide localization verification and Telegram-specific evidence still belong to `TASK-FT003-06`.
 - Synced Memory Bank wording so `FT-003` status notes explicitly reflect repo-local verification for the localized customer-facing copy baseline.
 
+## [2026-04-02] TASK-FT004-01 assignment docs freeze
+- Tightened `FT-004` around `CREATED -> ASSIGNED` ownership, `order.assigned` publish semantics, and required `updated_at`/string `revision` command-response baseline.
+- Tightened `telegram-bot-contract` so assignment notification is explicitly actor-targeted to the assigned courier and retry/runtime issues do not widen delivery semantics.
+- Marked `TASK-FT004-01` done and promoted `TASK-FT004-02` and `TASK-FT004-03` to `ready`.
+
+## [2026-04-03] TASK-FT004-02 backend assignment scaffold baseline
+- Added backend `delivery-assignment` slice structure (`domain/application/infrastructure/presentation`) without moving assignment rules into `shared`.
+- Added Prisma persistence baseline for `order_status_history`, `delivery_assignment_audit`, and `events`, plus transactional repository wiring that returns string `revision` from the canonical `order.assigned` event record.
+- Added focused unit/integration Jest coverage, marked `TASK-FT004-02` done, and promoted `TASK-FT004-04` to `ready`.
+
+## [2026-04-03] MB sync after TASK-FT004-02 verify
+- Re-ran repo-local `delivery-assignment` Jest coverage and TypeScript verification through `/verify TASK-FT004-02` without evidence drift.
+- Kept RTM unchanged: `REQ-007` and `REQ-018` stay `planned` because feature-complete assignment behavior, admin-flow e2e, and notification runtime closure still belong to later `FT-004` tasks.
+
 ## [2026-04-02] TASK-FT003-06 localization verification closure
 - Added direct `createLanguageController` coverage so unresolved fallback `ru`, explicit persisted `ru`, and selection persistence are verified at the controller boundary.
 - Re-ran the combined frontend/backend localization verification suite and repo-local TypeScript check: `16` suites and `78` tests passed.
@@ -217,6 +315,15 @@ status: active
 ## [2026-04-02] Catalog keyboard test field for Android verify
 - Added a minimal localized text input on the catalog page so real Telegram Android runs can explicitly open the keyboard and capture `FT-009` viewport behavior evidence.
 
+## [2026-04-02] FT-009 final Android verification closure
+- Updated the verification policy so screenshots/videos are optional supporting artifacts and operator-confirmed Android Telegram notes are the blocking evidence for current closure.
+- Recorded a successful Android Telegram run on the deployed test server, archived the prior evidence bug, and marked `TASK-FT009-06` done.
+- Synced RTM and autonomous-run state: `REQ-019`, shared `REQ-022`, and `REQ-023` are now `done`, and the current `/autopilot` run is back to `SUCCESS`.
+
+## [2026-04-02] Test-server runbook cleanup
+- Reworked section 13 of the Telegram test-server runbook into a practical Android verification procedure instead of a loose checklist.
+- Added a dedicated deployment update section documenting when `npm ci`, `npm run build:frontend`, demo API restart, and nginx reload are actually needed after `git pull`.
+
 ## [2026-04-02] MB sync after TASK-FT009-01 docs-first freeze
 - Froze `FT-009` ownership against `FT-002` and `FT-003` across feature, runtime contract, runbook, testing docs, and implementation plan.
 - Marked `TASK-FT009-01` done, promoted `TASK-FT009-02` to `ready`, and updated Memory Bank navigation for the next app-level shell scaffolding step.
@@ -244,3 +351,7 @@ status: active
 ## [2026-04-02] MB sync after /verify TASK-FT009-05
 - Independently re-ran the task-scoped shell/runtime Jest suite and `tsconfig.jest.json` typecheck during `/verify` without evidence drift.
 - Kept RTM unchanged because `TASK-FT009-05` closes only deterministic repo-local verification; final `REQ-019/022/023` closure still depends on `TASK-FT009-06` real Telegram client-matrix evidence.
+## [2026-04-03] TASK-FT005-03 polling consumer and courier harness scaffold
+- Added `frontend` `order-tracking` route/model/hook/page scaffold plus focused Jest coverage for opaque cursor advancement and courier action entrypoints.
+- Added a transport-only `telegram-bot` delivery-tracking harness for outbound courier prompts and callback parsing so downstream bot wiring stays outside state-machine ownership.
+- Marked `TASK-FT005-03` done; downstream `TASK-FT005-06` remains blocked by pending `TASK-FT005-04` and `TASK-FT005-05`, and RTM rows for `REQ-009/010` stay `planned` until runtime behavior and SLA evidence land.
