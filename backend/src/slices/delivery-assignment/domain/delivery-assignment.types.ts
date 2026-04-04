@@ -16,8 +16,8 @@ export type DeliveryAssignmentOrderStatus =
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"
-  | "CANCELLED_ADMIN"
-  | "CANCELLED_COURIER";
+  | "CANCELLED_BY_ADMIN"
+  | "CANCELLED_BY_COURIER_UNAVAILABLE";
 
 export type DeliveryAssignmentOrderRecord = {
   id: DeliveryAssignmentOrderId;

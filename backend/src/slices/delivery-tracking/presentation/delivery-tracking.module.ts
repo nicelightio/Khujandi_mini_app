@@ -1,3 +1,4 @@
+import type { DeliveryTrackingNotifier } from "../domain/delivery-tracking.types";
 import { DeliveryTrackingService } from "../application/delivery-tracking.service";
 import type { DeliveryTrackingPrismaProvider } from "../infrastructure/prisma-delivery-tracking.repository";
 import { PrismaDeliveryTrackingRepository } from "../infrastructure/prisma-delivery-tracking.repository";
@@ -11,9 +12,10 @@ export type DeliveryTrackingModule = {
 
 export const createDeliveryTrackingModule = (
   prisma: DeliveryTrackingPrismaProvider,
+  notifier?: DeliveryTrackingNotifier,
 ): DeliveryTrackingModule => {
   const repository = new PrismaDeliveryTrackingRepository(prisma);
-  const service = new DeliveryTrackingService(repository);
+  const service = new DeliveryTrackingService(repository, notifier);
   const controller = new DeliveryTrackingController(service);
 
   return {

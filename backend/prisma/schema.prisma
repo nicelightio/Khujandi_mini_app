@@ -13,8 +13,8 @@ enum OrderStatus {
   IN_PROGRESS
   DELIVERED
   COMPLETED
-  CANCELLED_ADMIN
-  CANCELLED_COURIER
+  CANCELLED_BY_ADMIN
+  CANCELLED_BY_COURIER_UNAVAILABLE
 }
 
 enum PaymentStatus {
@@ -78,23 +78,27 @@ model Order {
   sellerId               String
   clientId               String
   courierId              String?
-  status                 OrderStatus   @default(CREATED)
+  status                 OrderStatus  @default(CREATED)
   itemsTotalMinor        Int
   deliveryFeeMinor       Int
   totalAmountMinor       Int
   paymentProvider        String
   paymentProviderTxId    String       @unique
-  telegramPaymentChargeId String?      @unique
-  providerPaymentChargeId String?      @unique
+  telegramPaymentChargeId String?     @unique
+  providerPaymentChargeId String?     @unique
   paymentStatus          PaymentStatus @default(PAID)
   refundStatus           RefundStatus  @default(NOT_REQUIRED)
   refundNote             String?
-  isDeleted              Boolean      @default(false)
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
-  shop                   Shop         @relation(fields: [shopId], references: [id])
+  cancelledByUserId      String?
+  cancellationReasonCode String?
+  cancelledAt            DateTime?
+  isDeleted              Boolean       @default(false)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  shop                   Shop          @relation(fields: [shopId], references: [id])
   statusHistory          OrderStatusHistory[]
   assignmentAudits       DeliveryAssignmentAudit[]
+  cancellationAudits     OrderCancellationAudit[]
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([courierId, status, updatedAt(sort: Desc)])
@@ -125,6 +129,24 @@ model DeliveryAssignmentAudit {
 
   @@index([orderId, createdAt])
   @@index([adminUserId, createdAt])
+}
+
+model OrderCancellationAudit {
+  id            BigInt       @id @default(autoincrement())
+  orderId       String
+  actorUserId   String
+  actorRole     UserRole
+  action        String
+  reasonCode    String?
+  refundStatus  RefundStatus
+  refundNote    String?
+  fromStatus    OrderStatus?
+  toStatus      OrderStatus?
+  createdAt     DateTime     @default(now())
+  order         Order        @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model Event {

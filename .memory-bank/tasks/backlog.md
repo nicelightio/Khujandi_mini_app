@@ -16,10 +16,11 @@ status: active
 - Telegram-specific normative layer для `FT-002`, `FT-003` и `FT-009` расширен через `contracts/*`, `runbooks/*` и `diagrams/*`.
 - `FT-003` execution backlog закрыт: `TASK-FT003-01` ... `TASK-FT003-06` завершены; shared Telegram shell/runtime closure дополнительно закрыта в `FT-009`.
 - `FT-004` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для courier assignment.
-- `FT-005` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для delivery tracking, ordered polling и SLA verification.
+- `FT-005` execution backlog закрыт: `TASK-FT005-01` ... `TASK-FT005-08` завершены; post-assignment tracking, ordered polling и SLA evidence синхронизированы в RTM/Memory Bank.
 - `FT-006` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для operational cancellation и manual refund tracking.
+- `TASK-FT006-01` завершен: docs-first cancellation policy, refund-state semantics и verify boundary зафиксированы; `TASK-FT006-02` завершен как backend foundation wave, `TASK-FT006-03` завершен как frontend/admin scaffold wave, `TASK-FT006-04` завершен как backend authorized cancellation command wave, `TASK-FT006-05` завершен как backend manual refund progression wave, `TASK-FT006-06` завершен как admin-web UX wiring wave, `TASK-FT006-07` завершен как final verification suite wave, а `TASK-FT006-08` завершен как final refund evidence/docs closure wave.
 - Следующие features `FT-007`, `FT-008` пока не декомпозированы в `TASK-*` и ждут точечного `/prd-to-tasks FT-<NNN>`.
-- Ближайшее действие: декомпозировать `FT-007`, чтобы закрыть отдельный admin auth/security contour для delivery/admin workflows.
+- `FT-006` execution backlog закрыт: refund/runbook evidence, RTM closure и task statuses синхронизированы.
 
 ## Recommended feature order
 
@@ -522,7 +523,7 @@ status: active
 
 ### TASK-FT005-06 — Implement status-change notifications and polling consumer wiring
 - TASK-ID: `TASK-FT005-06`
-- Status: `ready`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-005`
 - REQs: `REQ-008`, `REQ-009`, `REQ-018`
@@ -537,7 +538,7 @@ status: active
 
 ### TASK-FT005-07 — Add end-to-end delivery tracking and polling verification suite
 - TASK-ID: `TASK-FT005-07`
-- Status: `planned`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-005`
 - REQs: `REQ-008`, `REQ-009`, `REQ-018`
@@ -550,7 +551,7 @@ status: active
 
 ### TASK-FT005-08 — Collect polling SLA evidence and final docs sync
 - TASK-ID: `TASK-FT005-08`
-- Status: `planned`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-005`
 - REQs: `REQ-010`, `REQ-018`
@@ -567,7 +568,7 @@ status: active
 
 ### TASK-FT006-01 — Freeze cancellation policy, refund-state semantics and verify boundary
 - TASK-ID: `TASK-FT006-01`
-- Status: `ready`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-006`
 - REQs: `REQ-011`, `REQ-012`, `REQ-018`
@@ -580,7 +581,7 @@ status: active
 
 ### TASK-FT006-02 — Scaffold backend order-cancellation slice and refund persistence/test baseline
 - TASK-ID: `TASK-FT006-02`
-- Status: `planned`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-006`
 - REQs: `REQ-011`, `REQ-012`, `REQ-018`
@@ -593,7 +594,7 @@ status: active
 
 ### TASK-FT006-03 — Scaffold operator cancellation/refund route shell and frontend test harness
 - TASK-ID: `TASK-FT006-03`
-- Status: `planned`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-006`
 - REQs: `REQ-011`, `REQ-012`
@@ -608,7 +609,7 @@ status: active
 
 ### TASK-FT006-04 — Implement authorized cancellation command with state validation and audit/event writes
 - TASK-ID: `TASK-FT006-04`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-006`
 - REQs: `REQ-011`, `REQ-018`
@@ -622,7 +623,7 @@ status: active
 
 ### TASK-FT006-05 — Implement manual refund tracking state and note persistence
 - TASK-ID: `TASK-FT006-05`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-006`
 - REQs: `REQ-012`, `REQ-018`
@@ -635,7 +636,7 @@ status: active
 
 ### TASK-FT006-06 — Wire operator cancellation and refund tracking UX to backend flow
 - TASK-ID: `TASK-FT006-06`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-006`
 - REQs: `REQ-011`, `REQ-012`, `REQ-018`
@@ -649,7 +650,7 @@ status: active
 
 ### TASK-FT006-07 — Add cancellation and refund verification suite
 - TASK-ID: `TASK-FT006-07`
-- Status: `planned`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-006`
 - REQs: `REQ-011`, `REQ-012`, `REQ-018`
@@ -662,7 +663,7 @@ status: active
 
 ### TASK-FT006-08 — Sync final refund runbook evidence and docs closure
 - TASK-ID: `TASK-FT006-08`
-- Status: `planned`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-006`
 - REQs: `REQ-012`, `REQ-018`

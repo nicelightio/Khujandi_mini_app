@@ -2,6 +2,7 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { AdminRouter, resolveAdminRoute } from "../../admin/app/router";
 import { adminRoutes as adminRoutePaths } from "../../admin/lib/routes";
 import { AdminAssignmentRoute } from "../../admin/routes/admin-assignment-route";
+import { AdminOrderCancellationRoute } from "../../admin/routes/admin-order-cancellation-route";
 
 const reactActEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
@@ -53,6 +54,10 @@ describe("admin router", () => {
     expect(resolveAdminRoute(adminRoutePaths.assignment).element.type).toBe(AdminAssignmentRoute);
   });
 
+  it("resolves the cancellation route for the admin path", () => {
+    expect(resolveAdminRoute(adminRoutePaths.cancellation).element.type).toBe(AdminOrderCancellationRoute);
+  });
+
   it("falls back to the assignment route when pathname is unknown", () => {
     expect(resolveAdminRoute("/admin/missing").element.type).toBe(AdminAssignmentRoute);
   });
@@ -63,7 +68,7 @@ describe("admin router", () => {
     Object.defineProperty(globalThis, "window", {
       value: {
         location: {
-          pathname: adminRoutePaths.assignment,
+          pathname: adminRoutePaths.cancellation,
         },
       },
       configurable: true,
@@ -80,7 +85,7 @@ describe("admin router", () => {
 
       const root = renderer.root.findByProps({ "data-admin-shell": "root" });
       expect(root.props["data-admin-contour"]).toBe("admin-web");
-      expect(collectText(renderer.toJSON()).join(" ")).toContain("Courier assignment");
+      expect(collectText(renderer.toJSON()).join(" ")).toContain("Order cancellation and refund tracking");
     } finally {
       Object.defineProperty(globalThis, "window", {
         value: previousWindow,

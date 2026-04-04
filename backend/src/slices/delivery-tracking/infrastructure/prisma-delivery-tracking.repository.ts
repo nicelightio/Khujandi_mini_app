@@ -25,6 +25,15 @@ type DeliveryTrackingOrderFindUniqueArgs = {
   };
 };
 
+type DeliveryTrackingUserFindUniqueArgs = {
+  where: {
+    id: string;
+  };
+  select: {
+    telegramId: true;
+  };
+};
+
 type DeliveryTrackingOrderUpdateArgs = {
   where: {
     id: string;
@@ -97,6 +106,9 @@ export type DeliveryTrackingPrismaClientLike = {
     create(args: DeliveryTrackingEventCreateArgs): Promise<DeliveryTrackingPersistedEventRecord>;
     findMany(args: DeliveryTrackingEventFindManyArgs): Promise<DeliveryTrackingPersistedEventRecord[]>;
   };
+  user: {
+    findUnique(args: DeliveryTrackingUserFindUniqueArgs): Promise<{ telegramId: string } | null>;
+  };
 };
 
 type DeliveryTrackingPrismaTransactionalClientLike = DeliveryTrackingPrismaClientLike & {
@@ -157,6 +169,19 @@ export class PrismaDeliveryTrackingRepository implements DeliveryTrackingReposit
       ...order,
       status: mapOrderStatus(order.status),
     };
+  }
+
+  async findUserTelegramIdById(userId: string): Promise<string | null> {
+    const user = await this.prisma.client.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        telegramId: true,
+      },
+    });
+
+    return user?.telegramId ?? null;
   }
 
   recordStatusTransition(
