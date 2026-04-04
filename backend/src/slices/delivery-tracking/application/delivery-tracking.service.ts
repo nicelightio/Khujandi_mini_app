@@ -1,6 +1,8 @@
 import type {
+  DeliveryTrackingActionStatus,
   DeliveryTrackingCommandResult,
   DeliveryTrackingCursor,
+  DeliveryTrackingNotifier,
   DeliveryTrackingOrderRecord,
   DeliveryTrackingOrderId,
   DeliveryTrackingOrderStatus,
@@ -10,6 +12,11 @@ import type {
 import { AppError } from "../../../shared/errors/app-error";
 
 const ALLOWED_TRACKING_ROLE = "courier";
+const NOOP_DELIVERY_TRACKING_NOTIFIER: DeliveryTrackingNotifier = {
+  async notifyStatusChanged() {
+    return undefined;
+  },
+};
 
 const NEXT_STATUS_BY_CURRENT_STATUS: Partial<Record<DeliveryTrackingOrderStatus, DeliveryTrackingOrderStatus>> = {
   ASSIGNED: "IN_PROGRESS",
@@ -17,8 +24,30 @@ const NEXT_STATUS_BY_CURRENT_STATUS: Partial<Record<DeliveryTrackingOrderStatus,
   DELIVERED: "COMPLETED",
 };
 
+const getAvailableActionsForStatus = (
+  status: DeliveryTrackingActionStatus,
+): DeliveryTrackingActionStatus[] => {
+  const nextStatus = NEXT_STATUS_BY_CURRENT_STATUS[status];
+
+  return nextStatus === undefined ? [] : [nextStatus as DeliveryTrackingActionStatus];
+};
+
+const toNotificationStatus = (status: DeliveryTrackingOrderStatus): DeliveryTrackingActionStatus => {
+  if (status === "IN_PROGRESS" || status === "DELIVERED" || status === "COMPLETED") {
+    return status;
+  }
+
+  throw new AppError("CONFLICT", "Order cannot transition to the requested status", 409, {
+    currentStatus: status,
+    expectedStatus: NEXT_STATUS_BY_CURRENT_STATUS[status] ?? null,
+  });
+};
+
 export class DeliveryTrackingService {
-  constructor(private readonly repository: DeliveryTrackingRepository) {}
+  constructor(
+    private readonly repository: DeliveryTrackingRepository,
+    private readonly notifier: DeliveryTrackingNotifier = NOOP_DELIVERY_TRACKING_NOTIFIER,
+  ) {}
 
   findOrderById(orderId: DeliveryTrackingOrderId) {
     return this.repository.findOrderById(orderId);
@@ -73,6 +102,24 @@ export class DeliveryTrackingService {
       newStatus: input.nextStatus,
       changedAt: new Date(),
     });
+
+    const courierTelegramId = await this.repository.findUserTelegramIdById(actor.userId);
+
+    if (courierTelegramId !== null) {
+      const notificationStatus = toNotificationStatus(artifacts.order.status);
+
+      try {
+        await this.notifier.notifyStatusChanged({
+          orderId: artifacts.order.id,
+          courierTelegramId,
+          status: notificationStatus,
+          revision: artifacts.revision,
+          availableActions: getAvailableActionsForStatus(notificationStatus),
+        });
+      } catch {
+        // Transport outages must not roll back the committed lifecycle write.
+      }
+    }
 
     return {
       orderId: artifacts.order.id,

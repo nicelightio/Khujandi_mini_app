@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   OrderTrackingActionStatus,
   OrderTrackingApi,
-  SubmitOrderTrackingActionResult,
 } from "../api/order-tracking-api";
 import { createOrderTrackingApi } from "../api/order-tracking-api";
 import {
+  applyOrderTrackingActionResult,
   applyOrderTrackingPollResult,
   createErrorOrderTrackingViewModel,
   createLoadingOrderTrackingViewModel,
@@ -15,55 +15,51 @@ import {
   type OrderTrackingViewModel,
 } from "../model/order-tracking-view-model";
 import type { SupportedLanguage } from "../../../shared/i18n/languages";
+import { useOptionalUiShell } from "../../../shared/state/ui-shell-context";
 
 export type OrderTrackingRouteModel = {
   viewModel: OrderTrackingViewModel;
   submitCourierAction: (nextStatus: OrderTrackingActionStatus) => Promise<void>;
 };
 
-const applyActionResult = (
-  currentState: OrderTrackingConsumerState,
-  result: SubmitOrderTrackingActionResult,
-): OrderTrackingConsumerState => ({
-  ...currentState,
-  currentStatus: result.status,
-  lastAppliedRevision: result.revision,
-  availableActions: result.availableActions,
-});
+const pollingIntervalMs = 5000;
 
 export const useOrderTrackingViewModel = (
   language: SupportedLanguage,
   api?: OrderTrackingApi,
 ): OrderTrackingRouteModel => {
+  const shell = useOptionalUiShell();
+  const trackingApi = useMemo(() => api ?? createOrderTrackingApi(), [api]);
   const [consumerState, setConsumerState] = useState<OrderTrackingConsumerState | null>(null);
-  const [viewModel, setViewModel] = useState<OrderTrackingViewModel>(() => createLoadingOrderTrackingViewModel(language));
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const consumerStateRef = useRef<OrderTrackingConsumerState | null>(null);
+  const pollingInFlightRef = useRef(false);
+
+  useEffect(() => {
+    consumerStateRef.current = consumerState;
+  }, [consumerState]);
 
   useEffect(() => {
     let active = true;
-    const trackingApi = api ?? createOrderTrackingApi();
 
     setConsumerState(null);
-    setViewModel(createLoadingOrderTrackingViewModel(language));
+    setIsLoading(true);
+    setIsSubmitting(false);
+    setErrorMessage(null);
+    consumerStateRef.current = null;
 
     void trackingApi.loadTrackingSession().then(
-      async (session) => {
+      (session) => {
         if (!active) {
           return;
         }
 
         const baseState = createOrderTrackingConsumerState(session);
+        consumerStateRef.current = baseState;
         setConsumerState(baseState);
-        setViewModel(createReadyOrderTrackingViewModel({ state: baseState, language }));
-
-        const pollResult = await trackingApi.pollEvents(baseState.cursor);
-
-        if (!active) {
-          return;
-        }
-
-        const nextState = applyOrderTrackingPollResult(baseState, pollResult);
-        setConsumerState(nextState);
-        setViewModel(createReadyOrderTrackingViewModel({ state: nextState, language }));
+        setIsLoading(false);
       },
       (error: unknown) => {
         if (!active) {
@@ -71,41 +67,124 @@ export const useOrderTrackingViewModel = (
         }
 
         const message = error instanceof Error ? error.message : undefined;
-        setViewModel(createErrorOrderTrackingViewModel(message, language));
+        setErrorMessage(message ?? createErrorOrderTrackingViewModel(undefined, language).errorMessage);
+        setIsLoading(false);
       },
     );
 
     return () => {
       active = false;
     };
-  }, [api, language]);
+  }, [language, trackingApi]);
 
-  const submitCourierAction = async (nextStatus: OrderTrackingActionStatus) => {
-    const trackingApi = api ?? createOrderTrackingApi();
+  const isPollingActive = shell?.state.lifecycle !== "inactive";
 
-    if (consumerState === null) {
+  useEffect(() => {
+    if (!isPollingActive || consumerState?.orderId === undefined) {
       return;
     }
 
-    setViewModel(createReadyOrderTrackingViewModel({ state: consumerState, language, isSubmitting: true }));
+    let active = true;
+
+    const pollOnce = async () => {
+      const currentState = consumerStateRef.current;
+
+      if (currentState === null || pollingInFlightRef.current) {
+        return;
+      }
+
+      pollingInFlightRef.current = true;
+
+      try {
+        const result = await trackingApi.pollEvents(currentState.cursor);
+
+        if (!active) {
+          return;
+        }
+
+        setConsumerState((previousState) => {
+          if (previousState === null) {
+            return previousState;
+          }
+
+          const nextState = applyOrderTrackingPollResult(previousState, result);
+          consumerStateRef.current = nextState;
+          return nextState;
+        });
+        setErrorMessage(null);
+      } catch (error: unknown) {
+        if (!active) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : undefined;
+        setErrorMessage(message ?? createErrorOrderTrackingViewModel(undefined, language).errorMessage);
+      } finally {
+        pollingInFlightRef.current = false;
+      }
+    };
+
+    void pollOnce();
+
+    const intervalId = globalThis.setInterval(() => {
+      void pollOnce();
+    }, pollingIntervalMs);
+
+    return () => {
+      active = false;
+      globalThis.clearInterval(intervalId);
+    };
+  }, [consumerState?.orderId, isPollingActive, language, trackingApi]);
+
+  const submitCourierAction = async (nextStatus: OrderTrackingActionStatus) => {
+    const currentState = consumerStateRef.current;
+
+    if (currentState === null || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
       const result = await trackingApi.submitCourierAction({
-        orderId: consumerState.orderId,
+        orderId: currentState.orderId,
         nextStatus,
       });
-      const nextState = applyActionResult(consumerState, result);
-      setConsumerState(nextState);
-      setViewModel(createReadyOrderTrackingViewModel({ state: nextState, language }));
+
+      setConsumerState((previousState) => {
+        if (previousState === null) {
+          return previousState;
+        }
+
+        const nextState = applyOrderTrackingActionResult(previousState, result);
+        consumerStateRef.current = nextState;
+        return nextState;
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : undefined;
-      setViewModel(createReadyOrderTrackingViewModel({
-        state: consumerState,
-        language,
-        errorMessage: message ?? createErrorOrderTrackingViewModel(undefined, language).errorMessage,
-      }));
+      setErrorMessage(message ?? createErrorOrderTrackingViewModel(undefined, language).errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const viewModel: OrderTrackingViewModel = useMemo(() => {
+    if (isLoading) {
+      return createLoadingOrderTrackingViewModel(language);
+    }
+
+    if (consumerState === null) {
+      return createErrorOrderTrackingViewModel(errorMessage ?? undefined, language);
+    }
+
+    return createReadyOrderTrackingViewModel({
+      state: consumerState,
+      language,
+      isSubmitting,
+      errorMessage,
+    });
+  }, [consumerState, errorMessage, isLoading, isSubmitting, language]);
 
   return {
     viewModel,

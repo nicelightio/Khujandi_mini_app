@@ -7,6 +7,7 @@ module.exports = {
     "<rootDir>/tests/slices/checkout-payment/*.spec.ts",
     "<rootDir>/tests/slices/delivery-assignment/*.spec.ts",
     "<rootDir>/tests/slices/delivery-tracking/*.spec.ts",
+    "<rootDir>/tests/slices/order-cancellation/*.spec.ts",
     "<rootDir>/frontend/src/tests/admin/*.spec.ts",
     "<rootDir>/frontend/src/tests/admin/*.spec.tsx",
     "<rootDir>/frontend/src/tests/slices/catalog/*.spec.ts",

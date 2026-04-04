@@ -38,6 +38,21 @@ export type OrderTrackingViewModel = {
   errorMessage: string | null;
 };
 
+export const getAvailableActionsForOrderTrackingStatus = (
+  status: OrderTrackingStatus,
+): OrderTrackingActionStatus[] => {
+  switch (status) {
+    case "ASSIGNED":
+      return ["IN_PROGRESS"];
+    case "IN_PROGRESS":
+      return ["DELIVERED"];
+    case "DELIVERED":
+      return ["COMPLETED"];
+    default:
+      return [];
+  }
+};
+
 const getActionLabel = (
   status: OrderTrackingActionStatus,
   language: SupportedLanguage,
@@ -80,6 +95,39 @@ export const applyOrderTrackingPollResult = (
     appliedEventCount: currentState.appliedEventCount + nextEvents.length,
     lastAppliedRevision: lastEvent?.revision ?? currentState.lastAppliedRevision,
     seenRevisions: Array.from(seenRevisions),
+    availableActions:
+      lastEvent === undefined
+        ? currentState.availableActions
+        : getAvailableActionsForOrderTrackingStatus(lastEvent.payload.status),
+  };
+};
+
+export const applyOrderTrackingActionResult = (
+  currentState: OrderTrackingConsumerState,
+  result: {
+    orderId: string;
+    status: OrderTrackingStatus;
+    revision: string;
+    availableActions: OrderTrackingActionStatus[];
+  },
+): OrderTrackingConsumerState => {
+  if (result.orderId !== currentState.orderId) {
+    return currentState;
+  }
+
+  const seenRevisions = new Set(currentState.seenRevisions);
+  const isDuplicateRevision = seenRevisions.has(result.revision);
+
+  seenRevisions.add(result.revision);
+
+  return {
+    ...currentState,
+    cursor: result.revision,
+    currentStatus: result.status,
+    appliedEventCount: currentState.appliedEventCount + (isDuplicateRevision ? 0 : 1),
+    lastAppliedRevision: result.revision,
+    seenRevisions: Array.from(seenRevisions),
+    availableActions: result.availableActions,
   };
 };
 

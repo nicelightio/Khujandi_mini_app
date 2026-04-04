@@ -25,8 +25,8 @@ export type CheckoutPaymentOrderStatus =
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"
-  | "CANCELLED_ADMIN"
-  | "CANCELLED_COURIER";
+  | "CANCELLED_BY_ADMIN"
+  | "CANCELLED_BY_COURIER_UNAVAILABLE";
 
 export type CheckoutPaymentStatus = "PAID" | "FAILED" | "CANCELED" | "PENDING";
 export type CheckoutPaymentConfirmationSource =

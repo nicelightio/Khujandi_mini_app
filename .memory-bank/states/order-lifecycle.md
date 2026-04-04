@@ -19,7 +19,11 @@ status: active
 - Невалидный переход возвращает `409 CONFLICT`.
 - Каждый валидный переход пишет `order_status_history` и доменное событие.
 - Отмена фиксирует причину и инициатора.
-- Для paid-cancel case должен быть отражен `refund_status`: `NOT_REQUIRED`, `PENDING_MANUAL`, `DONE`, `REJECTED`.
+- Для отмененного заказа `refund_status` обязан быть явным и не может оставаться неустановленным.
+- `NOT_REQUIRED` используется только если отмененный заказ не требует возврата средств.
+- Paid cancellation обязан в момент успешной отмены входить в `PENDING_MANUAL`.
+- `DONE` и `REJECTED` используются только как результат отдельной ручной refund-обработки после cancellation commit.
+- `refund_note` фиксирует операторский контекст/manual outcome и не меняет order status сам по себе.
 - Для `FT-005` post-assignment lifecycle допускает только adjacent courier-driven transitions; skip/replay/regression и попытки уйти из terminal status считаются невалидными и не создают side effects.
 
 ## Transition ownership matrix
@@ -44,6 +48,7 @@ status: active
   `FT-006` владеет cancellation transitions и refund tracking semantics.
 - Внутри `FT-005` allowed chain фиксирована как `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`; переходы `ASSIGNED -> DELIVERED`, `IN_PROGRESS -> COMPLETED` и любые reverse/replay attempts нарушают state contract и возвращают `409 CONFLICT`.
 - Terminal statuses `COMPLETED` и `CANCELLED_*` не имеют исходящих переходов.
+- Изменение `refund_status` после отмены не reopen-ит order lifecycle: cancelled order остается terminal по `order.status`, пока manual refund workflow меняет только refund metadata.
 - Для MVP нет специфицированных переходов отмены из `DELIVERED`; такие сценарии считаются out of current state contract, пока не появится отдельное уточнение.
 
 ## Source artifacts

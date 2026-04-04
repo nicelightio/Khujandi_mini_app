@@ -2,6 +2,7 @@ export type DeliveryTrackingOrderId = string;
 export type DeliveryTrackingUserId = string;
 export type DeliveryTrackingRevision = string;
 export type DeliveryTrackingCursor = string;
+export type DeliveryTrackingActionStatus = "IN_PROGRESS" | "DELIVERED" | "COMPLETED";
 export type DeliveryTrackingUserRole =
   | "boss"
   | "manager"
@@ -16,8 +17,8 @@ export type DeliveryTrackingOrderStatus =
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"
-  | "CANCELLED_ADMIN"
-  | "CANCELLED_COURIER";
+  | "CANCELLED_BY_ADMIN"
+  | "CANCELLED_BY_COURIER_UNAVAILABLE";
 
 export type DeliveryTrackingOrderRecord = {
   id: DeliveryTrackingOrderId;
@@ -90,13 +91,26 @@ export type DeliveryTrackingCommandResult = {
   revision: DeliveryTrackingRevision;
 };
 
+export type DeliveryTrackingNotificationInput = {
+  orderId: DeliveryTrackingOrderId;
+  courierTelegramId: string;
+  status: DeliveryTrackingActionStatus;
+  revision: DeliveryTrackingRevision;
+  availableActions: DeliveryTrackingActionStatus[];
+};
+
 export type DeliveryTrackingEventStream = {
   events: DeliveryTrackingEventRecord[];
   nextCursor: DeliveryTrackingCursor;
 };
 
+export interface DeliveryTrackingNotifier {
+  notifyStatusChanged(input: DeliveryTrackingNotificationInput): Promise<void>;
+}
+
 export interface DeliveryTrackingRepository {
   findOrderById(orderId: DeliveryTrackingOrderId): Promise<DeliveryTrackingOrderRecord | null>;
+  findUserTelegramIdById(userId: DeliveryTrackingUserId): Promise<string | null>;
   recordStatusTransition(
     input: PersistDeliveryTrackingTransitionInput,
   ): Promise<DeliveryTrackingTransitionArtifacts>;

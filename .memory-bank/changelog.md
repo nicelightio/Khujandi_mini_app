@@ -4,6 +4,53 @@ status: active
 ---
 # Changelog
 
+## [2026-04-03] TASK-FT006-08 final refund evidence and docs closure
+- Re-ran the focused repo-local refund regression evidence for `FT-006` and synced the manual refund runbook so final closure now explicitly confirms the `PENDING_MANUAL -> DONE/REJECTED` workflow, operator note visibility, and absence of paid cancelled orders without `refund_status`.
+- Marked `TASK-FT006-08` done, closed `REQ-012` and the `FT-006` row of `REQ-018`, and updated `FT-006` feature/backlog/index docs to reflect full current-scope closure.
+
+## [2026-04-03] TASK-FT006-07 cancellation and refund verification suite
+- Extended the backend `order-cancellation` integration suite with a sequential `cancel -> refund update` evidence path that proves persisted cancellation actor/reason data, explicit `PENDING_MANUAL -> DONE` refund tracking, and canonical `order.cancelled` / `order.refund_updated` audit-event writes while keeping client prohibition covered as a side-effect-free controlled failure.
+- Extended the admin frontend smoke suite so repo-local operator evidence now keeps `refund_status` explicit for `CANCELLED_BY_ADMIN`, `CANCELLED_BY_COURIER_UNAVAILABLE`, and post-refund `DONE` visibility; marked `TASK-FT006-07` done, promoted `TASK-FT006-08` to `ready`, and updated `REQ-011` to `done` while `REQ-012` plus the `FT-006` `REQ-018` row remain open for final refund evidence sync.
+
+## [2026-04-03] TASK-FT006-06 admin cancellation/refund UX wiring
+- Wired `frontend/src/admin` cancellation/refund flow to a minimal backend API client for `POST /api/v1/admin/orders/:orderId/cancellation` and `POST /api/v1/admin/orders/:orderId/refund`, preserving the existing `FT-006` admin-web scope without pulling `FT-007` auth/session ownership.
+- Extended admin frontend smoke coverage for default API success paths, controlled backend error rendering, manual refund note/status updates, and duplicate-submit protection; marked `TASK-FT006-06` done and promoted `TASK-FT006-07` to `ready` while `FT-006` RTM rows remain `planned` pending final verification and refund evidence sync.
+
+## [2026-04-03] TASK-FT006-05 manual refund progression and note persistence
+- Implemented backend manual refund updates in the `order-cancellation` slice so cancelled paid orders can progress only from `PENDING_MANUAL` to `DONE` or `REJECTED`, with a required persisted operator note and no automated provider refund side effects.
+- Added focused repo-local unit/integration coverage for refund note persistence, `order.refund_updated` audit/event publication, and side-effect-free rejection of unpaid or invalid refund updates; marked `TASK-FT006-05` done and promoted `TASK-FT006-06` to `ready` while `FT-006` RTM rows remain `planned` pending UI wiring and final verify evidence.
+
+## [2026-04-03] TASK-FT006-04 authorized cancellation command
+- Implemented the backend `order-cancellation` command flow so only `admin` and the assigned `courier` in the explicit unavailable-case can cancel, while invalid roles/states return controlled `AppError` responses without order/history/audit/event side effects.
+- Added focused repo-local unit/integration coverage for admin cancellation, courier unavailable-case cancellation, client prohibition, invalid-state rejection, and canonical `order.cancelled` audit/event persistence; marked `TASK-FT006-04` done and promoted `TASK-FT006-05` to `ready` while `FT-006` RTM rows remain `planned` pending later refund/UI/verify tasks.
+
+## [2026-04-03] TASK-FT006-03 admin cancellation/refund frontend scaffold
+- Added `/admin/orders/cancellation` to the existing admin-web contour with a fixture-driven route/page/view-model shell that exposes cancellation reason selection, explicit refund-state rendering, and success/error feedback without claiming backend runtime ownership.
+- Added focused admin frontend Jest coverage for cancellation route resolution and shell behavior, then marked `TASK-FT006-03` done while keeping `TASK-FT006-04` `ready` and `FT-006` RTM rows `planned` until runtime behavior and final evidence land.
+
+## [2026-04-03] TASK-FT006-02 backend order-cancellation scaffold
+- Added `backend/src/slices/order-cancellation` with minimal domain/application/infrastructure/presentation layers plus a Prisma-backed baseline for cancellation metadata, refund persistence, cancellation/refund audit writes, and canonical event publish points.
+- Added repo-local `order-cancellation` unit/integration Jest coverage, dedicated npm scripts, and aligned cancellation status naming to the current `FT-006` normative wording.
+- Marked `TASK-FT006-02` done and promoted `TASK-FT006-04` to `ready`; RTM rows for `REQ-011`, `REQ-012`, and the `FT-006` `REQ-018` trace row remain `planned` until runtime behavior and final verify evidence land.
+
+## [2026-04-03] TASK-FT006-01 cancellation/refund docs freeze
+- Tightened `FT-006`, `order-lifecycle`, `manual-refund-and-negative-alerts`, `testing/index.md`, and `IMPL-FT-006` around allowed-role cancellation, explicit refund-state semantics (`NOT_REQUIRED`, `PENDING_MANUAL`, `DONE`, `REJECTED`), and verify ownership split.
+- Marked `TASK-FT006-01` done and promoted `TASK-FT006-02` plus `TASK-FT006-03` to `ready` without changing RTM rows, because runtime implementation and final verification evidence remain future work.
+
+## [2026-04-03] TASK-FT005-08 polling SLA evidence and final FT-005 closure
+- Added a repo-local `order-tracking` SLA harness that samples 20 event-emission offsets across the current 5-second polling window and confirms visibility latency `p95 = 4500 ms`, `max = 4750 ms`, keeping `REQ-010` inside the MVP target without entering `FT-006` cancellation scope.
+- Re-ran the ordered polling regression suite and synchronized final docs/statuses: `TASK-FT005-08` is now `done`, `REQ-010` is `done`, and `FT-005` is fully closed in the current RTM/Memory Bank scope.
+
+## [2026-04-03] TASK-FT005-07 end-to-end tracking and polling verification
+- Extended the `delivery-tracking` backend integration suite so the same repo-local scenario now drives `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`, asserts committed `order_status_history` / `order.status_changed` writes, and then re-reads the ordered event stream via `GET /events?since=<cursor>` semantics without entering `FT-006` cancellation scope.
+- Extended the frontend `order-tracking` route smoke so courier actions and resumed polling stay duplicate-safe through the full `COMPLETED` flow, proving ordered event observation from command-confirmed revisions up to the terminal state.
+- Marked `TASK-FT005-07` done, promoted `TASK-FT005-08` to `ready`, and synced RTM rows: `REQ-008`, `REQ-009`, and the `FT-005` `REQ-018` trace row are now `done`, while `REQ-010` remains `planned` until SLA evidence lands.
+
+## [2026-04-03] TASK-FT005-06 notifications and polling-consumer wiring
+- Wired `delivery-tracking` status changes to a slice-owned notifier contract plus Telegram bot transport adapter so committed `order.status_changed` writes can fan into courier prompts without moving transition rules into runtime/transport layers or rolling back on notifier outage.
+- Upgraded the frontend `order-tracking` polling consumer to run interval polling, derive next actions from ordered status updates, and dedupe command-confirmed revisions across retry/resume paths so repeated polls do not double-apply write-side effects in the UI.
+- Marked `TASK-FT005-06` done and promoted `TASK-FT005-07` to `ready`; RTM rows for `REQ-008/009/010/018` remain unchanged because final end-to-end closure and SLA evidence still belong to later `FT-005` tasks.
+
 ## [2026-04-03] TASK-FT005-05 verification sync
 - `/verify TASK-FT005-05` independently reran the focused `delivery-tracking` unit/integration Jest suite and repo-local TypeScript verification without evidence drift.
 - Kept statuses unchanged: `TASK-FT005-05` remains `done`, `TASK-FT005-06` remains `ready`, and RTM rows for `REQ-009/010/018` stay unchanged until notification/runtime wiring, final end-to-end closure, and SLA evidence land.

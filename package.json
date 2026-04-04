@@ -15,6 +15,9 @@
     "test:delivery-assignment:unit": "jest --config jest.config.cjs tests/slices/delivery-assignment/delivery-assignment.unit.spec.ts",
     "test:delivery-assignment:integration": "jest --config jest.config.cjs tests/slices/delivery-assignment/delivery-assignment.integration.spec.ts",
     "test:delivery-tracking": "jest --config jest.config.cjs tests/slices/delivery-tracking",
+    "test:order-cancellation": "jest --config jest.config.cjs tests/slices/order-cancellation",
+    "test:order-cancellation:unit": "jest --config jest.config.cjs tests/slices/order-cancellation/order-cancellation.unit.spec.ts",
+    "test:order-cancellation:integration": "jest --config jest.config.cjs tests/slices/order-cancellation/order-cancellation.integration.spec.ts",
     "test:order-tracking:frontend": "jest --config jest.config.cjs frontend/src/tests/slices/order-tracking",
     "test:delivery-tracking:unit": "jest --config jest.config.cjs tests/slices/delivery-tracking/delivery-tracking.unit.spec.ts",
     "test:delivery-tracking:integration": "jest --config jest.config.cjs tests/slices/delivery-tracking/delivery-tracking.integration.spec.ts"
