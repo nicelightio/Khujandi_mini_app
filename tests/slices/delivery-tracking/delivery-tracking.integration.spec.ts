@@ -46,12 +46,36 @@ describe("delivery-tracking module integration", () => {
       id: BigInt(201 + statusHistoryCreate.mock.calls.length),
       ...args.data,
     }));
-    const eventCreate = jest.fn().mockImplementation(async (args) => ({
-      id: eventIds[eventCreate.mock.calls.length - 1],
-      ...args.data,
-      createdAt: orderState.updatedAt,
-    }));
-    const eventFindMany = jest.fn().mockResolvedValue([]);
+    const persistedEvents: Array<{
+      id: bigint;
+      type: string;
+      entity: string;
+      entityId: string;
+      payload: {
+        orderId: string;
+        previousStatus: string;
+        status: string;
+        changedByUserId: string;
+        updatedAt: string;
+      };
+      createdAt: Date;
+    }> = [];
+    const eventCreate = jest.fn().mockImplementation(async (args) => {
+      const createdEvent = {
+        id: eventIds[eventCreate.mock.calls.length - 1],
+        ...args.data,
+        createdAt: orderState.updatedAt,
+      };
+
+      persistedEvents.push(createdEvent);
+
+      return createdEvent;
+    });
+    const eventFindMany = jest.fn().mockImplementation(async (args) => {
+      const cursor = args.where.id.gt;
+
+      return persistedEvents.filter((event) => event.id > cursor);
+    });
     const prisma = createPrismaProvider({
       order: {
         findUnique: orderFindUnique,
@@ -63,6 +87,11 @@ describe("delivery-tracking module integration", () => {
       event: {
         create: eventCreate,
         findMany: eventFindMany,
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          telegramId: "10001",
+        }),
       },
     });
     const context = createTestContext(prisma.client);
@@ -255,6 +284,234 @@ describe("delivery-tracking module integration", () => {
     expect(eventCreate).toHaveBeenCalledTimes(3);
     expect(orderUpdate.mock.invocationCallOrder[0]).toBeLessThan(statusHistoryCreate.mock.invocationCallOrder[0]);
     expect(statusHistoryCreate.mock.invocationCallOrder[0]).toBeLessThan(eventCreate.mock.invocationCallOrder[0]);
+
+    await expect(module.controller.getEventsSince("201")).resolves.toEqual({
+      events: [
+        {
+          type: "order.status_changed",
+          entity: "order",
+          entityId: "order-1",
+          payload: {
+            orderId: "order-1",
+            previousStatus: "ASSIGNED",
+            status: "IN_PROGRESS",
+            changedByUserId: "courier-1",
+            updatedAt: "2026-04-03T10:00:05.000Z",
+          },
+          revision: "202",
+          createdAt: "2026-04-03T10:00:05.000Z",
+        },
+        {
+          type: "order.status_changed",
+          entity: "order",
+          entityId: "order-1",
+          payload: {
+            orderId: "order-1",
+            previousStatus: "IN_PROGRESS",
+            status: "DELIVERED",
+            changedByUserId: "courier-1",
+            updatedAt: "2026-04-03T10:10:05.000Z",
+          },
+          revision: "203",
+          createdAt: "2026-04-03T10:10:05.000Z",
+        },
+        {
+          type: "order.status_changed",
+          entity: "order",
+          entityId: "order-1",
+          payload: {
+            orderId: "order-1",
+            previousStatus: "DELIVERED",
+            status: "COMPLETED",
+            changedByUserId: "courier-1",
+            updatedAt: "2026-04-03T10:20:05.000Z",
+          },
+          revision: "204",
+          createdAt: "2026-04-03T10:20:05.000Z",
+        },
+      ],
+      nextCursor: "204",
+    });
+    await expect(module.controller.getEventsSince("204")).resolves.toEqual({
+      events: [],
+      nextCursor: "204",
+    });
+    expect(eventFindMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: {
+          gt: 201n,
+        },
+      },
+      orderBy: {
+        id: "asc",
+      },
+      select: {
+        id: true,
+        type: true,
+        entity: true,
+        entityId: true,
+        payload: true,
+        createdAt: true,
+      },
+    });
+    expect(eventFindMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        id: {
+          gt: 204n,
+        },
+      },
+      orderBy: {
+        id: "asc",
+      },
+      select: {
+        id: true,
+        type: true,
+        entity: true,
+        entityId: true,
+        payload: true,
+        createdAt: true,
+      },
+    });
+  });
+
+  it("dispatches status-change notifications after commit and swallows notifier outages", async () => {
+    const orderFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce({
+        id: "order-1",
+        courierId: "courier-1",
+        status: "ASSIGNED",
+        updatedAt: new Date("2026-04-03T09:55:00.000Z"),
+        isDeleted: false,
+      })
+      .mockResolvedValueOnce({
+        id: "order-1",
+        courierId: "courier-1",
+        status: "ASSIGNED",
+        updatedAt: new Date("2026-04-03T09:55:00.000Z"),
+        isDeleted: false,
+      })
+      .mockResolvedValueOnce({
+        id: "order-1",
+        courierId: "courier-1",
+        status: "ASSIGNED",
+        updatedAt: new Date("2026-04-03T09:55:00.000Z"),
+        isDeleted: false,
+      })
+      .mockResolvedValueOnce({
+        id: "order-1",
+        courierId: "courier-1",
+        status: "ASSIGNED",
+        updatedAt: new Date("2026-04-03T09:55:00.000Z"),
+        isDeleted: false,
+      });
+    const orderUpdate = jest.fn().mockResolvedValue({
+      id: "order-1",
+      courierId: "courier-1",
+      status: "IN_PROGRESS",
+      updatedAt: new Date("2026-04-03T10:00:05.000Z"),
+      isDeleted: false,
+    });
+    const statusHistoryCreate = jest.fn().mockResolvedValue({
+      id: 201n,
+      orderId: "order-1",
+      oldStatus: "ASSIGNED",
+      newStatus: "IN_PROGRESS",
+      changedByUserId: "courier-1",
+      changedAt: new Date("2026-04-03T10:00:05.000Z"),
+    });
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 202n,
+      type: "order.status_changed",
+      entity: "order",
+      entityId: "order-1",
+      payload: {
+        orderId: "order-1",
+        previousStatus: "ASSIGNED",
+        status: "IN_PROGRESS",
+        changedByUserId: "courier-1",
+        updatedAt: "2026-04-03T10:00:05.000Z",
+      },
+      createdAt: new Date("2026-04-03T10:00:05.000Z"),
+    });
+    const userFindUnique = jest.fn().mockResolvedValue({
+      telegramId: "10001",
+    });
+    const notifier = {
+      notifyStatusChanged: jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("transport outage")),
+    };
+    const prisma = createPrismaProvider({
+      order: {
+        findUnique: orderFindUnique,
+        update: orderUpdate,
+      },
+      orderStatusHistory: {
+        create: statusHistoryCreate,
+      },
+      event: {
+        create: eventCreate,
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      user: {
+        findUnique: userFindUnique,
+      },
+    });
+    const module = createDeliveryTrackingModule(prisma, notifier);
+
+    await expect(
+      module.controller.recordStatusTransition({
+        orderId: "order-1",
+        nextStatus: "IN_PROGRESS",
+        actor: {
+          userId: "courier-1",
+          role: "courier",
+        },
+      }),
+    ).resolves.toEqual({
+      orderId: "order-1",
+      status: "IN_PROGRESS",
+      updatedAt: new Date("2026-04-03T10:00:05.000Z"),
+      revision: "202",
+    });
+
+    await expect(
+      module.controller.recordStatusTransition({
+        orderId: "order-1",
+        nextStatus: "IN_PROGRESS",
+        actor: {
+          userId: "courier-1",
+          role: "courier",
+        },
+      }),
+    ).resolves.toEqual({
+      orderId: "order-1",
+      status: "IN_PROGRESS",
+      updatedAt: new Date("2026-04-03T10:00:05.000Z"),
+      revision: "202",
+    });
+
+    expect(userFindUnique).toHaveBeenCalledWith({
+      where: {
+        id: "courier-1",
+      },
+      select: {
+        telegramId: true,
+      },
+    });
+    expect(notifier.notifyStatusChanged).toHaveBeenNthCalledWith(1, {
+      orderId: "order-1",
+      courierTelegramId: "10001",
+      status: "IN_PROGRESS",
+      revision: "202",
+      availableActions: ["DELIVERED"],
+    });
+    expect(notifier.notifyStatusChanged).toHaveBeenCalledTimes(2);
+    expect(orderUpdate).toHaveBeenCalledTimes(2);
+    expect(statusHistoryCreate).toHaveBeenCalledTimes(2);
+    expect(eventCreate).toHaveBeenCalledTimes(2);
   });
 
   it("returns 409 for invalid transition attempts without persistence side effects", async () => {
@@ -278,6 +535,11 @@ describe("delivery-tracking module integration", () => {
       event: {
         create: eventCreate,
         findMany: jest.fn().mockResolvedValue([]),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          telegramId: "10001",
+        }),
       },
     });
     const module = createDeliveryTrackingModule(prisma);
@@ -327,6 +589,11 @@ describe("delivery-tracking module integration", () => {
       event: {
         create: eventCreate,
         findMany: jest.fn().mockResolvedValue([]),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          telegramId: "10001",
+        }),
       },
     });
     const module = createDeliveryTrackingModule(prisma);
@@ -404,6 +671,11 @@ describe("delivery-tracking module integration", () => {
       event: {
         create: eventCreate,
         findMany: eventFindMany,
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          telegramId: "10001",
+        }),
       },
     });
     const module = createDeliveryTrackingModule(prisma);
@@ -534,6 +806,11 @@ describe("delivery-tracking module integration", () => {
       event: {
         create: eventCreate,
         findMany: eventFindMany,
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          telegramId: "10001",
+        }),
       },
     });
     const module = createDeliveryTrackingModule(prisma);
