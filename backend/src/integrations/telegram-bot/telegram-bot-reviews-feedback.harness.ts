@@ -23,6 +23,7 @@ export type ReviewStepperCallbackPayload = {
   orderId: string;
   direction: ReviewsFeedbackDirection;
   stage: ReviewStepperStage;
+  revision: string;
   value: string;
 };
 
@@ -74,13 +75,14 @@ export const buildReviewStepperCallbackData = (payload: ReviewStepperCallbackPay
     payload.orderId,
     payload.direction,
     payload.stage,
+    encodeSegment(payload.revision),
     encodeSegment(payload.value),
   ].join(":");
 
 export const parseReviewStepperCallbackData = (
   value: string,
 ): ReviewStepperCallbackPayload | null => {
-  const [prefix, orderId, direction, stage, encodedValue] = value.split(":");
+  const [prefix, orderId, direction, stage, encodedRevision, encodedValue] = value.split(":");
 
   if (
     prefix !== REVIEW_CALLBACK_PREFIX ||
@@ -88,6 +90,8 @@ export const parseReviewStepperCallbackData = (
     orderId.length === 0 ||
     (direction !== "client_to_courier" && direction !== "courier_to_client") ||
     (stage !== "rating" && stage !== "reason_code" && stage !== "skip_comment") ||
+    typeof encodedRevision !== "string" ||
+    encodedRevision.length === 0 ||
     typeof encodedValue !== "string" ||
     encodedValue.length === 0
   ) {
@@ -98,6 +102,7 @@ export const parseReviewStepperCallbackData = (
     orderId,
     direction,
     stage,
+    revision: decodeSegment(encodedRevision),
     value: decodeSegment(encodedValue),
   };
 };
@@ -136,6 +141,7 @@ export class TelegramBotReviewsFeedbackHarness {
           orderId: input.orderId,
           direction: input.direction,
           stage: "rating",
+          revision: input.revision,
           value: String(rating),
         }),
       })),
@@ -153,6 +159,7 @@ export class TelegramBotReviewsFeedbackHarness {
           orderId: input.orderId,
           direction: input.direction,
           stage: "reason_code",
+          revision: input.revision,
           value: reasonCode,
         }),
       })),
@@ -171,6 +178,7 @@ export class TelegramBotReviewsFeedbackHarness {
             orderId: input.orderId,
             direction: input.direction,
             stage: "skip_comment",
+            revision: input.revision,
             value: "SKIP",
           }),
         },

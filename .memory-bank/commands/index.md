@@ -19,11 +19,13 @@ status: active
 - [.memory-bank/commands/mb-harness.md](mb-harness.md): Хелпер по harness-настройкам: чистые сессии, профили Codex, детерминированные гейты.
 - [.memory-bank/commands/mb-init.md](mb-init.md): Алиас “инициализировать skeleton Memory Bank”. По сути это init-mb.js + базовые файлы.
 - [.memory-bank/commands/mb-map-codebase.md](mb-map-codebase.md): Алиас флоу “map repo → baseline Memory Bank (as-is)”. Используй /map-codebase.
+- [.memory-bank/commands/mb-red-verify.md](mb-red-verify.md): Алиас adversarial semantic verification задачи (TASK-XXX). Используй /red-verify.
 - [.memory-bank/commands/mb-review.md](mb-review.md): Алиас multi-expert review. Используй /review.
 - [.memory-bank/commands/mb-sync.md](mb-sync.md): Синхронизация Memory Bank после изменения: обновить индексы, RTM/backlog и changelog.
 - [.memory-bank/commands/mb-verify.md](mb-verify.md): Алиас верификации задачи (TASK-XXX). Используй /verify.
 - [.memory-bank/commands/mb.md](mb.md): Прайминг агента — загрузка контекста проекта из Memory Bank перед работой.
 - [.memory-bank/commands/prd-to-tasks.md](prd-to-tasks.md): Декомпозиция фичи в implementation plan и атомарные задачи (waves).
 - [.memory-bank/commands/prd.md](prd.md): Превращение PRD в Memory Bank — product brief, требования, эпики, фичи, RTM.
+- [.memory-bank/commands/red-verify.md](red-verify.md): Adversarial semantic verification задачи (TASK-XXX) для поиска "дисциплинированно, но по существу неверно".
 - [.memory-bank/commands/review.md](review.md): Multi-expert ревью Memory Bank (fresh context) с артефактами в .tasks/TASK-MB-REVIEW/.
 - [.memory-bank/commands/verify.md](verify.md): Верификация выполненной задачи по acceptance criteria + evidence, итог PASS/FAIL.

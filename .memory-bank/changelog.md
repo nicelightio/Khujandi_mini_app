@@ -4,6 +4,35 @@ status: active
 ---
 # Changelog
 
+## [2026-04-06] Containerized deploy preparation for tgmeal test server
+- Added checked-in container deploy assets: `Dockerfile.web`, `Dockerfile.api`, `docker-compose.yml`, `.dockerignore`, and nginx config for the web container so the current frontend plus repo-local demo/admin-auth API can run as a two-container stack.
+- Extended `scripts/dev-api.ts` with runtime env parsing for `HOST`, `PORT`, and `ADMIN_ALLOWED_ORIGINS`, which is required for container networking and the public `tgmeal.natureonzoom.win` origin.
+- Added `.memory-bank/runbooks/telegram-mini-app-container-deploy.md` and linked it from the runbooks index to document cleanup of the old `/var/www/tgmeal` deploy, creation of the dedicated `tgmeal` user, and rollout on the same VPS via Docker Compose.
+
+## [2026-04-06] TASK-FT007-09 mount admin auth handler into checked-in runtime entrypoint
+- Added a shared checked-in dev runtime server under `backend/src/dev-runtime/dev-api-server.ts` and switched `dev:api` to a TypeScript entrypoint so the local `/api` runtime now mounts `createAdminAuthHttpHandler` instead of serving only catalog demo routes.
+- Repointed the admin runtime test helper to that same mounted server module, keeping cookie/origin/runtime assertions against the real repo-local entrypoint used by local app flows rather than a test-only ad hoc server shell.
+- Archived `BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime` and marked `TASK-FT007-09` done because `/api/v1/admin/auth/login|refresh|logout` are now реально wired into the checked-in local/dev runtime boundary.
+
+## [2026-04-06] TASK-FT008-10 ReviewDraft rollout and retention closure
+- Added checked-in Prisma rollout artifacts under `backend/prisma/migrations/` so the durable `ReviewDraft` path is deployable without relying on an implicit schema step outside the repo.
+- Synced `FT-008` and the negative-alert runbook with an explicit expired-draft retention policy: rows become delete-safe after `expiresAt <= now()`, cleanup can use a simple SQL delete, and this does not change duplicate-safe final submit semantics.
+- MB sync after `/verify` + `/red-verify` removed the last `FT-008` doc drift in `bugs/index.md`, so the archived bug no longer implies an open rollout/retention concern.
+
+## [2026-04-06] TASK-FT008-09 review draft durability and explicit runtime guarantee
+- Replaced process-local Telegram review draft state with slice-owned durable `ReviewDraft` persistence, explicit `1 hour` TTL, and restart-safe/shared-DB multi-instance-safe flow continuity while keeping final submit ownership inside `reviews-feedback`.
+- Extended repo-local `reviews-feedback` tests for persistence-backed duplicate final submit behavior, archived `BUG-2026-04-06-ft008-ephemeral-review-draft-state`, and marked `TASK-FT008-09` done.
+- `red-verify` kept the fix as substantively correct, but opened `TASK-FT008-10` as a ready operational follow-up for checked-in Prisma rollout and expired-draft retention policy closure.
+
+## [2026-04-06] TASK-FT008-08 stale Telegram review callback hardening
+- Extended `telegram-bot-reviews-feedback` callback payloads and in-memory draft state with explicit prompt revision identity so stale `rating`, `reason_code`, and `skip_comment` callbacks are ignored before they can mutate the active review draft.
+- Added repo-local `reviews-feedback` unit/integration regressions for replayed older prompt buttons while preserving duplicate-safe final submit and single `review.negative` fan-out semantics; archived `BUG-2026-04-06-ft008-stale-review-callback-replay-gap` and marked `TASK-FT008-08` done.
+- `red-verify` kept the task as a substantive fix for stale callbacks, but explicitly preserved `TASK-FT008-09` as the remaining runtime-guarantee follow-up for process-local draft durability and restart/multi-instance behavior.
+
+## [2026-04-06] TASK-FT007-08 admin auth runtime cookie boundary bugfix
+- Added `backend/src/slices/admin-access/presentation/admin-auth-http.ts` so `FT-007` now exposes a checked-in HTTP runtime boundary for `POST /api/v1/admin/auth/login|refresh|logout` with `Secure` + `HttpOnly` + `SameSite=Lax` cookies and mandatory `Origin/Referer` validation.
+- Added repo-local backend HTTP integration coverage plus admin frontend runtime smoke against the real cookie boundary, archived `BUG-2026-04-06-ft007-missing-admin-auth-runtime-cookie-boundary`, and marked `TASK-FT007-08` done.
+
 ## [2026-04-05] TASK-FT008-07 final verification suite and docs sync
 - Added final `reviews-feedback` integration evidence for courier-side low-rating bot flow, confirming `rating -> reason_code -> comment(optional)` progression, canonical `review.negative` publication, active-admin fan-out, and duplicate final-callback no-op behavior through the owning module/controller path.
 - Re-ran `npm run test:reviews-feedback`, `npm run lint`, and `npx tsc --noEmit -p tsconfig.jest.json`; marked `TASK-FT008-07` done, closed `REQ-013` and `REQ-014`, and synced final `FT-008` status across backlog/feature/runbook/index docs.

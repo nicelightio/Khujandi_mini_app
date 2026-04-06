@@ -57,6 +57,8 @@ status: active
 - `TASK-FT007-01` фиксирует docs/spec layer: provisioning baseline, cookie transport, lockout/session policy и verify ownership.
 - `TASK-FT007-06` закрывает admin-web UX wiring: shared login/protected shell, cookie-backed login/refresh/logout wiring для existing admin pages и controlled feedback для lockout/session expiry.
 - `TASK-FT007-07` закрывает final repo-local verification/docs sync: backend/frontend suites, RTM closure и feature-level acceptance confirmation без расширения scope в provisioning UI.
+- `TASK-FT007-08` добавил runtime bugfix surface: checked-in HTTP cookie handlers, mandatory transport enforcement, and runtime-backed login/refresh/logout evidence, но `red-verify` выявил отсутствие реального mounting в checked-in runtime entrypoint.
+- `TASK-FT007-09` закрывает оставшийся runtime gap: admin auth handler смонтирован в реальный checked-in repo-local backend runtime, который обслуживает `/api` path для local/dev app flows.
 
 ## Implementation status
 
@@ -67,3 +69,5 @@ status: active
 - `TASK-FT007-05` реализовал refresh/logout/session lifetime enforcement: hashed refresh-token rotation, fixed 3-day session lifetime, 30-minute idle timeout, revocation on logout/expiry/lockout и controlled `401` outcomes для invalid or expired sessions.
 - `TASK-FT007-06` подключил admin-web к backend auth boundary через cookie-based auth API, centralized router/protected-shell login flow, controlled expired/restoring/logout feedback и shared auth protection для assignment/cancellation pages без page-local session logic.
 - `TASK-FT007-07` закрыл финальную repo-local verification/docs sync: backend `admin-access` и admin frontend suites подтверждают login/refresh/logout, lockout/audit, fixed session lifetime и protected-route UX, поэтому `REQ-015`, `REQ-016`, `REQ-017` и `FT-007`-row для `REQ-018` закрыты в текущем repo-local scope.
+- `TASK-FT007-08` добавил checked-in HTTP auth handler, cookie transport enforcement и runtime-backed tests, но `red-verify` показал, что этот boundary был смонтирован только в test helper, а не в реальный dev runtime entrypoint.
+- `TASK-FT007-09` смонтировал `createAdminAuthHttpHandler` в checked-in repo-local runtime entrypoint, который использует `dev:api`/`vite` proxy, поэтому `/api/v1/admin/auth/login|refresh|logout` теперь реально доступны в local/dev app flow без test-only wiring.

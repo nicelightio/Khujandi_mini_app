@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3001
+      ADMIN_ALLOWED_ORIGINS: ${ADMIN_ALLOWED_ORIGINS:-https://tgmeal.natureonzoom.win}
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
