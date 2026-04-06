@@ -213,6 +213,7 @@ describe("admin order cancellation route", () => {
       headers: {
         "content-type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         reasonCode: "OPS_DELAY",
       }),
@@ -362,6 +363,7 @@ describe("admin order cancellation route", () => {
       headers: {
         "content-type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         refundStatus: "DONE",
         refundNote: "Cash returned offline",

@@ -117,6 +117,7 @@ export const createAdminAssignmentApi = (options: AdminAssignmentApiOptions = {}
         headers: {
           "content-type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           courierId: input.courierId,
         }),

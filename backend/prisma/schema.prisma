@@ -40,6 +40,23 @@ enum UserRole {
   CLIENT
 }
 
+enum AdminAuthAuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOCKED
+  LOGOUT
+}
+
+enum ReviewTargetRole {
+  CLIENT
+  COURIER
+}
+
+enum ReviewSource {
+  MINI_APP
+  TELEGRAM_BOT
+}
+
 model Shop {
   id                          String    @id @default(cuid())
   sellerId                    String
@@ -99,6 +116,7 @@ model Order {
   statusHistory          OrderStatusHistory[]
   assignmentAudits       DeliveryAssignmentAudit[]
   cancellationAudits     OrderCancellationAudit[]
+  reviews                Review[]
 
   @@index([clientId, createdAt(sort: Desc)])
   @@index([courierId, status, updatedAt(sort: Desc)])
@@ -171,6 +189,28 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   miniAppSessions MiniAppSession[]
+  authoredReviews Review[]         @relation("ReviewAuthor")
+  targetedReviews Review[]         @relation("ReviewTarget")
+}
+
+model Review {
+  id           BigInt           @id @default(autoincrement())
+  orderId      String
+  authorId     String
+  targetUserId String
+  targetRole   ReviewTargetRole
+  rating       Int
+  reasonCode   String
+  comment      String?
+  source       ReviewSource
+  createdAt    DateTime         @default(now())
+  order        Order            @relation(fields: [orderId], references: [id])
+  author       User             @relation("ReviewAuthor", fields: [authorId], references: [id])
+  targetUser   User             @relation("ReviewTarget", fields: [targetUserId], references: [id])
+
+  @@unique([orderId, authorId, targetUserId])
+  @@index([orderId, createdAt])
+  @@index([targetUserId, createdAt])
 }
 
 model MiniAppSession {
@@ -193,4 +233,51 @@ model TelegramAuthReplay {
   createdAt    DateTime @default(now())
 
   @@index([expiresAt])
+}
+
+model AdminAccount {
+  id           String           @id @default(cuid())
+  login        String           @unique
+  passwordHash String
+  role         UserRole
+  isActive     Boolean          @default(true)
+  lockedUntil  DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  sessions     AdminSession[]
+  authAudits   AdminAuthAudit[]
+
+  @@index([role])
+  @@index([lockedUntil])
+}
+
+model AdminSession {
+  id                   String       @id @default(cuid())
+  adminAccountId       String
+  refreshTokenHash     String       @unique
+  accessTokenExpiresAt DateTime
+  refreshTokenExpiresAt DateTime
+  idleExpiresAt        DateTime
+  lastActivityAt       DateTime     @default(now())
+  revokedAt            DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  adminAccount         AdminAccount @relation(fields: [adminAccountId], references: [id])
+
+  @@index([adminAccountId, refreshTokenExpiresAt])
+  @@index([adminAccountId, idleExpiresAt])
+}
+
+model AdminAuthAudit {
+  id             BigInt               @id @default(autoincrement())
+  adminAccountId String
+  action         AdminAuthAuditAction
+  ipAddress      String?
+  userAgent      String?
+  traceId        String
+  reason         String?
+  createdAt      DateTime             @default(now())
+  adminAccount   AdminAccount         @relation(fields: [adminAccountId], references: [id])
+
+  @@index([adminAccountId, action, createdAt])
 }

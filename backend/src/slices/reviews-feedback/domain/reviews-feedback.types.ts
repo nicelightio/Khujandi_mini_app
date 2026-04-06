@@ -1,0 +1,176 @@
+export type ReviewsFeedbackOrderId = string;
+export type ReviewsFeedbackUserId = string;
+export type ReviewsFeedbackRevision = string;
+
+export type ReviewsFeedbackUserRole =
+  | "boss"
+  | "manager"
+  | "admin"
+  | "seller"
+  | "courier"
+  | "client";
+
+export type ReviewsFeedbackOrderStatus =
+  | "CREATED"
+  | "ASSIGNED"
+  | "IN_PROGRESS"
+  | "DELIVERED"
+  | "COMPLETED"
+  | "CANCELLED_BY_ADMIN"
+  | "CANCELLED_BY_COURIER_UNAVAILABLE";
+
+export type ReviewsFeedbackTargetRole = "client" | "courier";
+export type ReviewsFeedbackSource = "mini_app" | "telegram_bot";
+export type ReviewsFeedbackDirection = "client_to_courier" | "courier_to_client";
+
+export type ReviewsFeedbackOrderRecord = {
+  id: ReviewsFeedbackOrderId;
+  clientId: ReviewsFeedbackUserId;
+  courierId: ReviewsFeedbackUserId | null;
+  status: ReviewsFeedbackOrderStatus;
+  updatedAt: Date;
+  isDeleted: boolean;
+};
+
+export type ReviewsFeedbackUserRecord = {
+  id: ReviewsFeedbackUserId;
+  telegramId: string;
+  role: ReviewsFeedbackUserRole;
+  isActive: boolean;
+  name: string;
+};
+
+export type ReviewsFeedbackAdminUserRecord = {
+  id: ReviewsFeedbackUserId;
+  telegramId: string;
+  role: Extract<ReviewsFeedbackUserRole, "boss" | "manager" | "admin">;
+  isActive: boolean;
+  name: string;
+};
+
+export type ReviewsFeedbackReviewRecord = {
+  id: bigint;
+  orderId: ReviewsFeedbackOrderId;
+  authorId: ReviewsFeedbackUserId;
+  targetUserId: ReviewsFeedbackUserId;
+  targetRole: ReviewsFeedbackTargetRole;
+  rating: number;
+  reasonCode: string;
+  comment: string | null;
+  source: ReviewsFeedbackSource;
+  createdAt: Date;
+};
+
+export type ReviewsFeedbackActor = {
+  userId: ReviewsFeedbackUserId;
+  role: Extract<ReviewsFeedbackUserRole, "client" | "courier">;
+};
+
+export type SubmitReviewInput = {
+  orderId: ReviewsFeedbackOrderId;
+  actor: ReviewsFeedbackActor | null;
+  targetUserId: ReviewsFeedbackUserId;
+  targetRole: ReviewsFeedbackTargetRole;
+  rating: number;
+  reasonCode: string;
+  comment?: string;
+  source: ReviewsFeedbackSource;
+};
+
+export type PersistReviewInput = {
+  orderId: ReviewsFeedbackOrderId;
+  authorId: ReviewsFeedbackUserId;
+  targetUserId: ReviewsFeedbackUserId;
+  targetRole: ReviewsFeedbackTargetRole;
+  rating: number;
+  reasonCode: string;
+  comment: string | null;
+  source: ReviewsFeedbackSource;
+  createdAt: Date;
+  publishNegativeEvent: boolean;
+};
+
+export type CreateReviewCreatedEventInput = {
+  type: "review.created";
+  entity: "review";
+  entityId: string;
+  payload: {
+    reviewId: string;
+    orderId: ReviewsFeedbackOrderId;
+    authorId: ReviewsFeedbackUserId;
+    targetUserId: ReviewsFeedbackUserId;
+    targetRole: ReviewsFeedbackTargetRole;
+    rating: number;
+    reasonCode: string;
+    comment: string | null;
+    source: ReviewsFeedbackSource;
+    createdAt: string;
+  };
+};
+
+export type CreateNegativeReviewEventInput = {
+  type: "review.negative";
+  entity: "review";
+  entityId: string;
+  payload: {
+    reviewId: string;
+    orderId: ReviewsFeedbackOrderId;
+    authorId: ReviewsFeedbackUserId;
+    targetUserId: ReviewsFeedbackUserId;
+    targetRole: ReviewsFeedbackTargetRole;
+    rating: number;
+    reasonCode: string;
+    comment: string | null;
+    source: ReviewsFeedbackSource;
+    createdAt: string;
+  };
+};
+
+export type ReviewsFeedbackEventRecord =
+  | (CreateReviewCreatedEventInput & { id: bigint; createdAt: Date })
+  | (CreateNegativeReviewEventInput & { id: bigint; createdAt: Date });
+
+export type ReviewsFeedbackArtifactsRecord = {
+  review: ReviewsFeedbackReviewRecord;
+  events: ReviewsFeedbackEventRecord[];
+  revision: ReviewsFeedbackRevision;
+};
+
+export type ReviewsFeedbackCommandResult = {
+  reviewId: string;
+  orderId: ReviewsFeedbackOrderId;
+  authorId: ReviewsFeedbackUserId;
+  targetUserId: ReviewsFeedbackUserId;
+  targetRole: ReviewsFeedbackTargetRole;
+  rating: number;
+  reasonCode: string;
+  comment: string | null;
+  revision: ReviewsFeedbackRevision;
+  createdAt: Date;
+};
+
+export type ReviewsFeedbackNegativeAlertNotificationInput = {
+  adminTelegramIds: string[];
+  orderId: ReviewsFeedbackOrderId;
+  reviewId: string;
+  direction: ReviewsFeedbackDirection;
+  rating: number;
+  reasonCode: string;
+};
+
+export interface ReviewsFeedbackNotifier {
+  notifyNegativeReview(input: ReviewsFeedbackNegativeAlertNotificationInput): Promise<void>;
+}
+
+export interface ReviewsFeedbackRepository {
+  findOrderById(orderId: ReviewsFeedbackOrderId): Promise<ReviewsFeedbackOrderRecord | null>;
+  findUserById(userId: ReviewsFeedbackUserId): Promise<ReviewsFeedbackUserRecord | null>;
+  listActiveAdminUsers(): Promise<ReviewsFeedbackAdminUserRecord[]>;
+  listReviewsByOrderId(orderId: ReviewsFeedbackOrderId): Promise<ReviewsFeedbackReviewRecord[]>;
+  findReviewByUniquePair(
+    orderId: ReviewsFeedbackOrderId,
+    authorId: ReviewsFeedbackUserId,
+    targetUserId: ReviewsFeedbackUserId,
+  ): Promise<ReviewsFeedbackReviewRecord | null>;
+  persistReview(input: PersistReviewInput): Promise<ReviewsFeedbackArtifactsRecord>;
+}

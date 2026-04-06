@@ -5,9 +5,11 @@ module.exports = {
   testMatch: [
     "<rootDir>/tests/slices/catalog/*.spec.ts",
     "<rootDir>/tests/slices/checkout-payment/*.spec.ts",
+    "<rootDir>/tests/slices/admin-access/*.spec.ts",
     "<rootDir>/tests/slices/delivery-assignment/*.spec.ts",
     "<rootDir>/tests/slices/delivery-tracking/*.spec.ts",
     "<rootDir>/tests/slices/order-cancellation/*.spec.ts",
+    "<rootDir>/tests/slices/reviews-feedback/*.spec.ts",
     "<rootDir>/frontend/src/tests/admin/*.spec.ts",
     "<rootDir>/frontend/src/tests/admin/*.spec.tsx",
     "<rootDir>/frontend/src/tests/slices/catalog/*.spec.ts",

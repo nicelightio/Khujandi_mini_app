@@ -57,14 +57,14 @@ status: active
 | REQ-010 | EP-002 | FT-005 | verify: polling SLA p95 <= 10s | done |
 | REQ-011 | EP-002 | FT-006 | e2e: authorized operational cancellation only | done |
 | REQ-012 | EP-002 | FT-006 | integration: refund status + audit persistence | done |
-| REQ-013 | EP-004 | FT-008 | e2e: two-sided review flow via bot | planned |
-| REQ-014 | EP-004 | FT-008 | integration: negative alert for both review directions | planned |
-| REQ-015 | EP-003 | FT-007 | e2e: admin login/refresh/logout | planned |
-| REQ-016 | EP-003 | FT-007 | integration: lockout and auth audit | planned |
-| REQ-017 | EP-003 | FT-007 | integration: session TTL and idle timeout | planned |
+| REQ-013 | EP-004 | FT-008 | e2e: two-sided review flow via bot | done |
+| REQ-014 | EP-004 | FT-008 | integration: negative alert for both review directions | done |
+| REQ-015 | EP-003 | FT-007 | e2e: admin login/refresh/logout | done |
+| REQ-016 | EP-003 | FT-007 | integration: lockout and auth audit | done |
+| REQ-017 | EP-003 | FT-007 | integration: session TTL and idle timeout | done |
 | REQ-018 | EP-002 | FT-005 | integration: error contract + audit/event generation | done |
 | REQ-018 | EP-002 | FT-006 | integration: cancellation audit and error contract | done |
-| REQ-018 | EP-003 | FT-007 | integration: auth audit and error contract | planned |
+| REQ-018 | EP-003 | FT-007 | integration: auth audit and error contract | done |
 | REQ-019 | EP-001 | FT-009 | verify: Android Telegram WebView shell baseline | done |
 | REQ-020 | EP-001 | FT-001 | unit: rename policy and shop name snapshot | done |
 | REQ-021 | EP-001 | FT-002 | integration: trusted payment callback and replay protection | done |
