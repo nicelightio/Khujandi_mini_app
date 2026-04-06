@@ -2,7 +2,7 @@
   "name": "khujandi-mini-app",
   "private": true,
   "scripts": {
-    "dev:api": "node scripts/dev-api.mjs",
+    "dev:api": "node --experimental-strip-types --experimental-transform-types --loader ./scripts/ts-extension-loader.mjs ./scripts/dev-api.ts",
     "dev:frontend": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "build:frontend": "vite build",
     "lint": "eslint .",

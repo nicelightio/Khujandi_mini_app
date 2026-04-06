@@ -797,7 +797,7 @@ status: active
 
 ### TASK-FT007-09 — Mount admin auth HTTP handler into the checked-in backend runtime entrypoint
 - TASK-ID: `TASK-FT007-09`
-- Status: `blocked`
+- Status: `done`
 - Wave: `W4`
 - Feature: `FT-007`
 - REQs: `REQ-015`, `REQ-017`, `REQ-018`
@@ -808,6 +808,7 @@ status: active
 - Docs: `bugs/BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime.md`, `features/FT-007`, `changelog.md`
 - Bug: `BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime`
 - Constraints: использовать реальный repo-local runtime entrypoint, не подменять fix очередным test-only harness
+- Result: `dev:api` now mounts `createAdminAuthHttpHandler` through the checked-in runtime used by the Vite `/api` proxy, and runtime-backed tests target that same mounted server module.
 
 ## FT-008 — Two-Sided Reviews And Negative Alerts
 

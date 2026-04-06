@@ -107,7 +107,9 @@ status: active
 - `FT-008`: `red-verify` for `TASK-FT008-09` did not find a semantic break in the review flow, but left a follow-up `TASK-FT008-10` for checked-in Prisma rollout/retention closure before calling the durability path fully risk-closed.
 - `FT-008`: `TASK-FT008-10` added checked-in Prisma rollout artifacts for `ReviewDraft` and explicit expired-draft cleanup policy, so the durability path is now operationally deployable instead of relying on implicit rollout/retention assumptions.
 - Semantic review after PR `#6` opened three follow-ups: `TASK-FT007-08` for the missing real admin HTTP cookie auth boundary, `TASK-FT008-08` for stale Telegram review callback hardening, and `TASK-FT008-09` for making review-draft runtime guarantees explicit instead of implicit.
-- `FT-007`: follow-up bugfix `TASK-FT007-08` added the real admin HTTP cookie auth boundary, enforced runtime transport policy, and closed the previously archived semantic-review gap for login/refresh/logout runtime evidence.
+- `FT-007`: `TASK-FT007-08` added the admin HTTP cookie auth boundary and transport enforcement, but `red-verify` found that the handler was still test-mounted only.
+- `FT-007`: `TASK-FT007-09` mounted that handler into the checked-in repo-local backend runtime used by `dev:api` and the Vite `/api` proxy, so local/dev login/refresh/logout now hit the real mounted runtime instead of a test-only server shell.
+- Ops: added a containerized deploy path for the same `tgmeal.natureonzoom.win` VPS, with checked-in `Dockerfile.web`, `Dockerfile.api`, `docker-compose.yml`, and a dedicated runbook for replacing the older non-container app copy.
 - `FT-009`: implementation plan, protocol docs and execution-ready backlog decomposition were added for Telegram Mini App shell/runtime baseline, WebView UX hardening and final client-matrix verification.
 - `FT-009`: current verification policy accepts operator-confirmed real `Android Telegram` notes as the blocking closure artifact; screenshots/videos are optional hardening only.
 - Added a dedicated VPS + Cloudflare + Telegram test-server runbook for first real Android Mini App launches on `tgmeal.natureonzoom.win`.

@@ -1,6 +1,6 @@
 ---
-description: Active semantic bug because TASK-FT007-08 added an auth handler but did not wire it into the checked-in backend runtime entrypoint.
-status: active
+description: Archived semantic bug that existed until TASK-FT007-09 mounted the admin auth handler into the checked-in backend runtime entrypoint.
+status: archived
 ---
 # BUG-2026-04-06 FT-007 Admin Auth Handler Not Mounted In Runtime
 
@@ -30,15 +30,21 @@ status: active
 
 - The checked-in backend runtime used by local/dev app flows must expose `/api/v1/admin/auth/login|refresh|logout` and mount the new handler there.
 
-## Actual behavior
+## Actual behavior at detection time
 
-- The new handler is test-mounted only.
-- The real repo-local runtime path still does not expose the admin auth endpoints.
+- The new handler was test-mounted only.
+- The real repo-local runtime path did not expose the admin auth endpoints.
 
-## Impact
+## Impact at detection time
 
-- `TASK-FT007-08` is not correct in substance.
-- `FT-007` runtime closure remains unreliable until the checked-in runtime actually mounts the admin auth boundary.
+- `TASK-FT007-08` was not correct in substance.
+- `FT-007` runtime closure remained unreliable until the checked-in runtime actually mounted the admin auth boundary.
+
+## Resolution
+
+- `TASK-FT007-09` introduced a shared checked-in dev runtime server and mounted `createAdminAuthHttpHandler` into that real repo-local entrypoint.
+- `package.json` `dev:api` now starts the TypeScript entrypoint `scripts/dev-api.ts` through a small loader, so `/api/v1/admin/auth/login|refresh|logout` are served by the same checked-in runtime used by local app flows.
+- Runtime-backed tests now target that mounted server module instead of a test-only ad hoc server shell.
 
 ## Suggested fix
 

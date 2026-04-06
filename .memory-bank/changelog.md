@@ -4,6 +4,16 @@ status: active
 ---
 # Changelog
 
+## [2026-04-06] Containerized deploy preparation for tgmeal test server
+- Added checked-in container deploy assets: `Dockerfile.web`, `Dockerfile.api`, `docker-compose.yml`, `.dockerignore`, and nginx config for the web container so the current frontend plus repo-local demo/admin-auth API can run as a two-container stack.
+- Extended `scripts/dev-api.ts` with runtime env parsing for `HOST`, `PORT`, and `ADMIN_ALLOWED_ORIGINS`, which is required for container networking and the public `tgmeal.natureonzoom.win` origin.
+- Added `.memory-bank/runbooks/telegram-mini-app-container-deploy.md` and linked it from the runbooks index to document cleanup of the old `/var/www/tgmeal` deploy, creation of the dedicated `tgmeal` user, and rollout on the same VPS via Docker Compose.
+
+## [2026-04-06] TASK-FT007-09 mount admin auth handler into checked-in runtime entrypoint
+- Added a shared checked-in dev runtime server under `backend/src/dev-runtime/dev-api-server.ts` and switched `dev:api` to a TypeScript entrypoint so the local `/api` runtime now mounts `createAdminAuthHttpHandler` instead of serving only catalog demo routes.
+- Repointed the admin runtime test helper to that same mounted server module, keeping cookie/origin/runtime assertions against the real repo-local entrypoint used by local app flows rather than a test-only ad hoc server shell.
+- Archived `BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime` and marked `TASK-FT007-09` done because `/api/v1/admin/auth/login|refresh|logout` are now реально wired into the checked-in local/dev runtime boundary.
+
 ## [2026-04-06] TASK-FT008-10 ReviewDraft rollout and retention closure
 - Added checked-in Prisma rollout artifacts under `backend/prisma/migrations/` so the durable `ReviewDraft` path is deployable without relying on an implicit schema step outside the repo.
 - Synced `FT-008` and the negative-alert runbook with an explicit expired-draft retention policy: rows become delete-safe after `expiresAt <= now()`, cleanup can use a simple SQL delete, and this does not change duplicate-safe final submit semantics.
