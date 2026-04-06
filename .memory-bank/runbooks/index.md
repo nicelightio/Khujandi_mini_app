@@ -8,4 +8,4 @@ status: active
 - [.memory-bank/runbooks/security-auth-and-secret-response.md](security-auth-and-secret-response.md): Операционный runbook для lockout-response, token compromise и rotation секретов.
 - [.memory-bank/runbooks/telegram-mini-app-verification.md](telegram-mini-app-verification.md): Runbook проверки Telegram-specific auth/payment/WebView behavior в test environment и client matrix.
 - [.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md](telegram-mini-app-test-server-deploy.md): Runbook развертывания тестового VPS, Cloudflare subdomain и первого Android Telegram запуска Mini App.
-- [.memory-bank/runbooks/telegram-mini-app-container-deploy.md](telegram-mini-app-container-deploy.md): Runbook перевода того же VPS на containerized deploy с cleanup legacy файлов и выделенным app user.
+- [.memory-bank/runbooks/telegram-mini-app-container-deploy.md](telegram-mini-app-container-deploy.md): Канонический runbook текущего серверного разворота на тот же VPS через containerized deploy, cleanup legacy файлов и выделенный app user.

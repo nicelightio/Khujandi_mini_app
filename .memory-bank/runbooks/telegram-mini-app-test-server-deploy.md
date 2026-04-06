@@ -8,6 +8,12 @@ status: active
 
 Поднять тестовый сервер для реального `Android Telegram` verify `FT-009` на VPS `Ubuntu 22` с доменом `tgmeal.natureonzoom.win` через Cloudflare.
 
+## Status note
+
+- Этот документ описывает исторический non-container deploy path через `node + systemd + host nginx`.
+- Текущий рекомендуемый server deploy path теперь зафиксирован в `.memory-bank/runbooks/telegram-mini-app-container-deploy.md`.
+- Используй этот historical runbook только как reference, если нужно понять legacy rollout или сравнить шаги миграции.
+
 ## Scope and assumptions
 
 - Цель этого runbook: быстро получить публичный `https` URL для Telegram Mini App и пройти Android runtime checks по `FT-009`.

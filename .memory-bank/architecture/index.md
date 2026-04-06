@@ -8,6 +8,7 @@ status: active
 - [.memory-bank/architecture/frontend-presentation-and-webview.md](frontend-presentation-and-webview.md): WHAT/WHY для Mini App shell, frontend slices и Telegram WebView boundary.
 - [.memory-bank/architecture/events-polling-and-bot-runtime.md](events-polling-and-bot-runtime.md): WHAT/WHY для event transport, polling и Telegram-бота как runtime contour.
 - [.memory-bank/architecture/data-boundaries-and-persistence.md](data-boundaries-and-persistence.md): WHAT/WHY для data ownership, persistence boundaries и slice-aware storage model.
+- [.memory-bank/architecture/deployment-and-runtime-topology.md](deployment-and-runtime-topology.md): WHAT/WHY для текущего VPS deploy topology через host nginx и containerized app stack.
 
 ## Visual companion
 
@@ -19,3 +20,4 @@ status: active
 - `frontend-presentation-and-webview` <-> [.memory-bank/guides/frontend-slices-and-webview.md](../guides/frontend-slices-and-webview.md): как организовать React/Vite frontend и Telegram WebView shell.
 - `events-polling-and-bot-runtime` <-> [.memory-bank/guides/events-polling-and-bot-integration.md](../guides/events-polling-and-bot-integration.md): как реализовывать polling, event consumer и bot flows.
 - `data-boundaries-and-persistence` <-> [.memory-bank/guides/storage-and-state-implementation.md](../guides/storage-and-state-implementation.md): как раскладывать таблицы, state и persistence hooks без нарушения slice ownership.
+- `deployment-and-runtime-topology` <-> [.memory-bank/guides/server-deploy-and-rollout.md](../guides/server-deploy-and-rollout.md): как practically разворачивать и обновлять проект на сервере.

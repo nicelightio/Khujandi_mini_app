@@ -12,7 +12,7 @@ status: active
 
 - Основа — предыдущий runbook `.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md`.
 - Целевой origin остается тем же: `https://tgmeal.natureonzoom.win` через Cloudflare `Full (strict)`.
-- В контейнеры уходит приложение; TLS termination и публичный `80/443` остаются на host `nginx`, чтобы не ломать существующий Cloudflare Origin Certificate flow.
+- В контейненый `80/443` остаются на host `nginx`, чтобы не ломать существующий Cloudflare Origin Certificate flow.
 - Старый non-container deploy (`/var/www/tgmeal`, `tgmeal-demo-api.service`) должен быть удален, чтобы на сервере не осталось двух параллельных app copies.
 
 ## Target layout
@@ -46,7 +46,9 @@ apt update
 apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable --now docker
 docker --version
+-- Docker version 29.3.1, build c2be9cc --
 docker compose version
+-- Docker Compose version v5.1.1 --
 ```
 
 ## 3. Keep firewall baseline
@@ -68,21 +70,6 @@ install -d -o tgmeal -g tgmeal /srv/tgmeal
 
 ## 5. Remove old application copy and old service
 
-Останови и отключи legacy process:
-
-```bash
-systemctl disable --now tgmeal-demo-api.service || true
-rm -f /etc/systemd/system/tgmeal-demo-api.service
-systemctl daemon-reload
-```
-
-Удаляй старые файлы приложения только после остановки сервиса:
-
-```bash
-rm -rf /var/www/tgmeal
-rm -rf /srv/tgmeal/app
-```
-
 ## 6. Clone fresh repo copy as app user
 
 ```bash
@@ -92,9 +79,6 @@ cd /srv/tgmeal/app
 
 Если нужен конкретный branch:
 
-```bash
-sudo -u tgmeal git -C /srv/tgmeal/app checkout <branch>
-```
 
 ## 7. Prepare runtime env for compose
 
@@ -201,6 +185,26 @@ sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml down
 ```
 
 Если нужно быстро вернуть legacy host nginx config, восстанови предыдущий `sites-available` файл только после полной остановки контейнерного стека.
+
+## 13. Commands to deploy updates on the server
+
+Быстрый безопасный сценарий для накатывания новой версии приложения:
+
+```bash
+ssh root@213.155.13.112
+sudo -u tgmeal git -C /srv/tgmeal/app pull
+sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml up -d --build
+sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml ps
+systemctl reload nginx
+curl -I https://tgmeal.natureonzoom.win
+curl https://tgmeal.natureonzoom.win/api/v1/shops
+```
+
+Если нужно посмотреть логи после обновления:
+
+```bash
+sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml logs --tail=200
+```
 
 ## Source artifacts
 

@@ -8,6 +8,7 @@ status: active
 - Added checked-in container deploy assets: `Dockerfile.web`, `Dockerfile.api`, `docker-compose.yml`, `.dockerignore`, and nginx config for the web container so the current frontend plus repo-local demo/admin-auth API can run as a two-container stack.
 - Extended `scripts/dev-api.ts` with runtime env parsing for `HOST`, `PORT`, and `ADMIN_ALLOWED_ORIGINS`, which is required for container networking and the public `tgmeal.natureonzoom.win` origin.
 - Added `.memory-bank/runbooks/telegram-mini-app-container-deploy.md` and linked it from the runbooks index to document cleanup of the old `/var/www/tgmeal` deploy, creation of the dedicated `tgmeal` user, and rollout on the same VPS via Docker Compose.
+- Added explicit deployment specs: architecture doc for runtime topology plus practical guide for server rollout/update flow, and marked the older `telegram-mini-app-test-server-deploy` document as historical non-container reference.
 
 ## [2026-04-06] TASK-FT007-09 mount admin auth handler into checked-in runtime entrypoint
 - Added a shared checked-in dev runtime server under `backend/src/dev-runtime/dev-api-server.ts` and switched `dev:api` to a TypeScript entrypoint so the local `/api` runtime now mounts `createAdminAuthHttpHandler` instead of serving only catalog demo routes.

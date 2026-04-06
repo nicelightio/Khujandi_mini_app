@@ -110,6 +110,7 @@ status: active
 - `FT-007`: `TASK-FT007-08` added the admin HTTP cookie auth boundary and transport enforcement, but `red-verify` found that the handler was still test-mounted only.
 - `FT-007`: `TASK-FT007-09` mounted that handler into the checked-in repo-local backend runtime used by `dev:api` and the Vite `/api` proxy, so local/dev login/refresh/logout now hit the real mounted runtime instead of a test-only server shell.
 - Ops: added a containerized deploy path for the same `tgmeal.natureonzoom.win` VPS, with checked-in `Dockerfile.web`, `Dockerfile.api`, `docker-compose.yml`, and a dedicated runbook for replacing the older non-container app copy.
+- Ops: deployment specs are now split explicitly into architecture (`deployment-and-runtime-topology`), practical guide (`server-deploy-and-rollout`), and canonical VPS runbook (`telegram-mini-app-container-deploy`), so server rollout is documented as a first-class project concern rather than scattered notes.
 - `FT-009`: implementation plan, protocol docs and execution-ready backlog decomposition were added for Telegram Mini App shell/runtime baseline, WebView UX hardening and final client-matrix verification.
 - `FT-009`: current verification policy accepts operator-confirmed real `Android Telegram` notes as the blocking closure artifact; screenshots/videos are optional hardening only.
 - Added a dedicated VPS + Cloudflare + Telegram test-server runbook for first real Android Mini App launches on `tgmeal.natureonzoom.win`.
