@@ -9,3 +9,4 @@ status: active
 - [.memory-bank/guides/frontend-slices-and-webview.md](frontend-slices-and-webview.md): HOW-гайд по React/Vite frontend, Telegram WebView и state placement.
 - [.memory-bank/guides/events-polling-and-bot-integration.md](events-polling-and-bot-integration.md): HOW-гайд по polling consumers, event publication и bot flows.
 - [.memory-bank/guides/storage-and-state-implementation.md](storage-and-state-implementation.md): HOW-гайд по persistence boundaries, soft-delete, snapshots и state journals.
+- [.memory-bank/guides/server-deploy-and-rollout.md](server-deploy-and-rollout.md): HOW-гайд по текущему VPS deploy, update flow и operational checks.

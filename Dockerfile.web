@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+COPY index.html ./
 COPY frontend ./frontend
 COPY vite.config.mjs .
 
