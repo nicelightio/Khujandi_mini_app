@@ -182,6 +182,7 @@ export const createAdminOrderCancellationApi = (
           headers: {
             "content-type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             reasonCode: input.reasonCode,
           }),
@@ -204,6 +205,7 @@ export const createAdminOrderCancellationApi = (
           headers: {
             "content-type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             refundStatus: input.refundStatus,
             refundNote: input.refundNote,

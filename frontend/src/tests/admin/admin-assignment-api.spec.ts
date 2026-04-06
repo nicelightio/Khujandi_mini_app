@@ -35,6 +35,7 @@ describe("admin assignment api", () => {
       headers: {
         "content-type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         courierId: "courier-2",
       }),

@@ -9,13 +9,13 @@ status: active
 1. Подтвердить, что lockout вызван policy threshold, а не storage/runtime bug.
 2. Проверить audit trail: `login_failed`, `locked`, IP, user-agent, `trace_id`.
 3. Если активность выглядит злонамеренной, эскалировать как security incident.
-4. Разблокировку или password reset выполнять только по согласованной admin procedure.
+4. Разблокировку, password reset или reprovision выполнять только по согласованной boss-controlled procedure; self-service recovery в MVP отсутствует.
 
 ## Token compromise response
 
 1. Определить affected user/session scope.
 2. Ревокнуть активные refresh/session chains затронутого scope.
-3. Перевыпустить credentials по необходимости и проверить audit trail.
+3. Перевыпустить credentials по необходимости через out-of-band boss-controlled provisioning/reset procedure и проверить audit trail.
 4. Зафиксировать incident context и восстановительные действия.
 
 ## Telegram and payment secret rotation

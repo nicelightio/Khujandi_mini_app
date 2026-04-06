@@ -25,7 +25,7 @@ status: active
 - `delivery-assignment`: admin assignment e2e + RBAC integration.
 - `delivery-tracking`: status-machine integration, polling e2e, и отдельный polling-SLA verify artifact; functional closure принадлежит runtime tasks `FT-005`, а финальный latency gate для `REQ-010` закрывается только explicit SLA evidence.
 - `order-cancellation`: allowed-role cancellation e2e + refund state/audit integration; final closure also requires explicit evidence that paid cancelled orders never remain without visible `refund_status`.
-- `reviews-feedback`: two-sided bot review e2e + negative alert integration.
+- `reviews-feedback`: two-sided bot review e2e + negative alert integration; docs-first boundary freeze belongs to `TASK-FT008-01`, while final functional closure belongs to `TASK-FT008-07`.
 - `admin-access`: login/refresh/logout e2e + lockout/session/audit integration.
 
 ## Anti-cheat rules

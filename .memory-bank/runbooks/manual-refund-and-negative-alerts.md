@@ -27,9 +27,16 @@ status: active
 ## Negative review alert
 
 1. Получить событие `review.negative`.
-2. Проверить order context и сторону отзыва.
+2. Проверить order context, сторону отзыва и то, что alert привязан к уникальному persisted review после `COMPLETED`.
 3. Эскалировать активным администраторам через Telegram-бота.
-4. Зафиксировать операционную реакцию в соответствующем интерфейсе/логе.
+4. Не выполнять повторную manual escalation для duplicate доставки того же negative review сигнала.
+5. Зафиксировать операционную реакцию в соответствующем интерфейсе/логе.
+
+## Verification boundary for negative alerts
+
+- `TASK-FT008-01` фиксирует docs-first boundary: `COMPLETED` gate, structured review payload, duplicate/noise handling и active-admin fan-out semantics.
+- `TASK-FT008-05` закрывает runtime publication/dispatch `review.negative` без расширения scope в admin auth/session.
+- `TASK-FT008-07` закрыл final repo-local evidence sync для two-sided reviews, duplicate-safe negative alert flow и RTM closure `REQ-013` / `REQ-014`.
 
 ## Abuse and noise handling
 

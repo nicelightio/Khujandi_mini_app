@@ -19,8 +19,10 @@ status: active
 - `FT-005` execution backlog закрыт: `TASK-FT005-01` ... `TASK-FT005-08` завершены; post-assignment tracking, ordered polling и SLA evidence синхронизированы в RTM/Memory Bank.
 - `FT-006` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для operational cancellation и manual refund tracking.
 - `TASK-FT006-01` завершен: docs-first cancellation policy, refund-state semantics и verify boundary зафиксированы; `TASK-FT006-02` завершен как backend foundation wave, `TASK-FT006-03` завершен как frontend/admin scaffold wave, `TASK-FT006-04` завершен как backend authorized cancellation command wave, `TASK-FT006-05` завершен как backend manual refund progression wave, `TASK-FT006-06` завершен как admin-web UX wiring wave, `TASK-FT006-07` завершен как final verification suite wave, а `TASK-FT006-08` завершен как final refund evidence/docs closure wave.
-- Следующие features `FT-007`, `FT-008` пока не декомпозированы в `TASK-*` и ждут точечного `/prd-to-tasks FT-<NNN>`.
+- `FT-007` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для admin auth, lockout и session security.
+- `FT-008` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для two-sided bot reviews и negative alerts.
 - `FT-006` execution backlog закрыт: refund/runbook evidence, RTM closure и task statuses синхронизированы.
+- `FT-008` execution backlog закрыт: two-sided bot review evidence, negative-alert fan-out verification и RTM closure синхронизированы.
 
 ## Recommended feature order
 
@@ -673,6 +675,207 @@ status: active
 - Verify: final closure явно подтверждает manual refund workflow, RTM остается согласованной, а repo-local evidence показывает отсутствие cancelled paid orders без refund tracking state
 - Docs: `features/FT-006`, `requirements.md`, `changelog.md`, при необходимости `runbooks/manual-refund-and-negative-alerts.md`
 - Quality Gates: `integration`, `e2e smoke`, `manual refund verify evidence`
+
+## FT-007 — Admin Auth And Session Security
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT007-01 — Freeze admin auth boundary, provisioning baseline and session policy
+- TASK-ID: `TASK-FT007-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/tasks/plans/IMPL-FT-007.md`, `.memory-bank/contracts/admin-auth-contract.md`, `.memory-bank/runbooks/security-auth-and-secret-response.md`, при необходимости `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Verify: подтвердить, что no-self-signup baseline, boss-controlled provisioning boundary, lockout/session lifetime policy, audit/error semantics и transport decision явно зафиксированы и не конфликтуют с EP-003/RTM
+- Docs: `features/FT-007`, `tasks/plans/IMPL-FT-007`, `contracts/admin-auth-contract.md`, при необходимости `runbooks/security-auth-and-secret-response.md`, `testing/index.md`
+- Normative Inputs: `FT-007`, `requirements.md`, `admin-auth-contract.md`, `security-auth-and-secret-response.md`, `system-contours-and-slices.md`, `testing/index.md`
+
+### TASK-FT007-02 — Scaffold backend admin-access slice and persistence/test baseline
+- TASK-ID: `TASK-FT007-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/admin-access/**/*`, `backend/src/shared/**/*`, `tests/slices/admin-access/**/*`
+- Tests: backend test skeleton for credentials verification, lockout window, session lifetime and auth audit integration
+- Verify: repo содержит owning `admin-access` slice skeleton и execution-ready persistence/test harness без выноса credentials/session invariants в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: ownership credentials, sessions и auth audit остается внутри `admin-access`
+
+### TASK-FT007-03 — Scaffold admin login route, protected shell and frontend test harness
+- TASK-ID: `TASK-FT007-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`
+- Depends on: `TASK-FT007-01`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/app/**/*`, при необходимости `frontend/src/shared/ui/**/*`
+- Tests: frontend/admin smoke skeleton for login form, protected-route shell and session-expired fallback rendering
+- Verify: admin-web login shell существует и может защищать existing assignment/cancellation routes без дублирования auth policy внутри feature pages
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: frontend не дублирует server-side auth rules; existing admin pages используют единый auth/session boundary
+
+### Wave W2 — core logic
+
+### TASK-FT007-04 — Implement backend login, lockout enforcement and auth audit
+- TASK-ID: `TASK-FT007-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-018`
+- Depends on: `TASK-FT007-01`, `TASK-FT007-02`
+- Touched files: `backend/src/slices/admin-access/presentation/**/*`, `backend/src/slices/admin-access/application/**/*`, `backend/src/slices/admin-access/domain/**/*`, `backend/src/slices/admin-access/infrastructure/**/*`, `tests/slices/admin-access/**/*`
+- Tests: integration tests for valid login, invalid credentials, 5-failures-in-15-minutes lockout, `429 TOO_MANY_REQUESTS`, and audit writes for `login_success/login_failed/locked`
+- Verify: `POST /admin/auth/login` аутентифицирует только provisioned accounts, включает lockout policy, пишет auth audit и возвращает controlled error contract без session side effects на неуспехе
+- Docs: `features/FT-007`, `changelog.md`, при необходимости `requirements.md`
+- Verification Targets: `POST /admin/auth/login`, lockout window, auth audit trail
+- Invariants: blocked account всегда получает `429`; failed login никогда не создает valid session chain
+
+### TASK-FT007-05 — Implement refresh, logout and session lifetime enforcement
+- TASK-ID: `TASK-FT007-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-007`
+- REQs: `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-01`, `TASK-FT007-02`, `TASK-FT007-04`
+- Touched files: `backend/src/slices/admin-access/presentation/**/*`, `backend/src/slices/admin-access/application/**/*`, `backend/src/slices/admin-access/domain/**/*`, `backend/src/slices/admin-access/infrastructure/**/*`, `tests/slices/admin-access/**/*`
+- Tests: integration tests for refresh token rotation, expired refresh rejection, idle-timeout expiry, logout revocation and absence of session resurrection after lifetime breach
+- Verify: `POST /admin/auth/refresh` и `POST /admin/auth/logout` соблюдают rotation/revocation policy, а expired or idle sessions не восстанавливаются вне допустимого lifetime
+- Docs: `features/FT-007`, `changelog.md`, при необходимости `requirements.md`
+- Verification Targets: `POST /admin/auth/refresh`, `POST /admin/auth/logout`, session repository lifetime rules
+- Constraints: предыдущий refresh token инвалидируется после rotation; secret-bearing tokens не логируются
+
+### Wave W3 — integration & polish
+
+### TASK-FT007-06 — Wire admin-web login and protected session UX
+- TASK-ID: `TASK-FT007-06`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-03`, `TASK-FT007-04`, `TASK-FT007-05`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/app/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/tests/admin/**/*`
+- Tests: UI/integration smoke for login happy path, protected-route redirect, locked/expired session messaging and logout flow
+- Verify: admin-web требует login перед existing operational pages, корректно обрабатывает valid refresh/logout paths и показывает controlled feedback для lockout/session expiry
+- Docs: `features/FT-007`, `changelog.md`
+- Constraints: `FT-004` и `FT-006` pages переиспользуют общий auth shell и не вводят page-local session logic
+
+### TASK-FT007-07 — Add admin auth verification suite and final docs sync
+- TASK-ID: `TASK-FT007-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`
+- Touched files: `tests/slices/admin-access/**/*`, `frontend/src/tests/admin/**/*`, `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.tasks/TASK-FT007-07/**/*`
+- Tests: final backend integration, admin login/refresh/logout e2e smoke, lockout/session/audit verify evidence bundle
+- Verify: acceptance criteria из `FT-007` полностью покрыты tests/UAT, RTM остается согласованной, а feature closure не размывает scope в отдельный provisioning UI или unrelated admin capabilities
+- Docs: `features/FT-007`, `requirements.md`, `changelog.md`, при необходимости `runbooks/security-auth-and-secret-response.md`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `auth lockout/session/audit verify evidence`
+
+## FT-008 — Two-Sided Reviews And Negative Alerts
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT008-01 — Freeze review payload, duplicate-safety and negative alert boundary
+- TASK-ID: `TASK-FT008-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md`, `.memory-bank/tasks/plans/IMPL-FT-008.md`, `.memory-bank/contracts/telegram-bot-contract.md`, `.memory-bank/runbooks/manual-refund-and-negative-alerts.md`, при необходимости `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-013`, `REQ-014`
+- Verify: подтвердить, что `COMPLETED` activation gate, structured review payload, duplicate/replay guard, `review.negative` fan-out semantics и verify ownership явно зафиксированы и не конфликтуют с EP-004/RTM
+- Docs: `features/FT-008`, `tasks/plans/IMPL-FT-008`, `contracts/telegram-bot-contract.md`, при необходимости `runbooks/manual-refund-and-negative-alerts.md`, `testing/index.md`
+- Normative Inputs: `FT-008`, `requirements.md`, `telegram-bot-contract.md`, `manual-refund-and-negative-alerts.md`, `events-polling-and-bot-runtime.md`, `testing/index.md`
+
+### TASK-FT008-02 — Scaffold backend reviews-feedback slice and persistence/test baseline
+- TASK-ID: `TASK-FT008-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/reviews-feedback/**/*`, `backend/src/shared/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: backend test skeleton for completed-order gating, review persistence, duplicate guard and negative alert integration
+- Verify: repo содержит owning `reviews-feedback` slice skeleton и execution-ready persistence/test harness без выноса review business rules в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: ownership review semantics и `review.negative` остается внутри `reviews-feedback`
+
+### TASK-FT008-03 — Scaffold Telegram bot review stepper and alert harness
+- TASK-ID: `TASK-FT008-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-01`
+- Touched files: `backend/src/integrations/telegram-bot/**/*`, `tests/slices/reviews-feedback/**/*`, при необходимости `backend/src/shared/**/*`
+- Tests: bot contract skeleton for review step prompts, callback parsing, dedupe keys and negative alert dispatch targeting
+- Verify: repo содержит minimal Telegram review-stepper/alert harness, переиспользующий existing bot integration patterns без втягивания admin auth/session scope
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: transport/runtime layer не владеет review rules; duplicate delivery не создает domain side effects
+
+### Wave W2 — core logic
+
+### TASK-FT008-04 — Implement completed-only review submission, structured payload persistence and duplicate guard
+- TASK-ID: `TASK-FT008-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-008`
+- REQs: `REQ-013`
+- Depends on: `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT005-07`
+- Touched files: `backend/src/slices/reviews-feedback/presentation/**/*`, `backend/src/slices/reviews-feedback/application/**/*`, `backend/src/slices/reviews-feedback/domain/**/*`, `backend/src/slices/reviews-feedback/infrastructure/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: integration tests for completed-order gating, actor/direction validation, required `rating/reason_code`, optional `comment`, and duplicate/replay submission protection
+- Verify: review write-path доступен только после `COMPLETED`, сохраняет structured payload и не создает повторный review при duplicate bot delivery
+- Docs: `features/FT-008`, `changelog.md`, при необходимости `requirements.md`
+- Verification Targets: review submission command path, duplicate guard, persisted review model
+- Invariants: незавершенный заказ не принимает review; duplicate delivery никогда не создает second review record
+
+### TASK-FT008-05 — Implement negative alert publication and active-admin Telegram fan-out
+- TASK-ID: `TASK-FT008-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-008`
+- REQs: `REQ-014`
+- Depends on: `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT008-03`, `TASK-FT008-04`
+- Touched files: `backend/src/slices/reviews-feedback/application/**/*`, `backend/src/slices/reviews-feedback/infrastructure/**/*`, `backend/src/integrations/telegram-bot/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: integration/contract tests for `rating <= 2` alert generation, `review.negative` publication, active-admin targeting and no duplicate escalation on replay
+- Verify: low rating с любой стороны публикует canonical `review.negative` и вызывает ровно один alert fan-out активным администраторам через bot/runtime boundary
+- Docs: `features/FT-008`, `runbooks/manual-refund-and-negative-alerts.md` при необходимости, `changelog.md`
+- Constraints: alert recipient resolution не переносит ownership admin auth/session в `FT-008`; transport retry не дублирует негативную эскалацию
+
+### TASK-FT008-06 — Wire bot-guided client and courier review flows
+- TASK-ID: `TASK-FT008-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`
+- Touched files: `backend/src/slices/reviews-feedback/**/*`, `backend/src/integrations/telegram-bot/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: bot flow/integration smoke for client and courier review step progression `rating -> reason_code -> comment(optional)` plus controlled duplicate handling
+- Verify: Telegram bot review flow проходит обе стороны feedback loop и корректно доводит пользователя до backend review submission без bypass server-side validation
+- Docs: `features/FT-008`, `changelog.md`
+- Constraints: bot stepper reuse existing integration patterns; review flow не требует отдельного web UI
+
+### Wave W3 — integration & polish
+
+### TASK-FT008-07 — Add reviews and negative-alert verification suite plus final docs sync
+- TASK-ID: `TASK-FT008-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`
+- Touched files: `tests/slices/reviews-feedback/**/*`, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.tasks/TASK-FT008-07/**/*`, при необходимости `.memory-bank/runbooks/manual-refund-and-negative-alerts.md`
+- Tests: final backend integration, bot-guided two-sided review e2e smoke, negative-alert verify evidence bundle
+- Verify: acceptance criteria из `FT-008` полностью покрыты tests/UAT, RTM остается согласованной, а duplicate-safe review + low-rating fan-out closure подтверждены repo-local evidence
+- Docs: `features/FT-008`, `requirements.md`, `changelog.md`, при необходимости `runbooks/manual-refund-and-negative-alerts.md`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `review/negative-alert verify evidence`
 
 ## FT-009 — Mini App Shell And WebView UX
 

@@ -28,6 +28,15 @@ status: active
 - `rating` required, `1..5`
 - `reason_code` enum required for structured review flow
 - `comment` optional
+- review direction обязан быть однозначно определен как `client -> courier` или `courier -> client`
+- review flow допускается только для заказа в status `COMPLETED`; bot transport не активирует review write для незавершенных заказов
+- duplicate Telegram update/callback для уже обработанного review payload должен short-circuit'иться без второго review write и без повторного `review.negative` fan-out
+
+## Negative review fan-out contract
+
+- low rating (`<= 2`) публикует канонический domain event `review.negative` после успешного review write
+- notify target для `review.negative` ограничен активными администраторами и не переносит ownership admin auth/session в runtime слой бота
+- transport retry допускается только как duplicate-safe redelivery и не создает повторную manual escalation или broadened fan-out
 
 ## Inbound courier action baseline
 

@@ -4,6 +4,59 @@ status: active
 ---
 # Changelog
 
+## [2026-04-05] TASK-FT008-07 final verification suite and docs sync
+- Added final `reviews-feedback` integration evidence for courier-side low-rating bot flow, confirming `rating -> reason_code -> comment(optional)` progression, canonical `review.negative` publication, active-admin fan-out, and duplicate final-callback no-op behavior through the owning module/controller path.
+- Re-ran `npm run test:reviews-feedback`, `npm run lint`, and `npx tsc --noEmit -p tsconfig.jest.json`; marked `TASK-FT008-07` done, closed `REQ-013` and `REQ-014`, and synced final `FT-008` status across backlog/feature/runbook/index docs.
+
+## [2026-04-05] TASK-FT008-06 bot-guided review flow wiring
+- Added `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts` so client and courier review flows now keep in-memory step state, enforce `COMPLETED` plus actor/direction ownership, and drive `rating -> reason_code -> comment(optional)` before calling the owning `reviews-feedback` submit path.
+- Extended repo-local `reviews-feedback` unit/integration coverage for full bot-guided progression and duplicate final-submit short-circuit behavior; marked `TASK-FT008-06` done and promoted `TASK-FT008-07` to `ready` while `REQ-013` / `REQ-014` remain open pending final verification/docs/RTM closure.
+
+## [2026-04-05] TASK-FT008-05 negative alert publication and active-admin fan-out
+- Extended backend `reviews-feedback` so unique low-rating review writes publish canonical `review.negative`, query active `boss/manager/admin` Telegram recipients through the slice repository boundary, and keep alert transport failures non-blocking relative to committed review/event artifacts.
+- Added repo-local unit/integration coverage for `rating <= 2` event publication, active-admin fan-out, and duplicate replay no-op behavior; marked `TASK-FT008-05` done and promoted `TASK-FT008-06` to `ready` while `REQ-013` / `REQ-014` remain `planned` pending bot-guided flow wiring and final verification evidence.
+
+## [2026-04-05] TASK-FT008-04 completed-only review submission
+- Implemented backend `reviews-feedback` submission flow so only completed orders accept reviews, actor/direction ownership is validated against the persisted order pair, and structured payload fields (`rating`, `reasonCode`, `comment`) are normalized before persistence.
+- Added duplicate-safe review handling through repository unique-pair lookup plus Prisma `P2002` fallback, extended repo-local `reviews-feedback` unit/integration coverage, marked `TASK-FT008-04` done, and promoted `TASK-FT008-05` to `ready` while `REQ-013` / `REQ-014` remain `planned` until low-rating publication, bot wiring, and final verify evidence land.
+
+## [2026-04-05] TASK-FT008-03 Telegram review harness scaffold
+- Added `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.harness.ts` with minimal review-step prompt builders, callback codec helpers, and duplicate-safe negative alert fan-out targeting for future `FT-008` runtime wiring.
+- Extended repo-local `reviews-feedback` unit coverage for prompt payload shape, callback parsing, and unique admin targeting, then marked `TASK-FT008-03` done while leaving `REQ-013` / `REQ-014` unchanged until completed-only submission logic, canonical `review.negative` publication, and final verification evidence land.
+
+## [2026-04-05] TASK-FT008-02 backend reviews-feedback scaffold
+- Added `backend/src/slices/reviews-feedback` with minimal domain/application/infrastructure/presentation layers plus a Prisma-backed `Review` persistence baseline and canonical `review.created` touchpoint owned by the slice.
+- Added repo-local `reviews-feedback` unit/integration Jest coverage and dedicated npm scripts, then marked `TASK-FT008-02` done and promoted `TASK-FT008-04` to `ready` while `REQ-013` / `REQ-014` remain `planned` pending completed-only runtime behavior, negative alert delivery, and final verification evidence.
+
+## [2026-04-05] TASK-FT008-01 review boundary docs freeze
+- Tightened `FT-008`, `IMPL-FT-008`, `telegram-bot-contract`, `manual-refund-and-negative-alerts`, and `testing/index.md` around the `COMPLETED` activation gate, structured review payload ownership, duplicate/replay safety, and single-fan-out semantics for `review.negative`.
+- Marked `TASK-FT008-01` done and promoted `TASK-FT008-02` plus `TASK-FT008-03` to `ready` without changing RTM rows, because runtime review/alert behavior and final verification evidence still belong to later `FT-008` tasks.
+
+## [2026-04-05] TASK-FT007-07 admin auth verification suite and final docs sync
+- Re-ran the full repo-local `FT-007` verification bundle across backend `admin-access` and admin frontend suites, confirming login/refresh/logout behavior, lockout/audit evidence, fixed session lifetime, idle-timeout rejection, and protected-route UX through the checked-in Jest harness plus targeted lint/typecheck gates.
+- Marked `TASK-FT007-07` done and synced final docs closure: `REQ-015`, `REQ-016`, `REQ-017`, and the `FT-007` row of `REQ-018` are now `done`, while feature/backlog/index docs explicitly reflect full current-scope closure.
+
+## [2026-04-05] TASK-FT007-06 admin-web auth UX wiring
+- Wired `frontend/src/admin` to the backend cookie-based auth contour through a dedicated auth API client, centralized router/protected-shell session handling, and shared login/logout flows that keep assignment and cancellation pages behind one auth boundary.
+- Added focused admin frontend coverage for login submit, refresh restore, expired-session feedback, logout, and cookie-auth API parsing, then updated operational admin API clients to send `credentials: "include"` so existing pages share the same session contour.
+
+## [2026-04-04] TASK-FT007-05 refresh, logout and session lifetime enforcement
+- Implemented `admin-access` refresh and logout flows so refresh tokens rotate without extending the fixed 3-day session lifetime, logout revokes the active session and writes `logout` audit, and expired or idle-timed-out sessions are revoked before returning controlled `401` errors.
+- Tightened session enforcement so lockout revokes active session chains for the affected admin account, then added focused repo-local unit/integration coverage for refresh rotation, refresh expiry, idle-timeout rejection, logout revocation, and lockout-triggered session revocation; `TASK-FT007-06` is now `ready`.
+
+## [2026-04-04] TASK-FT007-04 backend login and lockout enforcement
+- Implemented `admin-access` login so provisioned accounts can authenticate through the slice-owned service/controller boundary, creating hashed refresh-session records and `login_success` audit entries on success while keeping token secrets out of audit payloads.
+- Added controlled `login_failed` and threshold-triggered `locked` audit behavior with `401` invalid-credential and `429` lockout `AppError` outcomes, plus focused repo-local unit/integration coverage for successful login, already-locked accounts, invalid credentials, and fifth-failure lockout.
+
+## [2026-04-04] TASK-FT007-03 admin login shell scaffold
+- Added a minimal `frontend/src/admin` auth boundary with `/admin/login`, a shared protected shell for existing admin routes, and placeholder anonymous/expired/authenticated session states without claiming backend runtime ownership.
+- Extended repo-local admin frontend smoke coverage so login route rendering, protected-route fallback, expired-session fallback, and authenticated placeholder rendering are now exercised through the existing Jest harness.
+
+## [2026-04-04] TASK-FT007-02 backend admin-access scaffold
+- Added `backend/src/slices/admin-access` with slice-owned domain/application/infrastructure/presentation layers plus Prisma-backed baseline models for provisioned admin credentials, hashed refresh sessions, and auth audit persistence.
+- Added repo-local `admin-access` unit/integration Jest coverage and dedicated npm scripts for credential verification, lockout window/session lifetime helpers, and audit/session persistence wiring.
+- Marked `TASK-FT007-02` done and promoted `TASK-FT007-04` to `ready`; RTM rows for `REQ-015`, `REQ-016`, `REQ-017`, and the `FT-007` row of `REQ-018` remain `planned` pending runtime login/refresh/logout behavior and final verification evidence.
+
 ## [2026-04-03] TASK-FT006-08 final refund evidence and docs closure
 - Re-ran the focused repo-local refund regression evidence for `FT-006` and synced the manual refund runbook so final closure now explicitly confirms the `PENDING_MANUAL -> DONE/REJECTED` workflow, operator note visibility, and absence of paid cancelled orders without `refund_status`.
 - Marked `TASK-FT006-08` done, closed `REQ-012` and the `FT-006` row of `REQ-018`, and updated `FT-006` feature/backlog/index docs to reflect full current-scope closure.

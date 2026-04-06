@@ -10,10 +10,14 @@ status: active
 - `POST /admin/auth/refresh`
 - `POST /admin/auth/logout`
 
-## Rules
+## Provisioning baseline
 
 - Self-signup отсутствует.
 - Provisioning admin accounts делает только `boss`.
+- В MVP provisioning остается out-of-band (`seed`/manual operator procedure) и не требует отдельного runtime UI/API внутри `FT-007`.
+
+## Rules
+
 - Минимальная длина пароля: 12 символов.
 - После 5 неудачных попыток за 15 минут логин блокируется на 30 минут.
 - Блокировка возвращает `429 TOO_MANY_REQUESTS` с единым error contract.
@@ -30,11 +34,15 @@ status: active
 - access token: 15 минут
 - refresh/session lifetime: 3 дня
 - idle timeout: 30 минут
+- idle timeout считается по server-side `last_activity_at` / эквивалентному session activity marker, а не по клиентскому таймеру.
 
 ## Transport constraints
 
 - Admin auth surface предназначен только для trusted transport boundary (HTTPS/TLS на deploy edge).
-- Auth cookies/local storage choice зависит от реализации, но secret-bearing tokens не должны логироваться или возвращаться в audit payload.
+- Session transport для MVP фиксируется как HTTPS-only HttpOnly cookie contour; secret-bearing tokens не должны попадать в `localStorage`, `sessionStorage` или иное JS-readable persistent storage.
+- Cookie-based auth должен использовать `Secure`, `HttpOnly`, `SameSite=Lax` baseline и server-side `Origin/Referer` validation для state-changing auth requests.
+- `POST /admin/auth/login` устанавливает новую cookie-based session chain; `POST /admin/auth/refresh` ротирует refresh token и cookie pair; `POST /admin/auth/logout` очищает и ревокает активную chain.
+- Secret-bearing tokens не логируются и не возвращаются в audit payload.
 
 ## Audit
 
