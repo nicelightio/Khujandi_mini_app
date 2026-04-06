@@ -23,6 +23,7 @@ status: active
 - `NOT_REQUIRED` используется только если отмененный заказ не требует возврата средств.
 - Paid cancellation обязан в момент успешной отмены входить в `PENDING_MANUAL`.
 - `DONE` и `REJECTED` используются только как результат отдельной ручной refund-обработки после cancellation commit.
+- Переход `PENDING_MANUAL -> DONE|REJECTED` должен проверяться атомарно в persistence boundary; stale/concurrent refund update attempts после первого успешного terminal update возвращают `409 CONFLICT` и не создают новых audit/event side effects.
 - `refund_note` фиксирует операторский контекст/manual outcome и не меняет order status сам по себе.
 - Для `FT-005` post-assignment lifecycle допускает только adjacent courier-driven transitions; skip/replay/regression и попытки уйти из terminal status считаются невалидными и не создают side effects.
 

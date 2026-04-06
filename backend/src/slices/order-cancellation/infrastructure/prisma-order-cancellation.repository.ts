@@ -69,6 +69,17 @@ type OrderCancellationOrderUpdateArgs = {
   };
 };
 
+type OrderCancellationOrderUpdateManyArgs = {
+  where: {
+    id: string;
+    refundStatus: "PENDING_MANUAL";
+  };
+  data: {
+    refundStatus: "DONE" | "REJECTED" | "NOT_REQUIRED";
+    refundNote: string | null;
+  };
+};
+
 type OrderCancellationStatusHistoryCreateArgs = {
   data: CreateOrderCancellationStatusHistoryInput;
 };
@@ -85,6 +96,9 @@ export type OrderCancellationPrismaClientLike = {
   order: {
     findUnique(args: OrderCancellationOrderFindUniqueArgs): Promise<OrderCancellationOrderRecord | null>;
     update(args: OrderCancellationOrderUpdateArgs): Promise<OrderCancellationOrderRecord>;
+    updateMany(args: OrderCancellationOrderUpdateManyArgs): Promise<{
+      count: number;
+    }>;
   };
   orderStatusHistory: {
     create(args: OrderCancellationStatusHistoryCreateArgs): Promise<OrderCancellationStatusHistoryRecord>;
@@ -306,6 +320,7 @@ export class PrismaOrderCancellationRepository implements OrderCancellationRepos
       }
 
       const currentStatus = mapOrderStatus(currentOrder.status);
+      const currentRefundStatus = mapRefundStatus(currentOrder.refundStatus);
 
       if (!isCancellationStatus(currentStatus)) {
         throw new AppError("CONFLICT", "Refund baseline requires a cancelled order state", 409, {
@@ -314,13 +329,58 @@ export class PrismaOrderCancellationRepository implements OrderCancellationRepos
         });
       }
 
-      const order = await transactionClient.order.update({
+      if (currentRefundStatus !== "PENDING_MANUAL") {
+        throw new AppError("CONFLICT", "Refund tracking can only progress from PENDING_MANUAL", 409, {
+          orderId: input.orderId,
+          currentRefundStatus,
+          expectedRefundStatus: "PENDING_MANUAL",
+        });
+      }
+
+      const updateResult = await transactionClient.order.updateMany({
         where: {
           id: input.orderId,
+          refundStatus: "PENDING_MANUAL",
         },
         data: {
           refundStatus: input.refundStatus,
           refundNote: input.refundNote,
+        },
+      });
+
+      if (updateResult.count !== 1) {
+        const staleOrder = await transactionClient.order.findUnique({
+          where: {
+            id: input.orderId,
+          },
+          select: {
+            id: true,
+            courierId: true,
+            status: true,
+            paymentStatus: true,
+            refundStatus: true,
+            refundNote: true,
+            cancelledByUserId: true,
+            cancellationReasonCode: true,
+            cancelledAt: true,
+            updatedAt: true,
+            isDeleted: true,
+          },
+        });
+
+        throw new AppError("CONFLICT", "Refund tracking can only progress from PENDING_MANUAL", 409, {
+          orderId: input.orderId,
+          currentRefundStatus:
+            staleOrder === null || staleOrder.isDeleted
+              ? currentRefundStatus
+              : mapRefundStatus(staleOrder.refundStatus),
+          expectedRefundStatus: "PENDING_MANUAL",
+        });
+      }
+
+      const order = await transactionClient.order.findUnique({
+        where: {
+          id: input.orderId,
         },
         select: {
           id: true,
@@ -336,6 +396,12 @@ export class PrismaOrderCancellationRepository implements OrderCancellationRepos
           isDeleted: true,
         },
       });
+
+      if (order === null || order.isDeleted) {
+        throw new AppError("ORDER_NOT_FOUND", "Order was not found", 404, {
+          orderId: input.orderId,
+        });
+      }
 
       const audit = await transactionClient.orderCancellationAudit.create({
         data: {

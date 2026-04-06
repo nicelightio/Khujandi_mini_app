@@ -213,6 +213,31 @@ model Review {
   @@index([targetUserId, createdAt])
 }
 
+model ReviewDraft {
+  id                String           @id @default(cuid())
+  orderId           String
+  actorUserId       String
+  direction         String
+  actorTelegramId   String
+  targetUserId      String
+  targetRole        ReviewTargetRole
+  expectedStage     String
+  expectedRevision  String
+  rating            Int?
+  reasonCode        String?
+  submittedReviewId String?
+  submittedRevision String?
+  submittedComment  String?
+  submittedCreatedAt DateTime?
+  expiresAt         DateTime
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([orderId, actorUserId, direction])
+  @@index([actorUserId, expiresAt])
+  @@index([expiresAt])
+}
+
 model MiniAppSession {
   id               String    @id @default(cuid())
   userId           String

@@ -31,6 +31,9 @@ status: active
 - review direction обязан быть однозначно определен как `client -> courier` или `courier -> client`
 - review flow допускается только для заказа в status `COMPLETED`; bot transport не активирует review write для незавершенных заказов
 - duplicate Telegram update/callback для уже обработанного review payload должен short-circuit'иться без второго review write и без повторного `review.negative` fan-out
+- callback payload review stepper-а должен нести prompt revision identity; stale callback от superseded prompt MUST short-circuit'иться как ignored outcome до mutation текущего draft state
+- active review draft MUST храниться вне process-local memory: slice-owned durable draft state keyed by `actor + order + direction`, restart/redeploy-safe, shared-DB multi-instance-safe, and bounded by explicit TTL `1 hour`
+- после истечения TTL runtime MAY fail closed как `missing_draft`, но этот fallback не должен быть implicit и требует нового `startFlow`
 
 ## Negative review fan-out contract
 

@@ -3,16 +3,33 @@ import type { OrderCancellationPrismaProvider } from "../../../backend/src/slice
 import { AppError } from "../../../backend/src/shared/errors/app-error";
 import { createTestContext } from "../../../backend/src/shared/testing/create-test-context";
 
-type OrderCancellationPrismaClient = Omit<OrderCancellationPrismaProvider["client"], "$transaction">;
+type OrderCancellationPrismaClient = {
+  order: {
+    findUnique: OrderCancellationPrismaProvider["client"]["order"]["findUnique"];
+    update: OrderCancellationPrismaProvider["client"]["order"]["update"];
+    updateMany?: OrderCancellationPrismaProvider["client"]["order"]["updateMany"];
+  };
+  orderStatusHistory: OrderCancellationPrismaProvider["client"]["orderStatusHistory"];
+  orderCancellationAudit: OrderCancellationPrismaProvider["client"]["orderCancellationAudit"];
+  event: OrderCancellationPrismaProvider["client"]["event"];
+};
 
 const createPrismaProvider = (
   client: OrderCancellationPrismaClient,
-): OrderCancellationPrismaProvider => ({
-  client: {
+): OrderCancellationPrismaProvider => {
+  const normalizedClient: OrderCancellationPrismaProvider["client"] = {
     ...client,
-    $transaction: async (callback) => callback(client),
-  },
-});
+    order: {
+      ...client.order,
+      updateMany: client.order.updateMany ?? jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    $transaction: async (callback) => callback(normalizedClient),
+  };
+
+  return {
+    client: normalizedClient,
+  };
+};
 
 describe("order-cancellation module integration", () => {
   it("persists admin cancellation with history, audit, and canonical event writes", async () => {
@@ -501,20 +518,22 @@ describe("order-cancellation module integration", () => {
         cancelledAt: new Date("2026-04-03T10:05:00.000Z"),
         updatedAt: new Date("2026-04-03T10:05:00.000Z"),
         isDeleted: false,
+      })
+      .mockResolvedValueOnce({
+        id: "order-3",
+        courierId: "courier-1",
+        status: "CANCELLED_BY_ADMIN",
+        paymentStatus: "PAID",
+        refundStatus: "DONE",
+        refundNote: "Cash returned offline",
+        cancelledByUserId: "admin-1",
+        cancellationReasonCode: "SHOP_UNAVAILABLE",
+        cancelledAt: new Date("2026-04-03T10:05:00.000Z"),
+        updatedAt: new Date("2026-04-03T10:15:00.000Z"),
+        isDeleted: false,
       });
-    const orderUpdate = jest.fn().mockResolvedValue({
-      id: "order-3",
-      courierId: "courier-1",
-      status: "CANCELLED_BY_ADMIN",
-      paymentStatus: "PAID",
-      refundStatus: "DONE",
-      refundNote: "Cash returned offline",
-      cancelledByUserId: "admin-1",
-      cancellationReasonCode: "SHOP_UNAVAILABLE",
-      cancelledAt: new Date("2026-04-03T10:05:00.000Z"),
-      updatedAt: new Date("2026-04-03T10:15:00.000Z"),
-      isDeleted: false,
-    });
+    const orderUpdate = jest.fn();
+    const orderUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
     const auditCreate = jest.fn().mockResolvedValue({
       id: 301n,
       orderId: "order-3",
@@ -547,6 +566,7 @@ describe("order-cancellation module integration", () => {
       order: {
         findUnique: orderFindUnique,
         update: orderUpdate,
+        updateMany: orderUpdateMany,
       },
       orderStatusHistory: {
         create: jest.fn(),
@@ -578,26 +598,15 @@ describe("order-cancellation module integration", () => {
       updatedAt: new Date("2026-04-03T10:15:00.000Z"),
       revision: "302",
     });
-    expect(orderUpdate).toHaveBeenCalledWith({
+    expect(orderUpdate).not.toHaveBeenCalled();
+    expect(orderUpdateMany).toHaveBeenCalledWith({
       where: {
         id: "order-3",
+        refundStatus: "PENDING_MANUAL",
       },
       data: {
         refundStatus: "DONE",
         refundNote: "Cash returned offline",
-      },
-      select: {
-        id: true,
-        courierId: true,
-        status: true,
-        paymentStatus: true,
-        refundStatus: true,
-        refundNote: true,
-        cancelledByUserId: true,
-        cancellationReasonCode: true,
-        cancelledAt: true,
-        updatedAt: true,
-        isDeleted: true,
       },
     });
     expect(auditCreate).toHaveBeenCalledWith({
@@ -712,6 +721,19 @@ describe("order-cancellation module integration", () => {
 
       return { ...storedOrder };
     });
+    const orderUpdateMany = jest.fn().mockImplementation(async ({ where, data }) => {
+      if (storedOrder.id !== where.id || storedOrder.refundStatus !== where.refundStatus) {
+        return { count: 0 };
+      }
+
+      storedOrder = {
+        ...storedOrder,
+        ...data,
+        updatedAt: new Date("2026-04-03T12:10:00.000Z"),
+      };
+
+      return { count: 1 };
+    });
     const statusHistoryCreate = jest.fn().mockResolvedValue({
       id: 401n,
       orderId: "order-5",
@@ -786,6 +808,7 @@ describe("order-cancellation module integration", () => {
       order: {
         findUnique: orderFindUnique,
         update: orderUpdate,
+        updateMany: orderUpdateMany,
       },
       orderStatusHistory: {
         create: statusHistoryCreate,
@@ -835,7 +858,7 @@ describe("order-cancellation module integration", () => {
       revision: "405",
     });
 
-    expect(orderFindUnique).toHaveBeenCalledTimes(4);
+    expect(orderFindUnique).toHaveBeenCalledTimes(5);
     expect(orderUpdate).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -847,15 +870,16 @@ describe("order-cancellation module integration", () => {
         }),
       }),
     );
-    expect(orderUpdate).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        data: {
-          refundStatus: "DONE",
-          refundNote: "Cash returned to the client",
-        },
-      }),
-    );
+    expect(orderUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: "order-5",
+        refundStatus: "PENDING_MANUAL",
+      },
+      data: {
+        refundStatus: "DONE",
+        refundNote: "Cash returned to the client",
+      },
+    });
     expect(statusHistoryCreate).toHaveBeenCalledTimes(1);
     expect(auditCreate).toHaveBeenNthCalledWith(
       1,
@@ -910,5 +934,154 @@ describe("order-cancellation module integration", () => {
         },
       },
     });
+  });
+
+  it("rejects a stale concurrent refund update once another request already left PENDING_MANUAL", async () => {
+    let pendingBarrierCount = 0;
+    let releasePendingBarrier!: () => void;
+    const pendingBarrier = new Promise<void>((resolve) => {
+      releasePendingBarrier = resolve;
+    });
+
+    const staleOrderSnapshot = {
+      id: "order-6",
+      courierId: "courier-1",
+      status: "CANCELLED_BY_ADMIN",
+      paymentStatus: "PAID",
+      refundStatus: "PENDING_MANUAL",
+      refundNote: null,
+      cancelledByUserId: "admin-1",
+      cancellationReasonCode: "SHOP_UNAVAILABLE",
+      cancelledAt: new Date("2026-04-03T13:05:00.000Z"),
+      updatedAt: new Date("2026-04-03T13:05:00.000Z"),
+      isDeleted: false,
+    };
+    let storedOrder = { ...staleOrderSnapshot };
+    const orderFindUnique = jest.fn().mockImplementation(async () => {
+      pendingBarrierCount += 1;
+
+      if (pendingBarrierCount <= 2) {
+        if (pendingBarrierCount === 2) {
+          releasePendingBarrier();
+        }
+
+        await pendingBarrier;
+
+        return { ...staleOrderSnapshot };
+      }
+
+      return { ...storedOrder };
+    });
+    const orderUpdate = jest.fn();
+    const orderUpdateMany = jest.fn().mockImplementation(async ({ where, data }) => {
+      if (storedOrder.id !== where.id || storedOrder.refundStatus !== where.refundStatus) {
+        return { count: 0 };
+      }
+
+      storedOrder = {
+        ...storedOrder,
+        ...data,
+        updatedAt: new Date("2026-04-03T13:10:00.000Z"),
+      };
+
+      return { count: 1 };
+    });
+    const auditCreate = jest.fn().mockResolvedValue({
+      id: 501n,
+      orderId: "order-6",
+      actorUserId: "manager-1",
+      actorRole: "MANAGER",
+      action: "refund_updated",
+      reasonCode: "SHOP_UNAVAILABLE",
+      refundStatus: "DONE",
+      refundNote: "Cash returned offline",
+      fromStatus: "CANCELLED_BY_ADMIN",
+      toStatus: "CANCELLED_BY_ADMIN",
+      createdAt: new Date("2026-04-03T13:10:00.000Z"),
+    });
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 502n,
+      type: "order.refund_updated",
+      entity: "order",
+      entityId: "order-6",
+      payload: {
+        orderId: "order-6",
+        status: "CANCELLED_BY_ADMIN",
+        refundStatus: "DONE",
+        refundNote: "Cash returned offline",
+        updatedByUserId: "manager-1",
+        updatedAt: "2026-04-03T13:10:00.000Z",
+      },
+      createdAt: new Date("2026-04-03T13:10:00.000Z"),
+    });
+    const prisma = createPrismaProvider({
+      order: {
+        findUnique: orderFindUnique,
+        update: orderUpdate,
+        updateMany: orderUpdateMany,
+      },
+      orderStatusHistory: {
+        create: jest.fn(),
+      },
+      orderCancellationAudit: {
+        create: auditCreate,
+      },
+      event: {
+        create: eventCreate,
+      },
+    });
+    const module = createOrderCancellationModule(prisma);
+
+    const [firstResult, secondResult] = await Promise.allSettled([
+      module.controller.recordRefundUpdate({
+        orderId: "order-6",
+        actor: {
+          userId: "manager-1",
+          role: "manager",
+        },
+        refundStatus: "DONE",
+        refundNote: "Cash returned offline",
+      }),
+      module.controller.recordRefundUpdate({
+        orderId: "order-6",
+        actor: {
+          userId: "admin-2",
+          role: "admin",
+        },
+        refundStatus: "REJECTED",
+        refundNote: "Provider rejected the late refund attempt",
+      }),
+    ]);
+
+    expect(firstResult).toEqual({
+      status: "fulfilled",
+      value: {
+        orderId: "order-6",
+        status: "CANCELLED_BY_ADMIN",
+        refundStatus: "DONE",
+        refundNote: "Cash returned offline",
+        updatedAt: new Date("2026-04-03T13:10:00.000Z"),
+        revision: "502",
+      },
+    });
+    expect(secondResult.status).toBe("rejected");
+
+    if (secondResult.status !== "rejected") {
+      throw new Error("Expected stale refund update to be rejected");
+    }
+
+    expect(secondResult.reason).toEqual(
+      new AppError("CONFLICT", "Refund tracking can only progress from PENDING_MANUAL", 409, {
+        orderId: "order-6",
+        currentRefundStatus: "DONE",
+        expectedRefundStatus: "PENDING_MANUAL",
+      }),
+    );
+    expect(orderUpdate).not.toHaveBeenCalled();
+    expect(orderUpdateMany).toHaveBeenCalledTimes(2);
+    expect(auditCreate).toHaveBeenCalledTimes(1);
+    expect(eventCreate).toHaveBeenCalledTimes(1);
+    expect(storedOrder.refundStatus).toBe("DONE");
+    expect(storedOrder.refundNote).toBe("Cash returned offline");
   });
 });

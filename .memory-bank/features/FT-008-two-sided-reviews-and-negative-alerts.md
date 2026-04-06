@@ -48,6 +48,10 @@ status: active
 - `TASK-FT008-05` закрыл runtime alert publication и active-admin fan-out без переноса admin auth/session ownership в `FT-008`; duplicate replay остается side-effect free и не повторяет escalation.
 - `TASK-FT008-06` закрыл bot-guided wiring: обе стороны feedback loop проходят шаги `rating -> reason_code -> comment(optional)`, а финальный submit остается внутри owning backend path.
 - `TASK-FT008-07` закрыл final repo-local verification/docs sync: two-sided bot review evidence, duplicate-safe submission, low-rating alert fan-out и RTM closure.
+- `TASK-FT008-08` добавил revision-aware hardening для промежуточных Telegram callback steps: stale `rating/reason_code/skip_comment` callbacks теперь игнорируются и не могут подменить активный draft state.
+- `TASK-FT008-08` после `red-verify` считается корректным fix именно stale-callback gap, но не полным runtime-hardening review stepper-а: process-local draft durability остаётся отдельным follow-up в `TASK-FT008-09`.
+- `TASK-FT008-09` перевел draft state в slice-owned durable storage (`ReviewDraft`) с TTL `1 hour`, поэтому bot review flow теперь restart-safe и shared-DB multi-instance-safe в пределах active TTL; после TTL допустим явный fail-closed `missing_draft` с перезапуском flow.
+- `TASK-FT008-10` закрыл operational follow-up для durability path: repo теперь содержит checked-in Prisma rollout artifact для `ReviewDraft`, а expired draft retention policy зафиксирована явно как delete-safe cleanup по `expiresAt <= now()` без изменения review semantics.
 
 ## Closure evidence
 

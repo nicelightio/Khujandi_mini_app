@@ -37,6 +37,16 @@ status: active
 - `TASK-FT008-01` фиксирует docs-first boundary: `COMPLETED` gate, structured review payload, duplicate/noise handling и active-admin fan-out semantics.
 - `TASK-FT008-05` закрывает runtime publication/dispatch `review.negative` без расширения scope в admin auth/session.
 - `TASK-FT008-07` закрыл final repo-local evidence sync для two-sided reviews, duplicate-safe negative alert flow и RTM closure `REQ-013` / `REQ-014`.
+- `TASK-FT008-09` делает review-draft runtime guarantee явной: active bot draft хранится durably `1 hour`; restart/redeploy/shared-DB multi-instance hops не должны ломать следующий шаг review flow, а после TTL оператор ожидает controlled restart flow вместо implicit fragility.
+- `TASK-FT008-10` закрывает operational assumptions: `ReviewDraft` rollout materialized checked-in Prisma SQL artifact, а expired rows считаются semantically dead после `expiresAt` и могут удаляться без влияния на review/result semantics.
+
+## Review draft rollout and retention
+
+1. Перед deploy review-draft-backed bot flow применить checked-in SQL artifact `backend/prisma/migrations/20260406153000_add_review_draft_table/migration.sql` к runtime PostgreSQL schema.
+2. Убедиться, что deploy pipeline регенерирует Prisma client для актуального `backend/prisma/schema.prisma`.
+3. Считать любой `ReviewDraft` с `expiresAt <= now()` просроченным и невалидным для дальнейших bot steps; runtime уже fail-close'ится как `missing_draft` и требует нового `startFlow`.
+4. Cleanup expired drafts допустим в любой maintenance window командой `DELETE FROM "ReviewDraft" WHERE "expiresAt" <= NOW();`.
+5. Этот cleanup не требует дополнительных domain compensations: финальный review уже защищен idempotent submit path, а непройденный draft после TTL считается abandoned draft, а не активным бизнес-объектом.
 
 ## Abuse and noise handling
 

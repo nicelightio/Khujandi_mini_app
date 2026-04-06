@@ -6,13 +6,58 @@ import { createTestContext } from "../../../backend/src/shared/testing/create-te
 
 type ReviewsFeedbackPrismaClient = Omit<ReviewsFeedbackPrismaProvider["client"], "$transaction">;
 
+type ReviewsFeedbackPrismaClientInput = Omit<ReviewsFeedbackPrismaClient, "reviewDraft"> & {
+  reviewDraft?: ReviewsFeedbackPrismaClient["reviewDraft"];
+};
+
 const createPrismaProvider = (
-  client: ReviewsFeedbackPrismaClient,
+  client: ReviewsFeedbackPrismaClientInput,
 ): ReviewsFeedbackPrismaProvider => ({
-  client: {
-    ...client,
-    $transaction: async (callback) => callback(client),
-  },
+  client: (() => {
+    const drafts = new Map<string, Awaited<ReturnType<ReviewsFeedbackPrismaClient["reviewDraft"]["upsert"]>>>();
+    const reviewDraft =
+      client.reviewDraft ??
+      {
+        findUnique: jest.fn(async (args) => {
+          const key = [
+            args.where.orderId_actorUserId_direction.orderId,
+            args.where.orderId_actorUserId_direction.actorUserId,
+            args.where.orderId_actorUserId_direction.direction,
+          ].join(":");
+
+          return drafts.get(key) ?? null;
+        }),
+        upsert: jest.fn(async (args) => {
+          const key = [
+            args.where.orderId_actorUserId_direction.orderId,
+            args.where.orderId_actorUserId_direction.actorUserId,
+            args.where.orderId_actorUserId_direction.direction,
+          ].join(":");
+          const existing = drafts.get(key);
+          const nextDraft = {
+            orderId: args.where.orderId_actorUserId_direction.orderId,
+            actorUserId: args.where.orderId_actorUserId_direction.actorUserId,
+            direction: args.where.orderId_actorUserId_direction.direction,
+            ...(existing ?? {}),
+            ...(existing === undefined ? args.create : args.update),
+            updatedAt: new Date("2026-04-06T10:00:00.000Z"),
+          };
+
+          drafts.set(key, nextDraft);
+
+          return nextDraft;
+        }),
+      };
+    const prismaClient = {
+      ...client,
+      reviewDraft,
+    } as ReviewsFeedbackPrismaClient;
+
+    return {
+      ...prismaClient,
+      $transaction: async (callback) => callback(prismaClient),
+    };
+  })(),
 });
 
 describe("reviews-feedback module integration", () => {
@@ -422,7 +467,7 @@ describe("reviews-feedback module integration", () => {
           userId: "client-1",
           role: "client",
         },
-        callbackData: "reviews-feedback:order-1:client_to_courier:rating:4",
+        callbackData: "reviews-feedback:order-1:client_to_courier:rating:41:4",
       }),
     ).resolves.toEqual({
       type: "prompt",
@@ -436,7 +481,7 @@ describe("reviews-feedback module integration", () => {
           userId: "client-1",
           role: "client",
         },
-        callbackData: "reviews-feedback:order-1:client_to_courier:reason_code:ON_TIME",
+        callbackData: "reviews-feedback:order-1:client_to_courier:reason_code:rating%3A4:ON_TIME",
       }),
     ).resolves.toEqual({
       type: "prompt",
@@ -721,7 +766,8 @@ describe("reviews-feedback module integration", () => {
         courier_to_client: ["RESPONSIVE", "LATE_RESPONSE"],
       },
     );
-    const skipCommentCallback = "reviews-feedback:order-1:courier_to_client:skip_comment:SKIP";
+    const skipCommentCallback =
+      "reviews-feedback:order-1:courier_to_client:skip_comment:rating%3A2%3Areason%3ALATE_RESPONSE:SKIP";
 
     await expect(
       flow.startFlow({
@@ -744,7 +790,7 @@ describe("reviews-feedback module integration", () => {
           userId: "courier-1",
           role: "courier",
         },
-        callbackData: "reviews-feedback:order-1:courier_to_client:rating:2",
+        callbackData: "reviews-feedback:order-1:courier_to_client:rating:51:2",
       }),
     ).resolves.toEqual({
       type: "prompt",
@@ -758,7 +804,7 @@ describe("reviews-feedback module integration", () => {
           userId: "courier-1",
           role: "courier",
         },
-        callbackData: "reviews-feedback:order-1:courier_to_client:reason_code:LATE_RESPONSE",
+        callbackData: "reviews-feedback:order-1:courier_to_client:reason_code:rating%3A2:LATE_RESPONSE",
       }),
     ).resolves.toEqual({
       type: "prompt",
@@ -827,5 +873,191 @@ describe("reviews-feedback module integration", () => {
       reasonCode: "LATE_RESPONSE",
     });
     expect(eventCreate.mock.invocationCallOrder[1]).toBeLessThan(notifyNegativeReview.mock.invocationCallOrder[0]);
+  });
+
+  it("rejects stale review step callbacks without mutating the active draft", async () => {
+    const orderFindUnique = jest.fn().mockResolvedValue({
+      id: "order-1",
+      clientId: "client-1",
+      courierId: "courier-1",
+      status: "COMPLETED",
+      updatedAt: new Date("2026-04-05T09:00:00.000Z"),
+      isDeleted: false,
+    });
+    const userFindUnique = jest.fn().mockResolvedValue({
+      id: "client-1",
+      telegramId: "70001",
+      role: "CLIENT",
+      isActive: true,
+      name: "Client One",
+    });
+    const reviewFindMany = jest.fn().mockResolvedValue([]);
+    const reviewFindUnique = jest.fn().mockResolvedValue(null);
+    const reviewCreate = jest.fn().mockResolvedValue({
+      id: 51n,
+      orderId: "order-1",
+      authorId: "client-1",
+      targetUserId: "courier-1",
+      targetRole: "COURIER",
+      rating: 5,
+      reasonCode: "ON_TIME",
+      comment: null,
+      source: "TELEGRAM_BOT",
+      createdAt: new Date("2026-04-05T09:07:00.000Z"),
+    });
+    const eventCreate = jest.fn().mockResolvedValue({
+      id: 52n,
+      type: "review.created",
+      entity: "review",
+      entityId: "51",
+      payload: {},
+      createdAt: new Date("2026-04-05T09:07:01.000Z"),
+    });
+    const prisma = createPrismaProvider({
+      order: {
+        findUnique: orderFindUnique,
+      },
+      user: {
+        findUnique: userFindUnique,
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      review: {
+        findMany: reviewFindMany,
+        findUnique: reviewFindUnique,
+        create: reviewCreate,
+      },
+      event: {
+        create: eventCreate,
+      },
+    });
+    const module = createReviewsFeedbackModule(prisma);
+    const sendMessage = jest.fn().mockResolvedValue(undefined);
+    const flow = new TelegramBotReviewsFeedbackFlow(
+      module.controller,
+      new TelegramBotReviewsFeedbackHarness({ sendMessage }),
+      {
+        client_to_courier: ["ON_TIME", "RUDE"],
+        courier_to_client: ["RESPONSIVE", "LATE_RESPONSE"],
+      },
+    );
+
+    await flow.startFlow({
+      orderId: "order-1",
+      actor: {
+        userId: "client-1",
+        role: "client",
+      },
+      revision: "61",
+    });
+
+    await expect(
+      flow.handleCallback({
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        callbackData: "reviews-feedback:order-1:client_to_courier:rating:61:5",
+      }),
+    ).resolves.toEqual({
+      type: "prompt",
+      stage: "reason_code",
+      orderId: "order-1",
+      direction: "client_to_courier",
+    });
+
+    await expect(
+      flow.handleCallback({
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        callbackData: "reviews-feedback:order-1:client_to_courier:rating:61:1",
+      }),
+    ).resolves.toEqual({
+      type: "ignored",
+      reason: "stale_callback",
+    });
+
+    await expect(
+      flow.handleCallback({
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        callbackData: "reviews-feedback:order-1:client_to_courier:reason_code:rating%3A5:ON_TIME",
+      }),
+    ).resolves.toEqual({
+      type: "prompt",
+      stage: "comment",
+      orderId: "order-1",
+      direction: "client_to_courier",
+    });
+
+    await expect(
+      flow.handleCallback({
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        callbackData: "reviews-feedback:order-1:client_to_courier:reason_code:rating%3A5:RUDE",
+      }),
+    ).resolves.toEqual({
+      type: "ignored",
+      reason: "stale_callback",
+    });
+
+    await expect(
+      flow.handleCallback({
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        callbackData:
+          "reviews-feedback:order-1:client_to_courier:skip_comment:rating%3A5%3Areason%3AON_TIME:SKIP",
+      }),
+    ).resolves.toEqual({
+      type: "submitted",
+      result: {
+        reviewId: "51",
+        orderId: "order-1",
+        authorId: "client-1",
+        targetUserId: "courier-1",
+        targetRole: "courier",
+        rating: 5,
+        reasonCode: "ON_TIME",
+        comment: null,
+        revision: "52",
+        createdAt: new Date("2026-04-05T09:07:00.000Z"),
+      },
+    });
+
+    expect(reviewCreate).toHaveBeenCalledTimes(1);
+    expect(reviewCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orderId: "order-1",
+          authorId: "client-1",
+          targetUserId: "courier-1",
+          targetRole: "COURIER",
+          rating: 5,
+          reasonCode: "ON_TIME",
+          comment: null,
+          source: "TELEGRAM_BOT",
+          createdAt: expect.any(Date),
+        }),
+        select: {
+          id: true,
+          orderId: true,
+          authorId: true,
+          targetUserId: true,
+          targetRole: true,
+          rating: true,
+          reasonCode: true,
+          comment: true,
+          source: true,
+          createdAt: true,
+        },
+      }),
+    );
   });
 });

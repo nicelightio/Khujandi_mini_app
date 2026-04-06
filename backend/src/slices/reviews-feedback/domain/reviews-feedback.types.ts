@@ -22,6 +22,7 @@ export type ReviewsFeedbackOrderStatus =
 export type ReviewsFeedbackTargetRole = "client" | "courier";
 export type ReviewsFeedbackSource = "mini_app" | "telegram_bot";
 export type ReviewsFeedbackDirection = "client_to_courier" | "courier_to_client";
+export type ReviewsFeedbackDraftStage = "rating" | "reason_code" | "comment";
 
 export type ReviewsFeedbackOrderRecord = {
   id: ReviewsFeedbackOrderId;
@@ -149,6 +150,43 @@ export type ReviewsFeedbackCommandResult = {
   createdAt: Date;
 };
 
+export type ReviewsFeedbackReviewDraftRecord = {
+  orderId: ReviewsFeedbackOrderId;
+  actorUserId: ReviewsFeedbackUserId;
+  direction: ReviewsFeedbackDirection;
+  actorTelegramId: string;
+  targetUserId: ReviewsFeedbackUserId;
+  targetRole: ReviewsFeedbackTargetRole;
+  expectedStage: ReviewsFeedbackDraftStage;
+  expectedRevision: string;
+  rating: number | null;
+  reasonCode: string | null;
+  submittedReviewId: string | null;
+  submittedRevision: string | null;
+  submittedComment: string | null;
+  submittedCreatedAt: Date | null;
+  expiresAt: Date;
+  updatedAt: Date;
+};
+
+export type UpsertReviewDraftInput = {
+  orderId: ReviewsFeedbackOrderId;
+  actorUserId: ReviewsFeedbackUserId;
+  direction: ReviewsFeedbackDirection;
+  actorTelegramId: string;
+  targetUserId: ReviewsFeedbackUserId;
+  targetRole: ReviewsFeedbackTargetRole;
+  expectedStage: ReviewsFeedbackDraftStage;
+  expectedRevision: string;
+  rating: number | null;
+  reasonCode: string | null;
+  submittedReviewId: string | null;
+  submittedRevision: string | null;
+  submittedComment: string | null;
+  submittedCreatedAt: Date | null;
+  expiresAt: Date;
+};
+
 export type ReviewsFeedbackNegativeAlertNotificationInput = {
   adminTelegramIds: string[];
   orderId: ReviewsFeedbackOrderId;
@@ -167,6 +205,13 @@ export interface ReviewsFeedbackRepository {
   findUserById(userId: ReviewsFeedbackUserId): Promise<ReviewsFeedbackUserRecord | null>;
   listActiveAdminUsers(): Promise<ReviewsFeedbackAdminUserRecord[]>;
   listReviewsByOrderId(orderId: ReviewsFeedbackOrderId): Promise<ReviewsFeedbackReviewRecord[]>;
+  findActiveReviewDraft(
+    orderId: ReviewsFeedbackOrderId,
+    actorUserId: ReviewsFeedbackUserId,
+    direction: ReviewsFeedbackDirection,
+    now: Date,
+  ): Promise<ReviewsFeedbackReviewDraftRecord | null>;
+  upsertReviewDraft(input: UpsertReviewDraftInput): Promise<ReviewsFeedbackReviewDraftRecord>;
   findReviewByUniquePair(
     orderId: ReviewsFeedbackOrderId,
     authorId: ReviewsFeedbackUserId,

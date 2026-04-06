@@ -1,12 +1,14 @@
 import type {
   ReviewsFeedbackCommandResult,
   ReviewsFeedbackDirection,
+  ReviewsFeedbackReviewDraftRecord,
   ReviewsFeedbackNotifier,
   ReviewsFeedbackOrderRecord,
   ReviewsFeedbackOrderId,
   ReviewsFeedbackRepository,
   ReviewsFeedbackReviewRecord,
   SubmitReviewInput,
+  UpsertReviewDraftInput,
   ReviewsFeedbackUserId,
 } from "../domain/reviews-feedback.types";
 import { AppError } from "../../../shared/errors/app-error";
@@ -74,6 +76,19 @@ export class ReviewsFeedbackService {
 
   listReviewsByOrderId(orderId: ReviewsFeedbackOrderId) {
     return this.repository.listReviewsByOrderId(orderId);
+  }
+
+  findActiveReviewDraft(
+    orderId: ReviewsFeedbackOrderId,
+    actorUserId: ReviewsFeedbackUserId,
+    direction: ReviewsFeedbackDirection,
+    now: Date,
+  ): Promise<ReviewsFeedbackReviewDraftRecord | null> {
+    return this.repository.findActiveReviewDraft(orderId, actorUserId, direction, now);
+  }
+
+  upsertReviewDraft(input: UpsertReviewDraftInput): Promise<ReviewsFeedbackReviewDraftRecord> {
+    return this.repository.upsertReviewDraft(input);
   }
 
   async submitReview(input: SubmitReviewInput): Promise<ReviewsFeedbackCommandResult> {

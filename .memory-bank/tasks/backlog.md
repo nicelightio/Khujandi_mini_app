@@ -23,6 +23,7 @@ status: active
 - `FT-008` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для two-sided bot reviews и negative alerts.
 - `FT-006` execution backlog закрыт: refund/runbook evidence, RTM closure и task statuses синхронизированы.
 - `FT-008` execution backlog закрыт: two-sided bot review evidence, negative-alert fan-out verification и RTM closure синхронизированы.
+- Semantic verification after PR `#6` opened follow-up backlog for `FT-007` and `FT-008`: runtime admin auth cookie boundary, revision-aware bot callback hardening, and an explicit decision on review-draft runtime guarantees.
 
 ## Recommended feature order
 
@@ -777,6 +778,37 @@ status: active
 - Docs: `features/FT-007`, `requirements.md`, `changelog.md`, при необходимости `runbooks/security-auth-and-secret-response.md`
 - Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `auth lockout/session/audit verify evidence`
 
+### Wave W4 — bugfix hardening
+
+### TASK-FT007-08 — Implement real admin HTTP auth endpoints and cookie transport enforcement
+- TASK-ID: `TASK-FT007-08`
+- Status: `failed`
+- Wave: `W4`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`, `TASK-FT007-07`
+- Touched files: `.memory-bank/bugs/BUG-2026-04-06-ft007-missing-admin-auth-runtime-cookie-boundary.md`, `.memory-bank/tasks/plans/IMPL-FT-007-BUGFIX-auth-runtime-cookie-boundary.md`, `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/contracts/admin-auth-contract.md` при необходимости, `backend/src/**/*`, `backend/src/slices/admin-access/**/*`, `tests/slices/admin-access/**/*`, `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`, `.memory-bank/changelog.md`
+- Tests: backend HTTP integration for `POST /api/v1/admin/auth/login|refresh|logout`, cookie attribute coverage, invalid `Origin/Referer` rejection, and admin-web happy-path smoke against the real backend runtime boundary
+- Verify: `admin-web` auth no longer relies on mock-only assumptions; runtime endpoints exist, cookie transport policy is enforced, and protected-route restore/login/logout succeed end-to-end through the real backend boundary
+- Docs: `bugs/BUG-2026-04-06-ft007-missing-admin-auth-runtime-cookie-boundary.md`, `features/FT-007`, `contracts/admin-auth-contract.md` при необходимости, `changelog.md`
+- Bug: `BUG-2026-04-06-ft007-missing-admin-auth-runtime-cookie-boundary`
+- Plan: `IMPL-FT-007-BUGFIX-auth-runtime-cookie-boundary`
+- Constraints: не разносить admin auth ownership по page-level routes; secret-bearing tokens остаются только в HTTPS-only HttpOnly cookies; `Secure`/`HttpOnly`/`SameSite=Lax` и `Origin/Referer` validation обязательны, а не optional hardening
+
+### TASK-FT007-09 — Mount admin auth HTTP handler into the checked-in backend runtime entrypoint
+- TASK-ID: `TASK-FT007-09`
+- Status: `blocked`
+- Wave: `W4`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-08`
+- Touched files: `scripts/dev-api.mjs` или другой checked-in backend runtime entrypoint, `backend/src/slices/admin-access/presentation/admin-auth-http.ts`, `frontend/src/tests/admin/**/*`, `tests/slices/admin-access/**/*`, `.memory-bank/bugs/BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime.md`, `.memory-bank/changelog.md`
+- Tests: runtime verification against the actual mounted repo-local backend entrypoint used by `vite` proxy, plus regression coverage for mounted login/refresh/logout/cookie/origin behavior
+- Verify: `/api/v1/admin/auth/*` реально доступны через checked-in app runtime, а не только через test-created helper server
+- Docs: `bugs/BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime.md`, `features/FT-007`, `changelog.md`
+- Bug: `BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime`
+- Constraints: использовать реальный repo-local runtime entrypoint, не подменять fix очередным test-only harness
+
 ## FT-008 — Two-Sided Reviews And Negative Alerts
 
 ### Wave W1 — low-risk / foundation
@@ -876,6 +908,57 @@ status: active
 - Verify: acceptance criteria из `FT-008` полностью покрыты tests/UAT, RTM остается согласованной, а duplicate-safe review + low-rating fan-out closure подтверждены repo-local evidence
 - Docs: `features/FT-008`, `requirements.md`, `changelog.md`, при необходимости `runbooks/manual-refund-and-negative-alerts.md`
 - Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `review/negative-alert verify evidence`
+
+### Wave W4 — bugfix hardening
+
+### TASK-FT008-08 — Reject stale Telegram review callbacks with revision-aware step validation
+- TASK-ID: `TASK-FT008-08`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`, `TASK-FT008-07`
+- Touched files: `.memory-bank/bugs/BUG-2026-04-06-ft008-stale-review-callback-replay-gap.md`, `.memory-bank/tasks/plans/IMPL-FT-008-BUGFIX-review-callback-replay-hardening.md`, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md` при необходимости, `.memory-bank/contracts/telegram-bot-contract.md` при необходимости, `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.harness.ts`, `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts`, `tests/slices/reviews-feedback/**/*`, `.memory-bank/changelog.md`
+- Tests: bot contract/integration tests for stale rating and reason-code callbacks, replay of older prompt buttons after newer prompts, and regression coverage proving final submit plus `review.negative` semantics remain duplicate-safe
+- Verify: replayed or stale step callbacks no longer mutate the current draft; intermediate wizard transitions are revision-aware while final persisted review submission remains duplicate-safe
+- Docs: `bugs/BUG-2026-04-06-ft008-stale-review-callback-replay-gap.md`, `features/FT-008` при необходимости, `contracts/telegram-bot-contract.md` при необходимости, `changelog.md`
+- Bug: `BUG-2026-04-06-ft008-stale-review-callback-replay-gap`
+- Plan: `IMPL-FT-008-BUGFIX-review-callback-replay-hardening`
+- Constraints: сохранить owning `reviews-feedback` boundary; не ломать existing final-submit idempotency или low-rating alert fan-out semantics
+
+- Next recommended action: переходить к `TASK-FT008-09` для явного решения по runtime guarantees/durability review draft state.
+
+### TASK-FT008-09 — Make review-draft runtime guarantees explicit and durable if required
+- TASK-ID: `TASK-FT008-09`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-06`, `TASK-FT008-07`
+- Touched files: `.memory-bank/bugs/BUG-2026-04-06-ft008-ephemeral-review-draft-state.md`, `.memory-bank/tasks/plans/IMPL-FT-008-BUGFIX-review-draft-durability.md`, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md` при необходимости, `.memory-bank/contracts/telegram-bot-contract.md` при необходимости, `.memory-bank/runbooks/manual-refund-and-negative-alerts.md` при необходимости, `backend/prisma/schema.prisma` при необходимости, `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts`, `backend/src/slices/reviews-feedback/**/*` при необходимости, `tests/slices/reviews-feedback/**/*`, `.memory-bank/changelog.md`
+- Tests: integration/harness coverage for review flow resume after draft reload/reconstruction when durable behavior is chosen, regression checks for duplicate-safe submit and low-rating alerts, and explicit runtime evidence for the chosen guarantee or fallback assumption
+- Verify: restart/multi-instance assumptions are either fixed in runtime or explicitly narrowed and verified in docs/runbooks; the project no longer relies on an implicit draft-durability assumption
+- Docs: `bugs/BUG-2026-04-06-ft008-ephemeral-review-draft-state.md`, `features/FT-008` при необходимости, `contracts/telegram-bot-contract.md` при необходимости, `runbooks/manual-refund-and-negative-alerts.md` при необходимости, `changelog.md`
+- Bug: `BUG-2026-04-06-ft008-ephemeral-review-draft-state`
+- Plan: `IMPL-FT-008-BUGFIX-review-draft-durability`
+- Constraints: не размывать ownership финального review submit path; предпочесть минимально достаточную strategy и сначала зафиксировать product/runtime decision вместо автоматического broad rewrite
+
+- Red-verify note: core runtime fragility is fixed, but operational closure is not complete until schema rollout and expired-draft retention policy are made explicit.
+
+### TASK-FT008-10 — Close ReviewDraft rollout and retention operational assumptions
+- TASK-ID: `TASK-FT008-10`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-09`
+- Touched files: `backend/prisma/migrations/**/*` или другой checked-in Prisma rollout artifact, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md` при необходимости, `.memory-bank/runbooks/manual-refund-and-negative-alerts.md` при необходимости, `.memory-bank/changelog.md`, `.protocols/TASK-FT008-09/red-verification.md` как input
+- Tests: rollout-aware verification that the checked-in runtime can materialize `ReviewDraft`, plus explicit retention/cleanup evidence or docs for expired drafts
+- Verify: durable review draft semantics are not only correct in code but operationally deployable and maintainable; schema rollout and retention policy are no longer implicit assumptions
+- Docs: `features/FT-008`, `runbooks/manual-refund-and-negative-alerts.md`, `changelog.md`, при необходимости новый runbook/ops note
+- Source: `TASK-FT008-09` red-verify semantic concern
+- Constraints: не переписывать review flow заново; закрыть именно rollout/retention assumptions минимально достаточным способом
+- Result: checked-in Prisma SQL rollout artifact now materializes `ReviewDraft`, and expired rows are explicitly delete-safe by runbook policy once `expiresAt <= now()`.
 
 ## FT-009 — Mini App Shell And WebView UX
 

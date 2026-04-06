@@ -2,13 +2,17 @@ import type {
   ReviewsFeedbackAdminUserRecord,
   PersistReviewInput,
   ReviewsFeedbackArtifactsRecord,
+  ReviewsFeedbackDirection,
+  ReviewsFeedbackDraftStage,
   ReviewsFeedbackEventRecord,
   ReviewsFeedbackOrderRecord,
   ReviewsFeedbackOrderStatus,
   ReviewsFeedbackRepository,
+  ReviewsFeedbackReviewDraftRecord,
   ReviewsFeedbackReviewRecord,
   ReviewsFeedbackSource,
   ReviewsFeedbackTargetRole,
+  UpsertReviewDraftInput,
   ReviewsFeedbackUserRecord,
   ReviewsFeedbackUserRole,
 } from "../domain/reviews-feedback.types";
@@ -99,6 +103,95 @@ type ReviewsFeedbackReviewFindUniqueArgs = {
   };
 };
 
+type ReviewsFeedbackReviewDraftFindUniqueArgs = {
+  where: {
+    orderId_actorUserId_direction: {
+      orderId: string;
+      actorUserId: string;
+      direction: string;
+    };
+  };
+  select: {
+    orderId: true;
+    actorUserId: true;
+    direction: true;
+    actorTelegramId: true;
+    targetUserId: true;
+    targetRole: true;
+    expectedStage: true;
+    expectedRevision: true;
+    rating: true;
+    reasonCode: true;
+    submittedReviewId: true;
+    submittedRevision: true;
+    submittedComment: true;
+    submittedCreatedAt: true;
+    expiresAt: true;
+    updatedAt: true;
+  };
+};
+
+type ReviewsFeedbackReviewDraftUpsertArgs = {
+  where: {
+    orderId_actorUserId_direction: {
+      orderId: string;
+      actorUserId: string;
+      direction: string;
+    };
+  };
+  create: {
+    orderId: string;
+    actorUserId: string;
+    direction: string;
+    actorTelegramId: string;
+    targetUserId: string;
+    targetRole: Uppercase<ReviewsFeedbackTargetRole>;
+    expectedStage: string;
+    expectedRevision: string;
+    rating: number | null;
+    reasonCode: string | null;
+    submittedReviewId: string | null;
+    submittedRevision: string | null;
+    submittedComment: string | null;
+    submittedCreatedAt: Date | null;
+    expiresAt: Date;
+  };
+  update: {
+    actorTelegramId: string;
+    targetUserId: string;
+    targetRole: Uppercase<ReviewsFeedbackTargetRole>;
+    expectedStage: string;
+    expectedRevision: string;
+    rating: number | null;
+    reasonCode: string | null;
+    submittedReviewId: string | null;
+    submittedRevision: string | null;
+    submittedComment: string | null;
+    submittedCreatedAt: Date | null;
+    expiresAt: Date;
+  };
+  select: ReviewsFeedbackReviewDraftFindUniqueArgs["select"];
+};
+
+type ReviewsFeedbackPrismaReviewDraftRecord = {
+  orderId: string;
+  actorUserId: string;
+  direction: string;
+  actorTelegramId: string;
+  targetUserId: string;
+  targetRole: string;
+  expectedStage: string;
+  expectedRevision: string;
+  rating: number | null;
+  reasonCode: string | null;
+  submittedReviewId: string | null;
+  submittedRevision: string | null;
+  submittedComment: string | null;
+  submittedCreatedAt: Date | null;
+  expiresAt: Date;
+  updatedAt: Date;
+};
+
 type ReviewsFeedbackReviewCreateArgs = {
   data: {
     orderId: string;
@@ -156,6 +249,12 @@ type ReviewsFeedbackPrismaClientLike = {
     findUnique(args: ReviewsFeedbackReviewFindUniqueArgs): Promise<ReviewsFeedbackReviewRecord | null>;
     create(args: ReviewsFeedbackReviewCreateArgs): Promise<ReviewsFeedbackReviewRecord>;
   };
+  reviewDraft: {
+    findUnique(
+      args: ReviewsFeedbackReviewDraftFindUniqueArgs,
+    ): Promise<ReviewsFeedbackPrismaReviewDraftRecord | null>;
+    upsert(args: ReviewsFeedbackReviewDraftUpsertArgs): Promise<ReviewsFeedbackPrismaReviewDraftRecord>;
+  };
   event: {
     create(args: ReviewsFeedbackEventCreateArgs): Promise<ReviewsFeedbackPrismaEventRecord>;
   };
@@ -190,10 +289,24 @@ const mapTargetRole = (role: string): ReviewsFeedbackTargetRole =>
 
 const mapSource = (source: string): ReviewsFeedbackSource => source.toLowerCase() as ReviewsFeedbackSource;
 
+const mapDirection = (direction: string): ReviewsFeedbackDirection =>
+  direction as ReviewsFeedbackDirection;
+
+const mapDraftStage = (stage: string): ReviewsFeedbackDraftStage => stage as ReviewsFeedbackDraftStage;
+
 const mapReviewRecord = (review: ReviewsFeedbackReviewRecord): ReviewsFeedbackReviewRecord => ({
   ...review,
   targetRole: mapTargetRole(review.targetRole),
   source: mapSource(review.source),
+});
+
+const mapReviewDraftRecord = (
+  draft: ReviewsFeedbackPrismaReviewDraftRecord,
+): ReviewsFeedbackReviewDraftRecord => ({
+  ...draft,
+  direction: mapDirection(draft.direction),
+  expectedStage: mapDraftStage(draft.expectedStage),
+  targetRole: mapTargetRole(draft.targetRole),
 });
 
 const mapReviewCreatedEventRecord = (
@@ -340,6 +453,110 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
     });
 
     return reviews.map(mapReviewRecord);
+  }
+
+  async findActiveReviewDraft(
+    orderId: string,
+    actorUserId: string,
+    direction: ReviewsFeedbackDirection,
+    now: Date,
+  ): Promise<ReviewsFeedbackReviewDraftRecord | null> {
+    const draft = await this.prisma.client.reviewDraft.findUnique({
+      where: {
+        orderId_actorUserId_direction: {
+          orderId,
+          actorUserId,
+          direction,
+        },
+      },
+      select: {
+        orderId: true,
+        actorUserId: true,
+        direction: true,
+        actorTelegramId: true,
+        targetUserId: true,
+        targetRole: true,
+        expectedStage: true,
+        expectedRevision: true,
+        rating: true,
+        reasonCode: true,
+        submittedReviewId: true,
+        submittedRevision: true,
+        submittedComment: true,
+        submittedCreatedAt: true,
+        expiresAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (draft === null || draft.expiresAt.getTime() <= now.getTime()) {
+      return null;
+    }
+
+    return mapReviewDraftRecord(draft);
+  }
+
+  async upsertReviewDraft(input: UpsertReviewDraftInput): Promise<ReviewsFeedbackReviewDraftRecord> {
+    const draft = await this.prisma.client.reviewDraft.upsert({
+      where: {
+        orderId_actorUserId_direction: {
+          orderId: input.orderId,
+          actorUserId: input.actorUserId,
+          direction: input.direction,
+        },
+      },
+      create: {
+        orderId: input.orderId,
+        actorUserId: input.actorUserId,
+        direction: input.direction,
+        actorTelegramId: input.actorTelegramId,
+        targetUserId: input.targetUserId,
+        targetRole: input.targetRole.toUpperCase() as Uppercase<ReviewsFeedbackTargetRole>,
+        expectedStage: input.expectedStage,
+        expectedRevision: input.expectedRevision,
+        rating: input.rating,
+        reasonCode: input.reasonCode,
+        submittedReviewId: input.submittedReviewId,
+        submittedRevision: input.submittedRevision,
+        submittedComment: input.submittedComment,
+        submittedCreatedAt: input.submittedCreatedAt,
+        expiresAt: input.expiresAt,
+      },
+      update: {
+        actorTelegramId: input.actorTelegramId,
+        targetUserId: input.targetUserId,
+        targetRole: input.targetRole.toUpperCase() as Uppercase<ReviewsFeedbackTargetRole>,
+        expectedStage: input.expectedStage,
+        expectedRevision: input.expectedRevision,
+        rating: input.rating,
+        reasonCode: input.reasonCode,
+        submittedReviewId: input.submittedReviewId,
+        submittedRevision: input.submittedRevision,
+        submittedComment: input.submittedComment,
+        submittedCreatedAt: input.submittedCreatedAt,
+        expiresAt: input.expiresAt,
+      },
+      select: {
+        orderId: true,
+        actorUserId: true,
+        direction: true,
+        actorTelegramId: true,
+        targetUserId: true,
+        targetRole: true,
+        expectedStage: true,
+        expectedRevision: true,
+        rating: true,
+        reasonCode: true,
+        submittedReviewId: true,
+        submittedRevision: true,
+        submittedComment: true,
+        submittedCreatedAt: true,
+        expiresAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return mapReviewDraftRecord(draft);
   }
 
   async findReviewByUniquePair(

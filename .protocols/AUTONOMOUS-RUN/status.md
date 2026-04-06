@@ -22,19 +22,19 @@ status: active
 - Current note: `FT-009` closure is complete after operator-confirmed Android Telegram verification on the deployed test server.
 
 ## Queue state
-- `done`: `TASK-FT001-01`, `TASK-FT001-02`, `TASK-FT001-03`, `TASK-FT001-04`, `TASK-FT001-05`, `TASK-FT001-06`, `TASK-FT001-07`, `TASK-FT001-08`, `TASK-FT001-09`, `TASK-FT002-01`, `TASK-FT002-02`, `TASK-FT002-03`, `TASK-FT002-04`, `TASK-FT002-05`, `TASK-FT002-06`, `TASK-FT002-07`, `TASK-FT002-08`, `TASK-FT003-01`, `TASK-FT003-02`, `TASK-FT003-03`, `TASK-FT003-04`, `TASK-FT003-05`, `TASK-FT003-06`, `TASK-FT004-01`, `TASK-FT004-02`, `TASK-FT004-03`, `TASK-FT004-04`, `TASK-FT004-05`, `TASK-FT004-06`, `TASK-FT004-07`, `TASK-FT005-01`, `TASK-FT005-02`, `TASK-FT005-03`, `TASK-FT005-04`, `TASK-FT005-05`, `TASK-FT005-06`, `TASK-FT005-07`, `TASK-FT005-08`, `TASK-FT006-01`, `TASK-FT006-02`, `TASK-FT006-03`, `TASK-FT006-04`, `TASK-FT006-05`, `TASK-FT006-06`, `TASK-FT006-07`, `TASK-FT006-08`, `TASK-FT007-01`, `TASK-FT007-02`, `TASK-FT007-03`, `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`, `TASK-FT007-07`, `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`, `TASK-FT008-07`, `TASK-FT009-01`, `TASK-FT009-02`, `TASK-FT009-03`, `TASK-FT009-04`, `TASK-FT009-05`, `TASK-FT009-06`
+- `done`: `TASK-FT001-01`, `TASK-FT001-02`, `TASK-FT001-03`, `TASK-FT001-04`, `TASK-FT001-05`, `TASK-FT001-06`, `TASK-FT001-07`, `TASK-FT001-08`, `TASK-FT001-09`, `TASK-FT002-01`, `TASK-FT002-02`, `TASK-FT002-03`, `TASK-FT002-04`, `TASK-FT002-05`, `TASK-FT002-06`, `TASK-FT002-07`, `TASK-FT002-08`, `TASK-FT003-01`, `TASK-FT003-02`, `TASK-FT003-03`, `TASK-FT003-04`, `TASK-FT003-05`, `TASK-FT003-06`, `TASK-FT004-01`, `TASK-FT004-02`, `TASK-FT004-03`, `TASK-FT004-04`, `TASK-FT004-05`, `TASK-FT004-06`, `TASK-FT004-07`, `TASK-FT005-01`, `TASK-FT005-02`, `TASK-FT005-03`, `TASK-FT005-04`, `TASK-FT005-05`, `TASK-FT005-06`, `TASK-FT005-07`, `TASK-FT005-08`, `TASK-FT006-01`, `TASK-FT006-02`, `TASK-FT006-03`, `TASK-FT006-04`, `TASK-FT006-05`, `TASK-FT006-06`, `TASK-FT006-07`, `TASK-FT006-08`, `TASK-FT007-01`, `TASK-FT007-02`, `TASK-FT007-03`, `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`, `TASK-FT007-07`, `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`, `TASK-FT008-07`, `TASK-FT008-08`, `TASK-FT008-09`, `TASK-FT008-10`, `TASK-FT009-01`, `TASK-FT009-02`, `TASK-FT009-03`, `TASK-FT009-04`, `TASK-FT009-05`, `TASK-FT009-06`
 - `ready`: `none`
 - `in_progress`: `none`
-- `blocked`: `none`
-- `failed`: `none`
+- `blocked`: `TASK-FT007-09` (selection-rule blocked: depends on failed `TASK-FT007-08`)
+- `failed`: `TASK-FT007-08`
 
 ## Failure budget
 - Max retries per task: `2`
 - Max consecutive failures: `3`
 - Max open blockers: `3`
 - Current consecutive failures: `0`
-- Current open blockers: `0`
+- Current open blockers: `1`
 
 ## Terminal state
-- Current state: `SUCCESS`
-- Note: no `ready` or `in_progress` tasks remain; `FT-008` is fully verified and the currently decomposed backlog is closed.
+- Current state: `HALT_DEPENDENCY_DEADLOCK`
+- Note: no selectable `ready` tasks remain; `TASK-FT008-10` is closed, while `TASK-FT007-09` is blocked because it depends on failed `TASK-FT007-08`.

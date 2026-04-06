@@ -33,6 +33,7 @@ status: active
 - Refund в MVP ручной, но его состояние явно отражается в модели.
 - `refund_status = NOT_REQUIRED` используется только когда отмененный заказ не требует возврата.
 - Paid cancellation MUST сразу фиксировать `refund_status = PENDING_MANUAL`; дальнейшая ручная обработка переводит его только в `DONE` или `REJECTED`.
+- Refund terminal update MUST быть single-writer semantics: первый валидный переход из `PENDING_MANUAL` фиксируется, а stale/concurrent follow-up attempts возвращают controlled `409 CONFLICT` без дополнительных write side effects.
 - `refund_note` может отсутствовать в момент самой отмены, но должен сохраняться при ручном завершении refund workflow как операторский контекст/результат.
 
 ## Verification boundary
