@@ -164,17 +164,17 @@ curl https://tgmeal.natureonzoom.win/api/v1/shops
 ## 11. Update flow after new commit
 
 ```bash
-sudo -u tgmeal git -C /srv/tgmeal/app pull
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml build
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml up -d
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose build'
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose up -d'
 systemctl reload nginx
 ```
 
 Если менялся только app code без compose/nginx:
 
 ```bash
-sudo -u tgmeal git -C /srv/tgmeal/app pull
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml up -d --build
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose up -d --build'
 ```
 
 ## 12. Rollback
@@ -192,9 +192,9 @@ sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml down
 
 ```bash
 ssh root@213.155.13.112
-sudo -u tgmeal git -C /srv/tgmeal/app pull
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml up -d --build
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml ps
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose up -d --build'
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose ps'
 systemctl reload nginx
 curl -I https://tgmeal.natureonzoom.win
 curl https://tgmeal.natureonzoom.win/api/v1/shops
@@ -203,8 +203,9 @@ curl https://tgmeal.natureonzoom.win/api/v1/shops
 Если нужно посмотреть логи после обновления:
 
 ```bash
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml logs --tail=200
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose logs --tail=200'
 ```
+
 
 ## Source artifacts
 
