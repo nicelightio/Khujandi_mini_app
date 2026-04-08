@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { AppRouter } from "./router";
+import { RootRouter } from "./root-router";
 import "../shared/styles/webview-shell.css";
 
 const rootElement = document.getElementById("root");
@@ -11,6 +11,6 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <AppRouter />
+    <RootRouter />
   </StrictMode>,
 );

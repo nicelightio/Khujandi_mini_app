@@ -4,6 +4,10 @@ status: active
 ---
 # Changelog
 
+## [2026-04-08] TASK-FT007-10 shared frontend bootstrap for admin routes
+- Replaced the customer-only frontend bootstrap with a shared root-router selector that chooses `AdminRouter` for `/admin*` paths and `AppRouter` for customer paths while keeping one common `index.html` entrypoint.
+- Added focused frontend smoke coverage proving `/admin/login` renders the admin login contour in the deployed/static build path instead of falling back to the customer catalog.
+
 ## [2026-04-06] Containerized deploy preparation for tgmeal test server
 - Added checked-in container deploy assets: `Dockerfile.web`, `Dockerfile.api`, `docker-compose.yml`, `.dockerignore`, and nginx config for the web container so the current frontend plus repo-local demo/admin-auth API can run as a two-container stack.
 - Extended `scripts/dev-api.ts` with runtime env parsing for `HOST`, `PORT`, and `ADMIN_ALLOWED_ORIGINS`, which is required for container networking and the public `tgmeal.natureonzoom.win` origin.

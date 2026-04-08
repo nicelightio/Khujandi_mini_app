@@ -810,6 +810,20 @@ status: active
 - Constraints: использовать реальный repo-local runtime entrypoint, не подменять fix очередным test-only harness
 - Result: `dev:api` now mounts `createAdminAuthHttpHandler` through the checked-in runtime used by the Vite `/api` proxy, and runtime-backed tests target that same mounted server module.
 
+### TASK-FT007-10 — Route `/admin/*` through the admin router via the shared frontend entrypoint
+- TASK-ID: `TASK-FT007-10`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`
+- Depends on: `TASK-FT007-06`, `TASK-FT007-07`, `TASK-FT007-09`
+- Touched files: `index.html`, `frontend/src/app/main.tsx`, `frontend/src/admin/main.tsx` при необходимости, `frontend/src/app/router.tsx` при необходимости, `frontend/src/tests/admin/**/*`, `frontend/src/tests/app/**/*`, `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/changelog.md`
+- Tests: frontend route smoke for `/admin/login` renders `AdminLoginPage` instead of catalog; `/admin/assignments` still goes through `AdminProtectedShell`; customer routes `/`, `/checkout`, `/tracking` still render the customer app; `npm run build:frontend` still passes
+- Verify: shared `index.html` / frontend bootstrap chooses `AdminRouter` for pathname prefix `/admin`, non-admin paths still use `AppRouter`, and `/admin/login` no longer falls back to catalog in production build/runtime
+- Docs: `features/FT-007`, `changelog.md`
+- Constraints: не вводить второй deploy path или отдельный admin HTML entrypoint; оставить один общий frontend entrypoint; не дублировать routing/bootstrap logic больше необходимого; изменение должно быть минимальным и совместимым с текущим Vite build
+- Result: one shared frontend bootstrap routes between the customer app and the admin app based on `window.location.pathname`
+
 ## FT-008 — Two-Sided Reviews And Negative Alerts
 
 ### Wave W1 — low-risk / foundation

@@ -59,6 +59,7 @@ status: active
 - `TASK-FT007-07` закрывает final repo-local verification/docs sync: backend/frontend suites, RTM closure и feature-level acceptance confirmation без расширения scope в provisioning UI.
 - `TASK-FT007-08` добавил runtime bugfix surface: checked-in HTTP cookie handlers, mandatory transport enforcement, and runtime-backed login/refresh/logout evidence, но `red-verify` выявил отсутствие реального mounting в checked-in runtime entrypoint.
 - `TASK-FT007-09` закрывает оставшийся runtime gap: admin auth handler смонтирован в реальный checked-in repo-local backend runtime, который обслуживает `/api` path для local/dev app flows.
+- `TASK-FT007-10` закрывает frontend bootstrap gap: shared `index.html` / Vite entrypoint теперь маршрутизирует `/admin/*` в `AdminRouter`, а не в customer `AppRouter` fallback.
 
 ## Implementation status
 
@@ -71,3 +72,4 @@ status: active
 - `TASK-FT007-07` закрыл финальную repo-local verification/docs sync: backend `admin-access` и admin frontend suites подтверждают login/refresh/logout, lockout/audit, fixed session lifetime и protected-route UX, поэтому `REQ-015`, `REQ-016`, `REQ-017` и `FT-007`-row для `REQ-018` закрыты в текущем repo-local scope.
 - `TASK-FT007-08` добавил checked-in HTTP auth handler, cookie transport enforcement и runtime-backed tests, но `red-verify` показал, что этот boundary был смонтирован только в test helper, а не в реальный dev runtime entrypoint.
 - `TASK-FT007-09` смонтировал `createAdminAuthHttpHandler` в checked-in repo-local runtime entrypoint, который использует `dev:api`/`vite` proxy, поэтому `/api/v1/admin/auth/login|refresh|logout` теперь реально доступны в local/dev app flow без test-only wiring.
+- `TASK-FT007-10` перевёл frontend bootstrap на shared root-router selection по `window.location.pathname`, поэтому deployed/static `/admin/login` и другие `/admin/*` paths теперь открывают admin contour вместо fallback в customer catalog.
