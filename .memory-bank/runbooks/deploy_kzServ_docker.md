@@ -163,6 +163,14 @@ curl https://tgmeal.natureonzoom.win/api/v1/shops
 
 ## 11. Update flow after new commit
 
+Рекомендуемый способ обновления: через server-side deploy script.
+
+```bash
+/usr/local/bin/tgmeal-deploy
+```
+
+Эквивалент вручную:
+
 ```bash
 sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
 sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose build'
@@ -192,12 +200,7 @@ sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml down
 
 ```bash
 ssh root@213.155.13.112
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose up -d --build'
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose ps'
-systemctl reload nginx
-curl -I https://tgmeal.natureonzoom.win
-curl https://tgmeal.natureonzoom.win/api/v1/shops
+/usr/local/bin/tgmeal-deploy
 ```
 
 Если нужно посмотреть логи после обновления:
@@ -206,6 +209,27 @@ curl https://tgmeal.natureonzoom.win/api/v1/shops
 sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose logs --tail=200'
 ```
 
+## 14. Install deploy script on the server
+
+Создай server-side script:
+
+
+Запуск:
+
+```bash
+/usr/local/bin/tgmeal-deploy
+```
+
+Если нужен только статус последнего deploy log:
+
+```bash
+ls -1t /var/log/tgmeal | head -n 5
+```
+или 
+```bash
+ls -1t /var/log/tgmeal
+tail -n 200 /var/log/tgmeal/$(ls -1t /var/log/tgmeal | head -n 1)
+```
 
 ## Source artifacts
 
