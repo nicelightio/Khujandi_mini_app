@@ -32,8 +32,7 @@ status: active
 
 ## Recent updates
 
-- `FT-010`: `TASK-FT010-21` is complete; `/shops/:shopId` no longer fabricates a synthetic storefront when canonical seller data and public data are both absent or failing, and now returns controlled not-found/error states while preserving valid public browse flows.
-- `FT-010`: post-closure `/review` opened `TASK-FT010-21`; current `/shops/:shopId` route still fabricates a synthetic storefront when both canonical seller data and public data are absent or failing, so the next follow-up is to replace that behavior with controlled missing/error states.
+ - `FT-010`: `TASK-FT010-21` is complete; `/shops/:shopId` no longer fabricates a synthetic storefront when canonical seller data and public data are both absent or failing, and now returns controlled not-found/error states while preserving valid public browse flows.
 - `FT-010`: post-change `red-verify` for `TASK-FT010-08` returned `semantic-pass`; final feature closure remains substantively aligned for the checked-in repo scope and opened no new follow-up.
 - `FT-010`: `TASK-FT010-08` is complete; final repo-local verification/docs sync now explicitly covers shared storefront edit-mode reuse, admin-provisioned skeleton bootstrap, Telegram-linked seller access reuse, `WORKING/NOT_WORKING` owner/public visibility gating, and delete-free baseline evidence, so `REQ-024/025/026` are now done for the checked-in feature scope.
 - `FT-010`: post-change `red-verify` for `TASK-FT010-20` returned `semantic-pass`; the narrow seller-web status hardening is substantively aligned for the checked-in mounted runtime scope and opened no new follow-up.

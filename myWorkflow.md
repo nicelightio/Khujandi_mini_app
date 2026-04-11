@@ -115,3 +115,6 @@ FT-008 в конце, потому что она зависит от уже ра
 ```
 Set-Location "C:\Users\Acer\Documents\python_lessons\Khujandi_mini_app"; $root=(Get-Location).Path; $totalFiles=0; $totalLines=0; $stats=@{}; git ls-files | Where-Object { $_ -notmatch '^(?:\.memory-bank)(?:/|\\|$)' } | ForEach-Object { $full=Join-Path $root $_; try { $lines=([System.IO.File]::ReadLines($full) | Measure-Object).Count } catch { $lines=0 }; $totalFiles++; $totalLines+=$lines; $top=(($_ -split '[\\/]')[0]); if ($_ -notmatch '[\\/]') { $top='_ROOT_FILES' }; if (-not $stats.ContainsKey($top)) { $stats[$top]=[pscustomobject]@{Scope=$top; Files=0; Lines=0} }; $stats[$top].Files++; $stats[$top].Lines+=$lines }; $stats.Values | Sort-Object Scope; [pscustomobject]@{Scope='TOTAL'; Files=$totalFiles; Lines=$totalLines} | Format-Table -AutoSize
 ```
+
+на проде обновы
+/usr/local/bin/tgmeal-deploy

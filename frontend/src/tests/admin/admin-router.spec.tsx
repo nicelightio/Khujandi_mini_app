@@ -280,6 +280,70 @@ describe("admin router", () => {
     expect(text).toContain("Courier assignment");
   });
 
+  it("keeps manual sign-in available while protected-route session restore is in progress", async () => {
+    let resolveRefresh: ((value: {
+      adminAccountId: string;
+      role: "boss" | "manager" | "admin";
+      accessTokenExpiresAt: string;
+      refreshTokenExpiresAt: string;
+      idleExpiresAt: string;
+    }) => void) | null = null;
+    const authApi = createAuthApi({
+      refresh: jest.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          }),
+      ),
+    });
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(<AdminRouter pathname={adminRoutePaths.catalogProvisioning} authApi={authApi} />);
+      await flushPromises();
+    });
+
+    await act(async () => {
+      const inputs = renderer.root.findAllByType("input");
+      inputs[0].props.onChange({ target: { value: "boss@example.com" } });
+      inputs[1].props.onChange({ target: { value: "correct-horse-battery" } });
+      await flushPromises();
+    });
+
+    const loginButton = renderer.root.findByType("button");
+    const textBeforeSubmit = collectText(renderer.toJSON()).join(" ");
+
+    expect(textBeforeSubmit).toContain("Checking for an existing admin session...");
+    expect(loginButton.props.disabled).toBe(false);
+
+    await act(async () => {
+      renderer.root.findByType("form").props.onSubmit({
+        preventDefault: jest.fn(),
+      });
+      await flushRouterTransitions();
+    });
+
+    const textAfterSubmit = collectText(renderer.toJSON()).join(" ");
+
+    expect(authApi.login).toHaveBeenCalledWith({
+      login: "boss@example.com",
+      password: "correct-horse-battery",
+    });
+    expect(textAfterSubmit).toContain("Signed in as manager (admin-account-7).");
+    expect(textAfterSubmit).toContain("Catalog shop provisioning");
+
+    await act(async () => {
+      resolveRefresh?.({
+        adminAccountId: "ignored-refresh-account",
+        role: "admin",
+        accessTokenExpiresAt: "2026-04-05T10:15:00.000Z",
+        refreshTokenExpiresAt: "2026-04-08T10:00:00.000Z",
+        idleExpiresAt: "2026-04-05T10:30:00.000Z",
+      });
+      await flushPromises();
+    });
+  });
+
   it("logs out through the shared auth boundary and returns to the login route", async () => {
     const authApi = createAuthApi();
     let renderer!: ReactTestRenderer;

@@ -89,9 +89,7 @@ export const AdminLoginPage = ({
         </fieldset>
         <button
           type="submit"
-          disabled={
-            isSubmitting || session.status === "restoring" || login.trim().length === 0 || password.length === 0
-          }
+          disabled={isSubmitting || login.trim().length === 0 || password.length === 0}
         >
           {isSubmitting ? "Signing in..." : "Sign in"}
         </button>
