@@ -26,9 +26,12 @@ status: active
 
 ## Successful outcome
 
-- Backend создает или обновляет пользователя.
+- Backend создает или обновляет Telegram-linked пользователя.
+- Backend резолвит capability/ownership metadata из provisioned bindings; отдельный seller auth endpoint для shared storefront не вводится.
 - Backend выдает Mini App session согласно выбранному session transport policy; production-preferred baseline для чувствительного контура: HttpOnly cookie session. Если используется bearer/JWT, это должно быть явно обосновано.
+- Смонтированный HTTP runtime MUST потреблять cookie transport descriptor напрямую из shared auth boundary и MUST NOT предсказывать или реконструировать session cookie token через route-local соглашения.
 - Для cookie-based Mini App session minimal MVP CSRF baseline: `SameSite` cookie + server-side `Origin/Referer` validation.
+- Одна и та же Telegram-linked session family может давать только customer capabilities или customer + seller capabilities в зависимости от server-side ownership resolution.
 - Для auth/session surface должен быть зафиксирован явный CSP/XSS-hardening baseline; session identifiers не попадают в JS-readable persistent storage.
 
 ## Failure rules
@@ -43,3 +46,4 @@ status: active
 - [doc/PRD.md](../../doc/PRD.md): Mini App auth как обязательный MVP контур.
 - [doc/API_GUIDELINES.md](../../doc/API_GUIDELINES.md): endpoint и error baseline.
 - [doc/BRIEF_EXT.md](../../doc/BRIEF_EXT.md): HMAC validation details.
+- [.memory-bank/contracts/catalog-seller-access-and-session.md](catalog-seller-access-and-session.md): seller capability resolution on top of Telegram-linked auth.

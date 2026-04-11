@@ -5,6 +5,7 @@ type RuntimeServerOptions = {
   passwordHasher?: {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
   };
+  now?: () => Date;
 };
 
 export const startAdminAuthRuntimeServer = async (options: RuntimeServerOptions = {}) =>
@@ -13,4 +14,5 @@ export const startAdminAuthRuntimeServer = async (options: RuntimeServerOptions 
     port: 0,
     allowedOrigins: options.allowedOrigins ?? ["https://admin.example"],
     passwordHasher: options.passwordHasher,
+    now: options.now,
   });

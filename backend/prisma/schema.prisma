@@ -31,6 +31,11 @@ enum RefundStatus {
   REJECTED
 }
 
+enum ShopStatus {
+  WORKING
+  NOT_WORKING
+}
+
 enum UserRole {
   BOSS
   MANAGER
@@ -61,31 +66,68 @@ model Shop {
   id                          String    @id @default(cuid())
   sellerId                    String
   name                        String
+  description                 String?
+  headerImageUrl              String?
+  backgroundImageUrl          String?
+  status                      ShopStatus @default(WORKING)
   renameCount                 Int       @default(0)
   requiresManualRenameReview  Boolean   @default(false)
   isDeleted                   Boolean   @default(false)
   deletedAt                   DateTime?
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
+  menuPages                   MenuPage[]
   products                    Product[]
+  sellerBindings              SellerShopBinding[]
 
   @@index([sellerId])
+  @@index([status])
   @@index([isDeleted])
+}
+
+model MenuPage {
+  id        String    @id @default(cuid())
+  shopId     String
+  name      String
+  position  Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  shop      Shop      @relation(fields: [shopId], references: [id])
+  products  Product[]
+
+  @@index([shopId, position])
 }
 
 model Product {
   id         String    @id @default(cuid())
   shopId     String
+  menuPageId String?
   name       String
+  description String?
+  imageUrl   String?
   priceMinor Int
   isDeleted  Boolean   @default(false)
   deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   shop       Shop      @relation(fields: [shopId], references: [id])
+  menuPage   MenuPage? @relation(fields: [menuPageId], references: [id])
 
   @@index([shopId])
+  @@index([menuPageId])
   @@index([isDeleted])
+}
+
+model SellerShopBinding {
+  id         String   @id @default(cuid())
+  shopId      String   @unique
+  sellerId    String
+  telegramId  String
+  createdAt  DateTime @default(now())
+  shop       Shop     @relation(fields: [shopId], references: [id])
+
+  @@index([sellerId])
+  @@index([telegramId])
 }
 
 model Order {
@@ -279,6 +321,7 @@ model AdminAccount {
 model AdminSession {
   id                   String       @id @default(cuid())
   adminAccountId       String
+  accessTokenHash      String
   refreshTokenHash     String       @unique
   accessTokenExpiresAt DateTime
   refreshTokenExpiresAt DateTime

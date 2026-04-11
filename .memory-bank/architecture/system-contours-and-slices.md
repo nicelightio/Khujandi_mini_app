@@ -6,7 +6,10 @@ status: active
 
 ## Contours
 
-- `mini-app`: клиентский Telegram WebView контур для каталога, checkout и user-facing tracking.
+Ниже зафиксирована целевая contour model MVP. В checked-in runtime сейчас реально смонтированы customer-facing `mini-app` routes и `admin-web`; seller-specific surfaces остаются planned runtime work.
+
+- `mini-app`: общий Telegram WebView storefront contour для customer browse/checkout/tracking и seller edit mode на тех же storefront-компонентах.
+- `seller-web`: отдельная узкая админка магазина для легких catalog-owned функций seller-а; canonical route family для первой версии: `/seller/*`.
 - `admin-web`: отдельный login/password контур операционного управления; в MVP может временно жить в том же репозитории до физического выделения.
 - `telegram-bot`: presentation-канал для уведомлений, статусов и review flows.
 
@@ -22,8 +25,8 @@ status: active
 
 ## Shell ownership
 
-- `FT-009` описывает cross-slice frontend shell baseline клиентского контура, а не отдельный domain slice.
-- Owner boundary для `FT-009`: `mini-app` presentation/shared-ui shell, который обслуживает прежде всего `catalog` и `checkout-payment`, а не переносит доменные правила из этих slices в shared.
+- `FT-009` описывает cross-slice frontend shell baseline `mini-app` contour, а не отдельный domain slice.
+- Owner boundary для `FT-009`: `mini-app` presentation/shared-ui shell, который обслуживает прежде всего `catalog` и `checkout-payment`, включая shared storefront для customer и seller modes, но не переносит доменные правила из этих slices в shared.
 - Прямой доступ к `Telegram.WebApp.*` допускается только из shell/runtime adapter слоя.
 
 ## Boundary rules
@@ -32,6 +35,9 @@ status: active
 - Внутри slice действуют зависимости `presentation -> application -> domain -> infrastructure`.
 - Shared допустим только для технических primitives: auth helpers, db bootstrap, error primitives, event transport, UI basics.
 - В `mini-app` shared дополнительно допустимы только runtime-enabling primitives: Telegram bootstrap, theme/safe-area/viewport/lifecycle adapters, feature detection, storage-policy helpers и shell-level navigation policies.
+- Если change затрагивает несколько UI contour-ов, каждый contour реализует только свой presentation-layer одного и того же owning slice.
+- Seller management остается внутри owning slice `catalog`, даже если использует одновременно shared storefront в `mini-app` и отдельный `seller-web` contour.
+- `seller-web` baseline не должен втягивать reporting/analytics или другой cross-slice behavior без отдельного explicit spec change.
 - Бизнес-правила и state machine остаются внутри owning slice.
 
 ## Related guide

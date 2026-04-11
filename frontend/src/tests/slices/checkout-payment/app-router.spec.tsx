@@ -1,4 +1,4 @@
-import { AppRouter, resolveAppRoute } from "../../../app/router";
+import { AppRouter, appRoutes, resolveAppRoute } from "../../../app/router";
 import { CatalogRoute } from "../../../slices/catalog/routes/catalog-route";
 import { CheckoutPaymentRoute } from "../../../slices/checkout-payment/routes/checkout-payment-route";
 import { OrderTrackingRoute } from "../../../slices/order-tracking/routes/order-tracking-route";
@@ -83,6 +83,12 @@ describe("app router", () => {
 
   it("resolves the order-tracking route for the tracking pathname", () => {
     expect(resolveAppRoute("/tracking").element.type).toBe(OrderTrackingRoute);
+  });
+
+  it("matches the storefront route only for a single /shops/:shopId segment", () => {
+    expect(appRoutes[1]?.matches?.("/shops/shop-1")).toBe(true);
+    expect(appRoutes[1]?.matches?.("/shops/shop-1/menu-page-1")).toBe(false);
+    expect(appRoutes[1]?.matches?.("/shops")).toBe(false);
   });
 
   it("uses the browser pathname at runtime", async () => {

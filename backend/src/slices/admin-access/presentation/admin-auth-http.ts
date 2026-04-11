@@ -1,7 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { AppError } from "../../../shared/errors/app-error";
+import { PrismaAdminAccessRepository } from "../infrastructure/prisma-admin-access.repository";
+import type { AdminAccessPrismaProvider } from "../infrastructure/prisma-admin-access.repository";
 import type {
+  AdminAccessRole,
   AdminAccessPasswordHasher,
   AdminAccessTokenFactory,
   AdminAccessTokenHasher,
@@ -34,6 +37,20 @@ type AdminAuthJsonResponse = {
   statusCode: number;
   payload: unknown;
   cookies?: string[];
+};
+
+type ProtectedAdminRouteSession = {
+  adminAccountId: string;
+  role: AdminAccessRole;
+};
+
+type ProtectedAdminRouteRuntimeConfig = {
+  prisma: AdminAccessPrismaProvider;
+  allowedOrigins: string[];
+  accessCookieName?: string;
+  refreshCookieName?: string;
+  authRequiredMessage?: string;
+  now?: () => Date;
 };
 
 const DEFAULT_ACCESS_COOKIE_NAME = "khujandi_admin_access_token";
@@ -271,6 +288,52 @@ const buildSessionCookies = (
     secureCookies,
   ),
 ];
+
+export const resolveProtectedAdminRouteSession = async (
+  request: IncomingMessage,
+  config: ProtectedAdminRouteRuntimeConfig,
+): Promise<ProtectedAdminRouteSession> => {
+  assertAllowedOrigin(request, config.allowedOrigins);
+
+  const accessCookieName = config.accessCookieName ?? DEFAULT_ACCESS_COOKIE_NAME;
+  const refreshCookieName = config.refreshCookieName ?? DEFAULT_REFRESH_COOKIE_NAME;
+  const authRequiredMessage = config.authRequiredMessage ?? "Protected admin route requires an authenticated admin";
+  const cookies = parseCookies(request.headers.cookie);
+  const accessToken = cookies[accessCookieName] ?? "";
+  const refreshToken = cookies[refreshCookieName] ?? "";
+
+  if (accessToken.length === 0 || refreshToken.length === 0) {
+    throw new AppError("AUTH_REQUIRED", authRequiredMessage, 401);
+  }
+
+  const repository = new PrismaAdminAccessRepository(config.prisma);
+  const accessTokenHash = createHash("sha256").update(accessToken).digest("hex");
+  const refreshTokenHash = createHash("sha256").update(refreshToken).digest("hex");
+  const session = await repository.findSessionByRefreshTokenHash(refreshTokenHash);
+  const now = (config.now ?? (() => new Date()))();
+
+  if (
+    session === null ||
+    session.accessTokenHash !== accessTokenHash ||
+    session.revokedAt !== null ||
+    session.accessTokenExpiresAt.getTime() <= now.getTime() ||
+    session.refreshTokenExpiresAt.getTime() <= now.getTime() ||
+    session.idleExpiresAt.getTime() <= now.getTime()
+  ) {
+    throw new AppError("AUTH_REQUIRED", authRequiredMessage, 401);
+  }
+
+  const account = await repository.findAccountById(session.adminAccountId);
+
+  if (account === null || !account.isActive) {
+    throw new AppError("AUTH_REQUIRED", authRequiredMessage, 401);
+  }
+
+  return {
+    adminAccountId: account.id,
+    role: account.role,
+  };
+};
 
 export const createAdminAuthHttpHandler = (config: AdminAuthHttpRuntimeConfig) => {
   if (config.allowedOrigins.length === 0) {

@@ -16,7 +16,8 @@ status: active
 - `TASK-FT009-02` added the app-level shell boundary, shared shell state/context scaffold, and repo-local runtime bridge test harness needed before wiring real Telegram runtime events.
 - `TASK-FT009-03` now wires `ready()/expand()`, centralized runtime event handling, stable viewport/safe-area CSS propagation, and graceful non-Telegram fallback into the shared app shell baseline.
 - `TASK-FT009-04` now connects catalog and checkout to the shared shell layout/policy layer, including centralized back/swipe metadata and shell-owned action feedback framing without moving auth/payment logic into shared UI.
-- `TASK-FT009-06` completed final closure: repo-local shell/runtime gates pass and operator-confirmed Android Telegram verification now closes customer-facing catalog/checkout shell behavior without requiring screenshots as blocking artifacts.
+- `TASK-FT009-06` completed the shell/runtime closure for `FT-009`: repo-local shell/runtime gates pass and operator-confirmed Android Telegram verification closes the shell-owned customer-facing catalog/checkout WebView behavior without requiring screenshots as blocking artifacts.
+- This closure does not by itself close the shared `REQ-022/023` rows while `FT-002` still lacks a non-stubbed mounted checkout runtime in the checked-in app path.
 
 ## Use cases
 

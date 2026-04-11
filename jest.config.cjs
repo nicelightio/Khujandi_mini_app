@@ -12,6 +12,8 @@ module.exports = {
     "<rootDir>/tests/slices/reviews-feedback/*.spec.ts",
     "<rootDir>/frontend/src/tests/admin/*.spec.ts",
     "<rootDir>/frontend/src/tests/admin/*.spec.tsx",
+    "<rootDir>/frontend/src/tests/seller/*.spec.ts",
+    "<rootDir>/frontend/src/tests/seller/*.spec.tsx",
     "<rootDir>/frontend/src/tests/slices/catalog/*.spec.ts",
     "<rootDir>/frontend/src/tests/slices/catalog/*.spec.tsx",
     "<rootDir>/frontend/src/tests/slices/checkout-payment/*.spec.ts",

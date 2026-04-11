@@ -17,8 +17,9 @@ status: active
 - `TASK-FT002-04` completed and verified backend Telegram auth validation, `auth_date` TTL enforcement, replay protection, and HttpOnly cookie session issuance.
 - `TASK-FT002-05` completed and verified trusted payment finalization, provider/source verification, and idempotent paid-only order creation.
 - `TASK-FT002-06` completed and verified retry-safe failed, canceled, and timeout payment handling without order side effects.
-- `TASK-FT002-07` completed and verified frontend checkout wiring to Telegram auth and backend checkout flow, including retry UX and blocked outside-Telegram behavior.
-- `TASK-FT002-08` completed the final repo-local verification/docs sync for `FT-002`, kept Telegram-sensitive evidence limited to auth/payment runtime plus transport/source verification, and left real customer-facing checkout runtime evidence to `FT-009`, where it is now closed.
+- `TASK-FT002-07` completed the frontend checkout route shell and repo-local success/retry UX smoke, but the checked-in frontend still defaults to a local stub API instead of a mounted backend checkout/auth runtime.
+- `TASK-FT002-08` completed repo-local verification/docs sync for `FT-002`, but end-to-end runtime closure remains open because the checked-in dev/deploy runtime still does not mount the real customer-facing checkout/auth HTTP path used by the shared frontend contour.
+- Current effective state: backend/domain logic is largely implemented, while the checked-in customer-facing checkout runtime remains only partially integrated.
 
 ## Use cases
 
@@ -78,8 +79,8 @@ status: active
 
 ## Verification closure
 
-- `REQ-004` is covered by backend unit/integration checks for raw `initData` HMAC validation, 10 minute freshness, replay rejection, and HttpOnly cookie transport metadata.
-- `REQ-005` is covered by trusted paid checkout integration/unit tests plus frontend checkout smoke that only marks success from backend confirmation.
-- `REQ-006` is covered by backend controlled error-contract checks for `FAILED`, `CANCELED`, and `PENDING` payment outcomes and frontend retry UX smoke.
-- `REQ-021` is covered by provider/source verification, verification-token enforcement, and duplicate trusted payment idempotency checks that keep single-order creation on repeated delivery.
-- Real Telegram runtime evidence for the customer-facing checkout UI is intentionally owned by `FT-009`; `FT-002` closes only the repo-local runtime and transport/source verification baseline defined by the current runbook, and the shared UI/runtime closure is now complete.
+- `REQ-004` has repo-local backend unit/integration coverage for raw `initData` HMAC validation, 10 minute freshness, replay rejection, and HttpOnly cookie transport metadata, but the checked-in frontend/runtime path is not yet mounted end-to-end.
+- `REQ-005` has trusted paid checkout integration/unit coverage plus frontend checkout smoke around success UX, but the checked-in customer-facing flow is still stubbed/unmounted and therefore not yet verified as a real mounted runtime path.
+- `REQ-006` has backend controlled error-contract coverage for `FAILED`, `CANCELED`, and `PENDING` payment outcomes plus frontend retry UX smoke, but the checked-in customer-facing flow is still stubbed/unmounted and therefore not yet verified end-to-end.
+- `REQ-021` has provider/source verification and duplicate trusted payment idempotency coverage at repo-local backend level, but remains implementation-level until the real mounted checkout path replaces the stubbed frontend/runtime path.
+- Shared `REQ-022/023` closure is no longer treated as complete from `FT-002`; the feature currently contributes implemented backend/session policy and repo-local evidence only.

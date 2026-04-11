@@ -12,6 +12,7 @@ import { AdminProtectedShell } from "../components/admin-protected-shell";
 import { AdminShell } from "../components/admin-shell";
 import { adminRoutes as adminRoutePaths } from "../lib/routes";
 import { AdminAssignmentRoute } from "../routes/admin-assignment-route";
+import { AdminCatalogProvisioningRoute } from "../routes/admin-catalog-provisioning-route";
 import { AdminOrderCancellationRoute } from "../routes/admin-order-cancellation-route";
 
 export type AdminRoute = {
@@ -20,11 +21,23 @@ export type AdminRoute = {
   requiresAuth: boolean;
 };
 
+const AdminUnknownRoute = () => (
+  <section>
+    <h1>Admin page not found</h1>
+    <p>Unknown admin-web path. Use the explicit admin routes only.</p>
+  </section>
+);
+
 export const adminRoutes: AdminRoute[] = [
   {
     path: adminRoutePaths.login,
     element: <AdminLoginPage session={createAnonymousAdminSessionState()} redirectPath={adminRoutePaths.assignment} />,
     requiresAuth: false,
+  },
+  {
+    path: adminRoutePaths.catalogProvisioning,
+    element: <AdminCatalogProvisioningRoute />,
+    requiresAuth: true,
   },
   {
     path: adminRoutePaths.assignment,
@@ -38,8 +51,8 @@ export const adminRoutes: AdminRoute[] = [
   },
 ];
 
-export const resolveAdminRoute = (pathname: string): AdminRoute =>
-  adminRoutes.find((route) => route.path === pathname) ?? adminRoutes[1];
+export const resolveAdminRoute = (pathname: string): AdminRoute | null =>
+  adminRoutes.find((route) => route.path === pathname) ?? null;
 
 const getCurrentPathname = (): string => {
   if (typeof window === "undefined") {
@@ -92,7 +105,7 @@ export const AdminRouter = ({
   const route = resolveAdminRoute(activePath);
 
   useEffect(() => {
-    if (route.requiresAuth === false) {
+    if (route === null || route.requiresAuth === false) {
       refreshAttemptedPathRef.current = null;
       return;
     }
@@ -144,7 +157,7 @@ export const AdminRouter = ({
     return () => {
       isActive = false;
     };
-  }, [activePath, activeSession.status, route.requiresAuth]);
+  }, [activePath, activeSession.status, route]);
 
   const handleLogin = async (input: { login: string; password: string }) => {
     setIsLoginSubmitting(true);
@@ -160,7 +173,7 @@ export const AdminRouter = ({
           idleExpiresAt: nextSession.idleExpiresAt,
         }),
       );
-      setActivePath(route.requiresAuth ? activePath : adminRoutePaths.assignment);
+      setActivePath(route?.requiresAuth ? activePath : adminRoutePaths.assignment);
     } finally {
       setIsLoginSubmitting(false);
     }
@@ -181,6 +194,14 @@ export const AdminRouter = ({
       setIsLogoutSubmitting(false);
     }
   };
+
+  if (route === null) {
+    return (
+      <AdminShell>
+        <AdminUnknownRoute />
+      </AdminShell>
+    );
+  }
 
   if (!route.requiresAuth) {
     return (

@@ -1,6 +1,7 @@
 import { createHmac } from "crypto";
 import { createCheckoutPaymentModule } from "../../../backend/src/slices/checkout-payment/presentation/checkout-payment.module";
 import type { CheckoutPaymentPrismaProvider } from "../../../backend/src/slices/checkout-payment/infrastructure/prisma-checkout-payment.repository";
+import { hashSessionToken } from "../../../backend/src/slices/checkout-payment/domain/telegram-auth";
 
 const TEST_BOT_TOKEN = "test-bot-token";
 const NOW = new Date("2026-04-02T12:00:00.000Z");
@@ -231,6 +232,7 @@ describe("checkout-payment module integration", () => {
         transport: "httpOnlyCookie",
         cookie: {
           name: "khujandi_mini_app_session",
+          value: "session-token",
           httpOnly: true,
           sameSite: "lax",
           secure: true,
@@ -272,6 +274,64 @@ describe("checkout-payment module integration", () => {
         sessionTokenHash: expect.any(String),
         expiresAt: new Date("2026-04-05T12:00:00.000Z"),
       },
+    });
+  });
+
+  it("returns the raw cookie value from the shared auth boundary instead of relying on route-local token prediction", async () => {
+    const sessionCreate = jest.fn().mockResolvedValue({
+      id: "session-1",
+      userId: "user-1",
+      sessionTokenHash: "hashed-token",
+      expiresAt: new Date("2026-04-05T12:00:00.000Z"),
+      revokedAt: null,
+    });
+    const module = createCheckoutPaymentModule(
+      createPrismaProvider({
+          order: {
+            findUnique: jest.fn(),
+            create: jest.fn(),
+          },
+          user: {
+            upsert: jest.fn().mockResolvedValue({
+              id: "user-1",
+              telegramId: "42",
+              role: "client",
+              name: "Khujand Client",
+              username: "khujandi_client",
+              language: "ru",
+              isActive: true,
+            }),
+            update: jest.fn(),
+          },
+          telegramAuthReplay: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({
+              initDataHash: "replay-hash",
+              expiresAt: new Date("2026-04-02T12:10:00.000Z"),
+            }),
+          },
+          miniAppSession: {
+            create: sessionCreate,
+          },
+      }),
+      {
+        botToken: TEST_BOT_TOKEN,
+        allowedOrigins: ["https://miniapp.example"],
+        now: () => NOW,
+        sessionTokenFactory: () => "shared-cookie-value",
+      },
+    );
+
+    const result = await module.controller.authenticateTelegram({
+      initData: createTelegramInitData(Math.floor(NOW.getTime() / 1000)),
+      origin: "https://miniapp.example",
+    });
+
+    expect(result.session.cookie.value).toBe("shared-cookie-value");
+    expect(sessionCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        sessionTokenHash: hashSessionToken("shared-cookie-value"),
+      }),
     });
   });
 

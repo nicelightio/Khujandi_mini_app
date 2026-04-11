@@ -13,6 +13,7 @@ status: active
 - `FT-002` декомпозирована в implementation plan и task cards.
 - `FT-003` декомпозирована в implementation plan и task cards.
 - `FT-009` декомпозирована в implementation plan и task cards.
+- `FT-010` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для shared seller storefront edit mode, admin provisioning, Telegram-linked seller access и `WORKING/NOT_WORKING` visibility.
 - Telegram-specific normative layer для `FT-002`, `FT-003` и `FT-009` расширен через `contracts/*`, `runbooks/*` и `diagrams/*`.
 - `FT-003` execution backlog закрыт: `TASK-FT003-01` ... `TASK-FT003-06` завершены; shared Telegram shell/runtime closure дополнительно закрыта в `FT-009`.
 - `FT-004` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для courier assignment.
@@ -27,7 +28,7 @@ status: active
 
 ## Recommended feature order
 
-1. `FT-001`, `FT-002`, `FT-003`, `FT-009` для первой customer-facing волны.
+1. `FT-001`, `FT-002`, `FT-003`, `FT-009`, `FT-010` для первой customer-facing и seller storefront волны.
 2. `FT-004`, `FT-005`, `FT-006` для delivery operations.
 3. `FT-007` для отдельного admin auth/security контура.
 4. `FT-008` для post-delivery feedback loop и go-live hardening.
@@ -1065,6 +1066,297 @@ status: active
 - Docs: `features/FT-009`, `requirements.md`, `changelog.md`, `runbooks/telegram-mini-app-verification.md`, `index.md`
 - Quality Gates: `lint`, `typecheck`, `unit`, `contract/runtime`, `route/page smoke`, `Android Telegram runtime notes`
 
+## FT-010 — Seller Storefront Editing And Store Admin
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT010-01 — Scaffold backend catalog expansion, seller binding and provisioning baseline
+- TASK-ID: `TASK-FT010-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `none`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/shared/db/prisma-client.ts`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`
+- Tests: backend unit/integration skeleton for shop status, menu pages, seller binding, provisioning bootstrap and visibility read-model coverage
+- Verify: repo содержит execution-ready `catalog` persistence/test baseline для `WORKING/NOT_WORKING`, shop/product descriptions/media, menu pages и skeleton provisioning без выноса business logic в `shared`
+- Docs: `tasks/backlog.md`, `tasks/plans/IMPL-FT-010.md`, `changelog.md` при фактической реализации
+- Normative Inputs: `FT-010`, `catalog-seller-provisioning-and-visibility.md`, `seller-catalog-write-policy.md`, `data-boundaries-and-persistence.md`, `testing/index.md`
+- Constraints: legacy soft-delete нельзя закреплять как новый продуктовый boundary; ownership остается внутри `catalog`
+
+### TASK-FT010-02 — Scaffold shared storefront, `/seller/*`, and admin provisioning route boundaries
+- TASK-ID: `TASK-FT010-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `none`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/shared/lib/routes.ts`, `frontend/src/slices/catalog/**/*`, `frontend/src/admin/**/*`, `frontend/src/seller/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/seller/**/*`, `frontend/src/tests/slices/catalog/**/*`
+- Tests: route shell/test skeleton for shared storefront edit boundary, seller-web status page and admin provisioning screen
+- Verify: frontend contour scaffolding различает customer, admin и seller paths, но будущий seller edit mode остается на том же storefront tree, что и customer browse
+- Docs: `tasks/backlog.md`, `tasks/plans/IMPL-FT-010.md`, `changelog.md` при фактической реализации
+- Constraints: не вводить второй storefront implementation или отдельный seller HTML/bootstrap entrypoint без явной необходимости
+
+- Implementation note: checked-in frontend now routes `/shops/:shopId` through the same `CatalogRoute` tree as `/`, adds a narrow `/seller/shops/status` scaffold under `seller-web`, and mounts an authenticated admin provisioning page shell at `/admin/catalog/shops/provision` without introducing a second storefront bootstrap.
+
+- Next recommended action: `TASK-FT010-01` и `TASK-FT010-02` можно запускать параллельно; backend schema/slice baseline и frontend contour scaffold не конкурируют за одни и те же файлы.
+
+### Wave W2 — core logic
+
+### TASK-FT010-03 — Implement admin provisioning command and skeleton shop bootstrap
+- TASK-ID: `TASK-FT010-03`
+- Status: `failed`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`
+- Depends on: `TASK-FT010-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*`, `tests/slices/catalog/**/*`
+- Tests: integration tests for admin provisioning, duplicate seller binding/provision conflicts, starter menu page/product creation and failure rollback
+- Verify: admin provisioning atomically создает shop, seller binding и starter catalog data; seller не стартует с пустого storefront shell
+- Docs: `features/FT-010`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`
+- Verification Targets: admin provisioning command path, skeleton shop creation, Telegram-linked seller binding
+- Invariants: partial shop/binding state не сохраняется при conflict/error; starter pages/products всегда создаются вместе с первым shop; canonical seller ownership between `Shop.sellerId` and Telegram-linked binding must be explicit and non-divergent
+
+### TASK-FT010-04 — Implement seller capability resolution and status-based catalog visibility
+- TASK-ID: `TASK-FT010-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-01`, `TASK-FT010-10`, `TASK-FT002-04`
+- Touched files: `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*`, `backend/src/slices/checkout-payment/**/*` при необходимости, `tests/slices/catalog/**/*`
+- Tests: integration tests for authenticated seller vs non-owner vs anonymous access across public browse, owner reads and `/seller/*` guards
+- Verify: server-side ownership resolution переиспользует Telegram-linked session family, не опирается на client-only seller flags и скрывает `NOT_WORKING` shops от public browse, оставляя их видимыми owning seller-у
+- Docs: `features/FT-010`, `contracts/catalog-seller-access-and-session.md`, `contracts/catalog-public-api.md`, `changelog.md`
+- Constraints: public browse остается auth-free; отдельный seller password/auth endpoint не вводится
+- Verification Targets: seller capability/read boundary, `WORKING/NOT_WORKING` visibility, `/seller/*` auth failure posture
+- Red-verify focus: capability resolution MUST trust Telegram-linked seller binding/session family rather than `shop.sellerId` alone
+
+### TASK-FT010-05 — Implement seller catalog writes for shop, menu page and product edit surfaces
+- TASK-ID: `TASK-FT010-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-01`, `TASK-FT010-04`
+- Touched files: `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `tests/slices/catalog/**/*`
+- Tests: integration tests for owned shop metadata edits, menu page add/rename, product description/image/price edits, rename policy and no-delete guardrails
+- Verify: seller может менять только owned shop/menu/product fields, `shop_name_snapshot` historical orders остается неизменным, а destructive removal semantics нигде не появляются
+- Docs: `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Invariants: foreign shop/menu/product writes fail closed; `REQ-020` rename/snapshot policy сохраняется при расширении editable fields
+- Constraints: add/edit flows допустимы, delete UI/API для seller baseline не допускаются
+
+### TASK-FT010-06 — Wire shared storefront seller edit mode into the existing catalog tree
+- TASK-ID: `TASK-FT010-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`
+- Depends on: `TASK-FT010-02`, `TASK-FT010-04`, `TASK-FT010-05`, `TASK-FT009-04`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/slices/catalog/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/shared/i18n/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/slices/catalog/**/*`
+- Tests: route/component smoke for seller-owned edit affordances, contextual `click/long press` activation, controlled save feedback and absence of a second seller storefront tree
+- Verify: seller редактирует owned storefront на том же component tree, что и customer browse; non-seller users остаются в browse-only режиме, а новые menu/product flows не ломают storefront layout
+- Docs: `features/FT-010`, `changelog.md`
+- Constraints: не форкать catalog page в отдельный seller-only tree; использовать существующие shell/runtime primitives
+
+### TASK-FT010-07 — Wire seller-web status toggle and admin provisioning UI flows
+- TASK-ID: `TASK-FT010-07`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-02`, `TASK-FT010-10`, `TASK-FT010-04`, `TASK-FT010-05`
+- Touched files: `frontend/src/app/root-router.tsx`, `frontend/src/admin/**/*`, `frontend/src/seller/**/*`, `frontend/src/shared/lib/routes.ts`, `frontend/src/tests/app/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/seller/**/*`, `backend/src/dev-runtime/**/*`
+- Tests: UI/integration smoke for admin provisioning form, seller-web status toggle, forbidden/unauthenticated seller-web states and same-user access reuse/handoff
+- Verify: admin может создать и привязать shop из admin contour, seller может переключать статус только owned shop в `/seller/*`, а store-admin остается narrow surface без stats/reporting
+- Docs: `features/FT-010`, `contracts/catalog-seller-access-and-session.md`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`
+- Constraints: `/seller/*` должен оставаться отдельным contour от `/admin/*`, но внутри одной shared seller identity/session family; cross-slice reporting не добавлять
+
+### Wave W3 — integration & polish
+
+### TASK-FT010-08 — Add FT-010 verification suite and final docs/RTM sync
+- TASK-ID: `TASK-FT010-08`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-10`, `TASK-FT010-04`, `TASK-FT010-05`, `TASK-FT010-06`, `TASK-FT010-07`
+- Touched files: `tests/slices/catalog/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/seller/**/*`, `frontend/src/tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`, `.tasks/TASK-FT010-08/**/*`
+- Tests: final backend integration, frontend shared-storefront and seller-web/admin smoke, UAT notes for admin provisioning and owner/public visibility, and explicit no-delete evidence
+- Verify: acceptance criteria из `FT-010` полностью покрыты tests/UAT, RTM остается согласованной, `NOT_WORKING` public gating доказан, а shared storefront и `/seller/*` остаются delete-free в baseline scope
+- Docs: `features/FT-010`, `requirements.md`, `changelog.md`, `index.md`, `.tasks/TASK-FT010-08/**/*`
+- Quality Gates: `npm run lint`, `npm run test:catalog`, `jest --config jest.config.cjs frontend/src/tests/admin`, `jest --config jest.config.cjs frontend/src/tests/seller`, `npm run build:frontend`
+- Verification Targets: shared storefront edit mode, skeleton provisioning, seller-web toggle, public visibility gating, no-delete baseline
+
+### TASK-FT010-20 — Isolate seller-web status toggle from stale storefront metadata writes
+- TASK-ID: `TASK-FT010-20`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-07`, `TASK-FT010-18`, `TASK-FT010-19`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/catalog/**/*`, `frontend/src/seller/**/*`, `tests/slices/catalog/**/*`, `frontend/src/tests/seller/**/*`, `frontend/src/tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/changelog.md`
+- Tests: focused runtime/integration coverage proving seller-web status toggles do not overwrite stale shop metadata last changed through the shared storefront, plus seller route regression coverage for status-only submit semantics
+- Verify: narrow `/seller/*` status control persists only `WORKING/NOT_WORKING` intent and cannot silently roll back `shop.name/description/media` from stale local state
+- Docs: `features/FT-010`, `changelog.md`, `.tasks/TASK-FT010-20/**/*`
+- Constraints: не превращать narrow status control в второй широкий storefront editor; не ломать existing rename/snapshot policy; prefer explicit status-only command or patch semantics over resubmitting unrelated metadata
+
+### TASK-FT010-09 — Enforce admin auth and RBAC on provisioning runtime route
+- TASK-ID: `TASK-FT010-09`
+- Status: `failed`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`
+- Depends on: `TASK-FT010-03`, `TASK-FT007-09`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/admin-access/**/*`, `tests/slices/catalog/**/*`, `.memory-bank/bugs/BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md`
+- Tests: negative runtime tests for anonymous/non-admin callers plus happy-path admin provisioning regression coverage
+- Verify: mounted admin provisioning route reuses checked-in admin session family and fails closed for anonymous/non-admin callers before any catalog write side effects
+- Docs: `tasks/backlog.md`, `bugs/BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md`, `changelog.md` при фактической реализации
+- Constraints: не вводить parallel seller/admin auth model и не обходить existing admin cookie/session boundary
+
+### TASK-FT010-10 — Replace refresh-cookie shortcut with a real protected admin provisioning boundary
+- TASK-ID: `TASK-FT010-10`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-017`
+- Depends on: `TASK-FT010-09`, `TASK-FT007-09`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/admin-access/**/*`, `tests/slices/catalog/**/*`, `tests/slices/admin-access/**/*`, `.memory-bank/bugs/BUG-2026-04-10-ft010-provisioning-route-uses-refresh-cookie-as-auth.md`
+- Tests: runtime regressions for expired/missing protected admin session vs valid refresh cookie, plus preserved admin provisioning happy-path/conflict coverage
+- Verify: privileged provisioning write reuses the real admin protected-route boundary without treating refresh cookie as a direct auth bearer, and the `FT-007` session model remains semantically intact
+- Docs: `tasks/backlog.md`, `bugs/BUG-2026-04-10-ft010-provisioning-route-uses-refresh-cookie-as-auth.md`, `changelog.md` при фактической реализации
+- Constraints: не превращать refresh cookie в общий auth bearer для admin writes; не дублировать session semantics по route-local helpers
+
+### TASK-FT010-11 — Mount seller access on the real Mini App auth/session runtime boundary
+- TASK-ID: `TASK-FT010-11`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-022`
+- Depends on: `TASK-FT010-04`, `TASK-FT002-04`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/checkout-payment/**/*`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: runtime/integration tests proving seller-protected reads reuse the same persistent Mini App session family and survive the checked-in backend auth/runtime boundary rather than a route-local in-memory clone
+- Verify: seller-owned catalog reads are mounted on the real checked-in Mini App auth/session runtime path backed by persistent `User` / `MiniAppSession` storage, so seller access no longer depends on a dev-runtime-local session clone
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/catalog-seller-access-and-session.md`, `changelog.md`
+- Constraints: не вводить отдельный seller auth model; не плодить второй session resolution path рядом с checkout/Mini App auth
+
+### TASK-FT010-12 — Remove route-local Mini App cookie issuance side channel
+- TASK-ID: `TASK-FT010-12`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-022`
+- Depends on: `TASK-FT010-11`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/checkout-payment/**/*`, `tests/slices/catalog/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: runtime/integration regressions proving mounted `POST /api/v1/auth/telegram` no longer predicts or reconstructs the session cookie token through route-local state, and stays aligned with the checked-in Mini App auth/session transport semantics
+- Verify: repo-local Mini App auth route consumes one explicit shared transport boundary for cookie issuance instead of the local `pendingMiniAppSessionToken` convention, so future checkout auth changes cannot silently drift at the cookie/session seam
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/telegram-mini-app-auth-contract.md`, `changelog.md`
+- Constraints: не возвращать route-local auth/session clone; не вводить отдельный seller auth transport
+
+### TASK-FT010-13 — Freeze or implement observability for seller catalog writes
+- TASK-ID: `TASK-FT010-13`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-018`, `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-05`
+- Touched files: `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/contracts/seller-catalog-write-policy.md`, `.memory-bank/invariants.md`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `.tasks/TASK-FT010-13/**/*`
+- Tests: integration coverage for seller shop/menu/product write observability or explicit verify evidence for a documented no-event exception
+- Verify: seller catalog writes no longer sit in an implicit silent-write gap relative to project-wide event/audit expectations; either canonical artifacts exist or the exception is frozen explicitly in spec/docs
+- Docs: `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-05`
+
+### TASK-FT010-14 — Align seller write observability across catalog adapters
+- TASK-ID: `TASK-FT010-14`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-018`, `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-13`
+- Touched files: `backend/src/slices/catalog/**/*`, `backend/src/dev-runtime/dev-api-server.ts`, `tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/contracts/seller-catalog-write-policy.md`, `.tasks/TASK-FT010-14/**/*`
+- Tests: runtime/integration coverage proving seller write observability semantics stay aligned across Prisma-backed and in-memory/runtime catalog adapters, or an explicit spec freeze that only the persisted adapter is normative
+- Verify: seller catalog write observability is no longer a Prisma-only implementation detail; adapter/runtime parity or an explicit bounded exception is made semantically clear and test-backed
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-13`
+
+### TASK-FT010-15 — Resolve seller event-sink parity for non-persistent catalog adapters
+- TASK-ID: `TASK-FT010-15`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-018`, `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-14`
+- Touched files: `backend/src/dev-runtime/dev-api-server.ts`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/contracts/seller-catalog-write-policy.md`, `.tasks/TASK-FT010-15/**/*`
+- Tests: runtime/integration coverage proving alternate `catalog` adapters either write into one shared event-store analogue or a spec-frozen bounded exception explicitly documents why non-persistent adapters are not normative for sink semantics
+- Verify: seller write observability parity is closed not only at the returned artifact shape, but also at the operational event sink semantics relied on by the project-wide `events` model
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-14`
+
+### TASK-FT010-16 — Harden seller/admin contour route-family matching
+- TASK-ID: `TASK-FT010-16`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-02`
+- Touched files: `frontend/src/app/root-router.tsx`, `frontend/src/admin/app/router.tsx` if needed, `frontend/src/seller/app/router.tsx`, `frontend/src/shared/lib/routes.ts`, `frontend/src/tests/app/**/*`, `frontend/src/tests/seller/**/*`
+- Tests: hostile route smoke for adjacent prefixes like `/admin-help` and `/seller-guide`, plus explicit unknown seller-path behavior
+- Verify: contour routing respects slash-bounded route families instead of any broad string prefix, and seller/admin scaffolds no longer accept semantically foreign paths by accident; verified with targeted frontend router Jest coverage and lint on changed files
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-02`
+
+### TASK-FT010-17 — Remove implicit admin fallback for unknown `/admin/*` paths
+- TASK-ID: `TASK-FT010-17`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-16`
+- Touched files: `frontend/src/admin/app/router.tsx`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/app/**/*` if needed, `.protocols/TASK-FT010-17/**/*`
+- Tests: hostile admin-route smoke proving unknown `/admin/*` paths no longer silently resolve to assignment/login fallbacks and instead return explicit not-found behavior under the admin contour
+- Verify: `admin-web` route handling becomes semantically aligned with the slash-bounded hardening already applied to the seller contour, so unsupported `/admin/*` paths cannot masquerade as valid operational screens by accident
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-16`
+
+### TASK-FT010-18 — Replace synthetic shared-storefront seller editing with canonical catalog data wiring
+- TASK-ID: `TASK-FT010-18`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-04`, `TASK-FT010-05`, `TASK-FT010-06`
+- Touched files: `frontend/src/slices/catalog/**/*`, `frontend/src/tests/slices/catalog/**/*`, `backend/src/dev-runtime/**/*` if seller storefront runtime surface must be mounted, and relevant `.memory-bank/*` docs
+- Tests: route/integration smoke proving `/shops/:shopId` loads real owner-visible menu pages/products for seller mode, owner-visible `NOT_WORKING` storefront data remains canonical, and submit flows call the checked-in backend seller write boundary instead of frontend-local success simulation
+- Verify: shared storefront seller edit mode no longer reconstructs pseudo-content from public browse or synthetic placeholders; it reads and writes canonical `catalog` data for owned shops while keeping the same storefront tree and browse-only fallback for non-sellers
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-06`
+
+### TASK-FT010-19 — Reconcile canonical seller storefront reads with unpaged legacy products
+- TASK-ID: `TASK-FT010-19`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-18`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/catalog/**/*` if canonical read-model helpers need widening, `frontend/src/slices/catalog/**/*` only if explicit fallback rendering is required, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: hostile runtime/integration coverage proving owner-visible shared storefront reads do not drop real seller products when a checked-in shop still has `menuPageId = null` or no explicit menu pages
+- Verify: canonical seller storefront wiring remains semantically aligned for both newly provisioned skeleton shops and older checked-in product shapes, without falling back to synthetic pseudo-content or hiding real seller-owned items
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-18`
+
+### TASK-FT010-21 — Replace synthetic storefront fallback with controlled missing/error states
+- TASK-ID: `TASK-FT010-21`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-18`, `TASK-FT010-19`
+- Touched files: `frontend/src/slices/catalog/routes/**/*`, `frontend/src/slices/catalog/components/**/*`, `frontend/src/slices/catalog/api/**/*`, `frontend/src/tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: route/component regressions proving `/shops/:shopId` no longer fabricates synthetic browseable storefront content when canonical seller data and public data are both missing or failing; instead it renders controlled not-found/error states while preserving valid public/seller scenarios
+- Verify: shared storefront seller mode must not reconstruct fake products or a fake shop shell from swallowed errors or absent data; nonexistent/failed storefront loads return explicit controlled states, while legitimate public browse and owner-visible storefront cases remain intact
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`, `index.md`
+- Source: opened from `/review` finding after `FT-010` closure
+
 ## Conventions
 Each task should include:
 - goal
@@ -1090,3 +1382,15 @@ Each task should include:
 - Tests: `npm test -- foo`
 - Verify: API/manual/UAT steps
 - Docs: product/requirements/feature/changelog/index
+### TASK-FT010-13 — Close seller catalog write observability semantics
+- TASK-ID: `TASK-FT010-13`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-026`, `REQ-018`
+- Depends on: `TASK-FT010-05`
+- Touched files: `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/invariants.md`, `.memory-bank/changelog.md`
+- Tests: integration/unit coverage proving seller shop/menu/product writes either emit explicit catalog-owned events/audit artifacts or are covered by an explicit spec-level no-event exception with verify evidence
+- Verify: significant seller catalog writes no longer remain silently unobservable relative to project audit/event invariants, and the chosen event-backed policy is explicit and test-backed
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`, and normative docs if a no-event exception is intentionally frozen
+- Constraints: не выносить observability ownership из `catalog`; не добавлять cross-slice reporting scope

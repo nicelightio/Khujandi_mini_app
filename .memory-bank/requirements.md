@@ -7,10 +7,11 @@ status: active
 ## Status model
 - Document `status`: `draft|active|deprecated|archived`
 - RTM `Lifecycle`: `planned|implemented|verified`
+- Historical RTM rows may still use legacy `done` as an alias of `verified`; active drift corrections should prefer explicit `planned|implemented|verified`.
 
 ## REQ list
 - `REQ-001` Public catalog: витрина магазинов и товаров доступна без авторизации.
-- `REQ-002` Seller management: продавец управляет только своими магазинами и товарами; seller-side CRUD не выделяется в отдельную capability вне `catalog`.
+- `REQ-002` Seller management: продавец управляет только своими магазинами и товарами; seller-side management остается внутри `catalog`, даже если доставляется через shared storefront и узкую админку магазина.
 - `REQ-003` Localization: при первом запуске клиент выбирает язык `ru/en/tj`; выбор сохраняется и входит в MVP acceptance.
 - `REQ-004` Telegram auth: Mini App использует `POST /auth/telegram`; доверенные решения опираются только на серверную валидацию raw `initData` и `auth_date`, где `auth_date` имеет TTL не более 10 минут; `initDataUnsafe` не используется для auth decisions, а replay в пределах TTL должен блокироваться; пустой или отсутствующий `initData` в unsupported launch modes не должен обходить auth boundary и требует controlled recovery path.
 - `REQ-005` Checkout/payment: заказ создается только после успешной онлайн-оплаты через локального провайдера.
@@ -32,6 +33,9 @@ status: active
 - `REQ-021` Trusted payment confirmation: заказ может быть создан только после trusted server-side подтверждения успеха оплаты с проверкой подлинности provider callback/status confirmation и replay protection по payment transaction/idempotency metadata; для Telegram/Bot webhook flows обязательны transport verification (`secret_token` или эквивалент), идемпотентная обработка повторной доставки и DB uniqueness для payment identity; payment/webhook contour также требует health monitoring, alerting по non-2xx/latency и documented manual recovery path.
 - `REQ-022` Mini App session and storage security: session identifiers Mini App не хранятся в `localStorage` или другом JS-readable persistent storage как baseline; предпочтителен HttpOnly cookie contour с явной CSRF-стратегией; minimal MVP baseline для cookie-based Mini App session: `SameSite` cookie + `Origin/Referer` validation на server-side; non-sensitive client persistence (например язык) должна иметь явную политику fallback `DeviceStorage -> CloudStorage -> localStorage` и синхронизацию в backend profile после появления auth-контекста; для Mini App auth/payment contour обязателен явный CSP/XSS-hardening baseline.
 - `REQ-023` Telegram-specific verification baseline: для `checkout-payment`, `language/localization`, `mini-app shell` и других Telegram-sensitive flows definition of done включает не только browser e2e, но и Telegram-specific verification: mock/runtime contract tests, test environment usage где применимо, и минимум один прогон на реальном `Android Telegram`; blocking evidence может подтверждаться operator-confirmed notes, а screenshots/videos остаются optional supporting artifacts. Более широкая cross-platform matrix (`iOS`, `Desktop/macOS`) сейчас желательна, но не является blocking gate без отдельного explicit request.
+- `REQ-024` Seller storefront edit mode: seller редактирует owned shop в том же storefront contour, что и customer browse; базовый storefront view и компонентная структура остаются общими, edit affordances активируются contextual `long press`/`click`, а отдельный heavy seller builder/editor не вводится.
+- `REQ-025` Seller provisioning and access: первый skeleton shop создается admin-side provisioning flow с названием магазина и привязкой Telegram-аккаунта seller-а; seller access по обоим contour-ам должен резолвиться из Telegram-linked identity без отдельного независимого seller password baseline.
+- `REQ-026` Shop visibility and store admin: магазин имеет статусы `WORKING` и `NOT_WORKING`; `WORKING` магазин виден seller-у и клиентам, `NOT_WORKING` магазин виден только owning seller-у; отдельная узкая `seller-web` админка магазина в первой версии включает только легкие catalog-owned функции, начиная с переключения этого статуса, без статистики продаж.
 
 ## Out of scope
 - Авто-назначение курьеров.
@@ -40,16 +44,18 @@ status: active
 - 2FA веб-админки.
 - Продвинутая BI-аналитика и автоматический пересчет VIP/репутации.
 - Отдельный paid online charge за платное переименование магазина.
+- UI-функционал `delete` для shops, menu pages и products.
+- Sales stats и другой cross-slice reporting в baseline `seller-web` админки магазина.
 
 ## Traceability (RTM)
 | REQ | Epic | Feature | Test | Lifecycle |
 |---|---|---|---|---|
 | REQ-001 | EP-001 | FT-001 | e2e: public catalog browse | done |
-| REQ-002 | EP-001 | FT-001 | integration: seller ownership + soft-delete | done |
+| REQ-002 | EP-001 | FT-001 | integration: seller ownership guards | done |
 | REQ-003 | EP-001 | FT-003 | e2e: first-run language selection | done |
-| REQ-004 | EP-001 | FT-002 | integration: telegram initData validation | done |
-| REQ-005 | EP-001 | FT-002 | e2e: successful payment creates order | done |
-| REQ-006 | EP-001 | FT-002 | e2e: failed payment keeps orders absent | done |
+| REQ-004 | EP-001 | FT-002 | integration: raw `initData` validation + replay guard | implemented |
+| REQ-005 | EP-001 | FT-002 | integration/front-smoke: trusted paid checkout order creation | implemented |
+| REQ-006 | EP-001 | FT-002 | integration/front-smoke: failed payment keeps orders absent | implemented |
 | REQ-007 | EP-002 | FT-004 | e2e: admin assigns courier | done |
 | REQ-018 | EP-002 | FT-004 | integration: assignment audit and error contract | done |
 | REQ-008 | EP-002 | FT-005 | integration: order state machine + 409 conflict | done |
@@ -67,9 +73,12 @@ status: active
 | REQ-018 | EP-003 | FT-007 | integration: auth audit and error contract | done |
 | REQ-019 | EP-001 | FT-009 | verify: Android Telegram WebView shell baseline | done |
 | REQ-020 | EP-001 | FT-001 | unit: rename policy and shop name snapshot | done |
-| REQ-021 | EP-001 | FT-002 | integration: trusted payment callback and replay protection | done |
-| REQ-022 | EP-001 | FT-002, FT-003, FT-009 | integration: session/storage policy + Android shell persistence evidence | done |
-| REQ-023 | EP-001 | FT-003, FT-009 | verify: Telegram-specific test environment and Android real-client evidence | done |
+| REQ-021 | EP-001 | FT-002 | integration: trusted payment callback and replay protection | implemented |
+| REQ-022 | EP-001 | FT-002, FT-003, FT-009, FT-010 | integration/verify: session-storage policy + Android shell evidence; seller runtime session-boundary hardening remains follow-up-based | implemented |
+| REQ-023 | EP-001 | FT-003, FT-009 | verify: Telegram-specific test env + Android shell evidence; checkout runtime pending | implemented |
+| REQ-024 | EP-001 | FT-010 | e2e: seller edits shared storefront without separate builder; repo-local shared-storefront tests now prove owner edit-mode reuse on the existing catalog tree and explicit delete-free baseline evidence | done |
+| REQ-025 | EP-001 | FT-010 | integration/e2e: admin-provisioned skeleton + Telegram-linked seller access; provisioning/runtime and admin/seller smoke coverage now verify starter bootstrap and shared seller session/access reuse | done |
+| REQ-026 | EP-001 | FT-010 | e2e: `WORKING/NOT_WORKING` visibility and seller store-admin status toggle; runtime/frontend verification now proves owner-only `NOT_WORKING` visibility, public gating, status-only seller-web control, and delete-free narrow scope | done |
 
 ## Source artifacts
 

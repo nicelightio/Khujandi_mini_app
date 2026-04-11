@@ -116,6 +116,7 @@ export type AuthenticateTelegramInput = {
 
 export type CheckoutPaymentAuthCookie = {
   name: string;
+  value: string;
   httpOnly: true;
   sameSite: "lax";
   secure: boolean;

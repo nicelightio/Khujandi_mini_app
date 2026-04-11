@@ -20,13 +20,14 @@ status: active
 - `shop_name_snapshot` в `orders` фиксирует имя магазина на момент заказа и не обновляется при rename.
 - `refund_status` и `refund_note` обязательны как explicit persistence boundary для ручного refund workflow.
 - `order_status_history` является audit/state journal, а не derived convenience table.
-- Soft-delete применяется к shops/products/orders и требует явного учета в query policy.
+- Public storefront visibility опирается на явный shop status boundary (`WORKING` / `NOT_WORKING`), а не на скрытые removal flags.
+- Catalog MVP не вводит destructive removal semantics как продуктовую норму для shops, menu pages и products.
 - Payment identity и anti-replay markers (`payment_provider_tx_id`, `telegram_payment_charge_id`, `provider_payment_charge_id`, invoice/payment reference) должны иметь явную persistence policy и DB-level uniqueness там, где это применимо.
 - Session/security persistence отделяется по чувствительности данных: session identifiers не попадают в JS-readable persistent storage baseline, а non-sensitive client preferences имеют explicit fallback policy.
 
 ## Slice to data ownership
 
-- `catalog`: `shops`, `products`, seller ownership rules.
+- `catalog`: `shops`, shop description/media/status, menu pages, products, product description/media, seller ownership rules, seller Telegram binding read-model needs, and public visibility rules.
 - `checkout-payment`: paid order creation, payment transaction identity, order snapshots.
 - `delivery-assignment`: `orders` read/update touchpoints for `CREATED -> ASSIGNED`, `order_status_history`, slice-owned `delivery_assignment_audit`, `events`.
 - `delivery-tracking`: post-assignment order lifecycle and its `order_status_history`/`events` writes.
@@ -41,6 +42,7 @@ status: active
 ## Normative inputs
 
 - [.memory-bank/contracts/payment-confirmation-contract.md](../contracts/payment-confirmation-contract.md): trusted payment boundary.
+- [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](../contracts/catalog-seller-provisioning-and-visibility.md): seller provisioning and public visibility.
 - [.memory-bank/states/order-lifecycle.md](../states/order-lifecycle.md): order/refund lifecycle rules.
 
 ## Source artifacts

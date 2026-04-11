@@ -119,6 +119,7 @@ export class CheckoutPaymentService {
     const parsed = this.parseAndValidateInitData(initData);
     const now = this.now();
     const nowMs = now.getTime();
+    const sessionToken = this.sessionTokenFactory();
 
     if (!isTelegramAuthDateFresh(parsed.authDate, nowMs, this.initDataTtlMs)) {
       throw new AppError("AUTH_REQUIRED", "Telegram initData has expired", 401, {
@@ -140,7 +141,7 @@ export class CheckoutPaymentService {
         language: parsed.user.languageCode,
         isActive: true,
       },
-      sessionTokenHash: hashSessionToken(this.sessionTokenFactory()),
+      sessionTokenHash: hashSessionToken(sessionToken),
       sessionExpiresAt: new Date(nowMs + this.sessionTtlMs),
     });
 
@@ -154,6 +155,7 @@ export class CheckoutPaymentService {
         transport: "httpOnlyCookie",
         cookie: {
           name: this.sessionCookieName,
+          value: sessionToken,
           httpOnly: true,
           sameSite: "lax",
           secure: this.secureCookies,

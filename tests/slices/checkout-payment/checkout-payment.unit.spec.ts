@@ -579,6 +579,7 @@ describe("checkout-payment service", () => {
     expect(result.session.transport).toBe("httpOnlyCookie");
     expect(result.session.cookie).toMatchObject({
       name: "khujandi_mini_app_session",
+      value: "session-token",
       httpOnly: true,
       sameSite: "lax",
       path: "/",

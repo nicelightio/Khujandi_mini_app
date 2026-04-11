@@ -4,7 +4,8 @@ status: active
 ---
 # Features Index
 
-- [.memory-bank/features/FT-001-catalog-browse-and-seller-management.md](FT-001-catalog-browse-and-seller-management.md): Публичная витрина и seller-side CRUD в границах `catalog`.
+- [.memory-bank/features/FT-001-catalog-browse-and-seller-management.md](FT-001-catalog-browse-and-seller-management.md): Публичная витрина и baseline seller ownership в границах `catalog`.
+- [.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md](FT-010-seller-storefront-editing-and-store-admin.md): Shared storefront seller edit mode, admin-provisioned skeleton shops и узкая админка магазина.
 - [.memory-bank/features/FT-002-checkout-payment-and-order-creation.md](FT-002-checkout-payment-and-order-creation.md): Checkout, Telegram auth и создание заказа после подтвержденной оплаты.
 - [.memory-bank/features/FT-003-language-selection-and-localization.md](FT-003-language-selection-and-localization.md): Обязательный first-run language overlay и базовая локализация MVP.
 - [.memory-bank/features/FT-004-courier-assignment.md](FT-004-courier-assignment.md): Ручное назначение курьера администратором.

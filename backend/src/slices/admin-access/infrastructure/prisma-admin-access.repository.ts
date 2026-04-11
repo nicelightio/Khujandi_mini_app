@@ -62,6 +62,7 @@ type AdminSessionFindUniqueArgs = {
   select: {
     id: true;
     adminAccountId: true;
+    accessTokenHash: true;
     refreshTokenHash: true;
     accessTokenExpiresAt: true;
     refreshTokenExpiresAt: true;
@@ -78,6 +79,7 @@ type AdminSessionUpdateArgs = {
     id: string;
   };
   data: {
+    accessTokenHash?: string;
     refreshTokenHash?: string;
     accessTokenExpiresAt?: Date;
     refreshTokenExpiresAt?: Date;
@@ -88,6 +90,7 @@ type AdminSessionUpdateArgs = {
   select: {
     id: true;
     adminAccountId: true;
+    accessTokenHash: true;
     refreshTokenHash: true;
     accessTokenExpiresAt: true;
     refreshTokenExpiresAt: true;
@@ -184,6 +187,7 @@ const accountSelect = {
 const sessionSelect = {
   id: true,
   adminAccountId: true,
+  accessTokenHash: true,
   refreshTokenHash: true,
   accessTokenExpiresAt: true,
   refreshTokenExpiresAt: true,
@@ -254,6 +258,7 @@ export class PrismaAdminAccessRepository implements AdminAccessRepository {
         id: input.sessionId,
       },
       data: {
+        accessTokenHash: input.accessTokenHash,
         refreshTokenHash: input.refreshTokenHash,
         accessTokenExpiresAt: input.accessTokenExpiresAt,
         refreshTokenExpiresAt: input.refreshTokenExpiresAt,

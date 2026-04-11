@@ -9,6 +9,7 @@ status: active
 - Прямой доступ к `Telegram.WebApp.*` разрешен только shell/runtime adapter слою.
 - Capability slices используют Telegram-specific behavior только через технические adapters/primitives.
 - `FT-002` владеет auth/session transport, trusted payment verification и transport/source trust checks.
+- `FT-010` владеет seller edit mode behavior на shared storefront и seller-side access gating semantics поверх `catalog`, но не владеет shell transport.
 - `FT-003` владеет explicit language choice, fallback-to-`ru`, persistence resolution и post-auth profile sync.
 - `FT-009` владеет shell bootstrap, runtime events, safe-area/theme/viewport/lifecycle policy, centralized back/swipe behavior и shared non-sensitive persistence boundary, нужной для WebView-safe UX.
 
@@ -33,6 +34,7 @@ status: active
 
 - Session identifiers не хранятся в `localStorage` или другом JS-readable persistent storage как baseline.
 - HttpOnly cookie contour для Mini App session остается outside shell ownership и следует auth boundary из `FT-002`.
+- Shell/runtime слой MUST NOT сам решать, что пользователь является seller-ом, по untrusted client-side данным; seller mode активируется только из slice-provided server-validated access state.
 - Non-sensitive preferences (например язык) используют explicit fallback policy: `DeviceStorage -> CloudStorage -> localStorage`.
 - Default app language baseline: `ru`; Telegram `user.language_code` может использоваться только как runtime hint для initial UI preselection и не считается trusted persisted preference без validated auth context.
 - Unsupported, empty или поврежденное persisted language value не считается валидным explicit preference: runtime fallback идет на `ru`, а invalid state не маскируется под подтвержденный пользовательский выбор.

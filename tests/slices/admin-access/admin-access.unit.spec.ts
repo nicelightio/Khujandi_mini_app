@@ -52,6 +52,7 @@ const createRepository = (): AdminAccessRepository => ({
   revokeSession: async (input) => ({
     id: input.sessionId,
     adminAccountId: "admin-account-1",
+    accessTokenHash: "hashed-access-token",
     refreshTokenHash: "hashed-refresh-token",
     accessTokenExpiresAt: new Date("2026-04-04T10:15:00.000Z"),
     refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
@@ -234,6 +235,7 @@ describe("admin-access service", () => {
     const revokeSession = jest.fn(async (input) => ({
       id: input.sessionId,
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token",
       refreshTokenHash: "hashed-refresh-token",
       accessTokenExpiresAt: new Date("2026-04-04T10:15:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
@@ -248,6 +250,7 @@ describe("admin-access service", () => {
       findSessionByRefreshTokenHash: async () => ({
         id: "session-1",
         adminAccountId: "admin-account-1",
+        accessTokenHash: "hashed-access-token",
         refreshTokenHash: "hashed-refresh-token",
         accessTokenExpiresAt: new Date("2026-04-04T10:15:00.000Z"),
         refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),

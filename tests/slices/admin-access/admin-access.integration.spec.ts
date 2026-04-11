@@ -104,6 +104,7 @@ describe("admin-access module integration", () => {
     const adminSessionCreate = jest.fn().mockResolvedValue({
       id: "session-1",
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token",
       refreshTokenHash: "hashed-refresh-token",
       accessTokenExpiresAt: new Date("2026-04-04T10:30:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:15:00.000Z"),
@@ -154,7 +155,7 @@ describe("admin-access module integration", () => {
     });
     const module = createAdminAccessModule(prisma);
     const tokenHasher = {
-      hash: jest.fn().mockResolvedValue("hashed-refresh-token"),
+      hash: jest.fn().mockResolvedValueOnce("hashed-access-token").mockResolvedValueOnce("hashed-refresh-token"),
     };
     const now = new Date("2026-04-04T10:15:00.000Z");
 
@@ -162,6 +163,7 @@ describe("admin-access module integration", () => {
       module.controller.createSessionBaseline(
         {
           adminAccountId: "admin-account-1",
+          accessToken: "plain-access-token",
           refreshToken: "plain-refresh-token",
           now,
         },
@@ -170,6 +172,7 @@ describe("admin-access module integration", () => {
     ).resolves.toEqual({
       id: "session-1",
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token",
       refreshTokenHash: "hashed-refresh-token",
       accessTokenExpiresAt: new Date("2026-04-04T10:30:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:15:00.000Z"),
@@ -182,6 +185,7 @@ describe("admin-access module integration", () => {
     expect(adminSessionCreate).toHaveBeenCalledWith({
       data: {
         adminAccountId: "admin-account-1",
+        accessTokenHash: "hashed-access-token",
         refreshTokenHash: "hashed-refresh-token",
         accessTokenExpiresAt: new Date("2026-04-04T10:30:00.000Z"),
         refreshTokenExpiresAt: new Date("2026-04-07T10:15:00.000Z"),
@@ -286,6 +290,7 @@ describe("admin-access module integration", () => {
     const adminSessionCreate = jest.fn().mockResolvedValue({
       id: "session-1",
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token",
       refreshTokenHash: "hashed-refresh-token",
       accessTokenExpiresAt: new Date("2026-04-04T10:15:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
@@ -338,7 +343,7 @@ describe("admin-access module integration", () => {
             verify: jest.fn().mockResolvedValue(true),
           },
           tokenHasher: {
-            hash: jest.fn().mockResolvedValue("hashed-refresh-token"),
+            hash: jest.fn().mockResolvedValueOnce("hashed-access-token").mockResolvedValueOnce("hashed-refresh-token"),
           },
           tokenFactory: {
             createTokenPair: jest.fn().mockResolvedValue({
@@ -610,6 +615,7 @@ describe("admin-access module integration", () => {
     const adminSessionFindUnique = jest.fn().mockResolvedValue({
       id: "session-1",
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token-1",
       refreshTokenHash: "hashed-refresh-token-1",
       accessTokenExpiresAt: new Date("2026-04-04T10:15:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
@@ -622,6 +628,7 @@ describe("admin-access module integration", () => {
     const adminSessionUpdate = jest.fn().mockResolvedValue({
       id: "session-1",
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token-2",
       refreshTokenHash: "hashed-refresh-token-2",
       accessTokenExpiresAt: new Date("2026-04-04T10:35:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
@@ -661,6 +668,7 @@ describe("admin-access module integration", () => {
             hash: jest
               .fn()
               .mockResolvedValueOnce("hashed-refresh-token-1")
+              .mockResolvedValueOnce("hashed-access-token-2")
               .mockResolvedValueOnce("hashed-refresh-token-2"),
           },
           tokenFactory: {
@@ -686,16 +694,18 @@ describe("admin-access module integration", () => {
         id: "session-1",
       },
       data: {
+        accessTokenHash: "hashed-access-token-2",
         refreshTokenHash: "hashed-refresh-token-2",
         accessTokenExpiresAt: new Date("2026-04-04T10:35:00.000Z"),
         refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
         idleExpiresAt: new Date("2026-04-04T10:50:00.000Z"),
         lastActivityAt: new Date("2026-04-04T10:20:00.000Z"),
       },
-      select: {
-        id: true,
-        adminAccountId: true,
-        refreshTokenHash: true,
+        select: {
+          id: true,
+          adminAccountId: true,
+          accessTokenHash: true,
+          refreshTokenHash: true,
         accessTokenExpiresAt: true,
         refreshTokenExpiresAt: true,
         idleExpiresAt: true,
@@ -711,6 +721,7 @@ describe("admin-access module integration", () => {
     const adminSessionFindUnique = jest.fn().mockResolvedValue({
       id: "session-1",
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token-1",
       refreshTokenHash: "hashed-refresh-token-1",
       accessTokenExpiresAt: new Date("2026-04-07T09:55:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
@@ -780,10 +791,11 @@ describe("admin-access module integration", () => {
       data: {
         revokedAt: new Date("2026-04-07T10:00:01.000Z"),
       },
-      select: {
-        id: true,
-        adminAccountId: true,
-        refreshTokenHash: true,
+        select: {
+          id: true,
+          adminAccountId: true,
+          accessTokenHash: true,
+          refreshTokenHash: true,
         accessTokenExpiresAt: true,
         refreshTokenExpiresAt: true,
         idleExpiresAt: true,
@@ -800,6 +812,7 @@ describe("admin-access module integration", () => {
     const adminSessionFindUnique = jest.fn().mockResolvedValue({
       id: "session-1",
       adminAccountId: "admin-account-1",
+      accessTokenHash: "hashed-access-token-1",
       refreshTokenHash: "hashed-refresh-token-1",
       accessTokenExpiresAt: new Date("2026-04-04T10:15:00.000Z"),
       refreshTokenExpiresAt: new Date("2026-04-07T10:00:00.000Z"),
@@ -873,10 +886,11 @@ describe("admin-access module integration", () => {
       data: {
         revokedAt: new Date("2026-04-04T10:10:00.000Z"),
       },
-      select: {
-        id: true,
-        adminAccountId: true,
-        refreshTokenHash: true,
+        select: {
+          id: true,
+          adminAccountId: true,
+          accessTokenHash: true,
+          refreshTokenHash: true,
         accessTokenExpiresAt: true,
         refreshTokenExpiresAt: true,
         idleExpiresAt: true,

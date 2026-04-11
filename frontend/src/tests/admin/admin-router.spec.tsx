@@ -8,6 +8,7 @@ import {
 } from "../../admin/model/admin-access-shell";
 import type { AdminAuthApi } from "../../admin/api/admin-auth-api";
 import { AdminAssignmentRoute } from "../../admin/routes/admin-assignment-route";
+import { AdminCatalogProvisioningRoute } from "../../admin/routes/admin-catalog-provisioning-route";
 import { AdminLoginPage } from "../../admin/components/admin-login-page";
 import { AdminOrderCancellationRoute } from "../../admin/routes/admin-order-cancellation-route";
 
@@ -79,19 +80,23 @@ describe("admin router", () => {
   });
 
   it("resolves the login route for the admin contour", () => {
-    expect(resolveAdminRoute(adminRoutePaths.login).element.type).toBe(AdminLoginPage);
+    expect(resolveAdminRoute(adminRoutePaths.login)?.element.type).toBe(AdminLoginPage);
   });
 
   it("resolves the assignment route for the admin path", () => {
-    expect(resolveAdminRoute(adminRoutePaths.assignment).element.type).toBe(AdminAssignmentRoute);
+    expect(resolveAdminRoute(adminRoutePaths.assignment)?.element.type).toBe(AdminAssignmentRoute);
+  });
+
+  it("resolves the catalog provisioning route for the admin path", () => {
+    expect(resolveAdminRoute(adminRoutePaths.catalogProvisioning)?.element.type).toBe(AdminCatalogProvisioningRoute);
   });
 
   it("resolves the cancellation route for the admin path", () => {
-    expect(resolveAdminRoute(adminRoutePaths.cancellation).element.type).toBe(AdminOrderCancellationRoute);
+    expect(resolveAdminRoute(adminRoutePaths.cancellation)?.element.type).toBe(AdminOrderCancellationRoute);
   });
 
-  it("falls back to the assignment route when pathname is unknown", () => {
-    expect(resolveAdminRoute("/admin/missing").element.type).toBe(AdminAssignmentRoute);
+  it("does not resolve an implicit admin fallback when pathname is unknown", () => {
+    expect(resolveAdminRoute("/admin/missing")).toBeNull();
   });
 
   it("renders the login page for the explicit login route", async () => {
@@ -111,6 +116,23 @@ describe("admin router", () => {
     expect(text).toContain(`Requested path: ${adminRoutePaths.assignment}`);
     expect(renderer.root.findByProps({ name: "login" }).props.autoComplete).toBe("username");
     expect(renderer.root.findByType("button").props.disabled).toBe(true);
+  });
+
+  it("renders explicit unknown admin path feedback for unsupported admin-web routes", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(<AdminRouter pathname="/admin/missing" />);
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    const root = renderer.root.findByProps({ "data-admin-shell": "root" });
+
+    expect(root.props["data-admin-contour"]).toBe("admin-web");
+    expect(text).toContain("Admin page not found");
+    expect(text).not.toContain("Admin login");
+    expect(text).not.toContain("Order assignment");
   });
 
   it("renders login fallback when a protected route is requested without a session", async () => {
@@ -196,6 +218,26 @@ describe("admin router", () => {
     expect(protectedRoot).toBeDefined();
     expect(text).toContain("Signed in as admin (admin-account-demo).");
     expect(text).toContain("Order cancellation and refund tracking");
+  });
+
+  it("renders the catalog provisioning scaffold behind the shared admin auth boundary", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <AdminRouter
+          pathname={adminRoutePaths.catalogProvisioning}
+          session={createAuthenticatedAdminSessionState()}
+        />,
+      );
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+
+    expect(text).toContain("Catalog shop provisioning");
+    expect(text).toContain("Protected admin session is provided by the shared admin-access boundary.");
+    expect(text).toContain("Provision shop");
   });
 
   it("submits login from a protected route and renders the protected page after success", async () => {

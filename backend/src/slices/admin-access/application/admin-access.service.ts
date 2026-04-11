@@ -154,11 +154,13 @@ export class AdminAccessService {
     tokenHasher: AdminAccessTokenHasher,
   ) {
     const now = input.now ?? new Date();
+    const accessTokenHash = await tokenHasher.hash(input.accessToken);
     const refreshTokenHash = await tokenHasher.hash(input.refreshToken);
     const timeline = buildAdminAccessSessionTimeline(now);
 
     return this.repository.createSession({
       adminAccountId: input.adminAccountId,
+      accessTokenHash,
       refreshTokenHash,
       accessTokenExpiresAt: timeline.accessTokenExpiresAt,
       refreshTokenExpiresAt: timeline.refreshTokenExpiresAt,
@@ -286,6 +288,7 @@ export class AdminAccessService {
     const session = await this.createSessionBaseline(
       {
         adminAccountId: verification.account.id,
+        accessToken: tokenPair.accessToken,
         refreshToken: tokenPair.refreshToken,
         now,
       },
@@ -341,10 +344,12 @@ export class AdminAccessService {
     }
 
     const tokenPair = await dependencies.tokenFactory.createTokenPair();
+    const accessTokenHash = await dependencies.tokenHasher.hash(tokenPair.accessToken);
     const refreshTokenHash = await dependencies.tokenHasher.hash(tokenPair.refreshToken);
     const timeline = buildAdminAccessRefreshTimeline(now, session.refreshTokenExpiresAt);
     const refreshedSession = await this.repository.updateSession({
       sessionId: session.id,
+      accessTokenHash,
       refreshTokenHash,
       accessTokenExpiresAt: timeline.accessTokenExpiresAt,
       refreshTokenExpiresAt: timeline.refreshTokenExpiresAt,

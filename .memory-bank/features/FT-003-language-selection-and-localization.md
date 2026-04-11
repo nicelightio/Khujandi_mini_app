@@ -58,4 +58,4 @@ status: active
 - `TASK-FT003-03`: deterministic fallback and Telegram storage wrappers added.
 - `TASK-FT003-04`: first-run overlay now gates route rendering, and successful Telegram auth syncs explicit language choice into backend profile state.
 - `TASK-FT003-05`: customer-facing overlay, catalog, and checkout baseline copy now follow the selected language via shared frontend i18n copy and are repo-locally verified.
-- `TASK-FT003-06`: final repo-local localization verification is complete, including direct controller coverage for overlay visibility, deterministic persistence/runtime checks, and backend post-auth language sync evidence; shared shell/runtime closure for `REQ-022` and `REQ-023` is now closed in `FT-009`.
+- `TASK-FT003-06`: final repo-local localization verification is complete, including direct controller coverage for overlay visibility, deterministic persistence/runtime checks, and backend post-auth language sync evidence; shared shell/runtime aspects of `REQ-022` and `REQ-023` stay owned by `FT-009`, while the shared RTM rows remain only implementation-level until checkout runtime drift in `FT-002` is removed.

@@ -1,0 +1,19 @@
+---
+description: Роутер по implementation plans и bugfix plans (C4 L4).
+status: active
+---
+# Task Plans Index
+
+- [.memory-bank/tasks/plans/IMPL-FT-001.md](IMPL-FT-001.md): План реализации baseline `catalog` browse и seller ownership.
+- [.memory-bank/tasks/plans/IMPL-FT-002.md](IMPL-FT-002.md): План реализации checkout/payment, Telegram auth и paid-only order creation.
+- [.memory-bank/tasks/plans/IMPL-FT-003.md](IMPL-FT-003.md): План реализации language selection, persistence fallback и localization baseline.
+- [.memory-bank/tasks/plans/IMPL-FT-004.md](IMPL-FT-004.md): План реализации courier assignment и `CREATED -> ASSIGNED`.
+- [.memory-bank/tasks/plans/IMPL-FT-005.md](IMPL-FT-005.md): План реализации delivery tracking, events polling и SLA closure.
+- [.memory-bank/tasks/plans/IMPL-FT-006.md](IMPL-FT-006.md): План реализации operational cancellation и manual refund tracking.
+- [.memory-bank/tasks/plans/IMPL-FT-007.md](IMPL-FT-007.md): План реализации admin auth, lockout и session security.
+- [.memory-bank/tasks/plans/IMPL-FT-007-BUGFIX-auth-runtime-cookie-boundary.md](IMPL-FT-007-BUGFIX-auth-runtime-cookie-boundary.md): Bugfix-план для реального admin auth runtime cookie boundary.
+- [.memory-bank/tasks/plans/IMPL-FT-008.md](IMPL-FT-008.md): План реализации two-sided reviews и negative alerts.
+- [.memory-bank/tasks/plans/IMPL-FT-008-BUGFIX-review-callback-replay-hardening.md](IMPL-FT-008-BUGFIX-review-callback-replay-hardening.md): Bugfix-план для stale Telegram review callback replay hardening.
+- [.memory-bank/tasks/plans/IMPL-FT-008-BUGFIX-review-draft-durability.md](IMPL-FT-008-BUGFIX-review-draft-durability.md): Bugfix-план для durable review draft guarantees.
+- [.memory-bank/tasks/plans/IMPL-FT-009.md](IMPL-FT-009.md): План реализации Mini App shell/runtime и WebView UX baseline.
+- [.memory-bank/tasks/plans/IMPL-FT-010.md](IMPL-FT-010.md): План реализации shared seller storefront edit mode, skeleton provisioning и узкой `seller-web` админки магазина.

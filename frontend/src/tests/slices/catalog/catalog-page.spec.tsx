@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { act, create, type ReactTestRenderer } from "react-test-renderer";
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
 import { LanguageContextProvider, type LanguageContextValue } from "../../../app/language-context";
 import { CatalogPage } from "../../../slices/catalog/components/catalog-page";
 import {
@@ -82,6 +82,30 @@ const renderWithLanguage = (
   create(
     <LanguageContextProvider value={createLanguageContextValue(language)}>{element}</LanguageContextProvider>,
   );
+
+const dispatchBubblingClick = (instance: ReactTestInstance) => {
+  let propagationStopped = false;
+  let current: ReactTestInstance | null = instance;
+
+  const event: {
+    stopPropagation: () => void;
+  } = {
+    stopPropagation: () => {
+      propagationStopped = true;
+    },
+  };
+
+  while (current !== null) {
+    const onClick = current.props.onClick as ((event: { stopPropagation: () => void }) => void) | undefined;
+    onClick?.(event);
+
+    if (propagationStopped) {
+      break;
+    }
+
+    current = current.parent;
+  }
+};
 
 describe("catalog page", () => {
   it("renders browse-safe shops and products for the public catalog", () => {
@@ -188,5 +212,74 @@ describe("catalog page", () => {
     expect(text).toContain("Каталог");
     expect(text).toContain("Загрузка каталога...");
     expect(text).toContain("Тестовое поле для клавиатуры");
+  });
+
+  it("keeps nested storefront clicks from bubbling into the menu-page editor", () => {
+    const onActivateEditor = jest.fn();
+    let renderer!: ReactTestRenderer;
+
+    act(() => {
+      renderer = renderWithLanguage(
+        createElement(CatalogPage, {
+          viewModel: createCatalogViewModel([], "en"),
+          storefront: {
+            shop: {
+              id: "shop-1",
+              name: "Khujand Bakery",
+              description: null,
+              headerImageUrl: null,
+              backgroundImageUrl: null,
+              renameReviewNote: null,
+            },
+            access: {
+              canEdit: true,
+              statusLabel: "Seller edit mode is active on the shared storefront tree.",
+              activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
+            },
+            menuPages: [
+              {
+                id: "page-1",
+                name: "Popular",
+                products: [
+                  {
+                    id: "product-1",
+                    name: "Somsa",
+                    description: null,
+                    imageUrl: null,
+                    priceLabel: "15.00 TJS",
+                  },
+                ],
+              },
+            ],
+            unpagedProducts: [],
+            emptyMenuPagesLabel: "No menu pages yet.",
+            emptyProductsLabel: "No products yet.",
+            addMenuPageLabel: "Add menu page",
+            addProductLabel: "Add product",
+            successMessage: null,
+            errorMessage: null,
+            isSaving: false,
+            editor: null,
+          },
+          onActivateEditor,
+        }),
+      );
+    });
+
+    const addProductButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add product");
+    const productItem = renderer.root.findByProps({ "data-product-id": "product-1" });
+
+    act(() => {
+      dispatchBubblingClick(addProductButton!);
+    });
+
+    act(() => {
+      dispatchBubblingClick(productItem);
+    });
+
+    expect(onActivateEditor.mock.calls).toEqual([
+      [{ type: "new-product", menuPageId: "page-1" }],
+      [{ type: "product", menuPageId: "page-1", productId: "product-1" }],
+    ]);
   });
 });

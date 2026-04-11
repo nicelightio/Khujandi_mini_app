@@ -1,7 +1,7 @@
 Если совсем коротко, то цепочка такая:
 
 /prd — из идеи в feature-уровень
-/prd-to-tasks FT-001 — из feature в задачи
+  — из feature в задачи
   /execute TASK-FT001-01 — сделать задачу
   /verify TASK-FT001-01 — доказать, что она сделана правильно
   /mb-sync — зафиксировать это в Memory Bank

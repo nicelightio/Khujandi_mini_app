@@ -38,6 +38,7 @@ status: active
    - отдаёт `index.html` и `dist/assets/*` для frontend routes;
    - отправляет `/api/*` в container `api`.
 5. Container `api` обслуживает demo catalog runtime и checked-in admin auth HTTP runtime.
+6. Customer-facing checkout/auth/payment HTTP runtime path, seller storefront edit mode, and `seller-web` store-admin surfaces пока не смонтированы в checked-in deploy baseline и требуют отдельного future runtime wiring под тем же public origin.
 
 ## Deployment ownership
 
@@ -57,7 +58,7 @@ status: active
 - Старый non-container deploy через `/var/www/tgmeal` + `systemd` service больше не считается рекомендуемым baseline.
 - На сервере не должно жить две параллельные app copies: legacy non-container и новый compose stack одновременно.
 - Host `nginx` остаётся публичным edge даже после контейнеризации, чтобы не ломать существующий Cloudflare Origin Certificate flow.
-- Текущий deploy baseline подходит для frontend + demo/runtime API и текущего checked-in admin auth runtime contour; это всё ещё не полный production backend с real DB/payment/webhook bootstrap.
+- Текущий deploy baseline подходит для frontend + demo/runtime API и текущего checked-in admin auth runtime contour; это всё ещё не полный production backend с real DB/payment/webhook bootstrap, без mounted checkout/auth/payment customer path и без seller storefront/store-admin runtime mounting.
 
 ## Related docs
 

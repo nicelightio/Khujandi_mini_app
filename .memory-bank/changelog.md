@@ -4,6 +4,143 @@ status: active
 ---
 # Changelog
 
+## [2026-04-11] TASK-FT010-21 controlled storefront missing/error states
+- Replaced `/shops/:shopId` synthetic fallback behavior so the shared storefront route now resolves from canonical seller data or real public shop data only.
+- Added focused route regressions proving missing storefronts render explicit not-found feedback, failing loads render controlled errors, and valid public browse still survives seller-access failures.
+
+## [2026-04-11] FT-010 post-closure review follow-up for synthetic storefront fallback
+- A post-closure `/review` found that `/shops/:shopId` still collapses missing/error cases into a synthetic browseable storefront when both canonical seller data and public data are absent or failing.
+- Added `TASK-FT010-21` as a ready follow-up to replace that behavior with controlled not-found/error states while preserving valid public browse and owner-visible storefront flows.
+
+## [2026-04-11] TASK-FT010-08 red-verify semantic closure
+- Post-change `red-verify` for `TASK-FT010-08` returned `semantic-pass`: final `FT-010` docs/RTM closure is substantively aligned for the checked-in repo scope, with no new bug or follow-up task required.
+
+## [2026-04-11] TASK-FT010-08 final FT-010 verification and RTM sync
+- Added explicit final `FT-010` verification evidence across backend/runtime, shared storefront, admin provisioning, and seller-web smoke suites, including delete-free baseline assertions for shared storefront and narrow `/seller/*` surfaces.
+- Synced `FT-010` feature docs, backlog, root index, and RTM so `REQ-024`, `REQ-025`, and `REQ-026` are now marked done for the checked-in repo scope.
+
+## [2026-04-11] TASK-FT010-20 seller-web status-only hardening
+- Replaced the narrow `seller-web` status submit payload with status-only intent and hardened mounted seller runtime parsing so omitted metadata fields no longer get coerced into stale/null storefront overwrites.
+- Added focused seller route and runtime regressions proving `WORKING/NOT_WORKING` toggles preserve newer shared-storefront `shop.name/description/media` changes while keeping public visibility gating intact.
+- Post-change `red-verify` returned `semantic-pass`: no new follow-up is required for the checked-in mounted seller status flow scope.
+
+## [2026-04-11] TASK-FT010-07 red-verify follow-up for stale metadata overwrite risk
+- `red-verify` for `TASK-FT010-07` found a semantic concern: the new seller-web status control is wired and access-controlled, but it currently submits the full cached shop snapshot through the broad seller shop update path, so toggling `WORKING/NOT_WORKING` can silently overwrite stale shared-storefront metadata.
+- Added `TASK-FT010-20` as a ready follow-up to isolate narrow seller-web status writes from broader storefront metadata updates via a status-only command or equivalent patch-safe semantics.
+
+## [2026-04-11] TASK-FT010-07 admin provisioning UI and seller-web status toggle wiring
+- Replaced the checked-in scaffold-only admin/seller pages with real mounted forms: `admin-web` now submits shop provisioning through the protected runtime boundary, and `seller-web` now loads owned shops plus persists `WORKING/NOT_WORKING` through the shared Telegram-linked seller runtime.
+- Extended the backend seller shop update path to accept status-only changes without spending rename allowance, then added focused admin/seller frontend smoke coverage plus catalog unit/integration/runtime regressions.
+- With the last W2 UI/runtime dependency now closed, `TASK-FT010-08` moves from `blocked` to `ready` for final FT-010 verification/docs sync.
+
+## [2026-04-11] TASK-FT010-19 canonical seller storefront compatibility for unpaged legacy products
+- Extended the checked-in seller storefront runtime payload with explicit canonical `unpagedProducts`, so owner reads no longer hide real seller items when older shops still have `menuPageId = null` or missing menu-page linkage.
+- Updated the shared storefront UI/tests to render and edit those legacy products without inventing a fake menu page, then added focused runtime regression coverage before marking `TASK-FT010-19` done.
+- Follow-up `red-verify` returned `semantic-pass`: for the checked-in mounted runtime scope, the compatibility path stays on the protected seller boundary, does not pollute public browse semantics, and does not require another follow-up task.
+
+## [2026-04-11] TASK-FT010-18 red-verify follow-up for unpaged seller storefront data
+- `red-verify` for `TASK-FT010-18` found a remaining semantic concern: canonical seller storefront reads now use the right protected boundary, but the checked-in runtime still includes older shops/products without explicit menu-page linkage, so owner storefront reads can drop real seller-owned products even though public browse still shows them.
+- Added `TASK-FT010-19` as a ready follow-up to reconcile canonical seller storefront reads with legacy/unpaged product state instead of treating the new skeleton-shop shape as implicitly universal.
+
+## [2026-04-11] TASK-FT010-18 canonical shared-storefront seller data wiring
+- Replaced the checked-in shared storefront seller detail fallback that reconstructed content from public browse plus synthetic placeholders: protected seller shop reads now return canonical owner-visible `menuPages/products`, including `NOT_WORKING` storefront content for the owning seller.
+- Mounted repo-local seller write endpoints in `dev-runtime`, rewired frontend seller submits to those checked-in backend commands with post-submit canonical reload, and added focused frontend/runtime coverage before marking `TASK-FT010-18` done.
+
+## [2026-04-11] TASK-FT010-06 red-verify follow-up for canonical storefront wiring
+- `red-verify` for `TASK-FT010-06` found a semantic concern: the checked-in shared storefront seller edit mode stays on the right route/component tree, but it still reconstructs menu/product content from public browse plus synthetic fallback data and acknowledges saves through frontend-local state instead of the canonical `catalog` seller read/write boundary.
+- Added `TASK-FT010-18` as a ready follow-up to connect `/shops/:shopId` seller edit mode to real owner-visible storefront data and the existing backend seller commands.
+
+## [2026-04-11] TASK-FT010-06 shared storefront seller edit-mode wiring
+- Extended the existing `CatalogRoute`/`CatalogPage` tree so `/shops/:shopId` can host owner-only shared storefront editing, contextual click/long-press activation, and controlled save feedback without introducing a second seller-only storefront implementation.
+- Added focused frontend catalog smoke coverage plus repo-local lint/build evidence for owner edit mode and browse-only fallback behavior, then marked `TASK-FT010-06` done.
+
+## [2026-04-11] TASK-FT010-17 explicit admin unknown-route handling
+- Removed the implicit `unknown /admin/* -> assignment` fallback from `admin-web`, so unsupported admin paths now render explicit not-found feedback under the admin contour instead of resolving to valid operational screens or login fallbacks.
+- Added focused admin/root router smoke coverage and repo-local lint evidence for hostile `/admin/*` path behavior, then marked `TASK-FT010-17` done.
+
+## [2026-04-11] TASK-FT010-16 red-verify follow-up for admin-route fallback semantics
+- `red-verify` for `TASK-FT010-16` found a remaining semantic concern: although root contour selection and seller unknown-path behavior are now slash-bounded and explicit, unknown `/admin/*` paths still silently resolve to the assignment route inside `admin-web`.
+- Added `TASK-FT010-17` as a ready follow-up to remove that implicit admin fallback and align admin contour semantics with the route-family hardening intent already applied to `seller-web`.
+
+## [2026-04-11] TASK-FT010-16 slash-bounded seller/admin contour matching
+- Hardened root contour selection so only slash-bounded `/admin` and `/seller` route families enter `admin-web` and `seller-web`; adjacent hostile prefixes like `/admin-help` and `/seller-guide` now remain on the customer app contour.
+- Removed the implicit unknown seller-route fallback to the status scaffold and added focused Jest smoke coverage plus lint evidence for explicit unsupported `/seller/*` behavior.
+
+## [2026-04-11] TASK-FT010-02 frontend contour scaffold for seller storefront work
+- Extended the shared frontend bootstrap so `/seller/*` is now recognized as a separate narrow `seller-web` contour, while `/shops/:shopId` resolves through the same `CatalogRoute` tree as public browse instead of introducing a second storefront implementation.
+- Added page-shell scaffolds for `/seller/shops/status` and authenticated `/admin/catalog/shops/provision`, plus focused route smoke coverage for root/admin/seller boundaries and storefront-route reuse.
+- Follow-up `red-verify` returned `semantic-concern`: the checked-in contour matchers are broader than the normative `/admin/*` and `/seller/*` route-family intent, so `TASK-FT010-16` is now `ready` to harden slash-bounded path matching and hostile route tests.
+
+## [2026-04-11] TASK-FT010-15 non-persistent catalog event-sink parity
+- Replaced the checked-in in-memory `catalog` adapter's private `sellerWriteEvents` sink with a shared runtime `events`-store analogue, so seller shop/menu/product write observability now matches the project event model at both the returned artifact boundary and the operational sink level.
+- Added focused runtime coverage proving the non-persistent adapter records explicit seller write events into the shared sink analogue, and re-ran catalog integration plus targeted lint gates.
+- Follow-up `red-verify` returned `semantic-pass`: no further sink-level bug or parity task is required for the checked-in non-persistent `catalog` adapter scope.
+
+## [2026-04-10] TASK-FT010-14 red-verify follow-up for event-sink parity
+- `red-verify` for `TASK-FT010-14` found a semantic concern: seller write observability is now explicit at the repository boundary, but the checked-in in-memory `catalog` adapter still records those artifacts into a private `sellerWriteEvents` sink instead of a shared `events`-store analogue.
+- Added `TASK-FT010-15` as a ready follow-up to align non-persistent adapter sink semantics with the project event model or explicitly freeze a bounded adapter exception if that asymmetry is intentional.
+
+## [2026-04-10] TASK-FT010-14 catalog adapter observability alignment
+- Promoted seller shop/menu/product write observability from a Prisma-only implementation detail into an explicit `CatalogRepository` write-result contract, while keeping controller/service responses unchanged for callers.
+- Aligned the checked-in in-memory `catalog` adapter in `dev-runtime` with the same seller write event semantics and added focused parity coverage plus full `test:catalog`/`lint` evidence.
+
+## [2026-04-10] TASK-FT010-13 red-verify follow-up for adapter-level observability drift
+- `red-verify` for `TASK-FT010-13` found a semantic concern: seller catalog write observability is now explicit on the Prisma path, but the same guarantee is not encoded at the `CatalogRepository` boundary and the checked-in `dev-runtime` in-memory adapter remains silent for seller writes.
+- Added `TASK-FT010-14` as a ready follow-up to align seller write observability across catalog adapters or explicitly freeze a bounded adapter exception if that asymmetry is intentional.
+
+## [2026-04-10] TASK-FT010-13 seller catalog write observability closure
+- Closed the `TASK-FT010-05` observability follow-up by making seller shop/menu page/product writes emit explicit `catalog.*` persisted events through the shared `events` store, keeping the mutation and observability artifact in one slice-owned transaction.
+- Synced FT-010 specs so seller catalog write observability is now explicit: this MVP surface is event-backed inside `catalog`, while a separate catalog audit table remains out of scope until a later reporting/review requirement appears.
+
+## [2026-04-10] TASK-FT010-05 red-verify follow-up for seller write observability
+- `red-verify` for `TASK-FT010-05` did not find a semantic break in ownership, rename/snapshot, or no-delete behavior, but it did find a substantive observability concern: seller catalog writes still expand the checked-in `catalog` write surface without explicit event/audit semantics.
+- Added `TASK-FT010-13` as a ready follow-up to either implement seller catalog write observability inside `catalog` or explicitly freeze a documented no-event exception if that is the intended boundary.
+
+## [2026-04-10] TASK-FT010-05 seller catalog write surface
+- Extended backend `catalog` seller writes so owned shop metadata updates no longer depend on a rename-only path, and added explicit menu page add/rename commands inside the same owning slice without introducing destructive seller APIs.
+- Tightened product write validation to require same-seller menu-page linkage, added focused unit/integration regressions for shop metadata edits, menu page ownership, and foreign menu-page/product rejection, then marked `TASK-FT010-05` done.
+
+## [2026-04-10] TASK-FT010-12 shared Mini App cookie transport boundary
+- Removed the repo-local `pendingMiniAppSessionToken` side channel from `dev-runtime`, so mounted `POST /api/v1/auth/telegram` now serializes the session cookie directly from the shared `checkout-payment` auth result instead of predicting the token outside the slice boundary.
+- Extended `checkout-payment` and catalog runtime regressions to prove the shared auth boundary now owns the raw cookie value/hash pairing and the mounted runtime no longer emits the old deterministic `mini-app-session-token-*` convention.
+- Follow-up `red-verify` did not find a substantive semantic break in this fix; the remaining caution is only to keep `cookie.value` confined to server-side transport handling and out of browser-visible payloads.
+
+## [2026-04-10] TASK-FT010-11 red-verify follow-up for Mini App auth transport seam
+- `red-verify` for `TASK-FT010-11` did not find a semantic break in the shared-state fix itself, but it did find a remaining semantic concern: repo-local `POST /api/v1/auth/telegram` still emits the cookie through a `pendingMiniAppSessionToken` side channel in `dev-runtime` instead of one explicit shared HTTP auth boundary.
+- Added `TASK-FT010-12` as a ready follow-up to remove that route-local cookie issuance seam and fully close future drift between checkout auth transport semantics and seller runtime mounting.
+
+## [2026-04-10] TASK-FT010-11 shared Mini App auth/session boundary for seller reads
+- Replaced the `dev-runtime`-local Mini App auth/session clone with one shared in-memory Prisma-like state behind the checked-in `checkout-payment` module, so repo-local `POST /api/v1/auth/telegram` now uses the same auth/session boundary that seller-protected catalog reads depend on.
+- Added a focused runtime regression proving seller login populates shared `checkout-payment` user/session state before protected owner-only catalog reads succeed, then marked `TASK-FT010-11` done.
+
+## [2026-04-10] TASK-FT010-04 red-verify follow-up for real Mini App session reuse
+- `red-verify` for `TASK-FT010-04` did not find a semantic break in seller ownership resolution itself, but it did find a semantic concern: the verified seller-protected runtime still uses a `dev-runtime`-local in-memory Mini App auth/session mount instead of the real persistent backend auth/runtime boundary.
+- Added `TASK-FT010-11` as a ready follow-up to move seller-protected catalog reads onto the real shared Mini App session family and prevent future drift between checkout auth and seller runtime access.
+
+## [2026-04-10] TASK-FT010-04 seller capability resolution and owner visibility boundary
+- Extended `catalog` with seller-owned read resolution that starts from the authenticated Telegram Mini App session family and `SellerShopBinding`, then fails closed on missing binding or binding/shop ownership drift instead of trusting `shop.sellerId` or client-side seller flags alone.
+- Mounted repo-local `POST /api/v1/auth/telegram` plus protected `GET /api/v1/seller/shops[/:shopId]` runtime routes, added focused unit/integration/runtime regressions for anonymous, authenticated non-seller, foreign-seller, and owner-only `NOT_WORKING` visibility cases, marked `TASK-FT010-04` done, and promoted `TASK-FT010-05` to `ready`.
+
+## [2026-04-10] TASK-FT010-10 protected admin provisioning boundary
+- Replaced the `POST /api/v1/admin/catalog/shops/provision` refresh-cookie shortcut with a reusable protected admin runtime helper, so privileged provisioning writes now require the checked-in protected cookie boundary, validate `accessTokenHash` against the persisted session, and respect `accessTokenExpiresAt` instead of treating the refresh cookie as a general auth bearer.
+- Added runtime regressions for refresh-only, forged-access, and expired protected-session cases, preserved happy-path provisioning after an explicit `POST /api/v1/admin/auth/refresh`, archived `BUG-2026-04-10-ft010-provisioning-route-uses-refresh-cookie-as-auth`, and marked `TASK-FT010-10` done.
+
+## [2026-04-10] TASK-FT010-09 admin provisioning runtime auth/RBAC closure
+- Tightened the checked-in `POST /api/v1/admin/catalog/shops/provision` route so it now reuses the existing admin cookie/session family plus origin-bound posture before the `catalog` provisioning command can run, preventing anonymous write access without introducing a parallel auth model.
+- Added repo-local runtime coverage that proves `401 AUTH_REQUIRED` for anonymous callers, `403 FORBIDDEN` for authenticated non-admin callers, and preserved `201/409` provisioning behavior for authenticated `boss` requests; archived `BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth` and marked `TASK-FT010-09` done.
+
+## [2026-04-10] TASK-FT010-03 admin provisioning command and skeleton shop bootstrap
+- Added atomic admin provisioning orchestration in the owning `catalog` slice so shop creation, Telegram-linked seller binding, starter menu pages, and starter products commit together and roll back together on failure.
+- Mounted repo-local `POST /api/v1/admin/catalog/shops/provision` in the checked-in dev runtime and added focused unit/integration/runtime coverage for success, controlled conflict handling, and rollback semantics.
+
+## [2026-04-10] TASK-FT010-01 backend catalog scaffold for seller provisioning baseline
+- Extended `catalog` persistence baseline with explicit `ShopStatus`, richer shop/product description-media fields, `MenuPage`, and `SellerShopBinding`, while keeping business ownership inside the slice rather than moving logic into `shared`.
+- Added slice-owned provisioning blueprint plus repo-local unit/integration coverage for `WORKING` visibility reads, menu pages, seller binding, and provisioning-ready repository contract methods; marked `TASK-FT010-01` done and promoted `TASK-FT010-03` to `ready`.
+
+## [2026-04-10] FT-010 decomposition and plans router sync
+- Added `.protocols/FT-010/{plan,decision-log}.md`, `.memory-bank/tasks/plans/IMPL-FT-010.md`, and execution-ready backlog cards `TASK-FT010-01` ... `TASK-FT010-08` for shared storefront seller edit mode, admin provisioning, Telegram-linked seller access, and `WORKING/NOT_WORKING` visibility.
+- Synced Memory Bank navigation for the new planning layer by linking `FT-010` from root/backlog context and adding `.memory-bank/tasks/plans/index.md` as a dedicated router for implementation and bugfix plans.
+
 ## [2026-04-08] TASK-FT007-10 shared frontend bootstrap for admin routes
 - Replaced the customer-only frontend bootstrap with a shared root-router selector that chooses `AdminRouter` for `/admin*` paths and `AppRouter` for customer paths while keeping one common `index.html` entrypoint.
 - Added focused frontend smoke coverage proving `/admin/login` renders the admin login contour in the deployed/static build path instead of falling back to the customer catalog.

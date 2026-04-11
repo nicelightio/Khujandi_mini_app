@@ -26,6 +26,7 @@ export type AdminAccessAccountRecord = {
 export type AdminAccessSessionRecord = {
   id: AdminAccessSessionId;
   adminAccountId: AdminAccessAccountId;
+  accessTokenHash: string;
   refreshTokenHash: string;
   accessTokenExpiresAt: Date;
   refreshTokenExpiresAt: Date;
@@ -115,6 +116,7 @@ export type AdminAccessCredentialVerificationResult =
 
 export type CreateAdminAccessSessionInput = {
   adminAccountId: AdminAccessAccountId;
+  accessTokenHash: string;
   refreshTokenHash: string;
   accessTokenExpiresAt: Date;
   refreshTokenExpiresAt: Date;
@@ -144,6 +146,7 @@ export type UpdateAdminLockoutInput = {
 
 export type UpdateAdminAccessSessionInput = {
   sessionId: AdminAccessSessionId;
+  accessTokenHash: string;
   refreshTokenHash: string;
   accessTokenExpiresAt: Date;
   refreshTokenExpiresAt: Date;
@@ -163,6 +166,7 @@ export type RevokeAdminAccessSessionsByAccountInput = {
 
 export type CreateAdminSessionBaselineInput = {
   adminAccountId: AdminAccessAccountId;
+  accessToken: string;
   refreshToken: string;
   now?: Date;
 };
