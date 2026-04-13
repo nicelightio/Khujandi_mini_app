@@ -10,7 +10,7 @@ status: active
 
 ## Current implementation state
 
-- Checked-in repo currently covers only the earlier `FT-001` baseline: public browse plus partial backend seller write logic for shop rename and product create/update.
+- Checked-in repo started from the earlier `FT-001` baseline: public browse plus partial backend seller write logic for shop rename and product create/update; the rest of this section captures how `FT-010` expanded that baseline for seller contour behavior.
 - `TASK-FT010-01` added backend scaffold only: Prisma/catalog baseline now includes `ShopStatus`, rich shop/product fields, `MenuPage`, `SellerShopBinding`, provisioning-ready repository methods, and a starter provisioning blueprint.
 - `TASK-FT010-03` now implements the backend provisioning command path: admin-triggered provisioning atomically creates the shop, Telegram-linked seller binding, starter menu pages, and starter products, and the checked-in dev runtime mounts a repo-local command endpoint for later UI wiring.
 - `TASK-FT010-05` now extends backend seller catalog writes to owned shop metadata updates, menu page add/rename flows, and stronger product-to-menu-page ownership validation while preserving the existing rename/snapshot and no-delete policy.
@@ -35,13 +35,14 @@ status: active
 - Post-change `red-verify` for `TASK-FT010-20` returned `semantic-pass`: for the checked-in mounted seller runtime scope, the narrow status-only hardening fixes the real stale-overwrite risk without re-expanding `seller-web` into a second broad storefront editor or introducing a new cross-boundary drift.
 - `TASK-FT010-08` closes final verification/docs sync for the checked-in feature scope: repo-local backend/runtime and frontend smoke coverage now explicitly prove shared storefront edit-mode reuse, admin-provisioned skeleton bootstrap, Telegram-linked seller access reuse, `WORKING/NOT_WORKING` owner/public visibility gating, and the baseline absence of delete UI on shared storefront plus narrow `seller-web` surfaces.
 - Post-change `red-verify` for `TASK-FT010-08` returned `semantic-pass`: the final docs/RTM closure remains substantively aligned for the checked-in repo scope and does not hide a remaining `FT-010` semantic gap.
+- `FT-011` now owns the DB-backed runtime baseline and restart-safe durability for admin provisioning, shared storefront reads, and seller/admin catalog runtime writes; `FT-010` remains the seller-behavior and contour-spec feature for those surfaces.
 - Post-closure `/review` found one remaining checked-in repo follow-up outside the red-verify chain: `/shops/:shopId` still swallows missing/error cases into a synthetic fallback storefront, so `TASK-FT010-21` is now `ready` to replace fake browseable content with controlled missing/error states.
 - `TASK-FT010-21` closes that remaining repo-local follow-up: the shared storefront route now prefers canonical seller data, falls back only to real public shop data, and renders controlled not-found/error states instead of fabricating a fake shop shell or starter product when both sources are absent or failing.
 - Seller-aware session/access resolution is now formalized in the checked-in repo-local runtime: `POST /api/v1/auth/telegram` issues the existing Mini App cookie session family and protected seller reads resolve ownership from Telegram-linked bindings plus canonical `shop.sellerId` alignment.
 - `TASK-FT010-11` closed the remaining runtime drift from `TASK-FT010-04`: repo-local `POST /api/v1/auth/telegram` and seller-protected catalog reads now share the checked-in `checkout-payment` auth/session module boundary and one Mini App user/session state instead of a route-local clone.
 - `TASK-FT010-12` closed the remaining transport-level seam from that `red-verify`: repo-local Mini App cookie issuance now comes from the shared `checkout-payment` auth result itself, so mounted runtime auth no longer predicts or reconstructs the session token through `dev-runtime`-local state.
 - Post-change `red-verify` for `TASK-FT010-12` did not open a new follow-up: the checked-in fix is substantively aligned with the shared Mini App auth transport intent, with only a maintenance note to keep raw cookie values server-only.
-- Catalog runtime behavior still does not expose full `FT-010` flows, but the checked-in repo now includes the provisioning write path, mounted admin/seller UI wiring for provisioning and status control, plus the persistence baseline for shop descriptions, media assets, menu pages, product descriptions/images, and `WORKING/NOT_WORKING` visibility.
+- Checked-in repo now exposes the seller/admin runtime surfaces needed for `FT-010` contour behavior, while the remaining DB-backed durability/runtime-baseline gap is tracked separately in `FT-011`; the current repo scope already includes the provisioning write path, mounted admin/seller UI wiring for provisioning and status control, plus the persistence baseline for shop descriptions, media assets, menu pages, product descriptions/images, and `WORKING/NOT_WORKING` visibility.
 - Older checked-in catalog code still carries legacy soft-delete fields, but `TASK-FT010-01` moved public visibility baseline toward explicit `WORKING/NOT_WORKING` filtering.
 - `red-verify` for `TASK-FT010-01` found a semantic concern to absorb in follow-up tasks: canonical seller ownership between legacy `Shop.sellerId` and Telegram-linked `SellerShopBinding` must be made explicit in provisioning and seller access resolution.
 
@@ -89,6 +90,8 @@ status: active
 - [.memory-bank/contracts/seller-catalog-write-policy.md](../contracts/seller-catalog-write-policy.md): seller edit ownership, no-delete и rename policy.
 - [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](../contracts/catalog-seller-provisioning-and-visibility.md): admin provisioning, Telegram-linked ownership и `WORKING/NOT_WORKING` visibility.
 - [.memory-bank/contracts/catalog-seller-access-and-session.md](../contracts/catalog-seller-access-and-session.md): shared session family, `/seller/*` route boundary и seller access resolution.
+- [.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md](FT-011-db-backed-catalog-runtime-baseline.md): durable runtime baseline for provisioning and canonical storefront resolution.
+- [.memory-bank/runbooks/ft-010-manual-verification.md](../runbooks/ft-010-manual-verification.md): канонический ручной прогон provisioning, seller edit mode, visibility gating и controlled missing/error states.
 - [.memory-bank/architecture/system-contours-and-slices.md](../architecture/system-contours-and-slices.md): contour split и owner-slice boundaries.
 - [.memory-bank/architecture/data-boundaries-and-persistence.md](../architecture/data-boundaries-and-persistence.md): catalog-owned entities, media и visibility persistence boundaries.
 - [.memory-bank/testing/index.md](../testing/index.md): verification basis для shared storefront edit mode и store-admin visibility.
@@ -110,5 +113,5 @@ status: active
 
 ## Final verification status
 
-- Checked-in `FT-010` scope is closed by `TASK-FT010-08` for the current repo reality.
-- `REQ-024`, `REQ-025`, and `REQ-026` are now aligned to `done` in RTM.
+- Checked-in `FT-010` seller contour behavior is closed by `TASK-FT010-08` for the current repo-local scope.
+- `REQ-024`, `REQ-025`, and `REQ-026` stay aligned to `done` for seller contour behavior, while durable DB-backed catalog runtime closure is tracked separately in `FT-011`.

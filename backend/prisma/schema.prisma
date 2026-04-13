@@ -83,6 +83,7 @@ model Shop {
   @@index([sellerId])
   @@index([status])
   @@index([isDeleted])
+  @@unique([sellerId, name])
 }
 
 model MenuPage {

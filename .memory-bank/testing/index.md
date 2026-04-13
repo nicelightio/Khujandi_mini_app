@@ -19,7 +19,7 @@ status: active
 
 ## Slice-based baseline
 
-- `catalog`: public browse e2e + seller ownership integration coverage + shared storefront seller edit mode and `WORKING/NOT_WORKING` visibility checks for the planned seller contours.
+- `catalog`: public browse e2e + seller ownership integration coverage + shared storefront seller edit mode and `WORKING/NOT_WORKING` visibility checks for seller contours + transactional/durable runtime verification for DB-backed provisioning and restart-safe storefront resolution (`FT-011`); the checked-in repo-local bootstrap baseline now starts from `backend/prisma/seeds/catalog-runtime-baseline.json` plus a SQLite-backed runtime state store rather than hidden demo arrays, and provisioning conflict coverage now includes hostile repeated/concurrent identity collisions at the persistence boundary.
 - `checkout-payment`: paid order creation happy path, failed payment retry, auth validation.
 - `mini app shell`: first-run language overlay, WebView-safe viewport, theme, lifecycle and action feedback smoke.
 - `delivery-assignment`: admin assignment e2e + RBAC integration.
@@ -34,6 +34,7 @@ status: active
 - Нельзя заменять end-to-end проверку только unit coverage процентами.
 - Нельзя пропускать проверку событий, аудита и error contract для write-heavy flows.
 - Для seller storefront и узкой админки магазина verify должен отдельно подтверждать отсутствие delete UI в baseline scope, если destructive removal явно вне product direction.
+- Для `FT-011` нельзя считать feature закрытой по одним unit/integration checks: нужен отдельный manual smoke `provision -> runtime restart/reset -> /shops/:shopId`, подтверждающий, что storefront резолвится из persisted catalog state после restart.
 - Для сценариев с polling или ботом проверка должна подтверждать реальный cross-slice flow, а не только isolated handler tests.
 - Для `FT-005` нельзя считать `REQ-010` закрытым по одним integration/e2e тестам: нужен отдельный latency evidence bundle с явно зафиксированным p95 ownership в финальном verify step.
 - Для `FT-006` нельзя считать feature закрытой по одним cancellation authorization тестам: verify обязан отдельно подтвердить paid-cancel `PENDING_MANUAL` visibility и последующий manual refund outcome/evidence без авто-refund side effects.

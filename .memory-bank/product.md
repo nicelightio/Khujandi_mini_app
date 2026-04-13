@@ -14,7 +14,7 @@ Khujandi Mini App (`Худжанди`) — Telegram-first продукт для 
 - отдельную `admin-web` веб-админку для операционного управления и provisioning;
 - Telegram-бота как обязательный канал уведомлений и review-сценариев.
 
-Checked-in runtime сегодня полностью монтирует customer-facing `mini-app` browse/shell и `admin-web`; seller-specific surfaces и non-stubbed checkout/auth runtime остаются целевым, но еще не закрытым runtime work.
+Checked-in runtime сегодня монтирует customer-facing `mini-app` browse/shell, `admin-web`, и часть seller/admin catalog surfaces; non-stubbed checkout/auth runtime и durable DB-backed catalog runtime baseline все еще остаются незакрытым runtime work.
 
 ## Core value
 

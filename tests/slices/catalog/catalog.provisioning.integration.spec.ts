@@ -57,6 +57,7 @@ const cloneState = (state: ProvisioningState): ProvisioningState => ({
 const createProvisioningPrisma = (options: {
   failOnProductName?: string;
   conflictOnBinding?: boolean;
+  stallConcurrentShopCreate?: boolean;
 } = {}) => {
   const state: ProvisioningState = {
     shops: [],
@@ -69,6 +70,36 @@ const createProvisioningPrisma = (options: {
     nextProductId: 1,
   };
 
+  let concurrentShopCreateCount = 0;
+  let releaseConcurrentShopCreate: (() => void) | null = null;
+
+  const waitForConcurrentShopCreate = async () => {
+    if (options.stallConcurrentShopCreate !== true) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      concurrentShopCreateCount += 1;
+
+      if (concurrentShopCreateCount === 1) {
+        releaseConcurrentShopCreate = resolve;
+        return;
+      }
+
+      releaseConcurrentShopCreate?.();
+      resolve();
+    });
+  };
+
+  const throwUniqueConstraintError = () => {
+    const error = new Error("duplicate");
+    Object.assign(error, { code: "P2002" });
+    throw error;
+  };
+
+  const hasDuplicateShopIdentity = (target: ProvisioningState, sellerId: string, name: string) =>
+    target.shops.some((shop) => shop.sellerId === sellerId && shop.name === name);
+
   const createClient = (target: ProvisioningState) => ({
     shop: {
       findMany: async () => [],
@@ -77,6 +108,12 @@ const createProvisioningPrisma = (options: {
         return shop === null ? null : { ...shop };
       },
       create: async ({ data }: { data: { sellerId: string; name: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status: "WORKING" | "NOT_WORKING" } }) => {
+        await waitForConcurrentShopCreate();
+
+        if (hasDuplicateShopIdentity(target, data.sellerId, data.name)) {
+          throwUniqueConstraintError();
+        }
+
         const shop = {
           id: `shop-${target.nextShopId++}`,
           sellerId: data.sellerId,
@@ -172,9 +209,7 @@ const createProvisioningPrisma = (options: {
           .map((binding) => ({ ...binding })),
       create: async ({ data }: { data: { shopId: string; sellerId: string; telegramId: string } }) => {
         if (options.conflictOnBinding) {
-          const error = new Error("duplicate binding");
-          Object.assign(error, { code: "P2002" });
-          throw error;
+          throwUniqueConstraintError();
         }
 
         const binding = {
@@ -194,8 +229,20 @@ const createProvisioningPrisma = (options: {
   };
 
   client.$transaction = async (callback) => {
+    const initialShopCount = state.shops.length;
     const draftState = cloneState(state);
     const result = await callback(createClient(draftState));
+
+    const hasCommittedDuplicateShop = draftState.shops.slice(initialShopCount).some((draftShop) =>
+      state.shops.some(
+        (committedShop) => committedShop.sellerId === draftShop.sellerId && committedShop.name === draftShop.name,
+      ),
+    );
+
+    if (hasCommittedDuplicateShop) {
+      throwUniqueConstraintError();
+    }
+
     Object.assign(state, draftState);
     return result;
   };
@@ -259,6 +306,70 @@ describe("catalog provisioning integration", () => {
     expect(state.bindings).toHaveLength(0);
     expect(state.menuPages).toHaveLength(0);
     expect(state.products).toHaveLength(0);
+  });
+
+  it("fails closed for repeated provisioning of the same seller binding and shop identity", async () => {
+    const { prisma, state } = createProvisioningPrisma();
+    const module = createCatalogModule(prisma);
+
+    await module.controller.provisionShop({
+      sellerId: "seller-1",
+      telegramId: "123456",
+      name: "Bakery",
+    });
+
+    await expect(
+      module.controller.provisionShop({
+        sellerId: "seller-1",
+        telegramId: "123456",
+        name: "Bakery",
+      }),
+    ).rejects.toEqual(
+      new AppError(
+        "SHOP_PROVISIONING_CONFLICT",
+        "Shop provisioning conflicts with an existing seller binding or shop record",
+        409,
+      ),
+    );
+
+    expect(state.shops).toHaveLength(1);
+    expect(state.bindings).toHaveLength(1);
+    expect(state.menuPages).toHaveLength(2);
+    expect(state.products).toHaveLength(2);
+  });
+
+  it("keeps concurrent identical provisioning race-safe at the persistence boundary", async () => {
+    const { prisma, state } = createProvisioningPrisma({ stallConcurrentShopCreate: true });
+    const module = createCatalogModule(prisma);
+
+    const results = await Promise.allSettled([
+      module.controller.provisionShop({
+        sellerId: "seller-1",
+        telegramId: "123456",
+        name: "Bakery",
+      }),
+      module.controller.provisionShop({
+        sellerId: "seller-1",
+        telegramId: "123456",
+        name: "Bakery",
+      }),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(results.some((result) => result.status === "rejected" && result.reason instanceof AppError)).toBe(true);
+    expect(results).toContainEqual({
+      status: "rejected",
+      reason: new AppError(
+        "SHOP_PROVISIONING_CONFLICT",
+        "Shop provisioning conflicts with an existing seller binding or shop record",
+        409,
+      ),
+    });
+    expect(state.shops).toHaveLength(1);
+    expect(state.bindings).toHaveLength(1);
+    expect(state.menuPages).toHaveLength(2);
+    expect(state.products).toHaveLength(2);
   });
 
   it("rolls back the whole provisioning transaction when starter product creation fails", async () => {

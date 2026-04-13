@@ -4,6 +4,50 @@ status: active
 ---
 # Changelog
 
+## [2026-04-13] TASK-FT011-08 seller rename conflict semantics on the durable shop identity key
+- Reconciled seller rename writes with the durable `Shop(sellerId, name)` invariant: `CatalogService.updateSellerShop(...)` now maps uniqueness violations to controlled `SHOP_RENAME_CONFLICT` `409` semantics instead of leaking raw persistence failures.
+- Aligned the repo-local in-memory/runtime helpers with the same rename-time uniqueness rule and added focused unit/integration/mounted-runtime regressions before re-running `npm run test:catalog` and `npm run lint`.
+
+## [2026-04-13] TASK-FT011-07 red-verify follow-up for seller rename conflict semantics
+- `red-verify` for `TASK-FT011-07` confirmed the original provisioning race is closed, but found a semantic concern: the new durable `Shop(sellerId, name)` uniqueness key also governs seller rename writes and is not yet reconciled with a controlled conflict contract on that path.
+- Added `TASK-FT011-08` as a ready follow-up to keep the persistence-boundary hardening while aligning seller rename collisions with the project error contract and test surface.
+
+## [2026-04-13] TASK-FT011-07 race-safe provisioning conflicts at the persistence boundary
+- Added a canonical durable `sellerId + shop name` uniqueness key for `catalog` provisioning, so identical concurrent admin retries now fail closed at the repository/DB boundary instead of relying only on the application-layer precheck.
+- Aligned the in-memory/runtime helper with the same uniqueness rule and added hostile integration/runtime coverage proving repeated or concurrent identical provisioning leaves exactly one starter `shop + binding + menu pages + products` bundle.
+- Re-ran focused catalog integration/runtime checks, focused ESLint for the touched files, and the full `npm run test:catalog` suite before marking the task done.
+
+## [2026-04-13] TASK-FT011-03 red-verify follow-up for race-safe duplicate provisioning
+- `red-verify` for `TASK-FT011-03` found a semantic concern: the new duplicate guard blocks serialized identical replays, but it still lives above the persistence boundary and is not race-safe under concurrent retries.
+- Added `TASK-FT011-07` as a ready follow-up to move duplicate/conflict enforcement onto a canonical repository/DB boundary so `REQ-028` stays fail-closed beyond narrow sequential tests.
+
+## [2026-04-13] TASK-FT011-03 transactional provisioning duplicate guard
+- Hardened `CatalogService.provisionSellerShop(...)` so repeated identical `sellerId + telegramId + shop name` requests now fail closed before repository writes instead of relying only on downstream uniqueness errors.
+- Added focused unit/integration coverage proving identical repeated provisioning leaves the starter `shop + binding + menu pages + products` bundle unchanged, while the existing rollback regression still protects atomic failure behavior.
+- Re-ran `npm run test:catalog` and focused ESLint on the touched catalog files before marking the task done.
+
+## [2026-04-13] TASK-FT011-02 persistent catalog seed baseline replaces hidden demo bootstrap
+- Replaced the mounted runtime's hidden `seededShops/seededProducts` bootstrap with the explicit checked-in seed file `backend/prisma/seeds/catalog-runtime-baseline.json`.
+- Added a SQLite-backed catalog runtime state store and wired `scripts/dev-api.ts` to a stable repo-local DB path, so repo-local startup/restart now reuses persisted catalog state instead of fabricating storefront availability from process-local demo memory.
+- Added a focused restart regression and re-ran the full catalog suite; broader canonical persisted read-path closure still remains with later `FT-011` tasks.
+
+## [2026-04-13] TASK-FT011-01 mounted catalog runtime now uses the Prisma-backed module
+- Replaced the default repo-local `dev:api` catalog mount from `InMemoryCatalogRepository` to the checked-in Prisma-backed `catalog` module surface, while keeping the in-memory adapter explicit for isolated tests only.
+- Added runtime regression coverage proving the mounted server now boots with `PrismaCatalogRepository`; durable DB-backed seed/bootstrap and restart-safe closure still remain with later `FT-011` tasks.
+- Synced `requirements.md` and `tasks/backlog.md` so `REQ-027/028` now reflect `implemented` lifecycle rather than `planned`, while final `verified` closure still remains with later `FT-011` durability work.
+
+## [2026-04-13] FT-011 implementation plan and backlog decomposition
+- Added `.protocols/FT-011/{plan,decision-log}.md`, `.memory-bank/tasks/plans/IMPL-FT-011.md`, and a dedicated `FT-011` backlog section with execution-ready task cards for DB-backed runtime switch, transactional provisioning, durability regressions, and final restart-smoke closure.
+- Updated `tasks/plans/index.md`, `tasks/backlog.md`, and the root Memory Bank index so `FT-011` is now ready for `/execute` task-by-task delivery.
+
+## [2026-04-13] FT-011 DB-backed catalog runtime re-baseline
+- Added `.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md` plus `REQ-027/028` to move `catalog` onto a normative DB-backed runtime baseline with durable provisioning, canonical persisted storefront resolution, and restart-safe behavior.
+- Updated `EP-001`, `FT-001`, `FT-010`, `requirements`, catalog contracts, architecture, and testing docs so seller contour behavior remains with `FT-010`, while durable runtime closure is now tracked separately by `FT-011`.
+
+## [2026-04-11] FT-010 manual verification runbook
+- Added `.memory-bank/runbooks/ft-010-manual-verification.md` as the canonical manual test runbook for checked-in `FT-010` scope: admin provisioning, shared storefront seller edit mode, narrow seller-web status toggle, visibility gating, controlled `/shops/:shopId` missing/error states, and no-delete baseline.
+- Linked the runbook from `runbooks/index.md`, `FT-010`, and the root Memory Bank index so manual operator verification has one canonical entrypoint.
+
 ## [2026-04-11] TASK-FT010-21 controlled storefront missing/error states
 - Replaced `/shops/:shopId` synthetic fallback behavior so the shared storefront route now resolves from canonical seller data or real public shop data only.
 - Added focused route regressions proving missing storefronts render explicit not-found feedback, failing loads render controlled errors, and valid public browse still survives seller-access failures.

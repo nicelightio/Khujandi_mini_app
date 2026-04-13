@@ -23,6 +23,7 @@ status: active
 - The same logical user MAY have both customer and seller capabilities.
 - Backend access decisions MUST be made server-side from the authenticated Telegram-linked user plus shop ownership bindings.
 - Seller access MUST NOT be inferred only from client-side route choice, local flags, or `initDataUnsafe`.
+- Seller-protected catalog reads and writes MUST operate on canonical persisted catalog state; route-local in-memory catalog stores are not a normative access source.
 
 ## Session model
 - Shared storefront auth bootstrap uses `POST /auth/telegram`.
@@ -45,6 +46,7 @@ status: active
 
 ## Related docs
 - [.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md](../features/FT-010-seller-storefront-editing-and-store-admin.md): feature acceptance and contour usage.
+- [.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md](../features/FT-011-db-backed-catalog-runtime-baseline.md): durable runtime baseline for shared storefront and `seller-web` catalog paths.
 - [.memory-bank/contracts/telegram-mini-app-auth-contract.md](telegram-mini-app-auth-contract.md): Telegram auth bootstrap.
 - [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](catalog-seller-provisioning-and-visibility.md): admin provisioning and visibility rules.
 - [.memory-bank/contracts/seller-catalog-write-policy.md](seller-catalog-write-policy.md): seller edit permissions.

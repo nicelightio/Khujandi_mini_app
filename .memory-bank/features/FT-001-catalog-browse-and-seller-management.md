@@ -20,6 +20,7 @@ status: active
 - `TASK-FT001-09` added the minimal repo-local backend Jest runner for catalog unit/integration specs.
 - `TASK-FT001-08` completed the final verification/docs sync for `REQ-001`, `REQ-002`, and `REQ-020`, including route/page smoke coverage and RTM updates.
 - Advanced seller surfaces are now split into `FT-010`: shared storefront edit mode, admin-provisioned skeleton shops, media-rich catalog editing, explicit `WORKING/NOT_WORKING` visibility, and narrow store-admin controls.
+- Durable DB-backed catalog runtime baseline for provisioning and canonical storefront resolution is now tracked in `FT-011`.
 - Checked-in repo code still contains legacy soft-delete fields/filters from the older catalog baseline; that is now explicit implementation drift relative to the normative no-delete catalog direction.
 
 ## Use cases

@@ -422,6 +422,50 @@ describe("catalog service", () => {
     );
   });
 
+  it("rejects duplicate provisioning for the same seller binding and shop identity before repository writes", async () => {
+    const provisionSellerShop = jest.fn();
+    const service = new CatalogService({
+      ...createRepository(),
+      listSellerBindingsByTelegramId: async () => [
+        {
+          id: "binding-1",
+          shopId: "shop-1",
+          sellerId: "seller-1",
+          telegramId: "123456",
+        },
+      ],
+      findShopById: async () => ({
+        id: "shop-1",
+        sellerId: "seller-1",
+        name: "Bakery",
+        description: null,
+        headerImageUrl: null,
+        backgroundImageUrl: null,
+        status: "WORKING",
+        renameCount: 0,
+        requiresManualRenameReview: false,
+        isDeleted: false,
+      }),
+      provisionSellerShop,
+    });
+
+    await expect(
+      service.provisionSellerShop({
+        sellerId: "seller-1",
+        telegramId: "123456",
+        name: "Bakery",
+      }),
+    ).rejects.toEqual(
+      new AppError(
+        "SHOP_PROVISIONING_CONFLICT",
+        "Shop provisioning conflicts with an existing seller binding or shop record",
+        409,
+      ),
+    );
+
+    expect(provisionSellerShop).not.toHaveBeenCalled();
+  });
+
   it("marks repeated rename as manual paid review", async () => {
     const updateShop = jest.fn().mockResolvedValue(withWriteEvent({
       id: "shop-1",
@@ -459,6 +503,34 @@ describe("catalog service", () => {
       renameCount: 2,
       requiresManualRenameReview: true,
     });
+  });
+
+  it("maps repository rename uniqueness conflicts into a controlled seller error", async () => {
+    const updateShop = jest.fn().mockRejectedValue(Object.assign(new Error("Unique constraint failed"), { code: "P2002" }));
+    const service = new CatalogService({
+      ...createRepository(),
+      findShopById: async () => ({
+        id: "shop-1",
+        sellerId: "seller-1",
+        name: "Current name",
+        description: null,
+        headerImageUrl: null,
+        backgroundImageUrl: null,
+        status: "WORKING",
+        renameCount: 0,
+        requiresManualRenameReview: false,
+        isDeleted: false,
+      }),
+      updateShop,
+    });
+
+    await expect(service.updateSellerShop("seller-1", "shop-1", { name: "Taken name" })).rejects.toEqual(
+      new AppError(
+        "SHOP_RENAME_CONFLICT",
+        "Shop rename conflicts with another shop owned by this seller",
+        409,
+      ),
+    );
   });
 
   it("rejects non-owner shop writes", async () => {

@@ -31,6 +31,13 @@ const isUniqueConstraintError = (error: unknown): boolean => {
   return code === "P2002";
 };
 
+const createShopRenameConflictError = (): AppError =>
+  new AppError(
+    "SHOP_RENAME_CONFLICT",
+    "Shop rename conflicts with another shop owned by this seller",
+    409,
+  );
+
 export class CatalogService {
   constructor(private readonly repository: CatalogRepository) {}
 
@@ -106,6 +113,38 @@ export class CatalogService {
       );
     }
 
+    const existingBindings = await this.repository.listSellerBindingsByTelegramId(telegramId);
+    const existingShops = await Promise.all(
+      existingBindings.map(async (binding) => {
+        const shop = await this.repository.findShopById(binding.shopId);
+
+        if (shop === null || shop.isDeleted) {
+          return null;
+        }
+
+        return {
+          binding,
+          shop,
+        };
+      }),
+    );
+
+    const hasDuplicateProvisioningTarget = existingShops.some((entry) => {
+      if (entry === null) {
+        return false;
+      }
+
+      return entry.binding.sellerId === sellerId && entry.shop.sellerId === sellerId && entry.shop.name === name;
+    });
+
+    if (hasDuplicateProvisioningTarget) {
+      throw new AppError(
+        "SHOP_PROVISIONING_CONFLICT",
+        "Shop provisioning conflicts with an existing seller binding or shop record",
+        409,
+      );
+    }
+
     try {
       return await this.repository.provisionSellerShop({
         sellerId,
@@ -167,15 +206,25 @@ export class CatalogService {
 
     const renameCount = isRename ? shop.renameCount + 1 : shop.renameCount;
 
-    const result = await this.repository.updateShop(shopId, {
-      name: input.name,
-      description: input.description,
-      headerImageUrl: input.headerImageUrl,
-      backgroundImageUrl: input.backgroundImageUrl,
-      status: input.status,
-      renameCount,
-      requiresManualRenameReview: shop.requiresManualRenameReview || (isRename && shop.renameCount >= 1),
-    });
+    let result;
+
+    try {
+      result = await this.repository.updateShop(shopId, {
+        name: input.name,
+        description: input.description,
+        headerImageUrl: input.headerImageUrl,
+        backgroundImageUrl: input.backgroundImageUrl,
+        status: input.status,
+        renameCount,
+        requiresManualRenameReview: shop.requiresManualRenameReview || (isRename && shop.renameCount >= 1),
+      });
+    } catch (error) {
+      if (isRename && isUniqueConstraintError(error)) {
+        throw createShopRenameConflictError();
+      }
+
+      throw error;
+    }
 
     return result.record;
   }

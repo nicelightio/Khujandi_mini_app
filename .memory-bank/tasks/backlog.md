@@ -14,6 +14,12 @@ status: active
 - `FT-003` декомпозирована в implementation plan и task cards.
 - `FT-009` декомпозирована в implementation plan и task cards.
 - `FT-010` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для shared seller storefront edit mode, admin provisioning, Telegram-linked seller access и `WORKING/NOT_WORKING` visibility.
+- `FT-011` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для DB-backed `catalog` runtime baseline, transactional provisioning и restart-safe storefront resolution.
+- `TASK-FT011-01` завершен: mounted repo-local `catalog` runtime больше не использует `InMemoryCatalogRepository` как default path, а `REQ-027/028` переведены в `implemented` до финальной durability closure.
+- `TASK-FT011-02` завершен: скрытый process-local demo bootstrap заменен на checked-in DB-backed seed baseline и SQLite-backed runtime state store, поэтому repo-local catalog startup/restart теперь переиспользует persisted baseline вместо in-memory seeded arrays.
+- `TASK-FT011-03` завершен: admin provisioning теперь fail-closed отклоняет последовательные идентичные `sellerId + telegramId + shop name` запросы до repository writes, а интеграционные проверки по-прежнему подтверждают atomic `shop + binding + starter catalog bootstrap` commit/rollback semantics.
+- Follow-up от `red-verify` на `TASK-FT011-07` закрыт: race-safe conflict enforcement теперь живет на persistence boundary, а seller rename collisions на том же durable `sellerId + shop name` key дополнительно закрыты в `TASK-FT011-08` через controlled `SHOP_RENAME_CONFLICT` `409` semantics.
+- `TASK-FT011-08` завершен: seller rename path теперь reconciled с durable `sellerId + shop name` invariant, поэтому mounted/runtime rename collisions возвращают controlled `SHOP_RENAME_CONFLICT` `409` вместо raw persistence behavior.
 - Telegram-specific normative layer для `FT-002`, `FT-003` и `FT-009` расширен через `contracts/*`, `runbooks/*` и `diagrams/*`.
 - `FT-003` execution backlog закрыт: `TASK-FT003-01` ... `TASK-FT003-06` завершены; shared Telegram shell/runtime closure дополнительно закрыта в `FT-009`.
 - `FT-004` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для courier assignment.
@@ -1356,6 +1362,119 @@ status: active
 - Verify: shared storefront seller mode must not reconstruct fake products or a fake shop shell from swallowed errors or absent data; nonexistent/failed storefront loads return explicit controlled states, while legitimate public browse and owner-visible storefront cases remain intact
 - Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`, `index.md`
 - Source: opened from `/review` finding after `FT-010` closure
+
+## FT-011 — DB-Backed Catalog Runtime Baseline
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT011-01 — Switch repo-local catalog runtime to the Prisma-backed module
+- TASK-ID: `TASK-FT011-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-011`
+- REQs: `REQ-027`
+- Depends on: `none`
+- Touched files: `backend/src/dev-runtime/dev-api-server.ts`, `backend/src/slices/catalog/presentation/catalog.module.ts`, `backend/src/shared/db/**/*`, `tests/slices/catalog/catalog.runtime.integration.spec.ts`, and relevant `.memory-bank/*` docs
+- Tests: runtime/integration coverage proving the mounted repo-local API no longer uses `InMemoryCatalogRepository` as the default `catalog` path
+- Verify: `dev:api` and equivalent repo-local runtime entrypoints resolve `catalog` through the checked-in Prisma-backed module, while any remaining in-memory adapter stays explicitly non-normative
+- Docs: `tasks/backlog.md`, `tasks/plans/IMPL-FT-011.md`, `features/FT-011`, `changelog.md`
+- Normative Inputs: `FT-011`, `catalog-public-api.md`, `catalog-seller-access-and-session.md`, `system-contours-and-slices.md`, `data-boundaries-and-persistence.md`
+
+### TASK-FT011-02 — Replace hidden in-memory demo bootstrap with a DB-backed catalog seed baseline
+- TASK-ID: `TASK-FT011-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-011`
+- REQs: `REQ-027`
+- Depends on: `TASK-FT011-01`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/prisma/**/*`, repo seed/bootstrap scripts, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: bootstrap/runtime checks proving catalog start data comes from durable DB-backed seed/fixtures rather than process-local `seededShops/seededProducts`
+- Verify: local start/restart path no longer fabricates storefront availability from hidden process memory and can be repeated against the same persisted catalog state
+- Docs: `tasks/backlog.md`, `features/FT-011`, `testing/index.md`, `changelog.md`
+- Constraints: clean DB-backed baseline is acceptable; do not add legacy in-memory backfill logic
+
+### Wave W2 — core logic
+
+### TASK-FT011-03 — Enforce transactional catalog provisioning with fail-closed duplicate handling
+- TASK-ID: `TASK-FT011-03`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-028`
+- Depends on: `TASK-FT011-01`
+- Touched files: `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*` if mounted transport needs alignment, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: integration coverage for `shop + seller binding + starter menu pages/products` commit/rollback semantics plus duplicate/conflict fail-closed behavior
+- Verify: provisioning either persists the full starter catalog bundle or rolls back entirely; duplicate/conflicting requests return controlled errors and leave no partial rows
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`
+- Verification Targets: `POST /api/v1/admin/catalog/shops/provision`
+
+### TASK-FT011-04 — Move storefront and seller catalog resolution onto persisted runtime state
+- TASK-ID: `TASK-FT011-04`
+- Status: `in_progress`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-027`
+- Depends on: `TASK-FT011-01`, `TASK-FT010-21`
+- Touched files: `backend/src/slices/catalog/**/*`, `backend/src/dev-runtime/**/*`, `frontend/src/slices/catalog/**/*` only if canonical read wiring exposes UI-state drift, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: runtime/integration coverage proving `/shops/:shopId`, public browse and seller-protected reads/writes survive restart/reset and do not fall back to synthetic or route-local state
+- Verify: all mounted catalog surfaces resolve canonical persisted data after runtime restart/reset, while missing persisted data returns controlled not-found/error outcomes instead of fabricated success
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/catalog-public-api.md`, `contracts/catalog-seller-access-and-session.md`, `changelog.md`
+- Invariants: shared storefront and `seller-web` keep existing ownership/no-delete semantics from `FT-010` while switching the runtime source of truth
+
+### TASK-FT011-05 — Add durability regression suite for restart-safe catalog behavior
+- TASK-ID: `TASK-FT011-05`
+- Status: `planned`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-027`, `REQ-028`
+- Depends on: `TASK-FT011-02`, `TASK-FT011-03`, `TASK-FT011-04`
+- Touched files: `tests/slices/catalog/**/*`, runtime test helpers, optional `.tasks/TASK-FT011-05/**/*`, and relevant `.memory-bank/*` docs
+- Tests: automated repo-local coverage for persisted provisioning, restart-safe storefront resolution, and duplicate/conflict rollback invariants on the mounted DB-backed runtime path
+- Verify: automated evidence now proves the feature beyond isolated repository tests and guards against regressions that silently reintroduce default in-memory runtime behavior
+- Docs: `tasks/backlog.md`, `testing/index.md`, `changelog.md`
+- Quality Gates: `npm run test:catalog`, plus any targeted runtime suite introduced by the task
+
+### TASK-FT011-07 — Make provisioning conflict handling race-safe at the persistence boundary
+- TASK-ID: `TASK-FT011-07`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-028`
+- Depends on: `TASK-FT011-03`
+- Touched files: `backend/prisma/schema.prisma` if a canonical uniqueness key is required, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*` only if mounted conflict semantics must stay aligned, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: hostile unit/integration/runtime coverage proving concurrent or repeated identical provisioning intent remains conflict-safe and leaves exactly one persisted starter bundle
+- Verify: duplicate/conflicting provisioning is enforced by a race-safe repository/DB boundary rather than only by a service-layer precheck, so concurrent identical requests cannot create duplicate durable rows
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`, `index.md`
+- Source: opened by `red-verify` on `TASK-FT011-03`
+- Delivered: canonical `Shop` identity uniqueness is now enforced as durable `sellerId + shop name`, the in-memory/runtime helper mirrors that boundary, and hostile integration/runtime coverage proves repeated or concurrent identical provisioning leaves exactly one starter bundle
+
+### TASK-FT011-08 — Reconcile seller rename conflicts with the durable shop identity invariant
+- TASK-ID: `TASK-FT011-08`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-028`, `REQ-020`
+- Depends on: `TASK-FT011-07`
+- Touched files: `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/slices/catalog/presentation/**/*` only if error mapping must stay explicit at the HTTP boundary, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: focused unit/integration/runtime coverage proving the new durable `Shop(sellerId, name)` constraint yields controlled seller rename conflict behavior rather than raw persistence failures
+- Verify: seller rename collisions against another owned shop are either rejected through a controlled `409` business error or explicitly frozen as a different tested contract, so the provisioning uniqueness fix does not leave `FT-010` rename flows with opaque failures
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/seller-catalog-write-policy.md`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`, `index.md`
+- Source: opened by `red-verify` on `TASK-FT011-07`
+
+### Wave W3 — integration & polish
+
+### TASK-FT011-06 — Close FT-011 with manual durability smoke and RTM/docs sync
+- TASK-ID: `TASK-FT011-06`
+- Status: `planned`
+- Wave: `W3`
+- Feature: `FT-011`
+- REQs: `REQ-027`, `REQ-028`
+- Depends on: `TASK-FT011-05`
+- Touched files: `.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md`, `.memory-bank/requirements.md`, `.memory-bank/testing/index.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`, optional `.memory-bank/runbooks/*`, `.tasks/TASK-FT011-06/**/*`
+- Tests: final automated gate rerun plus manual `provision -> restart/reset -> /shops/:shopId` smoke evidence
+- Verify: acceptance criteria из `FT-011` полностью покрыты automated/runtime/manual evidence, RTM переводится из `implemented` в `verified` (legacy `done`), а Memory Bank явно фиксирует DB-backed runtime как canonical baseline
+- Docs: `features/FT-011`, `requirements.md`, `testing/index.md`, `changelog.md`, `index.md`, optional `runbooks/*`, `.tasks/TASK-FT011-06/**/*`
+- Verification Targets: admin provisioning, shared storefront resolution, seller-protected reads/writes, repo-local restart durability smoke
 
 ## Conventions
 Each task should include:

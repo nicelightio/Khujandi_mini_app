@@ -1,13 +1,16 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type Server } from "node:http";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import type { AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { AppError } from "../shared/errors/app-error";
 import { createAdminAccessModule } from "../slices/admin-access/presentation/admin-access.module";
 import { createAdminAuthHttpHandler, resolveProtectedAdminRouteSession } from "../slices/admin-access/presentation/admin-auth-http";
 import type { AdminAccessPrismaProvider } from "../slices/admin-access/infrastructure/prisma-admin-access.repository";
 import { createCheckoutPaymentModule } from "../slices/checkout-payment/presentation/checkout-payment.module";
 import type { CheckoutPaymentPrismaProvider } from "../slices/checkout-payment/infrastructure/prisma-checkout-payment.repository";
-import { CatalogController } from "../slices/catalog/presentation/catalog.controller";
-import { CatalogService } from "../slices/catalog/application/catalog.service";
+import { createCatalogModule } from "../slices/catalog/presentation/catalog.module";
 import type {
   CatalogWriteResult,
   CatalogWriteEvent,
@@ -27,6 +30,7 @@ import type {
   UpdateSellerProductInput,
   UpdateSellerShopInput,
 } from "../slices/catalog/domain/catalog.types";
+import { createPrismaProvider, type EventRecord } from "../shared/db/prisma-client";
 import type {
   CheckoutPaymentMiniAppSessionRecord,
   CheckoutPaymentOrderRecord,
@@ -101,6 +105,7 @@ type RuntimeServerOptions = {
   host?: string;
   port?: number;
   allowedOrigins?: string[];
+  catalogDatabasePath?: string;
   passwordHasher?: {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
   };
@@ -121,80 +126,6 @@ type CheckoutPaymentRuntimeState = {
   nextSessionId: number;
   nextOrderId: number;
 };
-
-const seededShops = [
-  {
-    id: "shop-1",
-    sellerId: "seller-runtime-1",
-    name: "Плов в парке Сомони",
-    description: null,
-    headerImageUrl: null,
-    backgroundImageUrl: null,
-    status: "WORKING" as const,
-    renameCount: 0,
-    requiresManualRenameReview: false,
-    isDeleted: false,
-  },
-  {
-    id: "shop-2",
-    sellerId: "seller-runtime-2",
-    name: "Бобоча самбуса",
-    description: null,
-    headerImageUrl: null,
-    backgroundImageUrl: null,
-    status: "WORKING" as const,
-    renameCount: 0,
-    requiresManualRenameReview: false,
-    isDeleted: false,
-  },
-];
-
-const seededProducts = [
-    {
-      id: "product-1",
-      shopId: "shop-1",
-      menuPageId: null,
-      name: "Плов зарвода",
-      description: null,
-      imageUrl: null,
-      priceMinor: 4500,
-      isDeleted: false,
-      sellerId: "seller-runtime-1",
-    },
-    {
-      id: "product-2",
-      shopId: "shop-1",
-      menuPageId: null,
-      name: "Плов обычный",
-      description: null,
-      imageUrl: null,
-      priceMinor: 3800,
-      isDeleted: false,
-      sellerId: "seller-runtime-1",
-    },
-    {
-      id: "product-3",
-      shopId: "shop-2",
-      menuPageId: null,
-      name: "Самбуса рубленная говядина",
-      description: null,
-      imageUrl: null,
-      priceMinor: 1200,
-      isDeleted: false,
-      sellerId: "seller-runtime-2",
-    },
-    {
-      id: "product-4",
-      shopId: "shop-2",
-      menuPageId: null,
-      name: "Самбуса фарш",
-      description: null,
-      imageUrl: null,
-      priceMinor: 700,
-      isDeleted: false,
-      sellerId: "seller-runtime-2",
-    },
-];
 
 type CatalogRuntimeState = {
   shops: SellerCatalogShop[];
@@ -227,6 +158,84 @@ const cloneCatalogState = (state: CatalogRuntimeState): CatalogRuntimeState => (
   nextProductId: state.nextProductId,
   nextBindingId: state.nextBindingId,
 });
+
+const catalogSeedBaselinePath = resolve(process.cwd(), "backend", "prisma", "seeds", "catalog-runtime-baseline.json");
+
+let cachedCatalogSeedBaseline: CatalogRuntimeState | null = null;
+
+const loadCatalogSeedBaseline = (): CatalogRuntimeState => {
+  if (cachedCatalogSeedBaseline === null) {
+    cachedCatalogSeedBaseline = JSON.parse(readFileSync(catalogSeedBaselinePath, "utf8")) as CatalogRuntimeState;
+  }
+
+  return cloneCatalogState(cachedCatalogSeedBaseline);
+};
+
+type CatalogStatePersistence = {
+  databasePath: string;
+  loadState: () => CatalogRuntimeState;
+  saveState: (state: CatalogRuntimeState) => void;
+  close: () => void;
+  cleanup: () => void;
+};
+
+const createCatalogStatePersistence = (databasePath: string, cleanupDirectory: string | null): CatalogStatePersistence => {
+  mkdirSync(dirname(databasePath), { recursive: true });
+
+  const database = new DatabaseSync(databasePath);
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS catalog_runtime_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  const saveState = (state: CatalogRuntimeState): void => {
+    database
+      .prepare(
+        `INSERT INTO catalog_runtime_state (id, payload, updated_at)
+         VALUES (1, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at`,
+      )
+      .run(JSON.stringify(state), new Date().toISOString());
+  };
+
+  const loadState = (): CatalogRuntimeState => {
+    const row = database.prepare("SELECT payload FROM catalog_runtime_state WHERE id = 1").get() as { payload: string } | undefined;
+
+    if (row === undefined) {
+      const seededState = createCatalogRuntimeState();
+      saveState(seededState);
+      return seededState;
+    }
+
+    return JSON.parse(row.payload) as CatalogRuntimeState;
+  };
+
+  return {
+    databasePath,
+    loadState,
+    saveState,
+    close: () => {
+      database.close();
+    },
+    cleanup: () => {
+      if (cleanupDirectory !== null && existsSync(cleanupDirectory)) {
+        rmSync(cleanupDirectory, { recursive: true, force: true });
+      }
+    },
+  };
+};
+
+const resolveCatalogDatabasePersistence = (databasePath: string | undefined): CatalogStatePersistence => {
+  if (databasePath !== undefined) {
+    return createCatalogStatePersistence(databasePath, null);
+  }
+
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), "khujandi-catalog-runtime-"));
+  return createCatalogStatePersistence(join(temporaryDirectory, "catalog-runtime.sqlite"), temporaryDirectory);
+};
 
 const buildSellerStorefrontPayload = (state: CatalogRuntimeState, shop: SellerCatalogShop) => {
   const shopMenuPages = state.menuPages.filter((page) => page.shopId === shop.id);
@@ -329,6 +338,12 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   }
 
   async createShop(input: CreateProvisionedShopInput) {
+    if (this.state.shops.some((shop) => shop.sellerId === input.sellerId && shop.name === input.name)) {
+      const error = new Error("Unique constraint failed");
+      (error as Error & { code: string }).code = "P2002";
+      throw error;
+    }
+
     const shop: SellerCatalogShop = {
       id: `shop-runtime-${this.state.nextShopId++}`,
       sellerId: input.sellerId,
@@ -353,6 +368,17 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 
     if (shop === undefined) {
       throw new Error("Unknown shop id");
+    }
+
+    if (
+      this.state.shops.some(
+        (candidate) =>
+          candidate.id !== shopId && candidate.sellerId === shop.sellerId && candidate.name === input.name,
+      )
+    ) {
+      const error = new Error("Unique constraint failed");
+      (error as Error & { code: string }).code = "P2002";
+      throw error;
     }
 
     shop.name = input.name;
@@ -654,16 +680,382 @@ export class InMemoryCatalogRepository implements CatalogRepository {
 }
 
 export const createCatalogRuntimeState = (): CatalogRuntimeState => ({
-  shops: seededShops.map(cloneShop),
-  menuPages: [],
-  products: seededProducts.map(cloneProduct),
-  bindings: [],
-  events: [],
-  nextShopId: 3,
-  nextMenuPageId: 1,
-  nextProductId: 5,
-  nextBindingId: 1,
+  ...loadCatalogSeedBaseline(),
 });
+
+const createInMemoryCatalogPrisma = (
+  state: CatalogRuntimeState,
+  options: {
+    persist?: (state: CatalogRuntimeState) => void;
+  } = {},
+) => {
+  const persistCommittedState = (target: CatalogRuntimeState) => {
+    if (target === state) {
+      options.persist?.(state);
+    }
+  };
+
+  const createEventRecord = (target: CatalogRuntimeState, input: {
+    type: string;
+    entity: string;
+    entityId: string;
+    payload: Record<string, unknown>;
+  }): EventRecord => {
+    const createdAt = new Date();
+    const eventRecord: EventRecord = {
+      id: BigInt(target.events.length + 1),
+      type: input.type,
+      entity: input.entity,
+      entityId: input.entityId,
+      payload: { ...input.payload },
+      createdAt,
+    };
+
+    target.events.push({
+      type: eventRecord.type,
+      entity: eventRecord.entity as CatalogWriteEvent["entity"],
+      entityId: eventRecord.entityId,
+      payload: { ...input.payload },
+      createdAt: createdAt.toISOString(),
+    });
+
+    return eventRecord;
+  };
+
+  const createClient = (target: CatalogRuntimeState) => ({
+    shop: {
+      findMany: async ({ where }: { where: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } }) =>
+        target.shops
+          .filter((shop) => shop.isDeleted === where.isDeleted)
+          .filter((shop) => where.status === undefined || shop.status === where.status)
+          .map((shop) => ({ id: shop.id, name: shop.name })),
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        const shop = target.shops.find((candidate) => candidate.id === where.id) ?? null;
+        return shop === null ? null : { ...shop };
+      },
+      create: async ({ data }: { data: { sellerId: string; name: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status: "WORKING" | "NOT_WORKING" } }) => {
+        if (target.shops.some((shop) => shop.sellerId === data.sellerId && shop.name === data.name)) {
+          const error = new Error("Unique constraint failed");
+          Object.assign(error, { code: "P2002" });
+          throw error;
+        }
+
+        const shop: SellerCatalogShop = {
+          id: `shop-runtime-${target.nextShopId++}`,
+          sellerId: data.sellerId,
+          name: data.name,
+          description: data.description ?? null,
+          headerImageUrl: data.headerImageUrl ?? null,
+          backgroundImageUrl: data.backgroundImageUrl ?? null,
+          status: data.status,
+          renameCount: 0,
+          requiresManualRenameReview: false,
+          isDeleted: false,
+        };
+        target.shops.push(shop);
+        persistCommittedState(target);
+        return { ...shop };
+      },
+      update: async ({ where, data }: { where: { id: string }; data: { name: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status?: "WORKING" | "NOT_WORKING"; renameCount: number; requiresManualRenameReview: boolean } }) => {
+        const shop = target.shops.find((candidate) => candidate.id === where.id);
+
+        if (shop === undefined) {
+          throw new Error("Unknown shop id");
+        }
+
+        if (
+          target.shops.some(
+            (candidate) =>
+              candidate.id !== where.id && candidate.sellerId === shop.sellerId && candidate.name === data.name,
+          )
+        ) {
+          const error = new Error("Unique constraint failed");
+          Object.assign(error, { code: "P2002" });
+          throw error;
+        }
+
+        shop.name = data.name;
+        if (data.description !== undefined) {
+          shop.description = data.description;
+        }
+        if (data.headerImageUrl !== undefined) {
+          shop.headerImageUrl = data.headerImageUrl;
+        }
+        if (data.backgroundImageUrl !== undefined) {
+          shop.backgroundImageUrl = data.backgroundImageUrl;
+        }
+        shop.status = data.status ?? shop.status;
+        shop.renameCount = data.renameCount;
+        shop.requiresManualRenameReview = data.requiresManualRenameReview;
+        persistCommittedState(target);
+
+        return {
+          ...shop,
+          updatedAt: new Date(),
+        };
+      },
+    },
+    menuPage: {
+      findMany: async ({ where }: { where: { shopId: string; shop: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } } }) => {
+        const shop = target.shops.find((candidate) => candidate.id === where.shopId);
+
+        if (
+          shop === undefined ||
+          shop.isDeleted !== where.shop.isDeleted ||
+          (where.shop.status !== undefined && shop.status !== where.shop.status)
+        ) {
+          return [];
+        }
+
+        return target.menuPages
+          .filter((page) => page.shopId === where.shopId)
+          .sort((left, right) => left.position - right.position)
+          .map((page) => ({
+            id: page.id,
+            shopId: page.shopId,
+            name: page.name,
+            position: page.position,
+          }));
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        const page = target.menuPages.find((candidate) => candidate.id === where.id) ?? null;
+
+        if (page === null) {
+          return null;
+        }
+
+        const shop = target.shops.find((candidate) => candidate.id === page.shopId);
+
+        if (shop === undefined) {
+          throw new Error("Unknown shop id");
+        }
+
+        return {
+          ...page,
+          shop: {
+            sellerId: shop.sellerId,
+            isDeleted: shop.isDeleted,
+            status: shop.status,
+          },
+        };
+      },
+      create: async ({ data }: { data: { shopId: string; name: string; position: number } }) => {
+        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
+
+        if (shop === undefined) {
+          throw new Error("Unknown shop id");
+        }
+
+        const page: SellerCatalogMenuPage = {
+          id: `menu-page-runtime-${target.nextMenuPageId++}`,
+          shopId: data.shopId,
+          name: data.name,
+          position: data.position,
+          sellerId: shop.sellerId,
+          shopStatus: shop.status,
+        };
+        target.menuPages.push(page);
+        persistCommittedState(target);
+
+        return {
+          id: page.id,
+          shopId: page.shopId,
+          name: page.name,
+          position: page.position,
+          shop: {
+            sellerId: shop.sellerId,
+            isDeleted: shop.isDeleted,
+            status: shop.status,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      },
+      update: async ({ where, data }: { where: { id: string }; data: { shopId: string; name: string } }) => {
+        const page = target.menuPages.find((candidate) => candidate.id === where.id);
+
+        if (page === undefined) {
+          throw new Error("Unknown menu page id");
+        }
+
+        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
+
+        if (shop === undefined) {
+          throw new Error("Unknown shop id");
+        }
+
+        page.shopId = data.shopId;
+        page.name = data.name;
+        page.sellerId = shop.sellerId;
+        page.shopStatus = shop.status;
+        persistCommittedState(target);
+
+        return {
+          id: page.id,
+          shopId: page.shopId,
+          name: page.name,
+          position: page.position,
+          shop: {
+            sellerId: shop.sellerId,
+            isDeleted: shop.isDeleted,
+            status: shop.status,
+          },
+          updatedAt: new Date(),
+        };
+      },
+    },
+    product: {
+      findMany: async ({ where }: { where: { shopId: string; isDeleted: boolean; shop: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } } }) => {
+        const shop = target.shops.find((candidate) => candidate.id === where.shopId);
+
+        if (
+          shop === undefined ||
+          shop.isDeleted !== where.shop.isDeleted ||
+          (where.shop.status !== undefined && shop.status !== where.shop.status)
+        ) {
+          return [];
+        }
+
+        return target.products
+          .filter((product) => product.shopId === where.shopId && product.isDeleted === where.isDeleted)
+          .map((product) => ({
+            id: product.id,
+            shopId: product.shopId,
+            menuPageId: product.menuPageId,
+            name: product.name,
+            priceMinor: product.priceMinor,
+          }));
+      },
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        const product = target.products.find((candidate) => candidate.id === where.id) ?? null;
+
+        if (product === null) {
+          return null;
+        }
+
+        const shop = target.shops.find((candidate) => candidate.id === product.shopId);
+
+        if (shop === undefined) {
+          throw new Error("Unknown shop id");
+        }
+
+        return {
+          ...product,
+          shop: {
+            sellerId: shop.sellerId,
+            isDeleted: shop.isDeleted,
+          },
+        };
+      },
+      create: async ({ data }: { data: { shopId: string; menuPageId?: string | null; name: string; description?: string | null; imageUrl?: string | null; priceMinor: number } }) => {
+        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
+
+        if (shop === undefined) {
+          throw new Error("Unknown shop id");
+        }
+
+        const product: SellerCatalogProduct = {
+          id: `product-runtime-${target.nextProductId++}`,
+          shopId: data.shopId,
+          menuPageId: data.menuPageId ?? null,
+          name: data.name,
+          description: data.description ?? null,
+          imageUrl: data.imageUrl ?? null,
+          priceMinor: data.priceMinor,
+          isDeleted: false,
+          sellerId: shop.sellerId,
+        };
+        target.products.push(product);
+        persistCommittedState(target);
+
+        return {
+          ...product,
+          shop: {
+            sellerId: shop.sellerId,
+            isDeleted: shop.isDeleted,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      },
+      update: async ({ where, data }: { where: { id: string }; data: { shopId: string; menuPageId?: string | null; name: string; description?: string | null; imageUrl?: string | null; priceMinor: number } }) => {
+        const product = target.products.find((candidate) => candidate.id === where.id);
+
+        if (product === undefined) {
+          throw new Error("Unknown product id");
+        }
+
+        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
+
+        if (shop === undefined) {
+          throw new Error("Unknown shop id");
+        }
+
+        product.shopId = data.shopId;
+        product.menuPageId = data.menuPageId ?? null;
+        product.name = data.name;
+        product.description = data.description ?? null;
+        product.imageUrl = data.imageUrl ?? null;
+        product.priceMinor = data.priceMinor;
+        product.sellerId = shop.sellerId;
+        persistCommittedState(target);
+
+        return {
+          ...product,
+          shop: {
+            sellerId: shop.sellerId,
+            isDeleted: shop.isDeleted,
+          },
+          updatedAt: new Date(),
+        };
+      },
+    },
+    sellerShopBinding: {
+      findMany: async ({ where }: { where: { telegramId: string } }) =>
+        target.bindings
+          .filter((binding) => binding.telegramId === where.telegramId)
+          .map((binding) => ({ ...binding })),
+      create: async ({ data }: { data: { shopId: string; sellerId: string; telegramId: string } }) => {
+        if (target.bindings.some((binding) => binding.sellerId === data.sellerId || binding.telegramId === data.telegramId)) {
+          const error = new Error("duplicate binding");
+          Object.assign(error, { code: "P2002" });
+          throw error;
+        }
+
+        const binding: SellerShopBinding = {
+          id: `binding-runtime-${target.nextBindingId++}`,
+          shopId: data.shopId,
+          sellerId: data.sellerId,
+          telegramId: data.telegramId,
+        };
+        target.bindings.push(binding);
+        persistCommittedState(target);
+        return { ...binding };
+      },
+    },
+    event: {
+      create: async ({ data }: { data: { type: string; entity: string; entityId: string; payload: Record<string, unknown> } }) => {
+        const event = createEventRecord(target, data);
+        persistCommittedState(target);
+        return event;
+      },
+    },
+  });
+
+  const client = createClient(state) as ReturnType<typeof createClient> & {
+    $transaction<T>(callback: (transactionClient: ReturnType<typeof createClient>) => Promise<T>): Promise<T>;
+  };
+
+  client.$transaction = async (callback) => {
+    const draftState = cloneCatalogState(state);
+    const result = await callback(createClient(draftState));
+    Object.assign(state, draftState);
+    options.persist?.(state);
+    return result;
+  };
+
+  return createPrismaProvider(client as never);
+};
 
 const createCheckoutPaymentRuntimeState = (): CheckoutPaymentRuntimeState => ({
   orders: [],
@@ -1226,9 +1618,15 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   const prisma = createInMemoryAdminAccessPrisma();
   const checkoutPaymentPrisma = createInMemoryCheckoutPaymentPrisma();
   const module = createAdminAccessModule(prisma);
-  const catalogState = createCatalogRuntimeState();
+  const catalogPersistence = resolveCatalogDatabasePersistence(options.catalogDatabasePath);
+  const catalogState = catalogPersistence.loadState();
+  const catalogPrisma = createInMemoryCatalogPrisma(catalogState, {
+    persist: (nextState) => {
+      catalogPersistence.saveState(nextState);
+    },
+  });
+  const catalogModule = createCatalogModule(catalogPrisma);
   const checkoutPaymentState = checkoutPaymentPrisma.state;
-  const catalogController = new CatalogController(new CatalogService(new InMemoryCatalogRepository(catalogState)));
   const checkoutPaymentModule = createCheckoutPaymentModule(checkoutPaymentPrisma, {
     botToken: "test-bot-token",
     allowedOrigins,
@@ -1301,7 +1699,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
         }
       }
     } else if (method === "GET" && url.pathname === "/api/v1/shops") {
-      result = json(200, await catalogController.getShops(), "GET,OPTIONS");
+      result = json(200, await catalogModule.controller.getShops(), "GET,OPTIONS");
     } else {
       const productsMatch = url.pathname.match(/^\/api\/v1\/shops\/([^/]+)\/products$/u);
       const sellerShopMatch = url.pathname.match(/^\/api\/v1\/seller\/shops\/([^/]+)$/u);
@@ -1310,14 +1708,14 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
 
       if (method === "GET" && productsMatch !== null) {
         const shopId = decodeURIComponent(productsMatch[1]);
-        result = json(200, await catalogController.getProducts(shopId), "GET,OPTIONS");
+        result = json(200, await catalogModule.controller.getProducts(shopId), "GET,OPTIONS");
       } else if (method === "GET" && url.pathname === "/api/v1/seller/shops") {
         try {
           const user = await resolveMiniAppAuthenticatedUser(request, {
             state: checkoutPaymentState,
             now: options.now,
           });
-          result = json(200, await catalogController.getSellerShops(user.telegramId), "GET,OPTIONS");
+          result = json(200, await catalogModule.controller.getSellerShops(user.telegramId), "GET,OPTIONS");
         } catch (error) {
           if (error instanceof AppError) {
             result = json(error.statusCode, error.toPayload("trace-catalog-runtime"), "GET,OPTIONS");
@@ -1336,7 +1734,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
             now: options.now,
           });
           const shopId = decodeURIComponent(sellerShopMatch[1]);
-          const shop = await catalogController.getSellerShop(user.telegramId, shopId);
+          const shop = await catalogModule.controller.getSellerShop(user.telegramId, shopId);
           result = json(200, buildSellerStorefrontPayload(catalogState, shop), "GET,OPTIONS");
         } catch (error) {
           if (error instanceof AppError) {
@@ -1356,12 +1754,12 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
             now: options.now,
           });
           const shopId = decodeURIComponent(sellerShopMatch[1]);
-          const ownedShop = await catalogController.getSellerShop(user.telegramId, shopId);
+          const ownedShop = await catalogModule.controller.getSellerShop(user.telegramId, shopId);
           const body = await readJsonBody(request);
           const hasField = (field: string): boolean => Object.prototype.hasOwnProperty.call(body, field);
           result = json(
             200,
-            await catalogController.updateShop(ownedShop.sellerId, shopId, {
+            await catalogModule.controller.updateShop(ownedShop.sellerId, shopId, {
               name: hasField("name") ? String(body.name ?? "") : ownedShop.name,
               description: hasField("description")
                 ? body.description == null
@@ -1410,10 +1808,10 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           });
           const body = await readJsonBody(request);
           const shopId = String(body.shopId ?? "");
-          const ownedShop = await catalogController.getSellerShop(user.telegramId, shopId);
+          const ownedShop = await catalogModule.controller.getSellerShop(user.telegramId, shopId);
           result = json(
             201,
-            await catalogController.createMenuPage(ownedShop.sellerId, {
+            await catalogModule.controller.createMenuPage(ownedShop.sellerId, {
               shopId,
               name: String(body.name ?? ""),
               position: Number(body.position ?? 0),
@@ -1445,11 +1843,11 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           });
           const body = await readJsonBody(request);
           const shopId = String(body.shopId ?? "");
-          const ownedShop = await catalogController.getSellerShop(user.telegramId, shopId);
+          const ownedShop = await catalogModule.controller.getSellerShop(user.telegramId, shopId);
           const menuPageId = decodeURIComponent(sellerMenuPageMatch[1]);
           result = json(
             200,
-            await catalogController.updateMenuPage(ownedShop.sellerId, menuPageId, {
+            await catalogModule.controller.updateMenuPage(ownedShop.sellerId, menuPageId, {
               shopId,
               name: String(body.name ?? ""),
             }),
@@ -1480,10 +1878,10 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           });
           const body = await readJsonBody(request);
           const shopId = String(body.shopId ?? "");
-          const ownedShop = await catalogController.getSellerShop(user.telegramId, shopId);
+          const ownedShop = await catalogModule.controller.getSellerShop(user.telegramId, shopId);
           result = json(
             201,
-            await catalogController.createProduct(ownedShop.sellerId, {
+            await catalogModule.controller.createProduct(ownedShop.sellerId, {
               shopId,
               menuPageId: body.menuPageId == null ? null : String(body.menuPageId),
               name: String(body.name ?? ""),
@@ -1518,11 +1916,11 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           });
           const body = await readJsonBody(request);
           const shopId = String(body.shopId ?? "");
-          const ownedShop = await catalogController.getSellerShop(user.telegramId, shopId);
+          const ownedShop = await catalogModule.controller.getSellerShop(user.telegramId, shopId);
           const productId = decodeURIComponent(sellerProductMatch[1]);
           result = json(
             200,
-            await catalogController.updateProduct(ownedShop.sellerId, productId, {
+            await catalogModule.controller.updateProduct(ownedShop.sellerId, productId, {
               shopId,
               menuPageId: body.menuPageId == null ? null : String(body.menuPageId),
               name: String(body.name ?? ""),
@@ -1557,7 +1955,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
             now: options.now,
           });
           const body = await readJsonBody(request);
-          const provisioned = await catalogController.provisionShop({
+          const provisioned = await catalogModule.controller.provisionShop({
             sellerId: String(body.sellerId ?? ""),
             telegramId: String(body.telegramId ?? ""),
             name: String(body.name ?? ""),
@@ -1606,6 +2004,8 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   return {
     baseUrl,
     prisma,
+    catalogModule,
+    catalogDatabasePath: catalogPersistence.databasePath,
     catalogState,
     checkoutPaymentState,
     createClient: () => createRuntimeCookieSessionClient(baseUrl),
@@ -1620,6 +2020,8 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           resolve();
         });
       });
+      catalogPersistence.close();
+      catalogPersistence.cleanup();
     },
   };
 };

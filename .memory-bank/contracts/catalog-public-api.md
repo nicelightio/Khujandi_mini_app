@@ -21,6 +21,7 @@ status: active
 - Public reads MUST expose only browse-safe data needed for storefront rendering.
 - Public reads MUST stay within `catalog` scope and MUST NOT leak seller-only edit semantics.
 - Public reads MUST return only shops whose status is publicly visible according to the catalog visibility policy.
+- Public storefront resolution MUST read canonical persisted catalog state from the DB-backed runtime baseline; route-local in-memory catalog state is not a normative source of truth.
 
 ## Resource boundary
 - `shops`: customer-visible storefront entities with browse-safe metadata such as name, description, cover/background assets, and public status.
@@ -40,10 +41,12 @@ status: active
 - `REQ-001`: public catalog browse remains accessible without auth.
 - `REQ-020`: shop rename policy does not alter historical order snapshots.
 - `REQ-026`: `NOT_WORKING` shops remain excluded from public storefront browse.
+- `REQ-027`: public storefront reads resolve from durable catalog persistence rather than process-local runtime state.
 
 ## Related docs
 - [.memory-bank/features/FT-001-catalog-browse-and-seller-management.md](../features/FT-001-catalog-browse-and-seller-management.md): public catalog baseline.
 - [.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md](../features/FT-010-seller-storefront-editing-and-store-admin.md): shared storefront editing and visibility expansion.
+- [.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md](../features/FT-011-db-backed-catalog-runtime-baseline.md): durable runtime baseline for catalog reads and provisioning.
 - [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](catalog-seller-provisioning-and-visibility.md): shop visibility and seller binding rules.
 - [.memory-bank/architecture/data-boundaries-and-persistence.md](../architecture/data-boundaries-and-persistence.md): status, media and snapshot boundaries.
 - [.memory-bank/testing/index.md](../testing/index.md): verification basis for public browse coverage.

@@ -17,3 +17,4 @@ status: active
 - [.memory-bank/tasks/plans/IMPL-FT-008-BUGFIX-review-draft-durability.md](IMPL-FT-008-BUGFIX-review-draft-durability.md): Bugfix-план для durable review draft guarantees.
 - [.memory-bank/tasks/plans/IMPL-FT-009.md](IMPL-FT-009.md): План реализации Mini App shell/runtime и WebView UX baseline.
 - [.memory-bank/tasks/plans/IMPL-FT-010.md](IMPL-FT-010.md): План реализации shared seller storefront edit mode, skeleton provisioning и узкой `seller-web` админки магазина.
+- [.memory-bank/tasks/plans/IMPL-FT-011.md](IMPL-FT-011.md): План реализации DB-backed `catalog` runtime baseline, durable provisioning и restart-safe storefront resolution.

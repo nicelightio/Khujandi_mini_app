@@ -1,6 +1,10 @@
 import { createHmac } from "crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { InMemoryCatalogRepository, createCatalogRuntimeState, startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
 import type { RuntimeCookieSessionClient } from "../../../backend/src/dev-runtime/dev-api-server";
+import { PrismaCatalogRepository } from "../../../backend/src/slices/catalog/infrastructure/prisma-catalog.repository";
 
 describe("catalog provisioning runtime", () => {
   const adminOrigin = "http://127.0.0.1:5173";
@@ -290,6 +294,48 @@ describe("catalog provisioning runtime", () => {
     }
   });
 
+  it("keeps identical mounted provisioning requests fail-closed with one durable starter bundle", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      runtime.prisma.state.account.role = "BOSS";
+      const client = runtime.createClient();
+      await loginAdmin(client);
+
+      const [firstResponse, secondResponse] = await Promise.all([
+        client.request({
+          path: "/api/v1/admin/catalog/shops/provision",
+          origin: adminOrigin,
+          body: {
+            sellerId: "seller-race",
+            telegramId: "seller-telegram-race",
+            name: "Race Safe Shop",
+          },
+        }),
+        client.request({
+          path: "/api/v1/admin/catalog/shops/provision",
+          origin: adminOrigin,
+          body: {
+            sellerId: "seller-race",
+            telegramId: "seller-telegram-race",
+            name: "Race Safe Shop",
+          },
+        }),
+      ]);
+
+      expect([firstResponse.status, secondResponse.status].sort()).toEqual([201, 409]);
+      expect(runtime.catalogState.shops.filter((shop) => shop.sellerId === "seller-race" && shop.name === "Race Safe Shop")).toHaveLength(1);
+      expect(runtime.catalogState.bindings.filter((binding) => binding.sellerId === "seller-race" && binding.telegramId === "seller-telegram-race")).toHaveLength(1);
+      expect(runtime.catalogState.menuPages.filter((page) => page.shopId === runtime.catalogState.shops.find((shop) => shop.sellerId === "seller-race" && shop.name === "Race Safe Shop")?.id)).toHaveLength(2);
+      expect(runtime.catalogState.products.filter((product) => product.shopId === runtime.catalogState.shops.find((shop) => shop.sellerId === "seller-race" && shop.name === "Race Safe Shop")?.id)).toHaveLength(2);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("keeps public browse auth-free while allowing the owning seller to read not-working shops through the protected seller boundary", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",
@@ -380,6 +426,91 @@ describe("catalog provisioning runtime", () => {
       expect(runtime.checkoutPaymentState.sessions).toHaveLength(1);
     } finally {
       await runtime.stop();
+    }
+  });
+
+  it("mounts the repo-local catalog runtime on the Prisma-backed module by default", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      expect(runtime.catalogModule.repository).toBeInstanceOf(PrismaCatalogRepository);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("reuses persisted catalog state across runtime restart instead of reseeding hidden demo memory", async () => {
+    const runtimeDirectory = mkdtempSync(join(tmpdir(), "khujandi-catalog-runtime-test-"));
+    const catalogDatabasePath = join(runtimeDirectory, "catalog-runtime.sqlite");
+
+    const firstRuntime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      catalogDatabasePath,
+    });
+
+    try {
+      const initialBrowseResponse = await firstRuntime.createClient().request({
+        path: "/api/v1/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(initialBrowseResponse.status).toBe(200);
+      expect(initialBrowseResponse.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "shop-1", name: "Плов в парке Сомони" }),
+          expect.objectContaining({ id: "shop-2", name: "Бобоча самбуса" }),
+        ]),
+      );
+
+      const adminClient = firstRuntime.createClient();
+      await loginAdmin(adminClient);
+
+      const provisionResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-restart-safe",
+          telegramId: "919",
+          name: "Restart Safe Bakery",
+        },
+      });
+
+      expect(provisionResponse.status).toBe(201);
+      expect(firstRuntime.catalogState.shops.some((shop) => shop.name === "Restart Safe Bakery")).toBe(true);
+    } finally {
+      await firstRuntime.stop();
+    }
+
+    const restartedRuntime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      catalogDatabasePath,
+    });
+
+    try {
+      const restartedBrowseResponse = await restartedRuntime.createClient().request({
+        path: "/api/v1/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(restartedBrowseResponse.status).toBe(200);
+      expect(restartedBrowseResponse.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "shop-1", name: "Плов в парке Сомони" }),
+          expect.objectContaining({ id: "shop-2", name: "Бобоча самбуса" }),
+          expect.objectContaining({ name: "Restart Safe Bakery" }),
+        ]),
+      );
+      expect(restartedRuntime.catalogState.shops.filter((shop) => shop.name === "Restart Safe Bakery")).toHaveLength(1);
+    } finally {
+      await restartedRuntime.stop();
+      rmSync(runtimeDirectory, { recursive: true, force: true });
     }
   });
 
@@ -830,6 +961,72 @@ describe("catalog provisioning runtime", () => {
           },
         },
         trace_id: "trace-catalog-runtime",
+      });
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("returns a controlled 409 when a seller rename collides with another owned shop", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      const firstShop = await runtime.catalogModule.repository.createShop({
+        sellerId: "seller-rename-owner",
+        name: "Rename Alpha",
+      });
+      const secondShop = await runtime.catalogModule.repository.createShop({
+        sellerId: "seller-rename-owner",
+        name: "Rename Beta",
+      });
+      runtime.catalogState.bindings.push(
+        {
+          id: "binding-rename-alpha",
+          sellerId: "seller-rename-owner",
+          shopId: firstShop.id,
+          telegramId: "909",
+        },
+        {
+          id: "binding-rename-beta",
+          sellerId: "seller-rename-owner",
+          shopId: secondShop.id,
+          telegramId: "909",
+        },
+      );
+
+      const sellerClient = runtime.createClient();
+      await loginSeller(sellerClient, "909");
+
+      const renameConflictResponse = await sellerClient.request({
+        path: `/api/v1/seller/shops/${firstShop.id}`,
+        method: "PUT",
+        origin: adminOrigin,
+        body: {
+          name: "Rename Beta",
+        },
+      });
+
+      expect(renameConflictResponse.status).toBe(409);
+      expect(renameConflictResponse.body).toEqual({
+        error: {
+          code: "SHOP_RENAME_CONFLICT",
+          message: "Shop rename conflicts with another shop owned by this seller",
+        },
+        trace_id: "trace-catalog-runtime",
+      });
+
+      await expect(runtime.catalogModule.repository.findShopById(firstShop.id)).resolves.toMatchObject({
+        id: firstShop.id,
+        sellerId: "seller-rename-owner",
+        name: "Rename Alpha",
+      });
+      await expect(runtime.catalogModule.repository.findShopById(secondShop.id)).resolves.toMatchObject({
+        id: secondShop.id,
+        sellerId: "seller-rename-owner",
+        name: "Rename Beta",
       });
     } finally {
       await runtime.stop();

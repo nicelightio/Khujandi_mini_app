@@ -1,0 +1,81 @@
+{
+  "shops": [
+    {
+      "id": "shop-1",
+      "sellerId": "seller-runtime-1",
+      "name": "Плов в парке Сомони",
+      "description": null,
+      "headerImageUrl": null,
+      "backgroundImageUrl": null,
+      "status": "WORKING",
+      "renameCount": 0,
+      "requiresManualRenameReview": false,
+      "isDeleted": false
+    },
+    {
+      "id": "shop-2",
+      "sellerId": "seller-runtime-2",
+      "name": "Бобоча самбуса",
+      "description": null,
+      "headerImageUrl": null,
+      "backgroundImageUrl": null,
+      "status": "WORKING",
+      "renameCount": 0,
+      "requiresManualRenameReview": false,
+      "isDeleted": false
+    }
+  ],
+  "menuPages": [],
+  "products": [
+    {
+      "id": "product-1",
+      "shopId": "shop-1",
+      "menuPageId": null,
+      "name": "Плов зарвода",
+      "description": null,
+      "imageUrl": null,
+      "priceMinor": 4500,
+      "isDeleted": false,
+      "sellerId": "seller-runtime-1"
+    },
+    {
+      "id": "product-2",
+      "shopId": "shop-1",
+      "menuPageId": null,
+      "name": "Плов обычный",
+      "description": null,
+      "imageUrl": null,
+      "priceMinor": 3800,
+      "isDeleted": false,
+      "sellerId": "seller-runtime-1"
+    },
+    {
+      "id": "product-3",
+      "shopId": "shop-2",
+      "menuPageId": null,
+      "name": "Самбуса рубленная говядина",
+      "description": null,
+      "imageUrl": null,
+      "priceMinor": 1200,
+      "isDeleted": false,
+      "sellerId": "seller-runtime-2"
+    },
+    {
+      "id": "product-4",
+      "shopId": "shop-2",
+      "menuPageId": null,
+      "name": "Самбуса фарш",
+      "description": null,
+      "imageUrl": null,
+      "priceMinor": 700,
+      "isDeleted": false,
+      "sellerId": "seller-runtime-2"
+    }
+  ],
+  "bindings": [],
+  "events": [],
+  "nextShopId": 3,
+  "nextMenuPageId": 1,
+  "nextProductId": 5,
+  "nextBindingId": 1
+}

@@ -20,9 +20,13 @@ status: active
 
 ## Provisioning rules
 - Admin provisioning MUST collect at minimum the shop name and the seller's Telegram-linked identity.
+- Durable provisioning identity MUST be enforced at the persistence boundary with a canonical uniqueness key equivalent to `sellerId + shop name`, so concurrent identical retries cannot create duplicate starter shops.
 - Successful provisioning MUST create a skeleton shop automatically; seller does not start from an empty shop canvas.
 - Skeleton provisioning MUST create starter menu pages and starter products that can be edited later by the seller.
 - Shop record creation, Telegram-linked binding creation, and starter catalog bootstrap MUST succeed or fail atomically.
+- Successful provisioning MUST durably persist the shop, binding, and starter catalog data in the canonical DB-backed `catalog` runtime and MUST survive runtime restart/reset.
+- Starter menu pages and starter products created by provisioning become ordinary catalog records, not ephemeral demo fixtures.
+- Duplicate or conflicting provisioning MUST fail closed with a controlled error and MUST NOT create partial or duplicate catalog state.
 
 ## Ownership and access rules
 - Seller ownership is resolved from the Telegram-linked identity bound during provisioning.
@@ -42,10 +46,12 @@ status: active
 
 ## Failure posture
 - Provisioning conflicts, ownership conflicts, and invalid status changes MUST return controlled errors and MUST NOT leave partially bound seller/shop state.
+- If the same durable `sellerId + shop name` identity invariant rejects a later seller rename, that conflict MUST also return a controlled `409` business error rather than a raw persistence failure.
 - Error payloads follow the project-wide error contract.
 
 ## Related docs
 - [.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md](../features/FT-010-seller-storefront-editing-and-store-admin.md): feature acceptance and contours.
+- [.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md](../features/FT-011-db-backed-catalog-runtime-baseline.md): durable runtime baseline and restart-safe provisioning semantics.
 - [.memory-bank/contracts/catalog-public-api.md](catalog-public-api.md): public browse visibility boundary.
 - [.memory-bank/contracts/seller-catalog-write-policy.md](seller-catalog-write-policy.md): seller-side edit policy.
 - [.memory-bank/architecture/system-contours-and-slices.md](../architecture/system-contours-and-slices.md): contour split and owner-slice rules.

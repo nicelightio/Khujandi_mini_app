@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { startDevApiServer } from "../backend/src/dev-runtime/dev-api-server";
 
 const parsePort = (value: string | undefined): number | undefined => {
@@ -24,6 +25,7 @@ const runtime = await startDevApiServer({
   host: process.env.HOST,
   port: parsePort(process.env.PORT),
   allowedOrigins: parseAllowedOrigins(process.env.ADMIN_ALLOWED_ORIGINS),
+  catalogDatabasePath: process.env.CATALOG_DB_PATH ?? resolve(process.cwd(), "backend", "prisma", "dev-catalog-runtime.sqlite"),
 });
 
 process.stdout.write(`Demo API listening on ${runtime.baseUrl}\n`);

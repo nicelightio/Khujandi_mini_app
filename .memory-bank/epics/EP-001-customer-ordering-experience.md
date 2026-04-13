@@ -12,6 +12,7 @@ status: active
 
 - `FT-001` catalog browse and seller management baseline
 - `FT-010` seller storefront editing and store admin
+- `FT-011` DB-backed catalog runtime baseline
 - `FT-002` checkout payment and paid order creation
 - `FT-003` language selection and localization baseline
 - `FT-009` mini app shell and Telegram WebView UX baseline
@@ -20,6 +21,7 @@ status: active
 
 - Клиент может просматривать витрину без авторизации.
 - Seller получает admin-provisioned skeleton shop и редактирует owned storefront на тех же компонентах, что и customer view.
+- Admin-provisioned и seller-edited catalog data переживают runtime restart/reset благодаря DB-backed catalog runtime.
 - Public browse видит только `WORKING` магазины, а `NOT_WORKING` остаются видимыми только owning seller-у.
 - Заказ появляется только после успешной оплаты.
 - При payment error/timeout запись заказа отсутствует и доступен retry.
@@ -32,6 +34,7 @@ status: active
 - Seller управляет только своими магазинами и товарами внутри `catalog` scope.
 - Seller edit mode использует тот же storefront contour и те же базовые storefront-компоненты, что и customer browse.
 - Первый skeleton shop создается admin provisioning flow, а не пустым self-service builder-ом seller-а.
+- Catalog provisioning и storefront resolution опираются на durable DB-backed runtime, а не на process-local in-memory state.
 - Public visibility магазина определяется явным статусом `WORKING/NOT_WORKING`.
 - При checkout Telegram auth и payment flow завершаются созданием заказа со статусом `CREATED` только после подтвержденного успеха провайдера.
 - Ошибка оплаты возвращает controlled error и повторную попытку без побочного создания заказа.

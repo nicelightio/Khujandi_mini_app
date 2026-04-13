@@ -672,6 +672,31 @@ describe("catalog public browse integration", () => {
     });
   });
 
+  it("maps durable rename uniqueness conflicts to a controlled 409 business error", async () => {
+    const { prisma, mocks } = createPrismaMock();
+    const module = createCatalogModule(prisma);
+    mocks.shopFindUnique.mockResolvedValue({
+      id: "shop-1",
+      sellerId: "seller-1",
+      name: "Old name",
+      description: null,
+      headerImageUrl: null,
+      backgroundImageUrl: null,
+      status: "WORKING",
+      renameCount: 0,
+      requiresManualRenameReview: false,
+      isDeleted: false,
+    });
+    mocks.shopUpdate.mockRejectedValue(Object.assign(new Error("Unique constraint failed"), { code: "P2002" }));
+
+    await expect(module.controller.updateShop("seller-1", "shop-1", { name: "Taken name" })).rejects.toMatchObject({
+      code: "SHOP_RENAME_CONFLICT",
+      message: "Shop rename conflicts with another shop owned by this seller",
+      statusCode: 409,
+    });
+    expect(mocks.eventCreate).not.toHaveBeenCalled();
+  });
+
   it("updates owned shop metadata without spending rename allowance", async () => {
     const { prisma, mocks } = createPrismaMock();
     const module = createCatalogModule(prisma);
