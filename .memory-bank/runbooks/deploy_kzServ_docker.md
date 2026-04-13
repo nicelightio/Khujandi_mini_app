@@ -68,9 +68,42 @@ usermod -aG docker tgmeal
 install -d -o tgmeal -g tgmeal /srv/tgmeal
 ```
 
-## 5. Remove old application copy and old service
+## 5. Deploy Database Migrations
 
-## 6. Clone fresh repo copy as app user
+Перед запуском контейнеров нужно проверить и применить миграции БД.
+
+### 5.1 Check pending migrations
+
+```bash
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx prisma migrate status'
+```
+
+### 5.2 Apply migrations
+
+```bash
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx prisma migrate deploy'
+```
+
+Ожидаемый вывод для новой миграции:
+
+```
+Database migration: 20260413120000_add_shop_identity_uniqueness
+Applying migration: 20260413120000_add_shop_identity_uniqueness
+```
+
+### 5.3 Verify constraint exists
+
+```bash
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx prisma db execute --stdin <<< "SELECT conname FROM pg_constraint WHERE conname = '\''Shop_sellerId_name_key'\'';"'
+```
+
+Или через psql напрямую (если есть доступ):
+
+```sql
+SELECT conname FROM pg_constraint WHERE conname = 'Shop_sellerId_name_key';
+```
+
+## 7. Clone fresh repo copy as app user
 
 ```bash
 sudo -u tgmeal git clone https://github.com/nicelightio/Khujandi_mini_app.git /srv/tgmeal/app
@@ -80,7 +113,7 @@ cd /srv/tgmeal/app
 Если нужен конкретный branch:
 
 
-## 7. Prepare runtime env for compose
+## 8. Prepare runtime env for compose
 
 Создай `.env` рядом с `docker-compose.yml`:
 
