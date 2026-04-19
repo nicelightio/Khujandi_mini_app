@@ -30,8 +30,50 @@ status: active
 
 ## Active task queue
 
-- No active `TASK-*` cards at the moment.
-- When a new feature is decomposed via `/prd-to-tasks FT-<NNN>`, append only active/planned cards here and move completed historical waves back to archive during periodic MB compaction.
+- `FT-009` follow-up hardening wave is now reopened through active backlog cards for keyboard-safe bottom actions and centralized degradation policy.
+- Current scoped follow-up intentionally excludes the broader `high-churn runtime propagation` refactor; that concern remains in the open bug record but is not part of the execution-ready wave below.
+
+### TASK-FT009-07 — Add shell-owned keyboard-safe bottom action primitive
+- TASK-ID: `TASK-FT009-07`
+- Status: `ready`
+- Wave: `W1`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`
+- Depends on: `none`
+- Touched files: `frontend/src/shared/ui/page-shell.tsx`, `frontend/src/shared/styles/webview-shell.css`, `frontend/src/slices/checkout-payment/components/**/*`, optional `frontend/src/slices/catalog/components/**/*`, `frontend/src/tests/shared/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, and relevant `.memory-bank/*` docs
+- Tests: shell/component coverage for the new `bottomAction` primitive plus checkout route/page smoke proving customer-facing CTA rendering stays inside the shell-owned layout path
+- Verify: keyboard-safe bottom CTA remains reachable through shell-owned safe-area-aware layout, and checkout no longer depends on page-local CTA placement for the critical action path
+- Docs: `tasks/backlog.md`, `features/FT-009`, `testing/index.md`, `changelog.md` if implementation lands
+- Source: `BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
+- Constraints: keep scope on customer-facing Mini App surfaces; do not widen the task into a general contour-wide layout rewrite
+
+### TASK-FT009-08 — Add minimal shell capability and degradation policy
+- TASK-ID: `TASK-FT009-08`
+- Status: `planned`
+- Wave: `W2`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`, `REQ-023`
+- Depends on: `TASK-FT009-07`
+- Touched files: `frontend/src/app/app-shell.tsx`, `frontend/src/shared/telegram/webapp.ts`, `frontend/src/shared/state/**/*`, optional `frontend/src/shared/ui/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/shared/**/*`, and relevant `.memory-bank/*` docs
+- Tests: unit/contract coverage for capability derivation and shell fallback flags, plus smoke coverage proving the base customer-facing UI remains usable when optional enhancements are reduced or disabled
+- Verify: shell owns one minimal degradation policy for weak-device/old-client runtime paths, and optional visual enhancements no longer rely on ad hoc feature-level decisions
+- Docs: `tasks/backlog.md`, `features/FT-009`, `contracts/mini-app-runtime-contract.md`, `testing/index.md`, `changelog.md` if implementation lands
+- Source: `BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
+- Constraints: do not build a broad device-profiler subsystem; policy must stay minimal, shell-owned, and strictly outside domain logic
+
+### TASK-FT009-09 — Verify shell bottom-action and degradation-policy closure
+- TASK-ID: `TASK-FT009-09`
+- Status: `planned`
+- Wave: `W3`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`, `REQ-023`
+- Depends on: `TASK-FT009-08`
+- Touched files: `frontend/src/tests/app/**/*`, `frontend/src/tests/shared/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, optional `.tasks/TASK-FT009-09/**/*`, `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/testing/index.md`, `.memory-bank/changelog.md`, `.memory-bank/bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
+- Tests: rerun focused shell, shared-runtime, and checkout/customer-facing smoke suites plus any new contract tests introduced by `TASK-FT009-07` and `TASK-FT009-08`
+- Verify: Android Telegram notes explicitly confirm reachable bottom CTA with keyboard open, predictable fallback/degradation behavior, and no obvious shell regression on the hardened customer-facing path
+- Docs: `tasks/backlog.md`, `features/FT-009`, `testing/index.md`, `changelog.md`, `bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
+- Source: `BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
+- Scope note: this closure wave only covers the bottom-action and degradation-policy subset; the broader runtime-propagation refactor remains a separate follow-up concern until explicitly decomposed
 
 ## Conventions
 Each task should include:

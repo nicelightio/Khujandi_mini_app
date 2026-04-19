@@ -1,4 +1,5 @@
-import { InMemoryCatalogRepository, createCatalogRuntimeState, startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
+import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
+import { InMemoryCatalogRepository, createCatalogRuntimeState } from "../../../backend/src/dev-runtime/catalog-runtime";
 import { adminOrigin, createTelegramInitData } from "./catalog.runtime.test-helpers";
 
 export const registerCatalogRuntimeMiscCases = () => {

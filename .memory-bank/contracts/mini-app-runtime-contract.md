@@ -56,7 +56,6 @@ status: active
 - Responsive tap feedback, stable scroll, predictable bottom action zones и controlled keyboard behavior имеют приоритет над ornamental heavy effects.
 - Default motion path — CSS `transform/opacity` и WAAPI; per-frame React-state animation и постоянные background render loops не входят в baseline contract.
 - Expensive visual layers требуют explicit justification, lazy loading и graceful fallback/disable path; они не должны быть обязательной основой catalog/checkout shell.
-- Customer-facing initial shell path не должен тянуть `admin-web`, `seller-web` или optional heavy visual/runtime layers в обязательный first render bundle.
 - Weak-device/old-client degradation policy определяется централизованно shell-level capability layer; optional motion/effects и decorative enhancements обязаны уважать этот policy.
 
 ## Verification ownership

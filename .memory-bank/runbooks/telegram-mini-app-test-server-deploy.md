@@ -21,7 +21,7 @@ status: active
 - Это не production deploy всего MVP: здесь нет полноценного production backend bootstrap, БД migration flow, payment provider wiring и bot webhook contour.
 - Для текущего тестового прогона достаточно:
   - Vite-built frontend;
-  - demo API на `/api/v1/shops` и `/api/v1/shops/:id/products`;
+- repo-local API runtime на том же entrypoint, который запускает `npm run dev:api`;
   - запуска Mini App из Telegram Android client.
 - Вход в приложение для тестов идет через Telegram Mini App launch context; отдельного login form нет.
 
@@ -138,7 +138,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/var/www/tgmeal/app
-ExecStart=/usr/bin/node /var/www/tgmeal/app/scripts/dev-api.mjs
+ExecStart=/usr/bin/npm run dev:api
 Restart=always
 RestartSec=3
 User=root
@@ -354,7 +354,7 @@ curl -I https://tgmeal.natureonzoom.win
 - после `git pull` почти всегда безопасно выполнять `npm ci` и `npm run build:frontend`, если ты не уверен, какие именно файлы изменились;
 - `npm ci` обязательно нужно делать, если изменились `package.json` или `package-lock.json`;
 - `npm run build:frontend` обязательно нужно делать, если изменился любой код frontend или статические assets;
-- `systemctl restart tgmeal-demo-api.service` нужен, если изменились `scripts/dev-api.mjs` или другой код, который использует demo API process;
+- `systemctl restart tgmeal-demo-api.service` нужен, если изменились `scripts/dev-api.ts`, `backend/src/dev-runtime/**/*` или другой код, который использует repo-local API runtime;
 - `systemctl reload nginx` нужен только если менялся nginx config или ты хочешь безопасно перечитать конфиг после деплоя.
 
 Рекомендуемая безопасная последовательность после обновления:

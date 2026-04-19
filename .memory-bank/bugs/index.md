@@ -4,6 +4,7 @@ status: active
 ---
 # Bugs Index
 
+- [.memory-bank/bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md](BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md): активный bug по незакрытому shell-runtime hardening gap; high-churn runtime propagation, keyboard-safe bottom action primitives и centralized degradation policy еще не доведены до spec baseline.
 - [.memory-bank/bugs/BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md](BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md): архивированный semantic bug; `TASK-FT010-09` закрыл open admin provisioning route через существующую admin cookie/session boundary и RBAC.
 - [.memory-bank/bugs/BUG-2026-04-10-ft010-provisioning-route-uses-refresh-cookie-as-auth.md](BUG-2026-04-10-ft010-provisioning-route-uses-refresh-cookie-as-auth.md): архивированный semantic bug; `TASK-FT010-10` заменил refresh-only shortcut на reusable protected admin route boundary с обязательной protected cookie pair, валидацией `accessTokenHash` и проверкой `accessTokenExpiresAt`.
 - [.memory-bank/bugs/BUG-2026-03-30-task-ft001-02-missing-backend-catalog-scaffold.md](BUG-2026-03-30-task-ft001-02-missing-backend-catalog-scaffold.md): архивированный bug по отсутствовавшему backend scaffold для `TASK-FT001-02`.

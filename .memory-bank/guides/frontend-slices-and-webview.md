@@ -89,7 +89,6 @@ frontend/src/
 
 - Проверяйте bundle impact каждого нового frontend package.
 - Route-level и expensive UI chunks должны поддерживать lazy loading там, где это реально уменьшает цену first render.
-- Сохраняйте contour-level bundle isolation: `mini-app` initial path не должен тянуть `admin-web`, `seller-web` и optional heavy visual/runtime layers до фактического входа в эти flows.
 - Profile re-renders до добавления memoization; blanket memoization не считается good default.
 - Не размазывайте animation logic по дереву компонентов и не связывайте ее с частыми global store/context updates.
 - Избегайте постоянных background render loops, indiscriminate `will-change`, массового blur/backdrop-filter и других дорогих visual defaults.

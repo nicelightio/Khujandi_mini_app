@@ -15,7 +15,6 @@ status: active
 - `FT-009` описывает shell baseline клиентского контура и не считается отдельным domain slice.
 - Бизнес-логика checkout, tracking и review flows остается внутри owning slices; shell предоставляет только presentation/runtime primitives.
 - Telegram WebApp integration, i18n, theme, safe-area, viewport stabilization, lifecycle handling и shell navigation policies живут в `shared` только как technical enabling layer.
-- Customer-facing `mini-app` path сохраняет отдельную contour-level bundle boundary: first render MUST NOT платить за `admin-web`, `seller-web` или optional heavy visual/runtime layers, пока они реально не нужны.
 - Визуальная выразительность строится static-first: typography, spacing, hierarchy, gradients и quality-of-state должны давать основной perceived quality еще до добавления сложного motion.
 - Styling baseline опирается на static CSS, centralized design tokens и CSS variables; тяжелые runtime styling layers не считаются frontend default.
 - Motion считается enhancement-слоем: baseline сначала закрывается через дешевые CSS/WebView-safe приемы, а более тяжелый animation/runtime слой допускается только как редкое обоснованное исключение.

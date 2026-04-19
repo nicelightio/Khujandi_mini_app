@@ -40,7 +40,6 @@ status: active
 - High-churn runtime propagation остается централизованной в shell: feature-код опирается на derived stable state/CSS vars и не требует raw runtime subscriptions по slices.
 - Для critical WebView confirmations допускаются Telegram-native popup/confirm primitives по shell policy.
 - Customer-facing shell должен оставаться отзывчивым на weak/mid Android Telegram WebView; тяжелые визуальные эффекты и зависимости допустимы только точечно, lazy и с graceful fallback.
-- Customer-facing initial shell path не должен зависеть от `admin-web`, `seller-web` или optional heavy visual/runtime layers до момента, когда пользователь реально входит в соответствующий contour/flow.
 - `FT-009` владеет только shared shell/runtime частью `REQ-022`: safe-area/theme/viewport/lifecycle policy, centralized swipe/back behavior и non-sensitive shell persistence boundary без хранения session identifiers в JS-readable storage.
 - `FT-009` не переносит в shell auth/session transport из `FT-002` и language-choice domain behavior из `FT-003`; feature использует их как already-owned boundaries.
 - Telegram-specific real-client evidence для customer-facing Mini App flows, включая checkout UI, закрывается на уровне shell/runtime verification этой feature; обязательный blocking baseline для текущего MVP ограничен `Android Telegram` и operator-confirmed notes.
