@@ -338,6 +338,37 @@ describe("catalog provisioning integration", () => {
     expect(state.products).toHaveLength(2);
   });
 
+  it("fails closed for the same seller shop identity even when telegramId differs", async () => {
+    const { prisma, state } = createProvisioningPrisma();
+    const module = createCatalogModule(prisma);
+
+    await module.controller.provisionShop({
+      sellerId: "seller-1",
+      telegramId: "123456",
+      name: "Bakery",
+    });
+
+    await expect(
+      module.controller.provisionShop({
+        sellerId: "seller-1",
+        telegramId: "999999",
+        name: "Bakery",
+      }),
+    ).rejects.toEqual(
+      new AppError(
+        "SHOP_PROVISIONING_CONFLICT",
+        "Shop provisioning conflicts with an existing seller binding or shop record",
+        409,
+      ),
+    );
+
+    expect(state.shops).toHaveLength(1);
+    expect(state.bindings).toHaveLength(1);
+    expect(state.bindings[0].telegramId).toBe("123456");
+    expect(state.menuPages).toHaveLength(2);
+    expect(state.products).toHaveLength(2);
+  });
+
   it("allows multiple admin-provisioned shops for one seller identity when shop names differ", async () => {
     const { prisma, state } = createProvisioningPrisma();
     const module = createCatalogModule(prisma);

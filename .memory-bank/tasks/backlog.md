@@ -49,7 +49,7 @@ status: active
 
 ### TASK-FT009-07 — Add shell-owned keyboard-safe bottom action primitive
 - TASK-ID: `TASK-FT009-07`
-- Status: `ready`
+- Status: `in_progress`
 - Wave: `W1`
 - Feature: `FT-009`
 - REQs: `REQ-019`, `REQ-022`

@@ -187,6 +187,59 @@ export const registerCatalogRuntimeProvisioningCases = () => {
     }
   });
 
+  it("fails closed for the same seller shop identity even when telegramId differs", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      runtime.prisma.state.account.role = "BOSS";
+      const adminClient = runtime.createClient();
+      await loginAdmin(adminClient);
+
+      const firstResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-same-shop",
+          telegramId: "111",
+          name: "Bakery",
+        },
+      });
+
+      const duplicateResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-same-shop",
+          telegramId: "222",
+          name: "Bakery",
+        },
+      });
+
+      expect(firstResponse.status).toBe(201);
+      expect(duplicateResponse.status).toBe(409);
+      expect(duplicateResponse.body).toEqual({
+        error: {
+          code: "SHOP_PROVISIONING_CONFLICT",
+          message: "Shop provisioning conflicts with an existing seller binding or shop record",
+          details: undefined,
+        },
+        trace_id: "trace-catalog-runtime",
+      });
+      expect(
+        runtime.catalogState.shops.filter(
+          (shop) => shop.sellerId === "seller-same-shop" && shop.name === "Bakery",
+        ),
+      ).toHaveLength(1);
+      expect(runtime.catalogState.bindings.filter((binding) => binding.sellerId === "seller-same-shop")).toHaveLength(1);
+      expect(runtime.catalogState.bindings[0]?.telegramId).toBe("111");
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("rejects refresh-only, forged-access, or expired protected admin sessions before provisioning writes", async () => {
     let now = new Date("2026-04-10T10:00:00.000Z");
     const runtime = await startDevApiServer({

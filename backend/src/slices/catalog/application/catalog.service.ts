@@ -113,38 +113,6 @@ export class CatalogService {
       );
     }
 
-    const existingBindings = await this.repository.listSellerBindingsByTelegramId(telegramId);
-    const existingShops = await Promise.all(
-      existingBindings.map(async (binding) => {
-        const shop = await this.repository.findShopById(binding.shopId);
-
-        if (shop === null || shop.isDeleted) {
-          return null;
-        }
-
-        return {
-          binding,
-          shop,
-        };
-      }),
-    );
-
-    const hasDuplicateProvisioningTarget = existingShops.some((entry) => {
-      if (entry === null) {
-        return false;
-      }
-
-      return entry.binding.sellerId === sellerId && entry.shop.sellerId === sellerId && entry.shop.name === name;
-    });
-
-    if (hasDuplicateProvisioningTarget) {
-      throw new AppError(
-        "SHOP_PROVISIONING_CONFLICT",
-        "Shop provisioning conflicts with an existing seller binding or shop record",
-        409,
-      );
-    }
-
     try {
       return await this.repository.provisionSellerShop({
         sellerId,

@@ -285,14 +285,9 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   }
 
   async provisionSellerShop(input: ProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint }): Promise<ProvisionedSellerShop> {
-    const duplicateShop = this.state.bindings.some((binding) => {
-      if (binding.sellerId !== input.sellerId || binding.telegramId !== input.telegramId) {
-        return false;
-      }
-
-      const shop = this.state.shops.find((candidate) => candidate.id === binding.shopId);
-      return shop?.name === input.name;
-    });
+    const duplicateShop = this.state.shops.some(
+      (shop) => shop.sellerId === input.sellerId && shop.name === input.name,
+    );
 
     if (duplicateShop) {
       throw new AppError(

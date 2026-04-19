@@ -24,11 +24,12 @@ status: active
 - Current note: `FT-010` backlog decomposition is now present; the run is resumed to execute the new ready tasks.
 - Current note: `FT-011` backlog decomposition is now present; the run is resumed to execute the new DB-backed catalog runtime tasks.
 - Assumption: user instruction "`/verifiy`" refers to the existing `/verify` command and each task keeps execute -> verify inside the same worker session.
+- Current note: `FT-009` hardening follow-up backlog is now present; the resumed run is scoped only to `TASK-FT009-07` .. `TASK-FT009-09` and intentionally excludes the broader runtime-propagation refactor.
 
 ## Queue state
 - `done`: `TASK-FT001-01`, `TASK-FT001-02`, `TASK-FT001-03`, `TASK-FT001-04`, `TASK-FT001-05`, `TASK-FT001-06`, `TASK-FT001-07`, `TASK-FT001-08`, `TASK-FT001-09`, `TASK-FT002-01`, `TASK-FT002-02`, `TASK-FT002-03`, `TASK-FT002-04`, `TASK-FT002-05`, `TASK-FT002-06`, `TASK-FT002-07`, `TASK-FT002-08`, `TASK-FT003-01`, `TASK-FT003-02`, `TASK-FT003-03`, `TASK-FT003-04`, `TASK-FT003-05`, `TASK-FT003-06`, `TASK-FT004-01`, `TASK-FT004-02`, `TASK-FT004-03`, `TASK-FT004-04`, `TASK-FT004-05`, `TASK-FT004-06`, `TASK-FT004-07`, `TASK-FT005-01`, `TASK-FT005-02`, `TASK-FT005-03`, `TASK-FT005-04`, `TASK-FT005-05`, `TASK-FT005-06`, `TASK-FT005-07`, `TASK-FT005-08`, `TASK-FT006-01`, `TASK-FT006-02`, `TASK-FT006-03`, `TASK-FT006-04`, `TASK-FT006-05`, `TASK-FT006-06`, `TASK-FT006-07`, `TASK-FT006-08`, `TASK-FT007-01`, `TASK-FT007-02`, `TASK-FT007-03`, `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`, `TASK-FT007-07`, `TASK-FT007-09`, `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`, `TASK-FT008-07`, `TASK-FT008-08`, `TASK-FT008-09`, `TASK-FT008-10`, `TASK-FT009-01`, `TASK-FT009-02`, `TASK-FT009-03`, `TASK-FT009-04`, `TASK-FT009-05`, `TASK-FT009-06`, `TASK-FT010-01`, `TASK-FT010-10`, `TASK-FT010-04`, `TASK-FT010-11`, `TASK-FT010-12`, `TASK-FT010-05`, `TASK-FT010-13`, `TASK-FT010-14`, `TASK-FT010-15`, `TASK-FT010-02`, `TASK-FT010-16`, `TASK-FT010-17`, `TASK-FT011-01`, `TASK-FT011-02`, `TASK-FT011-03`, `TASK-FT011-07`, `TASK-FT011-08`, `TASK-FT011-04`, `TASK-FT011-05`, `TASK-FT011-06`
 - `ready`: none
-- `in_progress`: none
+- `in_progress`: `TASK-FT009-07`
 - `blocked`: none
 - `failed`: `TASK-FT007-08`, `TASK-FT010-03`, `TASK-FT010-09`
 
@@ -40,7 +41,7 @@ status: active
 - Current open blockers: `0`
 
 ## Terminal state
-- Current state: `SUCCESS`
+- Current state: `RUNNING`
 - Note: run resumed after `FT-010` decomposition; scheduler is executing the new ready tasks strictly sequentially in separate worker sessions per explicit user instruction.
 - Note: run resumed after `FT-011` decomposition; scheduler starts with `TASK-FT011-01`, then delegates `/verify` and, for runtime-sensitive tasks, `/red-verify` in separate worker sessions before deciding whether to continue.
 - Note: `TASK-FT010-03` failed `red-verify` due to an open admin provisioning route without auth/RBAC; scheduler created and started `TASK-FT010-09` as the required fix-up task before resuming the blocked `FT-010` chain.
@@ -72,3 +73,4 @@ status: active
 - Note: `TASK-FT011-07` passed formal `/verify`, but `/red-verify` returned `semantic-concern`: the new durable uniqueness closes the provisioning race, yet it also changes seller rename semantics and can surface raw persistence failures instead of controlled conflict errors. The concern is accepted for `TASK-FT011-07` itself because the generated follow-up `TASK-FT011-08` now owns the controlled rename-conflict closure.
 - Note: `TASK-FT011-08` reached `semantic-pass`; durable `sellerId + shop name` uniqueness is now reconciled with seller rename behavior through a controlled `SHOP_RENAME_CONFLICT` `409`, so the provisioning/rename follow-up chain is closed and `TASK-FT011-04` becomes the next ready runtime-baseline task.
 - Note: `TASK-FT011-04` reached `semantic-pass`, `TASK-FT011-05` reached `semantic-pass`, and `TASK-FT011-06` completed with successful verify plus `semantic-pass`; no `ready` or `blocked` tasks remain in the current `FT-011` backlog slice, so the resumed `/autopilot` run reaches terminal state `SUCCESS`.
+- Note: `FT-009` hardening follow-up reopened the run with one execution-ready task `TASK-FT009-07`; scheduler starts it in a dedicated worker session and will delegate `/verify` back to the same worker per explicit user instruction.

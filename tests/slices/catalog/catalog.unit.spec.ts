@@ -422,37 +422,23 @@ describe("catalog service", () => {
     );
   });
 
-  it("rejects duplicate provisioning for the same seller binding and shop identity before repository writes", async () => {
-    const provisionSellerShop = jest.fn();
+  it("lets the repository enforce duplicate seller shop identity regardless of telegram binding", async () => {
+    const listSellerBindingsByTelegramId = jest.fn();
+    const provisionSellerShop = jest.fn().mockImplementation(async () => {
+      const error = new Error("duplicate");
+      Object.assign(error, { code: "P2002" });
+      throw error;
+    });
     const service = new CatalogService({
       ...createRepository(),
-      listSellerBindingsByTelegramId: async () => [
-        {
-          id: "binding-1",
-          shopId: "shop-1",
-          sellerId: "seller-1",
-          telegramId: "123456",
-        },
-      ],
-      findShopById: async () => ({
-        id: "shop-1",
-        sellerId: "seller-1",
-        name: "Bakery",
-        description: null,
-        headerImageUrl: null,
-        backgroundImageUrl: null,
-        status: "WORKING",
-        renameCount: 0,
-        requiresManualRenameReview: false,
-        isDeleted: false,
-      }),
+      listSellerBindingsByTelegramId,
       provisionSellerShop,
     });
 
     await expect(
       service.provisionSellerShop({
         sellerId: "seller-1",
-        telegramId: "123456",
+        telegramId: "654321",
         name: "Bakery",
       }),
     ).rejects.toEqual(
@@ -463,7 +449,17 @@ describe("catalog service", () => {
       ),
     );
 
-    expect(provisionSellerShop).not.toHaveBeenCalled();
+    expect(listSellerBindingsByTelegramId).not.toHaveBeenCalled();
+    expect(provisionSellerShop).toHaveBeenCalledWith({
+      sellerId: "seller-1",
+      telegramId: "654321",
+      name: "Bakery",
+      description: undefined,
+      headerImageUrl: undefined,
+      backgroundImageUrl: undefined,
+      status: undefined,
+      blueprint: expect.any(Object),
+    });
   });
 
   it("marks repeated rename as manual paid review", async () => {

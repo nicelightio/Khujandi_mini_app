@@ -15,6 +15,10 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] FT-011 identical provisioning now keys conflicts only by sellerId plus shop name
+- Removed the stale service-level duplicate guard that still reasoned through Telegram bindings instead of the canonical `sellerId + shop name` shop identity, so controlled provisioning conflicts now consistently come from the repository/persistence boundary.
+- Added focused unit, integration, and mounted-runtime coverage proving that the same seller cannot be provisioned the same shop name twice even when `telegramId` differs, while multi-shop admin provisioning still works when shop names differ.
+
 ## [2026-04-20] TASK-FT011-09 removed mounted single-shop-per-seller drift
 - Narrowed the repo-local mounted `catalog` runtime parity fix to `backend/src/dev-runtime/catalog-runtime-prisma.ts`, so `SellerShopBinding` creation no longer rejects a second admin-provisioned shop only because the same seller or Telegram identity already owns another shop.
 - Added focused integration and mounted runtime regressions proving one seller identity can own multiple admin-provisioned shops when shop names differ, while identical `sellerId + shop name` provisioning still returns the controlled `SHOP_PROVISIONING_CONFLICT` behavior.

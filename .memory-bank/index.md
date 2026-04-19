@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `FT-011`: identical provisioning now consistently fails on the canonical `sellerId + shop name` key even when `telegramId` differs, because the stale service-level Telegram-binding precheck was removed and focused unit/integration/runtime coverage now exercises that exact duplicate path.
 - `FT-011`: `TASK-FT011-09` is complete; the mounted repo-local provisioning path no longer enforces accidental `single-shop-per-seller` behavior, and focused integration/runtime coverage now proves one seller identity may own multiple admin-provisioned shops when canonical shop names differ.
 - `FT-011`: `TASK-FT011-06` is complete; final catalog gates plus manual restart-smoke evidence now verify the DB-backed runtime baseline end to end, so `REQ-027/028` are promoted to `verified` and `FT-011` is closed.
 - `FT-011`: `TASK-FT011-05` is complete; mounted runtime durability coverage now proves persisted provisioning still fails closed through the controlled conflict contract after restart on the same DB path, and `npm run test:catalog:runtime` exposes that DB-backed regression suite as an explicit gate.
