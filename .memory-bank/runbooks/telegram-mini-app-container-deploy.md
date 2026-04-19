@@ -120,10 +120,13 @@ cd /srv/tgmeal/app
 ```bash
 cat >/srv/tgmeal/app/.env <<'EOF'
 ADMIN_ALLOWED_ORIGINS=https://tgmeal.natureonzoom.win
+CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite
 EOF
 chown tgmeal:tgmeal /srv/tgmeal/app/.env
 chmod 600 /srv/tgmeal/app/.env
 ```
+
+Важно: `scripts/dev-api.ts` хранит durable catalog runtime в SQLite-файле по `CATALOG_DB_PATH`. Если не задать явный path и не примонтировать persistent Docker volume, provisioning и seller edits останутся внутри filesystem конкретного `api` контейнера и исчезнут после `docker compose up -d --build` / recreate.
 
 ## 8. Build and start containers
 
@@ -131,6 +134,7 @@ chmod 600 /srv/tgmeal/app/.env
 sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml build
 sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml up -d
 sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml ps
+sudo -u tgmeal docker volume inspect tgmeal_catalog_runtime_data
 ```
 
 Проверь container-local origin:
@@ -193,6 +197,7 @@ curl https://tgmeal.natureonzoom.win/api/v1/shops
 - frontend открывается с того же origin;
 - `/api/v1/shops` отдает demo catalog;
 - `/api/v1/admin/auth/*` доступны через тот же публичный origin и не упираются в missing-runtime mount gap.
+- `api` контейнер хранит catalog runtime state в named volume, а не только во внутреннем filesystem текущего container instance.
 
 ## 11. Update flow after new commit
 
@@ -209,6 +214,12 @@ sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
 sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose build'
 sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose up -d'
 systemctl reload nginx
+```
+
+После rollout проверь, что volume не потерян и catalog SQLite лежит на ожидаемом path:
+
+```bash
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose exec api sh -lc "echo $CATALOG_DB_PATH && ls -l /var/lib/khujandi"'
 ```
 
 Если менялся только app code без compose/nginx:

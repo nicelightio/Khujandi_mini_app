@@ -15,6 +15,10 @@ status: active
 
 ## Recent entries
 
+## [2026-04-19] Container deploy now persists DB-backed catalog runtime across api container recreate
+- Updated `docker-compose.yml` so the checked-in `api` container now mounts a named Docker volume and passes explicit `CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite`, preventing admin provisioning and seller catalog writes from living only inside one container filesystem.
+- Synced `.memory-bank/runbooks/telegram-mini-app-container-deploy.md` with the same durable catalog runtime requirement plus post-rollout verification commands for the mounted SQLite path/volume.
+
 ## [2026-04-19] Restored full historical archive sources after compaction mistake
 - Added canonical full-archive copies for pre-compaction `tasks/backlog.md` and `changelog.md`, so no historical lines remain stranded only in summary archives.
 - Reclassified the feature-group/date-range archive files as summary/navigation layer and updated active routers to point to the new full historical source files.

@@ -8,6 +8,9 @@ services:
       PORT: 3001
       ADMIN_ALLOWED_ORIGINS: ${ADMIN_ALLOWED_ORIGINS:-https://tgmeal.natureonzoom.win}
       DATABASE_URL: ${DATABASE_URL:-postgresql://tgmeal:CHANGE_ME@host.docker.internal:5432/tgmeal?schema=public}
+      CATALOG_DB_PATH: ${CATALOG_DB_PATH:-/var/lib/khujandi/catalog-runtime.sqlite}
+    volumes:
+      - catalog_runtime_data:/var/lib/khujandi
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/shops"]
@@ -26,3 +29,6 @@ services:
     ports:
       - "127.0.0.1:8080:80"
     restart: unless-stopped
+
+volumes:
+  catalog_runtime_data:
