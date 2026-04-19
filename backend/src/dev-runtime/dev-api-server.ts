@@ -37,6 +37,7 @@ type RuntimeServerOptions = {
   allowedOrigins?: string[];
   adminDatabasePath?: string;
   catalogDatabasePath?: string;
+  telegramBotToken?: string;
   passwordHasher?: {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
   };
@@ -65,7 +66,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   const catalogModule = createCatalogModule(catalogPrisma);
   const checkoutPaymentState = checkoutPaymentPrisma.state;
   const checkoutPaymentModule = createCheckoutPaymentModule(checkoutPaymentPrisma, {
-    botToken: "test-bot-token",
+    botToken: options.telegramBotToken ?? "test-bot-token",
     allowedOrigins,
     secureCookies: false,
     now: options.now,

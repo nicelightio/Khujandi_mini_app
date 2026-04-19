@@ -15,6 +15,10 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] Mounted storefront seller auth now uses runtime Telegram bot token
+- Fixed mounted `dev-runtime` Telegram auth wiring so `POST /api/v1/auth/telegram` reads `TELEGRAM_BOT_TOKEN` from runtime environment instead of validating production Mini App `initData` against a hardcoded test token.
+- `scripts/dev-api.ts` and `docker-compose.yml` now pass the bot token through to the runtime, unblocking seller session bootstrap for shared storefront owner access on deployed Mini App flows.
+
 ## [2026-04-20] Admin provisioning page now reloads provisioned shops from canonical catalog state
 - Added a narrow `catalog`-owned admin read path for `/admin/catalog/shops/provision`, so the page now loads persisted provisioned shop summaries from backend runtime state on first render and after successful provisioning instead of relying only on route-local UI memory.
 - Kept public/seller semantics unchanged: public browse still exposes only `WORKING`, while the admin-owned provisioning list intentionally includes both `WORKING` and `NOT_WORKING`; focused frontend, catalog integration, mounted runtime, `npm run test:catalog`, and `npm run lint` all pass.

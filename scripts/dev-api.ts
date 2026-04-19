@@ -27,6 +27,7 @@ const runtime = await startDevApiServer({
   allowedOrigins: parseAllowedOrigins(process.env.ADMIN_ALLOWED_ORIGINS),
   adminDatabasePath: process.env.ADMIN_DB_PATH ?? resolve(process.cwd(), "backend", "prisma", "dev-admin-access-runtime.sqlite"),
   catalogDatabasePath: process.env.CATALOG_DB_PATH ?? resolve(process.cwd(), "backend", "prisma", "dev-catalog-runtime.sqlite"),
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
 });
 
 process.stdout.write(`Demo API listening on ${runtime.baseUrl}\n`);
