@@ -16,6 +16,10 @@ status: active
 - `TASK-FT009-02` added the app-level shell boundary, shared shell state/context scaffold, and repo-local runtime bridge test harness needed before wiring real Telegram runtime events.
 - `TASK-FT009-03` now wires `ready()/expand()`, centralized runtime event handling, stable viewport/safe-area CSS propagation, and graceful non-Telegram fallback into the shared app shell baseline.
 - `TASK-FT009-04` now connects catalog and checkout to the shared shell layout/policy layer, including centralized back/swipe metadata and shell-owned action feedback framing without moving auth/payment logic into shared UI.
+- `TASK-FT009-07` adds the first shell-owned bottom action primitive for customer-facing CTA surfaces: `PageShell` now exposes a shared sticky footer action zone and checkout routes its primary CTA through that shell-owned path instead of page-local placement, with focused shell/page/route coverage.
+- `TASK-FT009-08` adds the minimal shell-owned capability/degradation policy: the Telegram bridge now exposes one runtime capability snapshot, shared shell state derives one centralized enhanced-vs-minimal policy from it, and `AppShell` plus `PageShell` now use that policy for native chrome access and bottom-action layout/effect fallback instead of hardcoded assumptions in feature code.
+- Post-change `red-verify` for `TASK-FT009-07` returned `semantic-concern`: ownership moved into the shell correctly, but explicit Telegram keyboard-open reachability evidence and wider validation of the new page-level scroll model still remain for the follow-up hardening wave.
+- Post-change `red-verify` for `TASK-FT009-08` also returned `semantic-concern`: policy ownership is now centralized correctly, but the reduced-runtime path was still degrading the shell-owned bottom-action layout itself to `inline`; `TASK-FT009-09` has now corrected the repo-local policy to keep the conservative `keyboard-safe` CTA primitive on degraded Telegram runtime paths, while fresh Android Telegram evidence is still pending for full closure.
 - `TASK-FT009-06` completed the shell/runtime closure for `FT-009`: repo-local shell/runtime gates pass and operator-confirmed Android Telegram verification closes the shell-owned customer-facing catalog/checkout WebView behavior without requiring screenshots as blocking artifacts.
 - This closure does not by itself close the shared `REQ-022/023` rows while `FT-002` still lacks a non-stubbed mounted checkout runtime in the checked-in app path.
 
@@ -70,6 +74,8 @@ status: active
 
 - `FT-009` владеет shell bootstrap, runtime adapter events, safe-area/theme/viewport/lifecycle behavior, centralized swipe/back policy, and real Telegram runtime evidence for customer-facing catalog/checkout UI.
 - `FT-009` также владеет shell-level capability/degradation policy, keyboard-safe bottom action primitives и runtime-to-UI propagation rules для customer-facing WebView UX.
+- Current checked-in capability policy intentionally stays minimal: it distinguishes only between an enhanced Telegram runtime path and a reduced fallback path based on centralized runtime capability derivation, without introducing a broader device-profiler subsystem.
+- Current hardening status: repo-local policy semantics are now reconciled so degraded Telegram runtime keeps a conservative shell-owned `keyboard-safe` bottom CTA path; substantive closure still requires fresh real Android Telegram notes confirming keyboard-open reachability on that corrected path.
 - `FT-002` сохраняет ownership над Telegram auth/session transport, trusted payment confirmation, and transport/source verification.
 - `FT-003` сохраняет ownership над first-run language overlay, explicit language persistence, fallback-to-`ru`, and post-auth profile sync.
 

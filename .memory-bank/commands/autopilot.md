@@ -9,6 +9,7 @@ status: active
 - Для полного unattended flow используй `/autonomous`.
 - Запуск разрешён только если backlog уже декомпозирован и последний `/review` дал `APPROVE`.
 - По умолчанию выполняй **строго последовательно**. Параллель — только для независимых задач без общих файлов.
+- `/autopilot` не запускает `/red-verify`: adversarial semantic verification остаётся ручным или отдельным явно вызванным шагом.
 
 ## Preconditions
 - `.memory-bank/tasks/backlog.md` использует **task cards**, а не просто список `TASK-*`.
@@ -50,16 +51,17 @@ status: active
 1) переведи `Status: ready -> in_progress`
 2) выполни `/execute TASK-<ID>`
 3) выполни `/verify TASK-<ID>`
-4) если задача domain-heavy, cross-boundary, stateful, migration/runtime/API-sensitive или есть риск "формально PASS, но семантически мимо" — выполни `/red-verify TASK-<ID>`
-5) если итог = `PASS` и нет `semantic-fail`:
+4) если итог = `PASS`:
    - `Status: done`
    - `/mb-sync`
    - разблокируй dependents, если все их deps закрыты
-6) если `FAIL` или `semantic-fail`:
+5) если итог = `FAIL`:
    - `Status: failed`
    - создай bug + follow-up task
    - downstream dependents → `blocked`
    - проверь failure budget
+
+Если нужен adversarial semantic review для конкретной задачи, его запускают отдельно и явно, но это не часть стандартного цикла `/autopilot`.
 
 Новые follow-up задачи, созданные во время verify, должны подхватываться **в том же run** на следующей итерации.
 

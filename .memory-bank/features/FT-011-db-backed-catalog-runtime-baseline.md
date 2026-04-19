@@ -11,6 +11,7 @@ status: active
 ## Current implementation state
 
 - Checked-in `catalog` slice already has Prisma persistence primitives and `PrismaCatalogRepository`.
+- The checked-in Prisma repository implementation is now split into focused infrastructure modules for public reads, seller reads, seller writes, provisioning, and shared Prisma glue while preserving one `CatalogRepository` boundary for the owning slice.
 - `TASK-FT011-01` switched the checked-in repo-local mounted `catalog` runtime off the default `InMemoryCatalogRepository` path and onto the Prisma-backed module surface, so the mounted server now exercises the same repository boundary as the owning slice.
 - `TASK-FT011-02` replaced the hidden process-local demo seed arrays with an explicit checked-in seed baseline plus a SQLite-backed runtime state store, so repo-local startup/restart now reuses persisted catalog bootstrap state instead of fabricating it from in-memory constants.
 - `TASK-FT011-03` hardened admin provisioning so repeated identical `sellerId + telegramId + shop name` requests now fail closed before repo writes, while the transactional `shop + binding + starter catalog bootstrap` rollback path remains covered by integration tests.

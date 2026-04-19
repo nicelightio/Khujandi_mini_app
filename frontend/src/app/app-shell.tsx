@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { createTelegramWebAppBridge, type TelegramWebAppBridge } from "../shared/telegram/webapp";
 import { UiShellProvider, useUiShell } from "../shared/state/ui-shell-context";
-import { createUiShellState, mergeUiShellState, type UiShellState } from "../shared/state/ui-shell";
+import {
+  createUiShellState,
+  deriveUiShellCapabilities,
+  mergeUiShellState,
+  type UiShellState,
+} from "../shared/state/ui-shell";
 
 type AppShellProps = {
   children: ReactNode;
@@ -34,7 +39,15 @@ export const AppShell = ({
         };
 
         if (!snapshot.isAvailable) {
-          return mergeUiShellState(currentState, basePatch);
+          return mergeUiShellState(currentState, {
+            ...basePatch,
+            capabilities: deriveUiShellCapabilities({
+              isTelegramEnvironment: false,
+              supportsEnhancedShell: false,
+              supportsKeyboardSafeBottomActions: false,
+              supportsNativeChrome: false,
+            }),
+          });
         }
 
         return mergeUiShellState(currentState, {
@@ -47,6 +60,12 @@ export const AppShell = ({
           },
           safeArea: snapshot.safeAreaInsets,
           contentSafeArea: snapshot.contentSafeAreaInsets,
+          capabilities: deriveUiShellCapabilities({
+            isTelegramEnvironment: snapshot.isAvailable,
+            supportsEnhancedShell: snapshot.capabilities.supportsEnhancedShell,
+            supportsKeyboardSafeBottomActions: snapshot.capabilities.supportsKeyboardSafeBottomActions,
+            supportsNativeChrome: snapshot.capabilities.supportsNativeChrome,
+          }),
         });
       });
     };
@@ -112,9 +131,9 @@ const AppShellLayout = ({ children, shellStyle }: AppShellLayoutProps) => {
   const { pagePolicy, state, telegramBridge } = useUiShell();
 
   useEffect(() => {
-    telegramBridge.setBackButtonVisible(pagePolicy.backHref !== null);
-    telegramBridge.setSwipeBehavior(pagePolicy.swipeBehavior);
-  }, [pagePolicy.backHref, pagePolicy.swipeBehavior, telegramBridge]);
+    telegramBridge.setBackButtonVisible(state.capabilities.nativeChrome === "enabled" && pagePolicy.backHref !== null);
+    telegramBridge.setSwipeBehavior(state.capabilities.nativeChrome === "enabled" ? pagePolicy.swipeBehavior : "default");
+  }, [pagePolicy.backHref, pagePolicy.swipeBehavior, state.capabilities.nativeChrome, telegramBridge]);
 
   const actionFeedbackState = pagePolicy.actionLabel === null
     ? "none"
@@ -133,6 +152,9 @@ const AppShellLayout = ({ children, shellStyle }: AppShellLayoutProps) => {
       data-shell-telegram={state.isTelegramEnvironment ? "true" : "false"}
       data-shell-expanded={state.isExpanded ? "true" : "false"}
       data-shell-viewport-source={state.viewport.stableHeight === null ? "none" : "stable"}
+      data-shell-capability={state.capabilities.degradationMode}
+      data-shell-bottom-action-layout={state.capabilities.bottomActionLayout}
+      data-shell-native-chrome={state.capabilities.nativeChrome}
       data-shell-back={pagePolicy.backHref === null ? "hidden" : "visible"}
       data-shell-swipe={pagePolicy.swipeBehavior}
       data-shell-action-feedback={actionFeedbackState}

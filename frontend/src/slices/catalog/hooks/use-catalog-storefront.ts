@@ -1,0 +1,173 @@
+import { useEffect, useState } from "react";
+import type { SupportedLanguage } from "../../../shared/i18n/languages";
+import type { CatalogApi } from "../api/catalog-api";
+import type { CatalogStorefrontEditorTarget, CatalogStorefrontViewModel } from "../components/catalog-page";
+import {
+  buildStorefrontCatalogViewModel,
+  buildStorefrontViewModel,
+  createCatalogStorefrontErrorState,
+  createInitialCatalogStorefrontState,
+  createLoadedCatalogStorefrontState,
+  createLoadingCatalogStorefrontState,
+  createStorefrontEditor,
+  defaultLoadStorefrontData,
+  defaultPersistStorefrontEdit,
+  storefrontUnavailableMessage,
+  type CatalogStorefrontEdit,
+  type CatalogStorefrontState,
+  type LoadCatalogStorefrontData,
+  type PersistCatalogStorefrontEdit,
+} from "../model/storefront";
+import type { CatalogViewModel } from "../model/catalog-view-model";
+
+type UseCatalogStorefrontOptions = {
+  shopId: string;
+  api: CatalogApi;
+  language: SupportedLanguage;
+  loadStorefrontData?: LoadCatalogStorefrontData;
+  persistStorefrontEdit?: PersistCatalogStorefrontEdit;
+};
+
+type UseCatalogStorefrontResult = {
+  viewModel: CatalogViewModel;
+  storefront?: CatalogStorefrontViewModel;
+  handleActivateEditor: (target: CatalogStorefrontEditorTarget) => void;
+  handleEditorFieldChange: (name: string, value: string) => void;
+  handleCancelEditor: () => void;
+  handleSubmitEditor: () => Promise<void>;
+};
+
+export const useCatalogStorefront = ({
+  shopId,
+  api,
+  language,
+  loadStorefrontData = defaultLoadStorefrontData,
+  persistStorefrontEdit = defaultPersistStorefrontEdit,
+}: UseCatalogStorefrontOptions): UseCatalogStorefrontResult => {
+  const [storefrontState, setStorefrontState] = useState<CatalogStorefrontState>(() => createInitialCatalogStorefrontState());
+
+  useEffect(() => {
+    let isActive = true;
+
+    setStorefrontState(createLoadingCatalogStorefrontState());
+
+    void loadStorefrontData(shopId, api)
+      .then((data) => {
+        if (!isActive) {
+          return;
+        }
+
+        setStorefrontState(createLoadedCatalogStorefrontState(data));
+      })
+      .catch((error) => {
+        if (!isActive) {
+          return;
+        }
+
+        setStorefrontState(
+          createCatalogStorefrontErrorState(
+            error instanceof Error ? error.message : storefrontUnavailableMessage,
+          ),
+        );
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [api, loadStorefrontData, shopId]);
+
+  const handleActivateEditor = (target: CatalogStorefrontEditorTarget) => {
+    setStorefrontState((currentState) => {
+      if (currentState.data === null || !currentState.data.canEdit) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        editor: createStorefrontEditor(currentState.data, target),
+        successMessage: null,
+        saveErrorMessage: null,
+      };
+    });
+  };
+
+  const handleEditorFieldChange = (name: string, value: string) => {
+    setStorefrontState((currentState) => {
+      if (currentState.editor === null) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        editor: {
+          ...currentState.editor,
+          fields: currentState.editor.fields.map((field) => (field.name === name ? { ...field, value } : field)),
+        },
+      };
+    });
+  };
+
+  const handleCancelEditor = () => {
+    setStorefrontState((currentState) => ({
+      ...currentState,
+      editor: null,
+      saveErrorMessage: null,
+    }));
+  };
+
+  const handleSubmitEditor = async () => {
+    const currentEditor = storefrontState.editor;
+    const currentData = storefrontState.data;
+
+    if (currentEditor === null || currentData === null || storefrontState.isSaving) {
+      return;
+    }
+
+    setStorefrontState((currentState) => ({
+      ...currentState,
+      isSaving: true,
+      successMessage: null,
+      saveErrorMessage: null,
+    }));
+
+    try {
+      const edit: CatalogStorefrontEdit = {
+        shopId,
+        target: currentEditor.target,
+        fields: currentEditor.fields,
+      };
+      const result = await persistStorefrontEdit(edit, currentData, api);
+      const reloadedData = await loadStorefrontData(shopId, api);
+
+      setStorefrontState((currentState) => {
+        if (currentState.data === null) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          data: reloadedData,
+          editor: null,
+          isSaving: false,
+          successMessage: result.confirmationMessage,
+          saveErrorMessage: null,
+        };
+      });
+    } catch (error) {
+      setStorefrontState((currentState) => ({
+        ...currentState,
+        isSaving: false,
+        saveErrorMessage: error instanceof Error ? error.message : "Storefront save failed.",
+      }));
+    }
+  };
+
+  return {
+    viewModel: buildStorefrontCatalogViewModel(storefrontState, language),
+    storefront: buildStorefrontViewModel(storefrontState),
+    handleActivateEditor,
+    handleEditorFieldChange,
+    handleCancelEditor,
+    handleSubmitEditor,
+  };
+};

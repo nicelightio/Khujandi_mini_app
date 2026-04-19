@@ -27,6 +27,12 @@ export type TelegramWebAppEvent =
 
 export type TelegramSwipeBehavior = "default" | "locked";
 
+export type TelegramRuntimeCapabilities = {
+  supportsEnhancedShell: boolean;
+  supportsKeyboardSafeBottomActions: boolean;
+  supportsNativeChrome: boolean;
+};
+
 export type TelegramLanguageStorage = {
   getLanguage: () => Promise<string | null>;
   setLanguage: (language: SupportedLanguage) => Promise<void>;
@@ -85,7 +91,9 @@ export type TelegramWebAppBridge = {
     viewport: TelegramViewportState;
     safeAreaInsets: TelegramInsets;
     contentSafeAreaInsets: TelegramInsets;
+    capabilities: TelegramRuntimeCapabilities;
   };
+  getRuntimeCapabilities: () => TelegramRuntimeCapabilities;
   onEvent: (event: TelegramWebAppEvent, handler: () => void) => () => void;
   setBackButtonVisible: (visible: boolean) => void;
   setSwipeBehavior: (behavior: TelegramSwipeBehavior) => void;
@@ -154,6 +162,21 @@ export const createTelegramWebAppBridge = (windowLike?: TelegramWindowLike): Tel
 
   const getContentSafeAreaInsets = (): TelegramInsets => createInsets(webApp?.contentSafeAreaInset);
 
+  const getRuntimeCapabilities = (): TelegramRuntimeCapabilities => {
+    const hasStableViewport = getViewport().stableHeight !== null;
+    const supportsNativeChrome =
+      typeof webApp?.disableVerticalSwipes === "function" &&
+      typeof webApp?.enableVerticalSwipes === "function" &&
+      webApp?.BackButton !== undefined;
+    const supportsEnhancedShell = webApp !== undefined && hasStableViewport && webApp?.isVersionAtLeast?.("7.10") === true;
+
+    return {
+      supportsEnhancedShell,
+      supportsKeyboardSafeBottomActions: webApp !== undefined,
+      supportsNativeChrome,
+    };
+  };
+
   return {
     ready: () => {
       webApp?.ready?.();
@@ -178,7 +201,9 @@ export const createTelegramWebAppBridge = (windowLike?: TelegramWindowLike): Tel
       viewport: getViewport(),
       safeAreaInsets: getSafeAreaInsets(),
       contentSafeAreaInsets: getContentSafeAreaInsets(),
+      capabilities: getRuntimeCapabilities(),
     }),
+    getRuntimeCapabilities,
     onEvent: (event, handler) => {
       webApp?.onEvent?.(event, handler);
 

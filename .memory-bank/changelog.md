@@ -15,6 +15,29 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] Catalog Prisma repository split into spec-aligned infrastructure modules
+- Refactored `backend/src/slices/catalog/infrastructure/prisma-catalog.repository.ts` into a thin facade over focused Prisma modules for public browse reads, seller reads, seller writes, provisioning, and shared Prisma mapping/event glue.
+- Preserved the single `CatalogRepository` boundary and kept provisioning/event semantics inside the owning `catalog` slice, so future catalog work can change one spec-aligned capability module without reopening the whole repository file.
+
+## [2026-04-20] TASK-FT009-09 reconciled degraded Telegram CTA fallback semantics
+- Narrowed the shared Telegram bridge capability semantics so degraded Telegram runtime still keeps the shell-owned bottom CTA path on `keyboard-safe` layout while optional shell enhancements remain on the centralized `minimal` policy.
+- Re-ran focused `FT-009` frontend gates (`npm run lint` plus targeted Jest coverage for app/shared/checkout shell paths) and synced backlog/feature/testing/bug docs; fresh Android Telegram operator notes still remain the only missing artifact for full closure.
+
+## [2026-04-20] MB sync recorded red-verify concern for TASK-FT009-08
+- Synced `FT-009`, backlog, and the root Memory Bank index after `/verify` `PASS` plus post-change `/red-verify` `semantic-concern` for `TASK-FT009-08`: centralized shell capability ownership is correct, but the current reduced-runtime fallback also drops the keyboard-safe bottom-action layout to `inline`.
+- Kept the concern attached to the already-planned closure wave `TASK-FT009-09` instead of opening a new bug/task, because the remaining risk is the final reconciliation between repo-local degradation semantics and real Android Telegram evidence.
+
+## [2026-04-20] TASK-FT009-08 centralized minimal shell capability and degradation policy
+- Extended the shared Telegram bridge and shell state with one minimal capability snapshot plus one centralized enhanced-vs-minimal shell policy, so optional shell chrome and bottom-action affordances now degrade through one shared path instead of page-level assumptions.
+- Added focused app/shared/checkout Jest coverage and re-ran `npm run lint`, while leaving final Android Telegram evidence and full closure of the hardening wave to `TASK-FT009-09`.
+
+## [2026-04-20] MB sync recorded red-verify concern for TASK-FT009-07
+- Synced `FT-009` and the root Memory Bank index so they no longer overstate `TASK-FT009-07` as fully risk-closed: the shell-owned bottom action primitive landed, but post-change `red-verify` still flags missing explicit Telegram keyboard-open evidence and the narrow validation scope of the new page-level scroll model.
+
+## [2026-04-20] TASK-FT009-07 added a shell-owned bottom action path for checkout
+- Extended `frontend/src/shared/ui/page-shell.tsx` with a shared shell-owned bottom action slot plus keyboard-safe footer styling in `webview-shell.css`, keeping the customer-facing CTA layout path inside the shell boundary instead of page-local placement.
+- Moved the checkout primary CTA onto that shell-owned footer primitive and added focused shared/check-out frontend tests proving the CTA now renders through the centralized shell layout path.
+
 ## [2026-04-20] FT-011 identical provisioning now keys conflicts only by sellerId plus shop name
 - Removed the stale service-level duplicate guard that still reasoned through Telegram bindings instead of the canonical `sellerId + shop name` shop identity, so controlled provisioning conflicts now consistently come from the repository/persistence boundary.
 - Added focused unit, integration, and mounted-runtime coverage proving that the same seller cannot be provisioned the same shop name twice even when `telegramId` differs, while multi-shop admin provisioning still works when shop names differ.

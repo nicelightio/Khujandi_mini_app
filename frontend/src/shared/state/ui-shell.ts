@@ -14,6 +14,18 @@ export type UiShellViewport = {
   stableHeight: number | null;
 };
 
+export type UiShellDegradationMode = "enhanced" | "minimal";
+
+export type UiShellBottomActionLayout = "keyboard-safe" | "inline";
+
+export type UiShellNativeChromeMode = "enabled" | "disabled";
+
+export type UiShellCapabilities = {
+  degradationMode: UiShellDegradationMode;
+  bottomActionLayout: UiShellBottomActionLayout;
+  nativeChrome: UiShellNativeChromeMode;
+};
+
 export type UiShellState = {
   isReady: boolean;
   isExpanded: boolean;
@@ -23,12 +35,14 @@ export type UiShellState = {
   viewport: UiShellViewport;
   safeArea: UiShellInsets;
   contentSafeArea: UiShellInsets;
+  capabilities: UiShellCapabilities;
 };
 
 export type UiShellStateInput = Partial<Omit<UiShellState, "viewport" | "safeArea" | "contentSafeArea">> & {
   viewport?: Partial<UiShellViewport>;
   safeArea?: Partial<UiShellInsets>;
   contentSafeArea?: Partial<UiShellInsets>;
+  capabilities?: Partial<UiShellCapabilities>;
 };
 
 export type UiShellRuntimePatch = UiShellStateInput;
@@ -45,6 +59,31 @@ const createUiShellViewport = (value: Partial<UiShellViewport> = {}): UiShellVie
   stableHeight: value.stableHeight ?? null,
 });
 
+const createUiShellCapabilities = (value: Partial<UiShellCapabilities> = {}): UiShellCapabilities => ({
+  degradationMode: value.degradationMode ?? "minimal",
+  bottomActionLayout: value.bottomActionLayout ?? "inline",
+  nativeChrome: value.nativeChrome ?? "disabled",
+});
+
+export type UiShellRuntimeCapabilitiesInput = {
+  isTelegramEnvironment: boolean;
+  supportsEnhancedShell: boolean;
+  supportsKeyboardSafeBottomActions: boolean;
+  supportsNativeChrome: boolean;
+};
+
+export const deriveUiShellCapabilities = ({
+  isTelegramEnvironment,
+  supportsEnhancedShell,
+  supportsKeyboardSafeBottomActions,
+  supportsNativeChrome,
+}: UiShellRuntimeCapabilitiesInput): UiShellCapabilities => ({
+  degradationMode: isTelegramEnvironment && supportsEnhancedShell ? "enhanced" : "minimal",
+  bottomActionLayout:
+    isTelegramEnvironment && supportsKeyboardSafeBottomActions ? "keyboard-safe" : "inline",
+  nativeChrome: isTelegramEnvironment && supportsNativeChrome ? "enabled" : "disabled",
+});
+
 export const createUiShellState = (value: UiShellStateInput = {}): UiShellState => ({
   isReady: value.isReady ?? false,
   isExpanded: value.isExpanded ?? false,
@@ -54,6 +93,7 @@ export const createUiShellState = (value: UiShellStateInput = {}): UiShellState 
   viewport: createUiShellViewport(value.viewport),
   safeArea: createUiShellInsets(value.safeArea),
   contentSafeArea: createUiShellInsets(value.contentSafeArea),
+  capabilities: createUiShellCapabilities(value.capabilities),
 });
 
 export const mergeUiShellState = (
@@ -74,5 +114,9 @@ export const mergeUiShellState = (
     contentSafeArea: {
       ...currentState.contentSafeArea,
       ...patch.contentSafeArea,
+    },
+    capabilities: {
+      ...currentState.capabilities,
+      ...patch.capabilities,
     },
   });

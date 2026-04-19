@@ -57,6 +57,7 @@ status: active
 - Default motion path — CSS `transform/opacity` и WAAPI; per-frame React-state animation и постоянные background render loops не входят в baseline contract.
 - Expensive visual layers требуют explicit justification, lazy loading и graceful fallback/disable path; они не должны быть обязательной основой catalog/checkout shell.
 - Weak-device/old-client degradation policy определяется централизованно shell-level capability layer; optional motion/effects и decorative enhancements обязаны уважать этот policy.
+- Minimal checked-in policy may stay narrow: one derived capability snapshot from runtime availability, stable viewport support, and available Telegram chrome helpers is sufficient for baseline enhanced-vs-fallback decisions.
 
 ## Verification ownership
 

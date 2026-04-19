@@ -21,6 +21,11 @@ export const CheckoutPaymentPage = ({ viewModel, onPrimaryAction }: CheckoutPaym
       actionLabel={viewModel.primaryActionLabel}
       isActionPending={viewModel.isSubmitting}
       isActionDisabled={viewModel.isActionDisabled}
+      bottomAction={viewModel.isLoading ? undefined : (
+        <button type="button" disabled={viewModel.isActionDisabled} onClick={onPrimaryAction}>
+          {viewModel.primaryActionLabel}
+        </button>
+      )}
       swipeBehavior="locked"
     >
       <section aria-live="polite">
@@ -39,13 +44,6 @@ export const CheckoutPaymentPage = ({ viewModel, onPrimaryAction }: CheckoutPaym
               <li key={note}>{note}</li>
             ))}
           </ul>
-          <button
-            type="button"
-            disabled={viewModel.isActionDisabled}
-            onClick={onPrimaryAction}
-          >
-            {viewModel.primaryActionLabel}
-          </button>
         </section>
       )}
     </PageShell>

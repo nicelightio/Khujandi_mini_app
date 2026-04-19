@@ -151,9 +151,12 @@ describe("checkout-payment route", () => {
     const renderer = await renderRoute({ bridge });
 
     const text = collectText(renderer.toJSON()).join(" ");
+    const actionZone = renderer.root.findByProps({ "data-shell-bottom-action": "minimal" });
+
     expect(text).toContain("Checkout");
     expect(text).toContain("Secure checkout is ready.");
     expect(text).toContain("Continue to payment");
+    expect(actionZone.findByType("button").children).toEqual(["Continue to payment"]);
     expect(bridge.ready).not.toHaveBeenCalled();
     expect(bridge.expand).not.toHaveBeenCalled();
   });

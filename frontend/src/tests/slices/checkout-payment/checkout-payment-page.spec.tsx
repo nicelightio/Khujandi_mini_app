@@ -257,4 +257,46 @@ describe("checkout-payment page", () => {
       "data-shell-action-feedback": "disabled",
     });
   });
+
+  it("renders the primary checkout CTA inside the shell-owned bottom action zone", () => {
+    let renderer!: ReactTestRenderer;
+
+    act(() => {
+      renderer = create(
+        <AppShell
+          telegramBridge={createTelegramWebAppBridge({
+            Telegram: {
+              WebApp: {
+                viewportHeight: 720,
+                viewportStableHeight: null,
+                isVersionAtLeast: () => false,
+                onEvent: (_event, _handler) => undefined,
+                offEvent: (_event, _handler) => undefined,
+              },
+            },
+          })}
+        >
+          <LanguageContextProvider value={createLanguageContextValue("en")}>
+            <CheckoutPaymentPage
+              viewModel={createReadyCheckoutPaymentViewModel({
+                headline: "Checkout",
+                statusLabel: "Secure checkout is ready.",
+                supportingNotes: ["Telegram auth is requested only when you start checkout."],
+                primaryActionLabel: "Continue to payment",
+              })}
+              onPrimaryAction={() => undefined}
+            />
+          </LanguageContextProvider>
+        </AppShell>,
+      );
+    });
+
+    const footer = renderer.root.findByProps({ "data-shell-section": "footer" });
+    const actionZone = renderer.root.findByProps({ "data-shell-bottom-action": "minimal" });
+    const buttons = renderer.root.findAllByType("button");
+
+    expect(footer.props["data-shell-footer-layout"]).toBe("keyboard-safe");
+    expect(actionZone.findByType("button").children).toEqual(["Continue to payment"]);
+    expect(buttons).toHaveLength(1);
+  });
 });

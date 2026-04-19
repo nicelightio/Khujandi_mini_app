@@ -34,6 +34,8 @@ status: active
 
 ## Recent updates
 
+- `FT-009`: `TASK-FT009-08` is complete with `/verify` `PASS`, but post-change `red-verify` returned `semantic-concern`: shell-owned capability/degradation policy is now centralized, yet the current reduced-runtime fallback also drops the keyboard-safe bottom-action layout to `inline`, so final risk closure remains with `TASK-FT009-09`.
+- `FT-009`: `TASK-FT009-07` is complete; `PageShell` now exposes a shared shell-owned sticky bottom action zone and checkout routes its primary CTA through that footer path instead of page-local action placement, but post-change `red-verify` returned `semantic-concern` because keyboard-open reachability still lacks explicit Telegram runtime evidence and the new page-level scroll model has only narrow checkout-focused validation.
 - `FT-011`: identical provisioning now consistently fails on the canonical `sellerId + shop name` key even when `telegramId` differs, because the stale service-level Telegram-binding precheck was removed and focused unit/integration/runtime coverage now exercises that exact duplicate path.
 - `FT-011`: `TASK-FT011-09` is complete; the mounted repo-local provisioning path no longer enforces accidental `single-shop-per-seller` behavior, and focused integration/runtime coverage now proves one seller identity may own multiple admin-provisioned shops when canonical shop names differ.
 - `FT-011`: `TASK-FT011-06` is complete; final catalog gates plus manual restart-smoke evidence now verify the DB-backed runtime baseline end to end, so `REQ-027/028` are promoted to `verified` and `FT-011` is closed.
@@ -169,7 +171,7 @@ status: active
 - `FT-009`: docs-first shell/runtime ownership, shared storage boundary, and verification routing were frozen via `TASK-FT009-01`, unlocking app-level shell scaffolding in `TASK-FT009-02`.
 - `FT-009`: app-level shell boundary, shared shell state/context scaffold, and runtime bridge test harness are now in place via `TASK-FT009-02`, unlocking runtime event implementation in `TASK-FT009-03`.
 - `FT-009`: runtime adapter wiring for `ready()/expand()`, theme, safe-area, stable viewport, lifecycle, and shell CSS variable propagation is complete via `TASK-FT009-03`, unlocking slice-level UX integration in `TASK-FT009-04`.
-- `FT-009`: shell/runtime closure is complete via `TASK-FT009-06`; repo-local shell/runtime verification and operator-confirmed Android Telegram runs close `REQ-019` and provide shell-owned evidence for shared `REQ-022/023`, while those shared RTM rows stay `implemented` until `FT-002` removes the stubbed checkout runtime path.
+- `FT-009`: baseline shell/runtime closure was previously reached via `TASK-FT009-06`; later hardening follow-up tasks `TASK-FT009-07` and `TASK-FT009-08` are now checked in, with `/verify` passing for both, but the feature is not yet risk-closed because their post-change `red-verify` results leave the final keyboard-open/degradation-policy closure to `TASK-FT009-09`.
 
 ## Current MVP map
 

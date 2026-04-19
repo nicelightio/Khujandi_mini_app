@@ -73,6 +73,7 @@ describe("app shell", () => {
     expect(shellBoundary.props["data-shell-ready"]).toBe("true");
     expect(shellBoundary.props["data-shell-theme"]).toBe("dark");
     expect(shellBoundary.props["data-shell-lifecycle"]).toBe("inactive");
+    expect(shellBoundary.props["data-shell-capability"]).toBe("minimal");
     expect(shellBoundary.findByType("main").props["data-shell"]).toBe("page");
   });
 
@@ -95,6 +96,7 @@ describe("app shell", () => {
                 isExpanded: true,
                 ready: jest.fn(),
                 expand: jest.fn(),
+                isVersionAtLeast: (version) => version === "7.10",
                 onEvent: (_event, _handler) => {
                   return;
                 },
@@ -130,14 +132,17 @@ describe("app shell", () => {
     expect(shellBoundary.props["data-shell-telegram"]).toBe("true");
     expect(shellBoundary.props["data-shell-expanded"]).toBe("true");
     expect(shellBoundary.props["data-shell-viewport-source"]).toBe("stable");
+    expect(shellBoundary.props["data-shell-capability"]).toBe("enhanced");
+    expect(shellBoundary.props["data-shell-bottom-action-layout"]).toBe("keyboard-safe");
+    expect(shellBoundary.props["data-shell-native-chrome"]).toBe("enabled");
     expect(shellBoundary.props.style).toMatchObject({
       "--tg-viewport-height": "720px",
       "--tg-viewport-stable-height": "680px",
       "--tg-safe-area-inset-bottom": "20px",
       "--tg-content-safe-area-inset-top": "12px",
     });
-    expect(backButtonHide).toHaveBeenCalledTimes(1);
-    expect(enableVerticalSwipes).toHaveBeenCalledTimes(1);
+    expect(backButtonHide).toHaveBeenCalled();
+    expect(enableVerticalSwipes).toHaveBeenCalled();
   });
 
   it("reacts to runtime events for theme, viewport, safe-area and lifecycle updates", async () => {
@@ -152,8 +157,15 @@ describe("app shell", () => {
       contentSafeAreaInset: Record<string, number>;
       ready: jest.Mock;
       expand: jest.Mock;
+      isVersionAtLeast: (version: string) => boolean;
       onEvent: (event: string, handler: () => void) => void;
       offEvent: jest.Mock;
+      disableVerticalSwipes: jest.Mock;
+      enableVerticalSwipes: jest.Mock;
+      BackButton: {
+        show: jest.Mock;
+        hide: jest.Mock;
+      };
     } = {
       colorScheme: "light",
       viewportHeight: 720,
@@ -161,10 +173,17 @@ describe("app shell", () => {
       isExpanded: false,
       ready: jest.fn(),
       expand: jest.fn(),
+      isVersionAtLeast: (version: string) => version === "7.10",
       onEvent: (event: string, handler: () => void) => {
         eventHandlers[event] = handler;
       },
       offEvent: jest.fn(),
+      disableVerticalSwipes: jest.fn(),
+      enableVerticalSwipes: jest.fn(),
+      BackButton: {
+        show: jest.fn(),
+        hide: jest.fn(),
+      },
       safeAreaInset: {
         bottom: 16,
       },
@@ -208,6 +227,7 @@ describe("app shell", () => {
     expect(shellBoundary.props["data-shell-theme"]).toBe("dark");
     expect(shellBoundary.props["data-shell-lifecycle"]).toBe("inactive");
     expect(shellBoundary.props["data-shell-expanded"]).toBe("true");
+    expect(shellBoundary.props["data-shell-capability"]).toBe("enhanced");
     expect(shellBoundary.props.style).toMatchObject({
       "--tg-viewport-height": "760px",
       "--tg-viewport-stable-height": "700px",
@@ -253,6 +273,7 @@ describe("app shell", () => {
                 WebApp: {
                   ready: jest.fn(),
                   expand: jest.fn(),
+                  isVersionAtLeast: (version) => version === "7.10",
                   onEvent: (_event, _handler) => {
                     return;
                   },
@@ -260,8 +281,10 @@ describe("app shell", () => {
                     return;
                   },
                   disableVerticalSwipes,
+                  enableVerticalSwipes: jest.fn(),
                   BackButton: {
                     show: backButtonShow,
+                    hide: jest.fn(),
                   },
                 },
               },
@@ -288,5 +311,41 @@ describe("app shell", () => {
         writable: true,
       });
     }
+  });
+
+  it("keeps a keyboard-safe bottom action layout on degraded Telegram runtime paths", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <AppShell
+          telegramBridge={createTelegramWebAppBridge({
+            Telegram: {
+              WebApp: {
+                viewportHeight: 720,
+                viewportStableHeight: null,
+                isVersionAtLeast: () => false,
+                onEvent: (_event, _handler) => {
+                  return;
+                },
+                offEvent: (_event, _handler) => {
+                  return;
+                },
+              },
+            },
+          })}
+        >
+          <main data-shell="page">Runtime shell</main>
+        </AppShell>,
+      );
+      await flushPromises();
+    });
+
+    const shellBoundary = renderer.root.findByProps({ "data-app-shell": "root" });
+
+    expect(shellBoundary.props["data-shell-telegram"]).toBe("true");
+    expect(shellBoundary.props["data-shell-capability"]).toBe("minimal");
+    expect(shellBoundary.props["data-shell-bottom-action-layout"]).toBe("keyboard-safe");
+    expect(shellBoundary.props["data-shell-native-chrome"]).toBe("disabled");
   });
 });

@@ -9,6 +9,12 @@ status: active
 - `FT-009` now fixes a stricter Mini App shell baseline: high-churn runtime propagation must stay cheap, keyboard-safe bottom action primitives must be shell-owned, and weak-device/old-client degradation must be centralized.
 - The checked-in `AppShell` boundary covers Telegram runtime ownership, but the new hardening layer is only partially reflected in code and still drifts from the updated spec baseline.
 
+## Current status
+
+- `TASK-FT009-07` and `TASK-FT009-08` landed the shared bottom-action primitive plus centralized capability policy.
+- `TASK-FT009-09` has now closed the remaining repo-local semantic drift: degraded Telegram runtime no longer drops the shell-owned bottom CTA layout to `inline`.
+- The bug stays active only until fresh operator-confirmed Android Telegram notes prove keyboard-open CTA reachability on that corrected path.
+
 ## Detection
 
 - Date: `2026-04-19`

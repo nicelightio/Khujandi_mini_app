@@ -49,7 +49,7 @@ status: active
 
 ### TASK-FT009-07 — Add shell-owned keyboard-safe bottom action primitive
 - TASK-ID: `TASK-FT009-07`
-- Status: `in_progress`
+- Status: `done`
 - Wave: `W1`
 - Feature: `FT-009`
 - REQs: `REQ-019`, `REQ-022`
@@ -63,7 +63,7 @@ status: active
 
 ### TASK-FT009-08 — Add minimal shell capability and degradation policy
 - TASK-ID: `TASK-FT009-08`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-009`
 - REQs: `REQ-019`, `REQ-022`, `REQ-023`
@@ -71,13 +71,14 @@ status: active
 - Touched files: `frontend/src/app/app-shell.tsx`, `frontend/src/shared/telegram/webapp.ts`, `frontend/src/shared/state/**/*`, optional `frontend/src/shared/ui/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/shared/**/*`, and relevant `.memory-bank/*` docs
 - Tests: unit/contract coverage for capability derivation and shell fallback flags, plus smoke coverage proving the base customer-facing UI remains usable when optional enhancements are reduced or disabled
 - Verify: shell owns one minimal degradation policy for weak-device/old-client runtime paths, and optional visual enhancements no longer rely on ad hoc feature-level decisions
+- Verify outcome: `/verify` = `PASS`; post-change `/red-verify` = `semantic-concern` because the current reduced-runtime fallback also drops the keyboard-safe bottom-action layout to `inline`, so final semantic closure remains with `TASK-FT009-09`
 - Docs: `tasks/backlog.md`, `features/FT-009`, `contracts/mini-app-runtime-contract.md`, `testing/index.md`, `changelog.md` if implementation lands
 - Source: `BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Constraints: do not build a broad device-profiler subsystem; policy must stay minimal, shell-owned, and strictly outside domain logic
 
 ### TASK-FT009-09 — Verify shell bottom-action and degradation-policy closure
 - TASK-ID: `TASK-FT009-09`
-- Status: `planned`
+- Status: `in_progress`
 - Wave: `W3`
 - Feature: `FT-009`
 - REQs: `REQ-019`, `REQ-022`, `REQ-023`
@@ -85,6 +86,8 @@ status: active
 - Touched files: `frontend/src/tests/app/**/*`, `frontend/src/tests/shared/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, optional `.tasks/TASK-FT009-09/**/*`, `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/testing/index.md`, `.memory-bank/changelog.md`, `.memory-bank/bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Tests: rerun focused shell, shared-runtime, and checkout/customer-facing smoke suites plus any new contract tests introduced by `TASK-FT009-07` and `TASK-FT009-08`
 - Verify: Android Telegram notes explicitly confirm reachable bottom CTA with keyboard open, predictable fallback/degradation behavior, and no obvious shell regression on the hardened customer-facing path
+- Verify focus: explicitly reconcile whether degraded clients keep a conservative shell-owned bottom-action primitive or intentionally fall back to `inline`, then validate that decision on real Android Telegram
+- Execution note: repo-local policy/test closure now keeps degraded Telegram runtime on the conservative shell-owned `keyboard-safe` CTA path; fresh Android Telegram operator notes are still pending before final task closure
 - Docs: `tasks/backlog.md`, `features/FT-009`, `testing/index.md`, `changelog.md`, `bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Source: `BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Scope note: this closure wave only covers the bottom-action and degradation-policy subset; the broader runtime-propagation refactor remains a separate follow-up concern until explicitly decomposed

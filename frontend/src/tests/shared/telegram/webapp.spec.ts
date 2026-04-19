@@ -133,6 +133,16 @@ describe("telegram webapp bridge", () => {
         bottom: 0,
         left: 4,
       },
+      capabilities: {
+        supportsEnhancedShell: true,
+        supportsKeyboardSafeBottomActions: true,
+        supportsNativeChrome: true,
+      },
+    });
+    expect(bridge.getRuntimeCapabilities()).toEqual({
+      supportsEnhancedShell: true,
+      supportsKeyboardSafeBottomActions: true,
+      supportsNativeChrome: true,
     });
     await expect(bridge.deviceStorage.getLanguage()).resolves.toBe("ru");
     await expect(bridge.cloudStorage.getLanguage()).resolves.toBe("en");
@@ -198,11 +208,45 @@ describe("telegram webapp bridge", () => {
         bottom: 0,
         left: 0,
       },
+      capabilities: {
+        supportsEnhancedShell: false,
+        supportsKeyboardSafeBottomActions: false,
+        supportsNativeChrome: false,
+      },
+    });
+    expect(bridge.getRuntimeCapabilities()).toEqual({
+      supportsEnhancedShell: false,
+      supportsKeyboardSafeBottomActions: false,
+      supportsNativeChrome: false,
     });
     await expect(bridge.deviceStorage.getLanguage()).resolves.toBeNull();
     await expect(bridge.cloudStorage.setLanguage("ru")).resolves.toBeUndefined();
     expect(bridge.setBackButtonVisible(true)).toBeUndefined();
     expect(bridge.setSwipeBehavior("locked")).toBeUndefined();
     expect(bridge.onEvent("activated", jest.fn())()).toBeUndefined();
+  });
+
+  it("degrades shell capabilities when stable viewport or version support is missing", () => {
+    const bridge = createTelegramWebAppBridge({
+      Telegram: {
+        WebApp: {
+          viewportHeight: 640,
+          viewportStableHeight: null,
+          isVersionAtLeast: () => false,
+          disableVerticalSwipes: () => undefined,
+          enableVerticalSwipes: () => undefined,
+          BackButton: {
+            show: () => undefined,
+            hide: () => undefined,
+          },
+        },
+      },
+    });
+
+    expect(bridge.getRuntimeCapabilities()).toEqual({
+      supportsEnhancedShell: false,
+      supportsKeyboardSafeBottomActions: true,
+      supportsNativeChrome: true,
+    });
   });
 });

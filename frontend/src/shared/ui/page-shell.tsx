@@ -4,6 +4,7 @@ import { useOptionalUiShell } from "../state/ui-shell-context";
 type PageShellProps = {
   title: string;
   children: ReactNode;
+  bottomAction?: ReactNode;
   backHref?: string;
   backLabel?: string;
   actionLabel?: string;
@@ -15,6 +16,7 @@ type PageShellProps = {
 export const PageShell = ({
   title,
   children,
+  bottomAction,
   backHref,
   backLabel,
   actionLabel,
@@ -24,6 +26,8 @@ export const PageShell = ({
 }: PageShellProps) => {
   const shell = useOptionalUiShell();
   const setPagePolicy = shell?.setPagePolicy;
+  const bottomActionLayout = shell?.state.capabilities.bottomActionLayout ?? "inline";
+  const bottomActionMode = shell?.state.capabilities.degradationMode ?? "minimal";
 
   useEffect(() => {
     if (setPagePolicy === undefined) {
@@ -71,6 +75,11 @@ export const PageShell = ({
         <p data-shell-action-feedback={actionFeedbackState}>{actionLabel}</p>
       ) : null}
       <div data-shell-section="body">{children}</div>
+      {bottomAction !== undefined ? (
+        <footer data-shell-section="footer" data-shell-footer-layout={bottomActionLayout}>
+          <div data-shell-bottom-action={bottomActionMode}>{bottomAction}</div>
+        </footer>
+      ) : null}
     </main>
   );
 };

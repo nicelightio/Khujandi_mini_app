@@ -1,4 +1,4 @@
-import { createUiShellState, mergeUiShellState } from "../../../shared/state/ui-shell";
+import { createUiShellState, deriveUiShellCapabilities, mergeUiShellState } from "../../../shared/state/ui-shell";
 
 describe("ui shell state", () => {
   it("creates a stable technical default scaffold", () => {
@@ -23,6 +23,11 @@ describe("ui shell state", () => {
         right: 0,
         bottom: 0,
         left: 0,
+      },
+      capabilities: {
+        degradationMode: "minimal",
+        bottomActionLayout: "inline",
+        nativeChrome: "disabled",
       },
     });
   });
@@ -61,6 +66,11 @@ describe("ui shell state", () => {
         right: 0,
         bottom: 0,
         left: 0,
+      },
+      capabilities: {
+        degradationMode: "minimal",
+        bottomActionLayout: "inline",
+        nativeChrome: "disabled",
       },
     });
   });
@@ -110,6 +120,39 @@ describe("ui shell state", () => {
         bottom: 0,
         left: 0,
       },
+      capabilities: {
+        degradationMode: "minimal",
+        bottomActionLayout: "inline",
+        nativeChrome: "disabled",
+      },
+    });
+  });
+
+  it("derives a centralized shell degradation policy from runtime capabilities", () => {
+    expect(
+      deriveUiShellCapabilities({
+        isTelegramEnvironment: true,
+        supportsEnhancedShell: true,
+        supportsKeyboardSafeBottomActions: true,
+        supportsNativeChrome: true,
+      }),
+    ).toEqual({
+      degradationMode: "enhanced",
+      bottomActionLayout: "keyboard-safe",
+      nativeChrome: "enabled",
+    });
+
+    expect(
+      deriveUiShellCapabilities({
+        isTelegramEnvironment: true,
+        supportsEnhancedShell: false,
+        supportsKeyboardSafeBottomActions: true,
+        supportsNativeChrome: true,
+      }),
+    ).toEqual({
+      degradationMode: "minimal",
+      bottomActionLayout: "keyboard-safe",
+      nativeChrome: "enabled",
     });
   });
 });
