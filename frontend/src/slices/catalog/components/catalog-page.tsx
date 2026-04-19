@@ -141,7 +141,7 @@ export const CatalogPage = ({
         {viewModel.isLoading ? <p>{copy.loadingBody}</p> : null}
         {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
         {storefront?.access.statusLabel !== undefined ? <p>{storefront.access.statusLabel}</p> : null}
-        {storefront?.access.currentTelegramId !== null ? (
+        {storefront !== undefined && storefront.access.currentTelegramId !== null ? (
           <p data-storefront-telegram-id>{`Current Telegram ID: ${storefront.access.currentTelegramId}`}</p>
         ) : null}
         {storefront !== undefined && storefront.successMessage !== null ? <p role="status">{storefront.successMessage}</p> : null}
