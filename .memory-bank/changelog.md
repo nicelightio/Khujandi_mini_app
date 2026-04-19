@@ -19,6 +19,10 @@ status: active
 - Updated `docker-compose.yml` so the checked-in `api` container now mounts a named Docker volume and passes explicit `CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite`, preventing admin provisioning and seller catalog writes from living only inside one container filesystem.
 - Synced `.memory-bank/runbooks/telegram-mini-app-container-deploy.md` with the same durable catalog runtime requirement plus post-rollout verification commands for the mounted SQLite path/volume.
 
+## [2026-04-19] Admin auth runtime sessions now survive api restart on the same persisted DB path
+- Replaced the checked-in `dev-runtime` in-memory `admin-access` state with a persisted SQLite-backed runtime store behind explicit `ADMIN_DB_PATH`, so deploy/restart no longer invalidates otherwise valid admin cookie sessions only because the container forgot its `adminSession` records.
+- Updated the container deploy runbook and compose env surface to mount `ADMIN_DB_PATH=/var/lib/khujandi/admin-access-runtime.sqlite`, and added a restart regression for admin login/refresh continuity on the same DB path.
+
 ## [2026-04-19] Restored full historical archive sources after compaction mistake
 - Added canonical full-archive copies for pre-compaction `tasks/backlog.md` and `changelog.md`, so no historical lines remain stranded only in summary archives.
 - Reclassified the feature-group/date-range archive files as summary/navigation layer and updated active routers to point to the new full historical source files.

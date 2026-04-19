@@ -105,6 +105,7 @@ type RuntimeServerOptions = {
   host?: string;
   port?: number;
   allowedOrigins?: string[];
+  adminDatabasePath?: string;
   catalogDatabasePath?: string;
   passwordHasher?: {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
@@ -1128,6 +1129,27 @@ const createCheckoutPaymentRuntimeState = (): CheckoutPaymentRuntimeState => ({
   nextOrderId: 1,
 });
 
+type AdminAccessRuntimeState = {
+  account: AdminAccountRecord;
+  sessions: AdminSessionRecord[];
+  audits: AdminAuthAuditRecord[];
+};
+
+const createAdminAccessRuntimeState = (): AdminAccessRuntimeState => ({
+  account: {
+    id: "admin-account-1",
+    login: "boss@example.com",
+    passwordHash: "stored-hash",
+    role: "BOSS",
+    isActive: true,
+    lockedUntil: null,
+    createdAt: new Date("2026-04-06T08:00:00.000Z"),
+    updatedAt: new Date("2026-04-06T08:00:00.000Z"),
+  },
+  sessions: [],
+  audits: [],
+});
+
 const cloneDate = (value: Date | null): Date | null => (value === null ? null : new Date(value));
 
 const toAccountRecord = (account: AdminAccountRecord) => ({
@@ -1148,30 +1170,106 @@ const toSessionRecord = (session: AdminSessionRecord) => ({
   updatedAt: new Date(session.updatedAt),
 });
 
-const createInMemoryAdminAccessPrisma = (): AdminAccessPrismaProvider & {
-  state: {
-    account: AdminAccountRecord;
-    sessions: AdminSessionRecord[];
-    audits: AdminAuthAuditRecord[];
+const toAuditRecord = (audit: AdminAuthAuditRecord) => ({
+  ...audit,
+  id: BigInt(audit.id),
+  createdAt: new Date(audit.createdAt),
+});
+
+const cloneAdminAccessState = (state: AdminAccessRuntimeState): AdminAccessRuntimeState => ({
+  account: toAccountRecord(state.account),
+  sessions: state.sessions.map(toSessionRecord),
+  audits: state.audits.map(toAuditRecord),
+});
+
+type AdminAccessStatePersistence = {
+  databasePath: string;
+  loadState: () => AdminAccessRuntimeState;
+  saveState: (state: AdminAccessRuntimeState) => void;
+  close: () => void;
+  cleanup: () => void;
+};
+
+const createAdminAccessStatePersistence = (
+  databasePath: string,
+  cleanupDirectory: string | null,
+): AdminAccessStatePersistence => {
+  mkdirSync(dirname(databasePath), { recursive: true });
+
+  const database = new DatabaseSync(databasePath);
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS admin_access_runtime_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  const saveState = (state: AdminAccessRuntimeState): void => {
+    const serializedState = JSON.stringify(state, (key, value) => (typeof value === "bigint" ? value.toString() : value));
+
+    database
+      .prepare(
+        `INSERT INTO admin_access_runtime_state (id, payload, updated_at)
+         VALUES (1, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at`,
+      )
+      .run(serializedState, new Date().toISOString());
   };
-} => {
-  const state: {
-    account: AdminAccountRecord;
-    sessions: AdminSessionRecord[];
-    audits: AdminAuthAuditRecord[];
-  } = {
-    account: {
-      id: "admin-account-1",
-      login: "boss@example.com",
-      passwordHash: "stored-hash",
-      role: "BOSS" as const,
-      isActive: true,
-      lockedUntil: null,
-      createdAt: new Date("2026-04-06T08:00:00.000Z"),
-      updatedAt: new Date("2026-04-06T08:00:00.000Z"),
+
+  const loadState = (): AdminAccessRuntimeState => {
+    const row = database
+      .prepare("SELECT payload FROM admin_access_runtime_state WHERE id = 1")
+      .get() as { payload: string } | undefined;
+
+    if (row === undefined) {
+      const seededState = createAdminAccessRuntimeState();
+      saveState(seededState);
+      return seededState;
+    }
+
+    const parsed = JSON.parse(row.payload) as AdminAccessRuntimeState;
+
+    return {
+      account: toAccountRecord(parsed.account),
+      sessions: parsed.sessions.map(toSessionRecord),
+      audits: parsed.audits.map(toAuditRecord),
+    };
+  };
+
+  return {
+    databasePath,
+    loadState,
+    saveState,
+    close: () => {
+      database.close();
     },
-    sessions: [] as AdminSessionRecord[],
-    audits: [] as AdminAuthAuditRecord[],
+    cleanup: () => {
+      if (cleanupDirectory !== null && existsSync(cleanupDirectory)) {
+        rmSync(cleanupDirectory, { recursive: true, force: true });
+      }
+    },
+  };
+};
+
+const resolveAdminDatabasePersistence = (databasePath: string | undefined): AdminAccessStatePersistence => {
+  if (databasePath !== undefined) {
+    return createAdminAccessStatePersistence(databasePath, null);
+  }
+
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), "khujandi-admin-access-runtime-"));
+  return createAdminAccessStatePersistence(join(temporaryDirectory, "admin-access-runtime.sqlite"), temporaryDirectory);
+};
+
+const createAdminAccessRuntimePrisma = (
+  initialState: AdminAccessRuntimeState,
+  options: { persist?: (state: AdminAccessRuntimeState) => void } = {},
+): AdminAccessPrismaProvider & {
+  state: AdminAccessRuntimeState;
+} => {
+  const state = cloneAdminAccessState(initialState);
+  const persistState = (): void => {
+    options.persist?.(cloneAdminAccessState(state));
   };
 
   return {
@@ -1200,6 +1298,7 @@ const createInMemoryAdminAccessPrisma = (): AdminAccessPrismaProvider & {
             lockedUntil,
             updatedAt: lockedUntil,
           };
+          persistState();
 
           return toAccountRecord(state.account);
         },
@@ -1221,6 +1320,7 @@ const createInMemoryAdminAccessPrisma = (): AdminAccessPrismaProvider & {
             updatedAt: createdAt,
           };
           state.sessions.push(session);
+          persistState();
           return toSessionRecord(session);
         },
         findUnique: async ({ where }) => {
@@ -1256,6 +1356,7 @@ const createInMemoryAdminAccessPrisma = (): AdminAccessPrismaProvider & {
             session.revokedAt = new Date(data.revokedAt);
           }
           session.updatedAt = new Date(session.lastActivityAt);
+          persistState();
 
           return toSessionRecord(session);
         },
@@ -1269,6 +1370,10 @@ const createInMemoryAdminAccessPrisma = (): AdminAccessPrismaProvider & {
               count += 1;
             }
           });
+
+          if (count > 0) {
+            persistState();
+          }
 
           return { count };
         },
@@ -1286,6 +1391,7 @@ const createInMemoryAdminAccessPrisma = (): AdminAccessPrismaProvider & {
             createdAt: new Date(data.createdAt),
           };
           state.audits.push(record);
+          persistState();
           return { ...record };
         },
         count: async ({ where }) =>
@@ -1676,7 +1782,12 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 3001;
   const allowedOrigins = options.allowedOrigins ?? ["https://admin.example", "http://127.0.0.1:5173", "http://localhost:5173"];
-  const prisma = createInMemoryAdminAccessPrisma();
+  const adminPersistence = resolveAdminDatabasePersistence(options.adminDatabasePath);
+  const prisma = createAdminAccessRuntimePrisma(adminPersistence.loadState(), {
+    persist: (nextState) => {
+      adminPersistence.saveState(nextState);
+    },
+  });
   const checkoutPaymentPrisma = createInMemoryCheckoutPaymentPrisma();
   const module = createAdminAccessModule(prisma);
   const catalogPersistence = resolveCatalogDatabasePersistence(options.catalogDatabasePath);
@@ -2085,6 +2196,8 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           resolve();
         });
       });
+      adminPersistence.close();
+      adminPersistence.cleanup();
       catalogPersistence.close();
       catalogPersistence.cleanup();
     },

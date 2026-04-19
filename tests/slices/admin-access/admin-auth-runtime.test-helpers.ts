@@ -2,6 +2,7 @@ import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-serv
 
 type RuntimeServerOptions = {
   allowedOrigins?: string[];
+  adminDatabasePath?: string;
   passwordHasher?: {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
   };
@@ -13,6 +14,7 @@ export const startAdminAuthRuntimeServer = async (options: RuntimeServerOptions 
     host: "127.0.0.1",
     port: 0,
     allowedOrigins: options.allowedOrigins ?? ["https://admin.example"],
+    adminDatabasePath: options.adminDatabasePath,
     passwordHasher: options.passwordHasher,
     now: options.now,
   });

@@ -120,13 +120,14 @@ cd /srv/tgmeal/app
 ```bash
 cat >/srv/tgmeal/app/.env <<'EOF'
 ADMIN_ALLOWED_ORIGINS=https://tgmeal.natureonzoom.win
+ADMIN_DB_PATH=/var/lib/khujandi/admin-access-runtime.sqlite
 CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite
 EOF
 chown tgmeal:tgmeal /srv/tgmeal/app/.env
 chmod 600 /srv/tgmeal/app/.env
 ```
 
-Важно: `scripts/dev-api.ts` хранит durable catalog runtime в SQLite-файле по `CATALOG_DB_PATH`. Если не задать явный path и не примонтировать persistent Docker volume, provisioning и seller edits останутся внутри filesystem конкретного `api` контейнера и исчезнут после `docker compose up -d --build` / recreate.
+Важно: `scripts/dev-api.ts` хранит runtime SQLite state по `ADMIN_DB_PATH` и `CATALOG_DB_PATH`. Если не задать явные path и не примонтировать persistent Docker volume, admin cookie-сессии и catalog provisioning/seller edits останутся внутри filesystem конкретного `api` контейнера и исчезнут после `docker compose up -d --build` / recreate.
 
 ## 8. Build and start containers
 
@@ -197,7 +198,7 @@ curl https://tgmeal.natureonzoom.win/api/v1/shops
 - frontend открывается с того же origin;
 - `/api/v1/shops` отдает demo catalog;
 - `/api/v1/admin/auth/*` доступны через тот же публичный origin и не упираются в missing-runtime mount gap.
-- `api` контейнер хранит catalog runtime state в named volume, а не только во внутреннем filesystem текущего container instance.
+- `api` контейнер хранит admin auth runtime state и catalog runtime state в named volume, а не только во внутреннем filesystem текущего container instance.
 
 ## 11. Update flow after new commit
 

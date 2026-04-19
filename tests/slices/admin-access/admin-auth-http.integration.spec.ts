@@ -1,4 +1,6 @@
 import { startAdminAuthRuntimeServer } from "./admin-auth-runtime.test-helpers";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 describe("admin auth HTTP runtime", () => {
   it("issues secure HttpOnly cookie pair on login, rotates refresh on refresh, and clears cookies on logout", async () => {
@@ -96,6 +98,69 @@ describe("admin auth HTTP runtime", () => {
       expect(runtime.prisma.state.sessions).toHaveLength(0);
     } finally {
       await runtime.stop();
+    }
+  });
+
+  it("keeps the admin session valid after runtime restart on the same persisted DB path", async () => {
+    const adminDatabasePath = join(
+      tmpdir(),
+      `khujandi-admin-auth-restart-${process.pid}-${Date.now()}.sqlite`,
+    );
+    let accessToken: string | null = null;
+    let refreshToken: string | null = null;
+    const firstRuntime = await startAdminAuthRuntimeServer({
+      adminDatabasePath,
+    });
+
+    try {
+      const firstClient = firstRuntime.createClient();
+      const loginResponse = await firstClient.request({
+        path: "/api/v1/admin/auth/login",
+        origin: "https://admin.example",
+        body: {
+          login: "boss@example.com",
+          password: "super-secret-01",
+        },
+      });
+
+      expect(loginResponse.status).toBe(200);
+
+      accessToken = firstClient.readCookieValue("khujandi_admin_access_token");
+      refreshToken = firstClient.readCookieValue("khujandi_admin_refresh_token");
+
+      expect(accessToken).not.toBeNull();
+      expect(refreshToken).not.toBeNull();
+    } finally {
+      await firstRuntime.stop();
+    }
+
+    const restartedRuntime = await startAdminAuthRuntimeServer({
+      adminDatabasePath,
+    });
+
+    try {
+      const restartedClient = restartedRuntime.createClient();
+      restartedClient.setCookieValue("khujandi_admin_access_token", accessToken ?? "");
+      restartedClient.setCookieValue("khujandi_admin_refresh_token", refreshToken ?? "");
+
+      const refreshResponse = await restartedClient.request({
+        path: "/api/v1/admin/auth/refresh",
+        origin: "https://admin.example",
+      });
+
+      expect(restartedRuntime.prisma.state.sessions).toHaveLength(1);
+      expect(refreshResponse.status).toBe(200);
+      expect(refreshResponse.body).toEqual({
+        session: {
+          adminAccountId: "admin-account-1",
+          role: "boss",
+          accessTokenExpiresAt: expect.any(String),
+          refreshTokenExpiresAt: expect.any(String),
+          idleExpiresAt: expect.any(String),
+        },
+      });
+    } finally {
+      await restartedRuntime.stop();
     }
   });
 });
