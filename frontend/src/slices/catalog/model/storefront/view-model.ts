@@ -20,6 +20,7 @@ export const buildStorefrontViewModel = (state: CatalogStorefrontState): Catalog
     access: {
       canEdit: state.data.canEdit,
       currentTelegramId: state.data.currentTelegramId,
+      authDebugLabel: state.data.authDebugLabel,
       statusLabel: state.data.accessStatusLabel,
       activationHint: state.data.activationHint,
     },

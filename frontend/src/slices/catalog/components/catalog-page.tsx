@@ -51,6 +51,7 @@ export type CatalogStorefrontViewModel = {
   access: {
     canEdit: boolean;
     currentTelegramId: string | null;
+    authDebugLabel: string | null;
     statusLabel: string;
     activationHint: string | null;
   };
@@ -143,6 +144,9 @@ export const CatalogPage = ({
         {storefront?.access.statusLabel !== undefined ? <p>{storefront.access.statusLabel}</p> : null}
         {storefront !== undefined && storefront.access.currentTelegramId !== null ? (
           <p data-storefront-telegram-id>{`Current Telegram ID: ${storefront.access.currentTelegramId}`}</p>
+        ) : null}
+        {storefront !== undefined && storefront.access.authDebugLabel !== null ? (
+          <p data-storefront-auth-debug>{storefront.access.authDebugLabel}</p>
         ) : null}
         {storefront !== undefined && storefront.successMessage !== null ? <p role="status">{storefront.successMessage}</p> : null}
         {storefront !== undefined && storefront.errorMessage !== null ? <p role="alert">{storefront.errorMessage}</p> : null}

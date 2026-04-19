@@ -38,11 +38,22 @@ type UseCatalogStorefrontResult = {
   handleSubmitEditor: () => Promise<void>;
 };
 
-const ensureTelegramStorefrontSession = async (): Promise<string | null> => {
-  const initData = createTelegramWebAppBridge().getInitData()?.trim() ?? "";
+const ensureTelegramStorefrontSession = async (): Promise<{ telegramId: string | null; authDebugLabel: string | null }> => {
+  const bridge = createTelegramWebAppBridge();
+  const initData = bridge.getInitData()?.trim() ?? "";
+
+  if (!bridge.isAvailable()) {
+    return {
+      telegramId: null,
+      authDebugLabel: "Telegram bridge unavailable on storefront route.",
+    };
+  }
 
   if (initData.length === 0) {
-    return null;
+    return {
+      telegramId: null,
+      authDebugLabel: "Telegram initData missing on storefront route.",
+    };
   }
 
   const response = await fetch("/api/v1/auth/telegram", {
@@ -64,7 +75,13 @@ const ensureTelegramStorefrontSession = async (): Promise<string | null> => {
     };
   };
 
-  return typeof payload.user?.telegramId === "string" ? payload.user.telegramId : null;
+  return {
+    telegramId: typeof payload.user?.telegramId === "string" ? payload.user.telegramId : null,
+    authDebugLabel:
+      typeof payload.user?.telegramId === "string"
+        ? "Telegram storefront auth succeeded."
+        : "Telegram storefront auth returned no telegramId.",
+  };
 };
 
 export const useCatalogStorefront = ({
@@ -82,12 +99,16 @@ export const useCatalogStorefront = ({
     setStorefrontState(createLoadingCatalogStorefrontState());
 
     let authenticatedTelegramId: string | null = null;
+    let authDebugLabel: string | null = null;
 
     void ensureTelegramStorefrontSession()
-      .then((telegramId) => {
-        authenticatedTelegramId = telegramId;
+      .then((result) => {
+        authenticatedTelegramId = result.telegramId;
+        authDebugLabel = result.authDebugLabel;
       })
-      .catch(() => undefined)
+      .catch((error) => {
+        authDebugLabel = error instanceof Error ? error.message : "Telegram storefront auth failed.";
+      })
       .then(() => loadStorefrontData(shopId, api))
       .then((data) => {
         if (!isActive) {
@@ -95,6 +116,7 @@ export const useCatalogStorefront = ({
         }
 
         data.currentTelegramId = authenticatedTelegramId;
+        data.authDebugLabel = authDebugLabel;
 
         setStorefrontState(createLoadedCatalogStorefrontState(data));
       })
@@ -177,6 +199,8 @@ export const useCatalogStorefront = ({
       };
       const result = await persistStorefrontEdit(edit, currentData, api);
       const reloadedData = await loadStorefrontData(shopId, api);
+      reloadedData.currentTelegramId = currentData.currentTelegramId;
+      reloadedData.authDebugLabel = currentData.authDebugLabel;
 
       setStorefrontState((currentState) => {
         if (currentState.data === null) {
