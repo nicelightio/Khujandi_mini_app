@@ -29,19 +29,19 @@ status: active
 ## Queue state
 - `done`: `TASK-FT001-01`, `TASK-FT001-02`, `TASK-FT001-03`, `TASK-FT001-04`, `TASK-FT001-05`, `TASK-FT001-06`, `TASK-FT001-07`, `TASK-FT001-08`, `TASK-FT001-09`, `TASK-FT002-01`, `TASK-FT002-02`, `TASK-FT002-03`, `TASK-FT002-04`, `TASK-FT002-05`, `TASK-FT002-06`, `TASK-FT002-07`, `TASK-FT002-08`, `TASK-FT003-01`, `TASK-FT003-02`, `TASK-FT003-03`, `TASK-FT003-04`, `TASK-FT003-05`, `TASK-FT003-06`, `TASK-FT004-01`, `TASK-FT004-02`, `TASK-FT004-03`, `TASK-FT004-04`, `TASK-FT004-05`, `TASK-FT004-06`, `TASK-FT004-07`, `TASK-FT005-01`, `TASK-FT005-02`, `TASK-FT005-03`, `TASK-FT005-04`, `TASK-FT005-05`, `TASK-FT005-06`, `TASK-FT005-07`, `TASK-FT005-08`, `TASK-FT006-01`, `TASK-FT006-02`, `TASK-FT006-03`, `TASK-FT006-04`, `TASK-FT006-05`, `TASK-FT006-06`, `TASK-FT006-07`, `TASK-FT006-08`, `TASK-FT007-01`, `TASK-FT007-02`, `TASK-FT007-03`, `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`, `TASK-FT007-07`, `TASK-FT007-09`, `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`, `TASK-FT008-07`, `TASK-FT008-08`, `TASK-FT008-09`, `TASK-FT008-10`, `TASK-FT009-01`, `TASK-FT009-02`, `TASK-FT009-03`, `TASK-FT009-04`, `TASK-FT009-05`, `TASK-FT009-06`, `TASK-FT009-07`, `TASK-FT010-01`, `TASK-FT010-10`, `TASK-FT010-04`, `TASK-FT010-11`, `TASK-FT010-12`, `TASK-FT010-05`, `TASK-FT010-13`, `TASK-FT010-14`, `TASK-FT010-15`, `TASK-FT010-02`, `TASK-FT010-16`, `TASK-FT010-17`, `TASK-FT011-01`, `TASK-FT011-02`, `TASK-FT011-03`, `TASK-FT011-07`, `TASK-FT011-08`, `TASK-FT011-04`, `TASK-FT011-05`, `TASK-FT011-06`, `TASK-FT011-09`
 - `ready`: none
-- `in_progress`: `TASK-FT009-09`
-- `blocked`: none
-- `failed`: `TASK-FT007-08`, `TASK-FT010-03`, `TASK-FT010-09`
+- `in_progress`: none
+- `blocked`: `TASK-FT009-10`
+- `failed`: `TASK-FT007-08`, `TASK-FT009-09`, `TASK-FT010-03`, `TASK-FT010-09`
 
 ## Failure budget
 - Max retries per task: `2`
 - Max consecutive failures: `3`
 - Max open blockers: `3`
-- Current consecutive failures: `0`
-- Current open blockers: `0`
+- Current consecutive failures: `1`
+- Current open blockers: `1`
 
 ## Terminal state
-- Current state: `RUNNING`
+- Current state: `HALT_QUALITY_GATES`
 - Note: run resumed after `FT-010` decomposition; scheduler is executing the new ready tasks strictly sequentially in separate worker sessions per explicit user instruction.
 - Note: run resumed after `FT-011` decomposition; scheduler starts with `TASK-FT011-01`, then delegates `/verify` and, for runtime-sensitive tasks, `/red-verify` in separate worker sessions before deciding whether to continue.
 - Note: `TASK-FT010-03` failed `red-verify` due to an open admin provisioning route without auth/RBAC; scheduler created and started `TASK-FT010-09` as the required fix-up task before resuming the blocked `FT-010` chain.
@@ -79,3 +79,5 @@ status: active
 - Note: `TASK-FT009-08` completed with focused PASS on lint plus app/shared/checkout shell tests; the centralized minimal capability/degradation policy is now checked in, and `TASK-FT009-09` is promoted to `ready` for real-client evidence and final closure.
 - Note: post-change `red-verify` for `TASK-FT009-08` returned `semantic-concern`: policy ownership is centralized correctly, but the reduced-runtime fallback currently drops the shell-owned keyboard-safe bottom-action layout to `inline`; the concern is accepted as non-blocking because `TASK-FT009-09` already owns the final Android evidence and semantic reconciliation.
 - Note: scheduler now starts `TASK-FT009-09` in a fresh worker session as the final closure wave for the current `FT-009` hardening subset.
+- Note: `TASK-FT009-09` completed its repo-local implementation and deterministic checks, but formal `/verify` returned `FAIL` because fresh real `Android Telegram` operator notes for keyboard-open CTA reachability and degraded fallback behavior are still missing.
+- Note: scheduler opened `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence`, created blocked follow-up `TASK-FT009-10`, and halted the current run with `HALT_QUALITY_GATES` rather than overstate closure without the required real-device evidence.

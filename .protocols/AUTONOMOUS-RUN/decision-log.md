@@ -79,3 +79,6 @@ status: active
 - 2026-04-20: Scheduler accepts that concern as non-blocking because the newly added `TASK-FT009-08` and `TASK-FT009-09` already own the minimal degradation-policy and final closure work, then promotes `TASK-FT009-08` as the next direct hardening task.
 - 2026-04-20: `TASK-FT009-08` passed formal `/verify`, then `/red-verify` returned `semantic-concern`: policy ownership is centralized, but the reduced-runtime fallback currently drops the shell-owned keyboard-safe bottom-action layout to `inline`.
 - 2026-04-20: Scheduler accepts that concern as non-blocking because `TASK-FT009-09` already owns the final semantic reconciliation plus Android Telegram closure, and therefore starts `TASK-FT009-09` as the last task in the current `FT-009` hardening wave.
+- 2026-04-20: `TASK-FT009-09` completed its repo-local code/test scope, including the semantic reconciliation that keeps degraded Telegram runtime on the conservative shell-owned CTA path.
+- 2026-04-20: Formal `/verify TASK-FT009-09` returned `FAIL` because the task still lacks fresh operator-confirmed real `Android Telegram` notes for keyboard-open CTA reachability and degraded fallback behavior.
+- 2026-04-20: Scheduler opened `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence`, created blocked follow-up `TASK-FT009-10`, and halted the resumed run with `HALT_QUALITY_GATES`.

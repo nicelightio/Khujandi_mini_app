@@ -13,6 +13,7 @@ status: active
 
 ## Scope
 - Admin-side creation of the initial shop record.
+- Admin-side read view of already provisioned shops on the provisioning page.
 - Binding a shop to the seller's Telegram-linked identity.
 - Automatic creation of a template-based skeleton shop.
 - Public vs seller-only visibility based on explicit shop status.
@@ -40,6 +41,13 @@ status: active
 - Shop visibility states are `WORKING` and `NOT_WORKING`.
 - `WORKING` shop MUST be visible in public browse and to the owning seller.
 - `NOT_WORKING` shop MUST stay hidden from public browse and remain visible only to the owning seller.
+
+## Admin provisioning read view
+- `/admin/catalog/shops/provision` MAY load a narrow admin-owned read model of already provisioned shops from the owning `catalog` slice.
+- This read model exists only to support the admin provisioning page and MUST NOT become a second public browse or seller surface.
+- The admin provisioning read view MUST read canonical persisted `catalog` state from the mounted runtime path rather than route-local synthetic UI state.
+- The admin provisioning read view MUST include both `WORKING` and `NOT_WORKING` shops because it is an admin-owned operational surface, not a public visibility surface.
+- The minimum summary fields for this read model are `shopId`, `shopName`, `status`, `sellerId`, and `telegramId` when the Telegram binding is naturally available from the same catalog-owned read path.
 
 ## Store-admin scope rules
 - Separate `seller-web` store-admin exists to host light catalog-owned controls that do not fit the shared storefront editing flow.

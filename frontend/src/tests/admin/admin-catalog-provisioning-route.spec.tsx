@@ -47,6 +47,7 @@ afterEach(() => {
 
 describe("admin catalog provisioning route", () => {
   const createApi = (overrides: Partial<AdminCatalogProvisioningApi> = {}): AdminCatalogProvisioningApi => ({
+    listProvisionedShops: jest.fn().mockResolvedValue([]),
     submitProvisioning: jest.fn().mockResolvedValue({
       shopId: "shop-42",
       shopName: "Night Bakery",
@@ -72,16 +73,50 @@ describe("admin catalog provisioning route", () => {
     expect(text).toContain("Catalog shop provisioning");
     expect(text).toContain("Seller Telegram ID");
     expect(text).toContain("Initial visibility");
+    expect(text).toContain("Provisioned shops");
   });
 
-  it("submits provisioning input and renders starter bootstrap feedback", async () => {
+  it("loads existing shops on first render and refreshes the list after provisioning", async () => {
     const api = createApi();
+    (api.listProvisionedShops as jest.Mock)
+      .mockResolvedValueOnce([
+        {
+          shopId: "shop-1",
+          shopName: "Old Bakery",
+          status: "WORKING",
+          sellerId: "seller-1",
+          telegramId: "1001",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          shopId: "shop-1",
+          shopName: "Old Bakery",
+          status: "WORKING",
+          sellerId: "seller-1",
+          telegramId: "1001",
+        },
+        {
+          shopId: "shop-42",
+          shopName: "Night Bakery",
+          status: "NOT_WORKING",
+          sellerId: "seller-42",
+          telegramId: "1042",
+        },
+      ]);
     let renderer!: ReactTestRenderer;
 
     await act(async () => {
       renderer = create(<AdminCatalogProvisioningRoute api={api} />);
       await Promise.resolve();
+      await Promise.resolve();
     });
+
+    const initialText = collectText(renderer.toJSON()).join(" ");
+    expect(initialText).toContain("Old Bakery");
+    expect(initialText).toContain("WORKING");
+    expect(initialText).toContain("seller-1");
+    expect(initialText).toContain("1001");
 
     await act(async () => {
       const inputs = renderer.root.findAllByType("input");
@@ -117,6 +152,12 @@ describe("admin catalog provisioning route", () => {
     const text = collectText(renderer.toJSON()).join(" ");
     expect(text).toContain("Provisioned Night Bakery (NOT_WORKING) for seller seller-42.");
     expect(text).toContain("Starter pages: 2. Starter products: 3.");
+    expect(text).toContain("Old Bakery");
+    expect(text).toContain("Night Bakery");
+    expect(text).toContain("NOT_WORKING");
+    expect(text).toContain("seller-42");
+    expect(text).toContain("1042");
+    expect(api.listProvisionedShops).toHaveBeenCalledTimes(2);
   });
 
   it("renders controlled API failure feedback", async () => {

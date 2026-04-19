@@ -49,11 +49,45 @@ export const createInMemoryCatalogPrisma = (
 
   const createClient = (target: CatalogRuntimeState) => ({
     shop: {
-      findMany: async ({ where }: { where: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } }) =>
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" };
+        select?: {
+          id?: boolean;
+          name?: boolean;
+          sellerId?: boolean;
+          status?: boolean;
+          sellerBindings?: {
+            select: {
+              telegramId: boolean;
+            };
+          };
+        };
+      }) =>
         target.shops
           .filter((shop) => shop.isDeleted === where.isDeleted)
           .filter((shop) => where.status === undefined || shop.status === where.status)
-          .map((shop) => ({ id: shop.id, name: shop.name })),
+          .map((shop) => {
+            if (select?.sellerId === true || select?.status === true || select?.sellerBindings !== undefined) {
+              return {
+                ...(select.id === true ? { id: shop.id } : {}),
+                ...(select.name === true ? { name: shop.name } : {}),
+                ...(select.sellerId === true ? { sellerId: shop.sellerId } : {}),
+                ...(select.status === true ? { status: shop.status } : {}),
+                ...(select.sellerBindings !== undefined
+                  ? {
+                      sellerBindings: target.bindings
+                        .filter((binding) => binding.shopId === shop.id)
+                        .map((binding) => ({ telegramId: binding.telegramId })),
+                    }
+                  : {}),
+              };
+            }
+
+            return { id: shop.id, name: shop.name };
+          }),
       findUnique: async ({ where }: { where: { id: string } }) => {
         const shop = target.shops.find((candidate) => candidate.id === where.id) ?? null;
         return shop === null ? null : { ...shop };

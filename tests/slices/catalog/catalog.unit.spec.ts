@@ -20,6 +20,7 @@ const createRepository = (): CatalogRepository => ({
   listPublicShops: async () => [],
   listPublicMenuPagesByShop: async () => [],
   listPublicProductsByShop: async () => [],
+  listAdminProvisionedShops: async () => [],
   listSellerBindingsByTelegramId: async () => [],
   findShopById: async () => null,
   createShop: async () => {
@@ -56,6 +57,31 @@ describe("catalog service", () => {
 
     await expect(service.listPublicShops()).resolves.toEqual([]);
     await expect(service.listPublicProductsByShop("shop-1")).resolves.toEqual([]);
+  });
+
+  it("keeps the admin provisioning read model behind the owning repository boundary", async () => {
+    const service = new CatalogService({
+      ...createRepository(),
+      listAdminProvisionedShops: async () => [
+        {
+          shopId: "shop-1",
+          shopName: "Hidden From Public",
+          status: "NOT_WORKING",
+          sellerId: "seller-1",
+          telegramId: "telegram-1",
+        },
+      ],
+    });
+
+    await expect(service.listAdminProvisionedShops()).resolves.toEqual([
+      {
+        shopId: "shop-1",
+        shopName: "Hidden From Public",
+        status: "NOT_WORKING",
+        sellerId: "seller-1",
+        telegramId: "telegram-1",
+      },
+    ]);
   });
 
   it("builds a default provisioning blueprint with starter pages and products", () => {

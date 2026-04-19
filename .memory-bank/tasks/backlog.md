@@ -78,7 +78,7 @@ status: active
 
 ### TASK-FT009-09 — Verify shell bottom-action and degradation-policy closure
 - TASK-ID: `TASK-FT009-09`
-- Status: `in_progress`
+- Status: `failed`
 - Wave: `W3`
 - Feature: `FT-009`
 - REQs: `REQ-019`, `REQ-022`, `REQ-023`
@@ -88,9 +88,24 @@ status: active
 - Verify: Android Telegram notes explicitly confirm reachable bottom CTA with keyboard open, predictable fallback/degradation behavior, and no obvious shell regression on the hardened customer-facing path
 - Verify focus: explicitly reconcile whether degraded clients keep a conservative shell-owned bottom-action primitive or intentionally fall back to `inline`, then validate that decision on real Android Telegram
 - Execution note: repo-local policy/test closure now keeps degraded Telegram runtime on the conservative shell-owned `keyboard-safe` CTA path; fresh Android Telegram operator notes are still pending before final task closure
+- Verify outcome: repo-local closure passed, but formal `/verify` failed because fresh real `Android Telegram` operator-confirmed notes are still missing
 - Docs: `tasks/backlog.md`, `features/FT-009`, `testing/index.md`, `changelog.md`, `bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Source: `BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Scope note: this closure wave only covers the bottom-action and degradation-policy subset; the broader runtime-propagation refactor remains a separate follow-up concern until explicitly decomposed
+
+### TASK-FT009-10 — Collect Android Telegram closure evidence for the hardened shell CTA path
+- TASK-ID: `TASK-FT009-10`
+- Status: `blocked`
+- Wave: `W4`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`, `REQ-023`
+- Depends on: `TASK-FT009-09`
+- Touched files: `.tasks/TASK-FT009-10/**/*`, optional `.tasks/TASK-FT009-09/android-notes.md`, `.memory-bank/testing/index.md`, `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/bugs/BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md`, `.memory-bank/changelog.md`
+- Tests: no new repo-local gates required beyond reusing the passing `TASK-FT009-09` shell/customer-facing suite; focus is fresh operator-confirmed Android Telegram evidence
+- Verify: collect real `Android Telegram` notes confirming keyboard-open CTA reachability, conservative degraded fallback behavior, and no shell regression for the hardened checkout path; then rerun formal verify on the evidence-closure task
+- Docs: `tasks/backlog.md`, `testing/index.md`, `features/FT-009`, `bugs/BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md`, `changelog.md`
+- Source: `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md`
+- Blocker: requires real `Android Telegram` operator run outside the current repo-local environment
 
 ## Conventions
 Each task should include:

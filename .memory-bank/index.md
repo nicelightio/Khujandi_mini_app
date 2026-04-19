@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `FT-010/FT-011`: `/admin/catalog/shops/provision` now has a narrow catalog-owned admin read model for existing provisioned shops, so the page reloads canonical persisted shop summaries (including `NOT_WORKING`) instead of relying only on route-local post-submit state.
 - `FT-009`: `TASK-FT009-08` is complete with `/verify` `PASS`, but post-change `red-verify` returned `semantic-concern`: shell-owned capability/degradation policy is now centralized, yet the current reduced-runtime fallback also drops the keyboard-safe bottom-action layout to `inline`, so final risk closure remains with `TASK-FT009-09`.
 - `FT-009`: `TASK-FT009-07` is complete; `PageShell` now exposes a shared shell-owned sticky bottom action zone and checkout routes its primary CTA through that footer path instead of page-local action placement, but post-change `red-verify` returned `semantic-concern` because keyboard-open reachability still lacks explicit Telegram runtime evidence and the new page-level scroll model has only narrow checkout-focused validation.
 - `FT-011`: identical provisioning now consistently fails on the canonical `sellerId + shop name` key even when `telegramId` differs, because the stale service-level Telegram-binding precheck was removed and focused unit/integration/runtime coverage now exercises that exact duplicate path.

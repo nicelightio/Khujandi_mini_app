@@ -15,6 +15,14 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] Admin provisioning page now reloads provisioned shops from canonical catalog state
+- Added a narrow `catalog`-owned admin read path for `/admin/catalog/shops/provision`, so the page now loads persisted provisioned shop summaries from backend runtime state on first render and after successful provisioning instead of relying only on route-local UI memory.
+- Kept public/seller semantics unchanged: public browse still exposes only `WORKING`, while the admin-owned provisioning list intentionally includes both `WORKING` and `NOT_WORKING`; focused frontend, catalog integration, mounted runtime, `npm run test:catalog`, and `npm run lint` all pass.
+
+## [2026-04-20] TASK-FT009-09 verify halted on missing Android Telegram closure evidence
+- Repo-local hardening changes for the shell-owned bottom-action and degradation-policy subset now pass lint plus focused Jest coverage, but formal `/verify TASK-FT009-09` still fails because fresh real `Android Telegram` notes for keyboard-open CTA reachability and degraded fallback behavior are not yet recorded.
+- Opened active bug `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence` and blocked follow-up `TASK-FT009-10` so the current `/autopilot` run halts on an explicit quality-gate blocker instead of overstating closure.
+
 ## [2026-04-20] Catalog Prisma repository split into spec-aligned infrastructure modules
 - Refactored `backend/src/slices/catalog/infrastructure/prisma-catalog.repository.ts` into a thin facade over focused Prisma modules for public browse reads, seller reads, seller writes, provisioning, and shared Prisma mapping/event glue.
 - Preserved the single `CatalogRepository` boundary and kept provisioning/event semantics inside the owning `catalog` slice, so future catalog work can change one spec-aligned capability module without reopening the whole repository file.

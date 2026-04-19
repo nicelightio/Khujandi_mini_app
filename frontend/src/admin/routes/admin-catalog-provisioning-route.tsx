@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AdminCatalogProvisioningApiError,
   createAdminCatalogProvisioningApi,
   type AdminCatalogProvisioningApi,
+  type AdminProvisionedShopSummary,
 } from "../api/admin-catalog-provisioning-api";
 import {
   AdminCatalogProvisioningPage,
@@ -32,8 +33,50 @@ export const AdminCatalogProvisioningRoute = ({ api }: AdminCatalogProvisioningR
   const provisioningApi = useRef(api ?? createAdminCatalogProvisioningApi());
   const [value, setValue] = useState<AdminCatalogProvisioningFormValue>(initialFormValue);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingShops, setIsLoadingShops] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [shopsErrorMessage, setShopsErrorMessage] = useState<string | null>(null);
+  const [provisionedShops, setProvisionedShops] = useState<AdminProvisionedShopSummary[]>([]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadProvisionedShops = async () => {
+      setIsLoadingShops(true);
+      setShopsErrorMessage(null);
+
+      try {
+        const shops = await provisioningApi.current.listProvisionedShops();
+
+        if (!isActive) {
+          return;
+        }
+
+        setProvisionedShops(shops);
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setShopsErrorMessage(
+          error instanceof AdminCatalogProvisioningApiError || error instanceof Error
+            ? error.message
+            : "Provisioned shops are temporarily unavailable.",
+        );
+      } finally {
+        if (isActive) {
+          setIsLoadingShops(false);
+        }
+      }
+    };
+
+    void loadProvisionedShops();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const handleChange = <TKey extends keyof AdminCatalogProvisioningFormValue>(
     field: TKey,
@@ -68,6 +111,18 @@ export const AdminCatalogProvisioningRoute = ({ api }: AdminCatalogProvisioningR
       setSuccessMessage(
         `Provisioned ${result.shopName} (${result.shopStatus}) for seller ${result.sellerId}. Starter pages: ${result.menuPagesCount}. Starter products: ${result.productsCount}.`,
       );
+
+      try {
+        const shops = await provisioningApi.current.listProvisionedShops();
+        setProvisionedShops(shops);
+        setShopsErrorMessage(null);
+      } catch (refreshError) {
+        setShopsErrorMessage(
+          refreshError instanceof AdminCatalogProvisioningApiError || refreshError instanceof Error
+            ? refreshError.message
+            : "Provisioned shops are temporarily unavailable.",
+        );
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof AdminCatalogProvisioningApiError || error instanceof Error
@@ -83,8 +138,11 @@ export const AdminCatalogProvisioningRoute = ({ api }: AdminCatalogProvisioningR
     <AdminCatalogProvisioningPage
       value={value}
       isSubmitting={isSubmitting}
+      isLoadingShops={isLoadingShops}
       successMessage={successMessage}
       errorMessage={errorMessage}
+      shopsErrorMessage={shopsErrorMessage}
+      provisionedShops={provisionedShops}
       onChange={handleChange}
       onSubmit={() => {
         void handleSubmit();

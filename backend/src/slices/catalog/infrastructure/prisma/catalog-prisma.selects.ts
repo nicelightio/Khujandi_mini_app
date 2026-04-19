@@ -49,6 +49,18 @@ export const selectSellerBinding = {
   telegramId: true,
 } as const;
 
+export const selectAdminProvisionedShop = {
+  id: true,
+  name: true,
+  sellerId: true,
+  status: true,
+  sellerBindings: {
+    select: {
+      telegramId: true,
+    },
+  },
+} as const;
+
 export const selectSellerShopWrite = {
   ...selectSellerShop,
   updatedAt: true,

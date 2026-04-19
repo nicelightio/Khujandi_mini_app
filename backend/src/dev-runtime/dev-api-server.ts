@@ -388,6 +388,25 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
             );
           }
         }
+      } else if (method === "GET" && url.pathname === "/api/v1/admin/catalog/shops") {
+        try {
+          await resolveAdminProvisioningSession(request, {
+            prisma,
+            allowedOrigins,
+            now: options.now,
+          });
+          result = json(200, await catalogModule.controller.getAdminProvisionedShops(), "GET,OPTIONS");
+        } catch (error) {
+          if (error instanceof AppError) {
+            result = json(error.statusCode, error.toPayload("trace-catalog-runtime"), "GET,OPTIONS");
+          } else {
+            result = json(
+              500,
+              new AppError("INTERNAL_ERROR", "Catalog runtime is temporarily unavailable", 500).toPayload("trace-catalog-runtime"),
+              "GET,OPTIONS",
+            );
+          }
+        }
       } else if (method === "POST" && url.pathname === "/api/v1/admin/catalog/shops/provision") {
         try {
           await resolveAdminProvisioningSession(request, {

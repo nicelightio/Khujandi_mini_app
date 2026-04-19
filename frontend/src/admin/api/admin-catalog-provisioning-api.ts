@@ -18,6 +18,14 @@ export type AdminCatalogProvisioningCommandResult = {
   productsCount: number;
 };
 
+export type AdminProvisionedShopSummary = {
+  shopId: string;
+  shopName: string;
+  status: "WORKING" | "NOT_WORKING";
+  sellerId: string;
+  telegramId: string | null;
+};
+
 type AdminCatalogProvisioningErrorPayload = {
   error?: {
     code?: unknown;
@@ -57,6 +65,7 @@ type AdminCatalogProvisioningApiOptions = {
 };
 
 export type AdminCatalogProvisioningApi = {
+  listProvisionedShops: () => Promise<AdminProvisionedShopSummary[]>;
   submitProvisioning: (
     input: AdminCatalogProvisioningCommandInput,
   ) => Promise<AdminCatalogProvisioningCommandResult>;
@@ -111,6 +120,37 @@ const toCommandResult = (value: unknown): AdminCatalogProvisioningCommandResult 
   };
 };
 
+const toProvisionedShopSummary = (value: unknown): AdminProvisionedShopSummary => {
+  const record = ensureObject(value);
+
+  if (
+    record === null ||
+    typeof record.shopId !== "string" ||
+    typeof record.shopName !== "string" ||
+    (record.status !== "WORKING" && record.status !== "NOT_WORKING") ||
+    typeof record.sellerId !== "string" ||
+    (record.telegramId !== null && typeof record.telegramId !== "string")
+  ) {
+    throw new Error("Provisioned shops payload is invalid.");
+  }
+
+  return {
+    shopId: record.shopId,
+    shopName: record.shopName,
+    status: record.status,
+    sellerId: record.sellerId,
+    telegramId: record.telegramId,
+  };
+};
+
+const toProvisionedShops = (value: unknown): AdminProvisionedShopSummary[] => {
+  if (!Array.isArray(value)) {
+    throw new Error("Provisioned shops payload is invalid.");
+  }
+
+  return value.map((shop) => toProvisionedShopSummary(shop));
+};
+
 const toApiError = (payload: unknown, status: number): AdminCatalogProvisioningApiError => {
   const record = ensureObject(payload) as AdminCatalogProvisioningErrorPayload | null;
   const code = typeof record?.error?.code === "string" ? record.error.code : `HTTP_${status}`;
@@ -130,6 +170,20 @@ export const createAdminCatalogProvisioningApi = (
   const fetchImpl = options.fetch ?? defaultFetch;
 
   return {
+    listProvisionedShops: async () => {
+      const response = await fetchImpl(`${baseUrl}/api/v1/admin/catalog/shops`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw toApiError(payload, response.status);
+      }
+
+      return toProvisionedShops(payload);
+    },
     submitProvisioning: async (input) => {
       const response = await fetchImpl(`${baseUrl}/api/v1/admin/catalog/shops/provision`, {
         method: "POST",

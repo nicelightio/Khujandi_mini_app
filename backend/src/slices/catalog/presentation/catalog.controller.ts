@@ -19,6 +19,10 @@ export class CatalogController {
     return this.service.listPublicProductsByShop(shopId);
   }
 
+  getAdminProvisionedShops() {
+    return this.service.listAdminProvisionedShops();
+  }
+
   getSellerShops(telegramId: string) {
     return this.service.listSellerShopsByTelegramId(telegramId);
   }

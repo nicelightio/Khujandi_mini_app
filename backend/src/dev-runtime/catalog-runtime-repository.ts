@@ -1,5 +1,6 @@
 import { AppError } from "../shared/errors/app-error";
 import type {
+  AdminProvisionedShopSummary,
   CatalogWriteResult,
   CatalogWriteEvent,
   CatalogRepository,
@@ -68,6 +69,19 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         menuPageId: product.menuPageId,
         name: product.name,
         priceMinor: product.priceMinor,
+      }));
+  }
+
+  async listAdminProvisionedShops(): Promise<AdminProvisionedShopSummary[]> {
+    return this.state.shops
+      .filter((shop) => !shop.isDeleted)
+      .map((shop) => ({
+        shopId: shop.id,
+        shopName: shop.name,
+        status: shop.status,
+        sellerId: shop.sellerId,
+        telegramId:
+          this.state.bindings.find((binding) => binding.shopId === shop.id)?.telegramId ?? null,
       }));
   }
 

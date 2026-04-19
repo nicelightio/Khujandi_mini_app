@@ -113,6 +113,50 @@ describe("catalog public browse integration", () => {
     });
   });
 
+  it("reads admin provisioning summaries from catalog persistence including not-working shops", async () => {
+    const { prisma, mocks } = createPrismaMock();
+    const module = createCatalogModule(prisma);
+    mocks.shopFindMany.mockResolvedValue([
+      {
+        id: "shop-1",
+        name: "Night Bakery",
+        sellerId: "seller-1",
+        status: "NOT_WORKING",
+        sellerBindings: [
+          {
+            telegramId: "1042",
+          },
+        ],
+      },
+    ]);
+
+    await expect(module.controller.getAdminProvisionedShops()).resolves.toEqual([
+      {
+        shopId: "shop-1",
+        shopName: "Night Bakery",
+        status: "NOT_WORKING",
+        sellerId: "seller-1",
+        telegramId: "1042",
+      },
+    ]);
+    expect(mocks.shopFindMany).toHaveBeenCalledWith({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        sellerId: true,
+        status: true,
+        sellerBindings: {
+          select: {
+            telegramId: true,
+          },
+        },
+      },
+    });
+  });
+
   it("reads public menu pages only for working shops", async () => {
     const { prisma, mocks } = createPrismaMock();
     const module = createCatalogModule(prisma);

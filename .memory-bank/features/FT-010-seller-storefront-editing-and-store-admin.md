@@ -30,6 +30,7 @@ status: active
 - `TASK-FT010-16` closes that route-boundary follow-up: root contour selection now uses slash-bounded `/admin` and `/seller` families instead of broad string prefixes, hostile adjacent prefixes like `/admin-help` and `/seller-guide` stay on the customer app contour, and unknown `/seller/*` paths no longer silently render the status scaffold.
 - `TASK-FT010-17` closes the remaining frontend route-boundary concern from `TASK-FT010-16`: unknown `/admin/*` paths now stay inside `admin-web` but render explicit not-found feedback instead of silently resolving to assignment or login fallbacks.
 - `TASK-FT010-07` now closes the checked-in UI/runtime wiring gap for the remaining narrow seller/admin surfaces: `/admin/catalog/shops/provision` submits through the mounted protected provisioning command with controlled feedback, and `/seller/shops/status` loads owned shops plus persists `WORKING/NOT_WORKING` through the shared Telegram-linked seller runtime instead of a scaffold-only placeholder.
+- Admin-side provisioning page may also load a narrow catalog-owned list of already provisioned shops for operator feedback after reload; this remains an admin-owned read model on the same owner slice and does not widen public or seller surfaces.
 - Post-change `red-verify` for `TASK-FT010-07` returned `semantic-concern`: the new seller-web status flow is mounted and access-controlled, but it currently submits a broad cached shop payload through the generic seller update path, so a status toggle can silently overwrite stale shared-storefront metadata; follow-up `TASK-FT010-20` is now `ready`.
 - `TASK-FT010-20` closes that seller-web follow-up without widening scope: the narrow status route now submits status-only intent, and the mounted seller runtime preserves omitted shop metadata instead of coercing absent fields into stale/null overwrites when status toggles happen after shared-storefront edits.
 - Post-change `red-verify` for `TASK-FT010-20` returned `semantic-pass`: for the checked-in mounted seller runtime scope, the narrow status-only hardening fixes the real stale-overwrite risk without re-expanding `seller-web` into a second broad storefront editor or introducing a new cross-boundary drift.
@@ -49,6 +50,7 @@ status: active
 ## Use cases
 
 - Администратор provision-ит новый магазин, задает имя и привязывает Telegram account seller-а.
+- Администратор на provisioning page видит уже созданные магазины из каноничного catalog runtime, включая `NOT_WORKING`, чтобы не терять операционный контекст после reload.
 - Система автоматически создает skeleton storefront с несколькими стартовыми страницами меню и стартовыми товарами.
 - Seller открывает тот же storefront contour, что и customer, и редактирует owned shop/menu/product контент на тех же компонентах.
 - Seller использует узкую админку магазина для легких catalog-owned функций, начиная с переключения статуса `WORKING/NOT_WORKING`.

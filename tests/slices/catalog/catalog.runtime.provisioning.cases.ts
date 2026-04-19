@@ -187,6 +187,113 @@ export const registerCatalogRuntimeProvisioningCases = () => {
     }
   });
 
+  it("loads the admin provisioning shop list from persisted catalog state including not-working shops", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "khujandi-admin-provisioning-list-"));
+    const catalogDatabasePath = join(tempDir, "catalog-runtime.sqlite");
+    let runtime: Awaited<ReturnType<typeof startDevApiServer>> | null = null;
+
+    try {
+      runtime = await startDevApiServer({
+        host: "127.0.0.1",
+        port: 0,
+        catalogDatabasePath,
+      });
+
+      runtime.prisma.state.account.role = "BOSS";
+      const adminClient = runtime.createClient();
+      await loginAdmin(adminClient);
+
+      const workingResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-admin-list-1",
+          telegramId: "5001",
+          name: "Working Shop",
+          status: "WORKING",
+        },
+      });
+      const hiddenResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-admin-list-2",
+          telegramId: "5002",
+          name: "Hidden Shop",
+          status: "NOT_WORKING",
+        },
+      });
+
+      expect(workingResponse.status).toBe(201);
+      expect(hiddenResponse.status).toBe(201);
+
+      const listResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(listResponse.status).toBe(200);
+      expect(listResponse.body).toEqual(
+        expect.arrayContaining([
+          {
+            shopId: expect.any(String),
+            shopName: "Working Shop",
+            status: "WORKING",
+            sellerId: "seller-admin-list-1",
+            telegramId: "5001",
+          },
+          {
+            shopId: expect.any(String),
+            shopName: "Hidden Shop",
+            status: "NOT_WORKING",
+            sellerId: "seller-admin-list-2",
+            telegramId: "5002",
+          },
+        ]),
+      );
+
+      await runtime.stop();
+      runtime = null;
+
+      runtime = await startDevApiServer({
+        host: "127.0.0.1",
+        port: 0,
+        catalogDatabasePath,
+      });
+
+      runtime.prisma.state.account.role = "BOSS";
+      const reloadedAdminClient = runtime.createClient();
+      await loginAdmin(reloadedAdminClient);
+
+      const reloadedListResponse = await reloadedAdminClient.request({
+        path: "/api/v1/admin/catalog/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(reloadedListResponse.status).toBe(200);
+      expect(reloadedListResponse.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            shopName: "Working Shop",
+            status: "WORKING",
+          }),
+          expect.objectContaining({
+            shopName: "Hidden Shop",
+            status: "NOT_WORKING",
+          }),
+        ]),
+      );
+    } finally {
+      if (runtime !== null) {
+        await runtime.stop();
+      }
+
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("fails closed for the same seller shop identity even when telegramId differs", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",

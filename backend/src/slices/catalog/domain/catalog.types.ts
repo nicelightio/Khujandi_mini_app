@@ -69,6 +69,14 @@ export type SellerShopBinding = {
   telegramId: string;
 };
 
+export type AdminProvisionedShopSummary = {
+  shopId: ShopId;
+  shopName: string;
+  status: ShopStatus;
+  sellerId: SellerId;
+  telegramId: string | null;
+};
+
 export type CatalogWriteEventEntity = "shop" | "menu_page" | "product";
 
 export type CatalogWriteEvent = {
@@ -193,6 +201,7 @@ export interface CatalogRepository {
   listPublicShops(): Promise<CatalogShop[]>;
   listPublicMenuPagesByShop(shopId: ShopId): Promise<CatalogMenuPage[]>;
   listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]>;
+  listAdminProvisionedShops(): Promise<AdminProvisionedShopSummary[]>;
   listSellerBindingsByTelegramId(telegramId: string): Promise<SellerShopBinding[]>;
   listSellerMenuPagesByShop(shopId: ShopId): Promise<SellerCatalogMenuPage[]>;
   listSellerProductsByShop(shopId: ShopId): Promise<SellerCatalogProduct[]>;

@@ -2,6 +2,7 @@ import {
   buildProvisioningTemplateBlueprint,
 } from "../domain/catalog.types";
 import type {
+  AdminProvisionedShopSummary,
   CatalogProduct,
   CatalogRepository,
   CatalogShop,
@@ -47,6 +48,10 @@ export class CatalogService {
 
   listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]> {
     return this.repository.listPublicProductsByShop(shopId);
+  }
+
+  listAdminProvisionedShops(): Promise<AdminProvisionedShopSummary[]> {
+    return this.repository.listAdminProvisionedShops();
   }
 
   async listSellerShopsByTelegramId(telegramId: string): Promise<SellerCatalogShop[]> {

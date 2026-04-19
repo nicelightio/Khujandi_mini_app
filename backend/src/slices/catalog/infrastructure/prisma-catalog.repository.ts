@@ -1,5 +1,6 @@
 import type { PrismaProvider } from "../../../shared/db/prisma-client";
 import type {
+  AdminProvisionedShopSummary,
   CatalogMenuPage,
   CatalogProduct,
   CatalogRepository,
@@ -24,6 +25,7 @@ import type {
   UpdateSellerShopInput,
 } from "../domain/catalog.types";
 import { CatalogProvisioningWriter } from "./prisma/catalog-provisioning.writer";
+import { CatalogAdminReader } from "./prisma/catalog-admin.reader";
 import { CatalogPublicReader } from "./prisma/catalog-public.reader";
 import { CatalogSellerReader } from "./prisma/catalog-seller.reader";
 import { CatalogSellerWriter } from "./prisma/catalog-seller.writer";
@@ -31,12 +33,14 @@ import type { CatalogPrismaTransactionalClientLike } from "./prisma/catalog-pris
 
 export class PrismaCatalogRepository implements CatalogRepository {
   private readonly publicReader: CatalogPublicReader;
+  private readonly adminReader: CatalogAdminReader;
   private readonly sellerReader: CatalogSellerReader;
   private readonly sellerWriter: CatalogSellerWriter;
   private readonly provisioningWriter: CatalogProvisioningWriter;
 
   constructor(private readonly prisma: PrismaProvider) {
     this.publicReader = new CatalogPublicReader(this.prisma.client);
+    this.adminReader = new CatalogAdminReader(this.prisma.client);
     this.sellerReader = new CatalogSellerReader(this.prisma.client);
     this.sellerWriter = new CatalogSellerWriter(
       this.prisma.client as CatalogPrismaTransactionalClientLike,
@@ -54,6 +58,10 @@ export class PrismaCatalogRepository implements CatalogRepository {
 
   listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]> {
     return this.publicReader.listPublicProductsByShop(shopId);
+  }
+
+  listAdminProvisionedShops(): Promise<AdminProvisionedShopSummary[]> {
+    return this.adminReader.listProvisionedShops();
   }
 
   listSellerBindingsByTelegramId(telegramId: string): Promise<SellerShopBinding[]> {

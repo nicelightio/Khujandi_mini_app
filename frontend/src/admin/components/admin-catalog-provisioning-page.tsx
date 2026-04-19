@@ -1,4 +1,5 @@
 import { AdminPageShell } from "./admin-page-shell";
+import type { AdminProvisionedShopSummary } from "../api/admin-catalog-provisioning-api";
 
 export type AdminCatalogProvisioningFormValue = {
   sellerId: string;
@@ -13,8 +14,11 @@ export type AdminCatalogProvisioningFormValue = {
 type AdminCatalogProvisioningPageProps = {
   value: AdminCatalogProvisioningFormValue;
   isSubmitting: boolean;
+  isLoadingShops: boolean;
   successMessage: string | null;
   errorMessage: string | null;
+  shopsErrorMessage: string | null;
+  provisionedShops: AdminProvisionedShopSummary[];
   onChange: <TKey extends keyof AdminCatalogProvisioningFormValue>(
     field: TKey,
     nextValue: AdminCatalogProvisioningFormValue[TKey],
@@ -25,8 +29,11 @@ type AdminCatalogProvisioningPageProps = {
 export const AdminCatalogProvisioningPage = ({
   value,
   isSubmitting,
+  isLoadingShops,
   successMessage,
   errorMessage,
+  shopsErrorMessage,
+  provisionedShops,
   onChange,
   onSubmit,
 }: AdminCatalogProvisioningPageProps) => (
@@ -36,6 +43,7 @@ export const AdminCatalogProvisioningPage = ({
       <p>This form provisions a skeleton shop and binds one Telegram-linked seller identity.</p>
       {successMessage !== null ? <p role="status">{successMessage}</p> : null}
       {errorMessage !== null ? <p role="alert">{errorMessage}</p> : null}
+      {shopsErrorMessage !== null ? <p role="alert">{shopsErrorMessage}</p> : null}
     </section>
 
     <form
@@ -103,5 +111,21 @@ export const AdminCatalogProvisioningPage = ({
         {isSubmitting ? "Provisioning shop..." : "Provision shop"}
       </button>
     </form>
+
+    <section aria-live="polite" data-admin-provisioning="shops-list">
+      <h2>Provisioned shops</h2>
+      {isLoadingShops ? <p>Loading provisioned shops...</p> : null}
+      {!isLoadingShops && provisionedShops.length === 0 ? <p>No shops have been provisioned yet.</p> : null}
+      {provisionedShops.length > 0 ? (
+        <ul>
+          {provisionedShops.map((shop) => (
+            <li key={shop.shopId}>
+              {shop.shopName} ({shop.status}) seller {shop.sellerId}
+              {shop.telegramId === null ? "" : ` telegram ${shop.telegramId}`}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   </AdminPageShell>
 );
