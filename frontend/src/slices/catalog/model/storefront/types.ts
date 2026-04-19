@@ -15,6 +15,7 @@ export type CatalogStorefrontData = {
     renameReviewNote: string | null;
   };
   canEdit: boolean;
+  currentTelegramId: string | null;
   accessStatusLabel: string;
   activationHint: string | null;
   menuPages: Array<{

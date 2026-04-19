@@ -50,6 +50,7 @@ export type CatalogStorefrontViewModel = {
   };
   access: {
     canEdit: boolean;
+    currentTelegramId: string | null;
     statusLabel: string;
     activationHint: string | null;
   };
@@ -140,6 +141,9 @@ export const CatalogPage = ({
         {viewModel.isLoading ? <p>{copy.loadingBody}</p> : null}
         {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
         {storefront?.access.statusLabel !== undefined ? <p>{storefront.access.statusLabel}</p> : null}
+        {storefront?.access.currentTelegramId !== null ? (
+          <p data-storefront-telegram-id>{`Current Telegram ID: ${storefront.access.currentTelegramId}`}</p>
+        ) : null}
         {storefront !== undefined && storefront.successMessage !== null ? <p role="status">{storefront.successMessage}</p> : null}
         {storefront !== undefined && storefront.errorMessage !== null ? <p role="alert">{storefront.errorMessage}</p> : null}
       </section>

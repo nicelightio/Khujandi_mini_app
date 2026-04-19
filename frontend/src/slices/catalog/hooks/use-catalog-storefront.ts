@@ -38,11 +38,11 @@ type UseCatalogStorefrontResult = {
   handleSubmitEditor: () => Promise<void>;
 };
 
-const ensureTelegramStorefrontSession = async (): Promise<void> => {
+const ensureTelegramStorefrontSession = async (): Promise<string | null> => {
   const initData = createTelegramWebAppBridge().getInitData()?.trim() ?? "";
 
   if (initData.length === 0) {
-    return;
+    return null;
   }
 
   const response = await fetch("/api/v1/auth/telegram", {
@@ -57,6 +57,14 @@ const ensureTelegramStorefrontSession = async (): Promise<void> => {
   if (!response.ok) {
     throw new Error(`Telegram storefront auth failed with status ${response.status}.`);
   }
+
+  const payload = (await response.json()) as {
+    user?: {
+      telegramId?: string;
+    };
+  };
+
+  return typeof payload.user?.telegramId === "string" ? payload.user.telegramId : null;
 };
 
 export const useCatalogStorefront = ({
@@ -73,13 +81,20 @@ export const useCatalogStorefront = ({
 
     setStorefrontState(createLoadingCatalogStorefrontState());
 
+    let authenticatedTelegramId: string | null = null;
+
     void ensureTelegramStorefrontSession()
+      .then((telegramId) => {
+        authenticatedTelegramId = telegramId;
+      })
       .catch(() => undefined)
       .then(() => loadStorefrontData(shopId, api))
       .then((data) => {
         if (!isActive) {
           return;
         }
+
+        data.currentTelegramId = authenticatedTelegramId;
 
         setStorefrontState(createLoadedCatalogStorefrontState(data));
       })

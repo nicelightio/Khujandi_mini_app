@@ -32,6 +32,7 @@ export const buildStorefrontDataFromSellerAccess = (sellerAccess: SellerStorefro
         : null,
   },
   canEdit: true,
+  currentTelegramId: null,
   accessStatusLabel: "Seller edit mode is active on the shared storefront tree.",
   activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
   menuPages: sellerAccess.menuPages.map((menuPage) => ({
@@ -67,6 +68,7 @@ export const buildStorefrontDataFromPublicShop = (
     renameReviewNote: null,
   },
   canEdit: false,
+  currentTelegramId: null,
   accessStatusLabel: "Browse-only storefront. Seller edit mode stays hidden until ownership is confirmed server-side.",
   activationHint: null,
   menuPages:
