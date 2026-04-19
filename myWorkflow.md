@@ -118,3 +118,6 @@ Set-Location "C:\Users\Acer\Documents\python_lessons\Khujandi_mini_app"; $root=(
 
 на проде обновы
 /usr/local/bin/tgmeal-deploy
+
+если ошибка доступа, то :
+chown tgmeal:tgmeal /srv/tgmeal/app/.git/FETCH_HEAD /srv/tgmeal/app/.git/ORIG_HEAD /srv/tgmeal/app/.git/index

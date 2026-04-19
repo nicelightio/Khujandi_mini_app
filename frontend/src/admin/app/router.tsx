@@ -75,6 +75,7 @@ export const AdminRouter = ({
 }: AdminRouterProps) => {
   const authApiRef = useRef(authApi ?? createAdminAuthApi());
   const refreshAttemptedPathRef = useRef<string | null>(null);
+  const refreshRequestIdRef = useRef(0);
   const [activePath, setActivePath] = useState(() => pathname);
   const [activeSession, setActiveSession] = useState<AdminSessionState>(() =>
     sessionProp ?? createAnonymousAdminSessionState(),
@@ -107,6 +108,7 @@ export const AdminRouter = ({
   useEffect(() => {
     if (route === null || route.requiresAuth === false) {
       refreshAttemptedPathRef.current = null;
+      refreshRequestIdRef.current += 1;
       return;
     }
 
@@ -122,14 +124,15 @@ export const AdminRouter = ({
       return;
     }
 
-    let isActive = true;
     refreshAttemptedPathRef.current = activePath;
+    const requestId = refreshRequestIdRef.current + 1;
+    refreshRequestIdRef.current = requestId;
     setActiveSession(createRestoringAdminSessionState());
 
     void authApiRef.current
       .refresh()
       .then((nextSession) => {
-        if (!isActive) {
+        if (refreshRequestIdRef.current !== requestId) {
           return;
         }
 
@@ -142,7 +145,7 @@ export const AdminRouter = ({
         );
       })
       .catch((error) => {
-        if (!isActive) {
+        if (refreshRequestIdRef.current !== requestId) {
           return;
         }
 
@@ -153,10 +156,6 @@ export const AdminRouter = ({
 
         setActiveSession(createAnonymousAdminSessionState());
       });
-
-    return () => {
-      isActive = false;
-    };
   }, [activePath, activeSession.status, route]);
 
   const handleLogin = async (input: { login: string; password: string }) => {
@@ -165,6 +164,7 @@ export const AdminRouter = ({
     try {
       const nextSession = await authApiRef.current.login(input);
 
+      refreshRequestIdRef.current += 1;
       refreshAttemptedPathRef.current = null;
       setActiveSession(
         createAuthenticatedAdminSessionState({
@@ -184,6 +184,7 @@ export const AdminRouter = ({
 
     try {
       await authApiRef.current.logout();
+      refreshRequestIdRef.current += 1;
       refreshAttemptedPathRef.current = null;
       setActiveSession({
         ...createAnonymousAdminSessionState(),

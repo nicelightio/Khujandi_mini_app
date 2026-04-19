@@ -170,7 +170,32 @@ describe("admin router", () => {
         configurable: true,
         writable: true,
       });
-    }
+      }
+    });
+
+  it("restores the protected route after a successful refresh on page load", async () => {
+    const authApi = createAuthApi({
+      refresh: jest.fn().mockResolvedValue({
+        adminAccountId: "admin-account-1",
+        role: "boss",
+        accessTokenExpiresAt: "2026-04-19T09:30:40.775Z",
+        refreshTokenExpiresAt: "2026-04-22T09:15:40.000Z",
+        idleExpiresAt: "2026-04-19T09:37:21.778Z",
+      }),
+    });
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(<AdminRouter pathname={adminRoutePaths.catalogProvisioning} authApi={authApi} />);
+      await flushRouterTransitions();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+
+    expect(authApi.refresh).toHaveBeenCalledTimes(1);
+    expect(text).toContain("Signed in as boss (admin-account-1).");
+    expect(text).toContain("Catalog shop provisioning");
+    expect(text).not.toContain("Admin login");
   });
 
   it("renders session-expired feedback for protected routes when the session is no longer valid", async () => {
