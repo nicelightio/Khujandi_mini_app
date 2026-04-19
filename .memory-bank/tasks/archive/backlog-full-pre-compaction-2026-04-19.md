@@ -1,0 +1,1518 @@
+---
+description: Backlog и execution plan (waves) для реализации.
+status: active
+---
+# Backlog
+
+> `/prd` rule: этот backlog не должен автоматически порождать TASK-IDs. Декомпозиция делается точечно через `/prd-to-tasks FT-<NNN>`.
+
+## Current state
+
+- PRD -> Memory Bank bootstrap завершен на уровне `product`, `requirements`, `epics`, `features`, `testing`.
+- `FT-001` декомпозирована в implementation plan и task cards.
+- `FT-002` декомпозирована в implementation plan и task cards.
+- `FT-003` декомпозирована в implementation plan и task cards.
+- `FT-009` декомпозирована в implementation plan и task cards.
+- `FT-010` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для shared seller storefront edit mode, admin provisioning, Telegram-linked seller access и `WORKING/NOT_WORKING` visibility.
+- `FT-011` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для DB-backed `catalog` runtime baseline, transactional provisioning и restart-safe storefront resolution.
+- `TASK-FT011-01` завершен: mounted repo-local `catalog` runtime больше не использует `InMemoryCatalogRepository` как default path, а `REQ-027/028` переведены в `implemented` до финальной durability closure.
+- `TASK-FT011-02` завершен: скрытый process-local demo bootstrap заменен на checked-in DB-backed seed baseline и SQLite-backed runtime state store, поэтому repo-local catalog startup/restart теперь переиспользует persisted baseline вместо in-memory seeded arrays.
+- `TASK-FT011-03` завершен: admin provisioning теперь fail-closed отклоняет последовательные идентичные `sellerId + telegramId + shop name` запросы до repository writes, а интеграционные проверки по-прежнему подтверждают atomic `shop + binding + starter catalog bootstrap` commit/rollback semantics.
+- Follow-up от `red-verify` на `TASK-FT011-07` закрыт: race-safe conflict enforcement теперь живет на persistence boundary, а seller rename collisions на том же durable `sellerId + shop name` key дополнительно закрыты в `TASK-FT011-08` через controlled `SHOP_RENAME_CONFLICT` `409` semantics.
+- `TASK-FT011-08` завершен: seller rename path теперь reconciled с durable `sellerId + shop name` invariant, поэтому mounted/runtime rename collisions возвращают controlled `SHOP_RENAME_CONFLICT` `409` вместо raw persistence behavior.
+- Telegram-specific normative layer для `FT-002`, `FT-003` и `FT-009` расширен через `contracts/*`, `runbooks/*` и `diagrams/*`.
+- `FT-003` execution backlog закрыт: `TASK-FT003-01` ... `TASK-FT003-06` завершены; shared Telegram shell/runtime closure дополнительно закрыта в `FT-009`.
+- `FT-004` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для courier assignment.
+- `FT-005` execution backlog закрыт: `TASK-FT005-01` ... `TASK-FT005-08` завершены; post-assignment tracking, ordered polling и SLA evidence синхронизированы в RTM/Memory Bank.
+- `FT-006` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для operational cancellation и manual refund tracking.
+- `TASK-FT006-01` завершен: docs-first cancellation policy, refund-state semantics и verify boundary зафиксированы; `TASK-FT006-02` завершен как backend foundation wave, `TASK-FT006-03` завершен как frontend/admin scaffold wave, `TASK-FT006-04` завершен как backend authorized cancellation command wave, `TASK-FT006-05` завершен как backend manual refund progression wave, `TASK-FT006-06` завершен как admin-web UX wiring wave, `TASK-FT006-07` завершен как final verification suite wave, а `TASK-FT006-08` завершен как final refund evidence/docs closure wave.
+- `FT-007` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для admin auth, lockout и session security.
+- `FT-008` декомпозирована в implementation plan, protocol docs и execution-ready backlog decomposition для two-sided bot reviews и negative alerts.
+- `FT-006` execution backlog закрыт: refund/runbook evidence, RTM closure и task statuses синхронизированы.
+- `FT-008` execution backlog закрыт: two-sided bot review evidence, negative-alert fan-out verification и RTM closure синхронизированы.
+- Semantic verification after PR `#6` opened follow-up backlog for `FT-007` and `FT-008`: runtime admin auth cookie boundary, revision-aware bot callback hardening, and an explicit decision on review-draft runtime guarantees.
+
+## Recommended feature order
+
+1. `FT-001`, `FT-002`, `FT-003`, `FT-009`, `FT-010` для первой customer-facing и seller storefront волны.
+2. `FT-004`, `FT-005`, `FT-006` для delivery operations.
+3. `FT-007` для отдельного admin auth/security контура.
+4. `FT-008` для post-delivery feedback loop и go-live hardening.
+
+## Decomposed feature backlog
+
+## FT-001 — Catalog Browse And Seller Management
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT001-01 — Freeze catalog contracts and docs-first boundaries
+- TASK-ID: `TASK-FT001-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-001`
+- REQs: `REQ-001`, `REQ-002`, `REQ-020`
+- Depends on: `none`
+- Touched files: `.memory-bank/contracts/catalog-public-api.md`, `.memory-bank/contracts/seller-catalog-write-policy.md`, `.memory-bank/features/FT-001-catalog-browse-and-seller-management.md`, `.memory-bank/tasks/plans/IMPL-FT-001.md`, `.memory-bank/index.md`
+- Tests: doc-level traceability review against `REQ-001`, `REQ-002`, `REQ-020`
+- Verify: подтвердить, что public read, seller ownership и rename policy явно зафиксированы в contract/docs layer и не конфликтуют с RTM
+- Docs: `contracts/*`, `features/FT-001`, `tasks/plans/IMPL-FT-001`, `index.md`
+- Normative Inputs: `FT-001`, `requirements.md`, `data-boundaries-and-persistence.md`, `testing/index.md`
+
+### TASK-FT001-02 — Scaffold backend catalog slice and Prisma baseline
+- TASK-ID: `TASK-FT001-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-001`
+- REQs: `REQ-001`, `REQ-002`, `REQ-020`
+- Depends on: `TASK-FT001-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/catalog/**/*`, `backend/src/shared/**/*`, `tests/slices/catalog/**/*`
+- Tests: backend test skeleton for catalog integration/unit coverage
+- Verify: backend repo содержит owning `catalog` slice skeleton по слоям и минимальный test harness без premature shared business logic
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: сохранять layered slice structure; не разносить catalog business rules в `shared`
+
+### TASK-FT001-03 — Scaffold frontend catalog slice and public route shell
+- TASK-ID: `TASK-FT001-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-001`
+- REQs: `REQ-001`
+- Depends on: `TASK-FT001-02`
+- Touched files: `frontend/src/app/router.tsx`, `frontend/src/slices/catalog/**/*`, `frontend/src/shared/**/*`, `frontend/src/tests/slices/catalog/**/*`
+- Tests: frontend test skeleton for catalog route/UI smoke
+- Verify: frontend route shell и slice layout существуют и не смешивают catalog UI с non-catalog business logic
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+
+### Wave W2 — core logic
+
+### TASK-FT001-04 — Implement public shop and product reads with soft-delete filtering
+- TASK-ID: `TASK-FT001-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-001`
+- REQs: `REQ-001`
+- Depends on: `TASK-FT001-01`, `TASK-FT001-02`
+- Touched files: `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `tests/slices/catalog/**/*`
+- Tests: integration tests for unauthenticated browse and exclusion of soft-deleted entities
+- Verify: `shops/products` публично читаются без auth и не возвращают soft-deleted data
+- Docs: `features/FT-001`, `contracts/catalog-public-api.md`, `changelog.md`
+- Verification Targets: public `shops` and `products` browse flow
+
+### TASK-FT001-05 — Implement seller-scoped shop writes and rename policy flags
+- TASK-ID: `TASK-FT001-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-001`
+- REQs: `REQ-002`, `REQ-020`
+- Depends on: `TASK-FT001-01`, `TASK-FT001-02`
+- Touched files: `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `tests/slices/catalog/**/*`
+- Tests: integration tests for seller ownership on shop writes; unit tests for first-free-then-paid rename flag logic
+- Verify: seller может менять только свои shops; rename после бесплатной попытки включает manual paid path markers
+- Docs: `contracts/seller-catalog-write-policy.md`, `features/FT-001`, `changelog.md`
+- Invariants: `shop_name_snapshot` invariant сохраняется за счет отсутствия cross-table mutation side effects при rename
+
+### TASK-FT001-06 — Implement seller-scoped product writes
+- TASK-ID: `TASK-FT001-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-001`
+- REQs: `REQ-002`
+- Depends on: `TASK-FT001-01`, `TASK-FT001-02`
+- Touched files: `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `tests/slices/catalog/**/*`
+- Tests: integration tests for seller ownership on product writes and shop/product linkage validation
+- Verify: seller не может создавать/изменять product вне собственных shops
+- Docs: `contracts/seller-catalog-write-policy.md`, `features/FT-001`, `changelog.md`
+
+### Wave W3 — integration & polish
+
+### TASK-FT001-07 — Wire public catalog UI to backend read path
+- TASK-ID: `TASK-FT001-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-001`
+- REQs: `REQ-001`
+- Depends on: `TASK-FT001-03`, `TASK-FT001-04`
+- Touched files: `frontend/src/slices/catalog/routes/**/*`, `frontend/src/slices/catalog/components/**/*`, `frontend/src/slices/catalog/api/**/*`, `frontend/src/slices/catalog/model/**/*`, `frontend/src/tests/slices/catalog/**/*`
+- Tests: UI/integration smoke for public browse rendering and loading/error states
+- Verify: Mini App customer-facing catalog route показывает shops/products без auth и корректно обрабатывает empty/loading states
+- Docs: `features/FT-001`, `changelog.md`
+
+### TASK-FT001-08 — Add catalog verification suite and final docs sync
+- TASK-ID: `TASK-FT001-08`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-001`
+- REQs: `REQ-001`, `REQ-002`, `REQ-020`
+- Depends on: `TASK-FT001-04`, `TASK-FT001-05`, `TASK-FT001-06`, `TASK-FT001-07`
+- Touched files: `tests/slices/catalog/**/*`, `frontend/src/tests/slices/catalog/**/*`, `.memory-bank/features/FT-001-catalog-browse-and-seller-management.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`
+- Tests: final backend integration, rename unit checks, public browse e2e smoke
+- Verify: acceptance criteria из `FT-001` полностью покрыты tests/UAT и RTM остается согласованной
+- Docs: `features/FT-001`, `requirements.md`, `changelog.md`, при необходимости `contracts/*`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`
+
+### TASK-FT001-09 — Add repo test runner config for catalog specs
+- TASK-ID: `TASK-FT001-09`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-001`
+- REQs: `REQ-001`
+- Depends on: `none`
+- Touched files: `package.json`, `jest.config.*`, `tsconfig*.json`, `tests/**/*`, `backend/**/*`
+- Tests: run `catalog.unit.spec.ts` and `catalog.integration.spec.ts` through repo-local harness
+- Verify: repo can execute backend catalog `.spec.ts` files without temporary ad-hoc CLI tooling
+- Docs: `tasks/backlog.md`, `changelog.md`, if needed `testing/index.md`
+
+## FT-002 — Checkout Payment And Order Creation
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT002-01 — Freeze checkout auth, session and payment boundaries
+- TASK-ID: `TASK-FT002-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-002`
+- REQs: `REQ-004`, `REQ-021`, `REQ-022`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-002-checkout-payment-and-order-creation.md`, `.memory-bank/tasks/plans/IMPL-FT-002.md`, `.memory-bank/contracts/telegram-mini-app-auth-contract.md`, `.memory-bank/contracts/payment-confirmation-contract.md`, при необходимости `.memory-bank/adrs/*`
+- Tests: doc-level traceability review against `REQ-004`, `REQ-021`, `REQ-022`, `REQ-023`
+- Verify: подтвердить, что session transport policy, replay/idempotency rules и trusted payment boundary явно зафиксированы и не противоречат RTM/feature acceptance
+- Docs: `features/FT-002`, `contracts/*`, `tasks/plans/IMPL-FT-002`, при необходимости `adrs/*`
+- Normative Inputs: `FT-002`, `requirements.md`, `telegram-mini-app-auth-contract.md`, `payment-confirmation-contract.md`, `invariants.md`
+
+### TASK-FT002-02 — Scaffold backend checkout-payment slice and persistence baseline
+- TASK-ID: `TASK-FT002-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-002`
+- REQs: `REQ-005`, `REQ-021`
+- Depends on: `TASK-FT002-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/checkout-payment/**/*`, `backend/src/shared/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: backend test skeleton for auth/payment/order integration and unit coverage
+- Verify: repo содержит owning `checkout-payment` slice skeleton, explicit payment identity fields и baseline test harness без выноса payment business logic в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: сохранять layered slice structure; payment/order ownership остается внутри `checkout-payment`
+
+### TASK-FT002-03 — Scaffold frontend checkout-payment slice and route shell
+- TASK-ID: `TASK-FT002-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-002`
+- REQs: `REQ-005`, `REQ-022`
+- Depends on: `TASK-FT002-01`
+- Touched files: `frontend/src/app/router.tsx`, `frontend/src/slices/checkout-payment/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, `frontend/src/shared/telegram/**/*`, `frontend/src/shared/state/**/*`
+- Tests: frontend test skeleton for checkout route/model/payment UX smoke
+- Verify: checkout route shell и slice layout существуют, переиспользуют existing Telegram runtime primitives и не хранят session identifiers в JS-readable persistent storage baseline
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+
+### Wave W2 — core logic
+
+### TASK-FT002-04 — Implement Telegram auth validation and session issuance
+- TASK-ID: `TASK-FT002-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-002`
+- REQs: `REQ-004`, `REQ-022`
+- Depends on: `TASK-FT002-01`, `TASK-FT002-02`
+- Touched files: `backend/src/slices/checkout-payment/presentation/**/*`, `backend/src/slices/checkout-payment/application/**/*`, `backend/src/slices/checkout-payment/domain/**/*`, `backend/src/slices/checkout-payment/infrastructure/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: unit tests for HMAC/TTL helpers; integration tests for valid, invalid, expired and replayed `initData`
+- Verify: `POST /auth/telegram` принимает raw `initData`, валидирует подпись и `auth_date`, блокирует replay и выдает session согласно зафиксированной transport policy
+- Docs: `features/FT-002`, `contracts/telegram-mini-app-auth-contract.md`, `changelog.md`
+- Verification Targets: `POST /auth/telegram`
+
+### TASK-FT002-05 — Implement trusted payment finalization and paid-only order creation
+- TASK-ID: `TASK-FT002-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-002`
+- REQs: `REQ-005`, `REQ-021`
+- Depends on: `TASK-FT002-01`, `TASK-FT002-02`, `TASK-FT002-04`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/checkout-payment/application/**/*`, `backend/src/slices/checkout-payment/domain/**/*`, `backend/src/slices/checkout-payment/infrastructure/**/*`, `backend/src/slices/checkout-payment/presentation/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: integration tests for trusted callback/status confirmation, duplicate delivery idempotency, DB uniqueness and single-order creation
+- Verify: successful trusted payment создает ровно один order с `payment_status = PAID`; duplicate callback/status confirmation не создает второй order
+- Docs: `features/FT-002`, `contracts/payment-confirmation-contract.md`, `changelog.md`
+- Invariants: нет order creation по client-only payment signals; payment finalization и order creation остаются atomic
+
+### TASK-FT002-06 — Implement failed payment handling and retry-safe error contract
+- TASK-ID: `TASK-FT002-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-002`
+- REQs: `REQ-006`
+- Depends on: `TASK-FT002-05`
+- Touched files: `backend/src/slices/checkout-payment/presentation/**/*`, `backend/src/slices/checkout-payment/application/**/*`, `backend/src/slices/checkout-payment/domain/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: integration tests for failed, cancelled and timeout payment outcomes plus absence of `orders` side effects
+- Verify: payment failure paths возвращают controlled error contract и retry semantics без создания order
+- Docs: `features/FT-002`, `changelog.md`, при необходимости `runbooks/*`
+- Verification Targets: `POST /orders/checkout`
+
+### Wave W3 — integration & polish
+
+### TASK-FT002-07 — Wire Mini App checkout UI to auth and payment flow
+- TASK-ID: `TASK-FT002-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-002`
+- REQs: `REQ-005`, `REQ-006`, `REQ-022`
+- Depends on: `TASK-FT002-03`, `TASK-FT002-04`, `TASK-FT002-05`, `TASK-FT002-06`
+- Touched files: `frontend/src/slices/checkout-payment/routes/**/*`, `frontend/src/slices/checkout-payment/components/**/*`, `frontend/src/slices/checkout-payment/api/**/*`, `frontend/src/slices/checkout-payment/model/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, `frontend/src/shared/telegram/**/*`
+- Tests: UI/integration smoke for checkout happy path, payment failure retry UX and no client-only order creation
+- Verify: customer-facing checkout route инициирует auth/payment backend flow, показывает retry UX и не использует client-only payment signals как business confirmation
+- Docs: `features/FT-002`, `changelog.md`
+
+### TASK-FT002-08 — Add checkout verification suite and Telegram-specific evidence sync
+- TASK-ID: `TASK-FT002-08`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-002`
+- REQs: `REQ-004`, `REQ-005`, `REQ-006`, `REQ-021`
+- Depends on: `TASK-FT002-04`, `TASK-FT002-05`, `TASK-FT002-06`, `TASK-FT002-07`
+- Touched files: `tests/slices/checkout-payment/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, `.memory-bank/features/FT-002-checkout-payment-and-order-creation.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.tasks/TASK-FT002-08/**/*`
+- Tests: final backend unit/integration, frontend e2e smoke, Telegram auth/payment runtime contract tests and verify evidence bundle
+- Verify: acceptance criteria из `FT-002` полностью покрыты tests/UAT, RTM остается согласованной, а Telegram-sensitive verification ограничена auth/payment runtime и transport evidence; real Mini App client-matrix coverage перенесена в `FT-009`
+- Docs: `features/FT-002`, `requirements.md`, `changelog.md`, `runbooks/telegram-mini-app-verification.md` при необходимости
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `auth/payment runtime verify evidence`
+
+## FT-003 — Language Selection And Localization
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT003-01 — Freeze language policy, persistence fallback and verify boundaries
+- TASK-ID: `TASK-FT003-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-003`
+- REQs: `REQ-003`, `REQ-022`, `REQ-023`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-003-language-selection-and-localization.md`, `.memory-bank/tasks/plans/IMPL-FT-003.md`, `.memory-bank/contracts/mini-app-runtime-contract.md`, `.memory-bank/runbooks/telegram-mini-app-verification.md`, при необходимости `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-003`, `REQ-022`, `REQ-023`
+- Verify: подтвердить, что default language policy, storage fallback order, post-auth profile sync boundary и Telegram-specific verify ownership явно зафиксированы и не конфликтуют с `FT-009`
+- Docs: `features/FT-003`, `contracts/mini-app-runtime-contract.md`, `runbooks/telegram-mini-app-verification.md`, `tasks/plans/IMPL-FT-003`
+- Normative Inputs: `FT-003`, `requirements.md`, `mini-app-runtime-contract.md`, `frontend-presentation-and-webview.md`, `testing/index.md`
+- Constraints: не принимать `Telegram user.language_code` как trusted app setting без validated auth context
+
+### TASK-FT003-02 — Scaffold shared i18n state, persistence helpers and overlay entrypoints
+- TASK-ID: `TASK-FT003-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-003`
+- REQs: `REQ-003`, `REQ-022`
+- Depends on: `TASK-FT003-01`
+- Touched files: `frontend/src/shared/i18n/**/*`, `frontend/src/shared/lib/**/*`, `frontend/src/shared/state/**/*`, `frontend/src/shared/telegram/**/*`, `frontend/src/app/**/*`, `frontend/src/tests/**/*`
+- Tests: frontend unit/contract test skeleton for language resolver, persistence adapter and overlay state
+- Verify: repo содержит shared localization skeleton с явной orchestration boundary и без direct component-level `localStorage` / `Telegram.WebApp.*` access
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: localization остается technical enabling layer, а не отдельным business slice
+
+### Wave W2 — core logic
+
+### TASK-FT003-03 — Implement deterministic language resolution and storage fallback policy
+- TASK-ID: `TASK-FT003-03`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-003`
+- REQs: `REQ-003`, `REQ-022`
+- Depends on: `TASK-FT003-01`, `TASK-FT003-02`
+- Touched files: `frontend/src/shared/i18n/**/*`, `frontend/src/shared/lib/**/*`, `frontend/src/shared/telegram/**/*`, `frontend/src/tests/**/*`
+- Tests: unit tests for supported-language normalization and fallback-to-`ru`; contract tests for `DeviceStorage -> CloudStorage -> localStorage` read/write order
+- Verify: unsupported, empty и поврежденные language values стабильно fallback-ятся на `ru`, а pre-auth persistence соблюдает deterministic order
+- Docs: `features/FT-003`, `contracts/mini-app-runtime-contract.md`, `changelog.md`
+- Verification Targets: language resolver, persistence helpers, Telegram storage adapter wrappers
+
+### TASK-FT003-04 — Implement first-run overlay gating and authenticated language sync
+- TASK-ID: `TASK-FT003-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-003`
+- REQs: `REQ-003`, `REQ-022`
+- Depends on: `TASK-FT003-02`, `TASK-FT003-03`, `TASK-FT002-04`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/shared/state/**/*`, `frontend/src/shared/i18n/**/*`, `frontend/src/slices/catalog/**/*`, `frontend/src/slices/checkout-payment/**/*`, `backend/src/slices/checkout-payment/**/*`, `frontend/src/tests/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: UI/integration tests for mandatory overlay gating and backend integration tests for explicit language preference sync after auth
+- Verify: customer-facing flow требует выбрать язык на чистом запуске, а после появления auth-контекста backend profile фиксирует explicit user choice как preferred language
+- Docs: `features/FT-003`, `changelog.md`, при необходимости `requirements.md`
+- Invariants: first-run language choice обязателен; backend profile становится source of truth после auth
+
+### Wave W3 — integration & polish
+
+### TASK-FT003-05 — Wire localized copy baseline into customer-facing routes
+- TASK-ID: `TASK-FT003-05`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-003`
+- REQs: `REQ-003`
+- Depends on: `TASK-FT003-04`
+- Touched files: `frontend/src/shared/i18n/**/*`, `frontend/src/slices/catalog/**/*`, `frontend/src/slices/checkout-payment/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/tests/**/*`
+- Tests: route/page smoke for localized catalog and checkout copy plus language switch behavior
+- Verify: catalog и checkout используют выбранный язык, а overlay/persistence не ломают existing customer journey
+- Docs: `features/FT-003`, `changelog.md`
+- Constraints: safe-area/theme/lifecycle UX не переносить в scope `FT-003`; это остается в `FT-009`
+
+### TASK-FT003-06 — Add localization verification suite and Telegram evidence sync
+- TASK-ID: `TASK-FT003-06`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-003`
+- REQs: `REQ-003`, `REQ-022`, `REQ-023`
+- Depends on: `TASK-FT003-03`, `TASK-FT003-04`, `TASK-FT003-05`
+- Touched files: `frontend/src/tests/**/*`, `tests/slices/checkout-payment/**/*`, `.memory-bank/features/FT-003-language-selection-and-localization.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.tasks/TASK-FT003-06/**/*`
+- Tests: final frontend unit/contract/e2e smoke, backend integration for language sync, Telegram client-matrix evidence bundle
+- Verify: acceptance criteria из `FT-003` полностью покрыты tests/UAT, RTM остается согласованной, а Telegram-specific evidence подтверждает overlay/persistence/sync без попытки закрыть shell baseline `FT-009`
+- Docs: `features/FT-003`, `requirements.md`, `changelog.md`, `runbooks/telegram-mini-app-verification.md` при необходимости
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `Telegram runtime verify evidence`
+
+## FT-004 — Courier Assignment
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT004-01 — Freeze assignment boundary, event semantics and targeted notification policy
+- TASK-ID: `TASK-FT004-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-004`
+- REQs: `REQ-007`, `REQ-018`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-004-courier-assignment.md`, `.memory-bank/tasks/plans/IMPL-FT-004.md`, `.memory-bank/contracts/telegram-bot-contract.md`, `.memory-bank/contracts/api-events-baseline.md`, при необходимости `.memory-bank/states/order-lifecycle.md`
+- Tests: doc-level traceability review against `REQ-007` and `REQ-018`
+- Verify: подтвердить, что `CREATED -> ASSIGNED`, `order.assigned`, actor-targeted courier notification и audit/error contract явно зафиксированы и не конфликтуют с EP-002/RTM
+- Docs: `features/FT-004`, `tasks/plans/IMPL-FT-004`, при необходимости `contracts/*`, `states/order-lifecycle.md`
+- Normative Inputs: `FT-004`, `requirements.md`, `telegram-bot-contract.md`, `api-events-baseline.md`, `order-lifecycle.md`, `testing/index.md`
+
+### TASK-FT004-02 — Scaffold backend delivery-assignment slice and persistence/test baseline
+- TASK-ID: `TASK-FT004-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-004`
+- REQs: `REQ-007`, `REQ-018`
+- Depends on: `TASK-FT004-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/delivery-assignment/**/*`, `backend/src/shared/**/*`, `tests/slices/delivery-assignment/**/*`
+- Tests: backend test skeleton for assignment RBAC, state validation, audit/event integration
+- Verify: repo содержит owning `delivery-assignment` slice skeleton и минимальный persistence/test harness без выноса assignment business rules в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: ownership перехода `CREATED -> ASSIGNED` и assignment semantics остаются внутри `delivery-assignment`
+
+### TASK-FT004-03 — Scaffold admin assignment route shell and frontend test harness
+- TASK-ID: `TASK-FT004-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-004`
+- REQs: `REQ-007`
+- Depends on: `TASK-FT004-01`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/app/**/*`, при необходимости `frontend/src/shared/ui/**/*`
+- Tests: frontend/admin smoke skeleton for assignment page, form state and success/error rendering
+- Verify: admin-web route shell для courier assignment существует и не втягивает login/session scope `FT-007` в текущую feature
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: auth/session implementation не дублировать во frontend slice `FT-004`; использовать existing or test-fixture auth boundary
+
+### Wave W2 — core logic
+
+### TASK-FT004-04 — Implement assignment command with RBAC, state validation, audit and event publication
+- TASK-ID: `TASK-FT004-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-004`
+- REQs: `REQ-007`, `REQ-018`
+- Depends on: `TASK-FT004-01`, `TASK-FT004-02`
+- Touched files: `backend/src/slices/delivery-assignment/presentation/**/*`, `backend/src/slices/delivery-assignment/application/**/*`, `backend/src/slices/delivery-assignment/domain/**/*`, `backend/src/slices/delivery-assignment/infrastructure/**/*`, `tests/slices/delivery-assignment/**/*`
+- Tests: integration tests for allowed admin role, invalid role, invalid order state, invalid courier target, audit writes and `order.assigned` event publication
+- Verify: успешный assignment переводит заказ в `ASSIGNED`, пишет `order_status_history`/audit, публикует `order.assigned`; невалидные запросы возвращают controlled error contract без side effects
+- Docs: `features/FT-004`, `requirements.md` при необходимости, `changelog.md`
+- Verification Targets: assignment command endpoint, audit trail, `order.assigned`
+- Invariants: assignment не обходит server-side state machine и не выполняется без auth/RBAC
+
+### TASK-FT004-05 — Implement targeted courier notification integration for assignment
+- TASK-ID: `TASK-FT004-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-004`
+- REQs: `REQ-007`, `REQ-018`
+- Depends on: `TASK-FT004-01`, `TASK-FT004-02`, `TASK-FT004-04`
+- Touched files: `backend/src/slices/delivery-assignment/application/**/*`, `backend/src/slices/delivery-assignment/infrastructure/**/*`, `backend/src/integrations/telegram-bot/**/*`, `tests/slices/delivery-assignment/**/*`
+- Tests: integration/contract tests for actor-targeted dispatch to assigned courier and absence of broad broadcast default behavior
+- Verify: `order.assigned` notification доставляется только назначенному курьеру через bot/runtime boundary и не меняет доменную семантику при retry/duplicate delivery
+- Docs: `contracts/telegram-bot-contract.md` при необходимости, `features/FT-004`, `changelog.md`
+- Constraints: transport/runtime layer не владеет assignment business rules; retry не создает повторный assignment side effect
+
+### Wave W3 — integration & polish
+
+### TASK-FT004-06 — Wire admin assignment UX to backend flow
+- TASK-ID: `TASK-FT004-06`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-004`
+- REQs: `REQ-007`, `REQ-018`
+- Depends on: `TASK-FT004-03`, `TASK-FT004-04`, `TASK-FT004-05`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/tests/admin/**/*`
+- Tests: UI/integration smoke for successful assignment, loading state, controlled error rendering and no duplicate submit side effect
+- Verify: оператор может назначить курьера из admin-web UI и получает явное success/error confirmation по единому error contract
+- Docs: `features/FT-004`, `changelog.md`
+
+### TASK-FT004-07 — Add assignment verification suite and final docs sync
+- TASK-ID: `TASK-FT004-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-004`
+- REQs: `REQ-007`, `REQ-018`
+- Depends on: `TASK-FT004-04`, `TASK-FT004-05`, `TASK-FT004-06`
+- Touched files: `tests/slices/delivery-assignment/**/*`, `frontend/src/tests/admin/**/*`, `.memory-bank/features/FT-004-courier-assignment.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.tasks/TASK-FT004-07/**/*`
+- Tests: final backend integration, admin assignment e2e smoke, targeted notification verify evidence bundle
+- Verify: acceptance criteria из `FT-004` полностью покрыты tests/UAT, RTM остается согласованной, а assignment closure не размывает scope `FT-005` и `FT-007`
+- Docs: `features/FT-004`, `requirements.md`, `changelog.md`, при необходимости `contracts/*`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `assignment audit/event/notification verify evidence`
+
+## FT-005 — Order Tracking And Events Polling
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT005-01 — Freeze delivery tracking state machine, polling contract and SLA verify boundary
+- TASK-ID: `TASK-FT005-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-005`
+- REQs: `REQ-008`, `REQ-009`, `REQ-010`, `REQ-018`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-005-order-tracking-and-events-polling.md`, `.memory-bank/tasks/plans/IMPL-FT-005.md`, `.memory-bank/contracts/api-events-baseline.md`, при необходимости `.memory-bank/states/order-lifecycle.md`, `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-008`, `REQ-009`, `REQ-010`, `REQ-018`
+- Verify: подтвердить, что post-assignment transitions, `409 CONFLICT`, ordered polling stream, string cursor contract и SLA ownership явно зафиксированы и не конфликтуют с EP-002/RTM
+- Docs: `features/FT-005`, `tasks/plans/IMPL-FT-005`, при необходимости `contracts/*`, `states/order-lifecycle.md`, `testing/index.md`
+- Normative Inputs: `FT-005`, `requirements.md`, `api-events-baseline.md`, `order-lifecycle.md`, `events-polling-and-bot-runtime.md`, `testing/index.md`
+
+### TASK-FT005-02 — Scaffold backend delivery-tracking slice and test baseline
+- TASK-ID: `TASK-FT005-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-005`
+- REQs: `REQ-008`, `REQ-009`, `REQ-018`
+- Depends on: `TASK-FT005-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/delivery-tracking/**/*`, `backend/src/shared/**/*`, `tests/slices/delivery-tracking/**/*`
+- Tests: backend test skeleton for state-machine transitions, history writes, event publication and polling cursor integration
+- Verify: repo содержит owning `delivery-tracking` slice skeleton и execution-ready persistence/test harness без выноса lifecycle бизнес-правил в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: ownership post-assignment transitions и `order_status_history` остается внутри `delivery-tracking`
+
+### TASK-FT005-03 — Scaffold polling consumer and courier interaction harness
+- TASK-ID: `TASK-FT005-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-005`
+- REQs: `REQ-009`, `REQ-010`
+- Depends on: `TASK-FT005-01`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/slices/order-tracking/**/*`, `frontend/src/tests/slices/order-tracking/**/*`, `backend/src/integrations/telegram-bot/**/*`
+- Tests: smoke skeleton for polling consumer state, cursor advancement and courier interaction entrypoints
+- Verify: repo содержит minimal polling consumer/runtime harness для downstream UI/bot integration без premature coupling к cancellation/review scopes
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: bot/runtime adapters не получают ownership state-machine rules; UI harness не дублирует backend transition logic
+
+### Wave W2 — core logic
+
+### TASK-FT005-04 — Implement courier status command flow with state validation and history/event writes
+- TASK-ID: `TASK-FT005-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-005`
+- REQs: `REQ-008`, `REQ-018`
+- Depends on: `TASK-FT005-01`, `TASK-FT005-02`, `TASK-FT004-04`
+- Touched files: `backend/src/slices/delivery-tracking/presentation/**/*`, `backend/src/slices/delivery-tracking/application/**/*`, `backend/src/slices/delivery-tracking/domain/**/*`, `backend/src/slices/delivery-tracking/infrastructure/**/*`, `tests/slices/delivery-tracking/**/*`
+- Tests: integration tests for valid transition chain, invalid transitions with `409 CONFLICT`, actor validation, `order_status_history` persistence, event publication and command response metadata
+- Verify: courier может провести заказ только по разрешенной цепочке `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`; invalid transitions не меняют состояние и возвращают единый error contract
+- Docs: `features/FT-005`, `requirements.md` при необходимости, `changelog.md`
+- Verification Targets: `PATCH /orders/{id}/status`, `order_status_history`, status event publication
+- Invariants: server-side state machine обязательна; каждый валидный transition пишет history и event
+
+### TASK-FT005-05 — Implement ordered events polling with string cursors and duplicate-safe semantics
+- TASK-ID: `TASK-FT005-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-005`
+- REQs: `REQ-009`, `REQ-018`
+- Depends on: `TASK-FT005-01`, `TASK-FT005-02`, `TASK-FT005-04`
+- Touched files: `backend/src/slices/delivery-tracking/presentation/**/*`, `backend/src/slices/delivery-tracking/application/**/*`, `backend/src/slices/delivery-tracking/infrastructure/**/*`, `tests/slices/delivery-tracking/**/*`
+- Tests: integration tests for ordered `revision`, string `cursor`/`next_cursor`, empty window behavior and duplicate polling requests with stable results
+- Verify: `GET /events?since=<cursor>` возвращает ordered event stream по возрастанию `revision`, корректный string `next_cursor` и не ломает порядок/курсор при повторных запросах
+- Docs: `features/FT-005`, `contracts/api-events-baseline.md` при необходимости, `changelog.md`
+- Verification Targets: `GET /events?since=<cursor>`
+- Constraints: event shape остается stable для future SSE/WS; polling read path не создает domain side effects
+
+### TASK-FT005-06 — Implement status-change notifications and polling consumer wiring
+- TASK-ID: `TASK-FT005-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-005`
+- REQs: `REQ-008`, `REQ-009`, `REQ-018`
+- Depends on: `TASK-FT005-03`, `TASK-FT005-04`, `TASK-FT005-05`
+- Touched files: `backend/src/integrations/telegram-bot/**/*`, `backend/src/slices/delivery-tracking/application/**/*`, `frontend/src/slices/order-tracking/**/*`, `frontend/src/tests/slices/order-tracking/**/*`, `tests/slices/delivery-tracking/**/*`
+- Tests: integration/contract tests for `order.status_changed` notification dispatch and frontend polling-consumer tests for ordered UI updates after resume/retry
+- Verify: status changes доходят до релевантных участников через bot/runtime mapping, а polling consumers корректно применяют ordered updates без двойных side effects после reconnect
+- Docs: `features/FT-005`, `contracts/telegram-bot-contract.md` при необходимости, `changelog.md`
+- Constraints: transport/runtime слой не владеет transition business rules; resume/retry не должен дублировать write path
+
+### Wave W3 — integration & polish
+
+### TASK-FT005-07 — Add end-to-end delivery tracking and polling verification suite
+- TASK-ID: `TASK-FT005-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-005`
+- REQs: `REQ-008`, `REQ-009`, `REQ-018`
+- Depends on: `TASK-FT005-04`, `TASK-FT005-05`, `TASK-FT005-06`
+- Touched files: `tests/slices/delivery-tracking/**/*`, `frontend/src/tests/slices/order-tracking/**/*`, `.tasks/TASK-FT005-07/**/*`, `.memory-bank/features/FT-005-order-tracking-and-events-polling.md`
+- Tests: final backend integration plus e2e smoke where courier drives order to `COMPLETED` and admin/customer consumers observe ordered events
+- Verify: acceptance criteria по state machine, `409 CONFLICT`, history/event generation и ordered polling stream покрыты end-to-end evidence без выхода в cancellation scope `FT-006`
+- Docs: `features/FT-005`, `changelog.md`, при необходимости `requirements.md`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`
+
+### TASK-FT005-08 — Collect polling SLA evidence and final docs sync
+- TASK-ID: `TASK-FT005-08`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-005`
+- REQs: `REQ-010`, `REQ-018`
+- Depends on: `TASK-FT005-05`, `TASK-FT005-06`, `TASK-FT005-07`
+- Touched files: `.tasks/TASK-FT005-08/**/*`, `.memory-bank/features/FT-005-order-tracking-and-events-polling.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, при необходимости `.memory-bank/testing/index.md`
+- Tests: polling load/latency verify script or operator evidence bundle plus final regression of ordered event contract
+- Verify: polling SLA p95 <= 10 секунд подтвержден на agreed MVP load profile, RTM остается согласованной, а `FT-005` closure явно включает latency evidence помимо функциональных тестов
+- Docs: `features/FT-005`, `requirements.md`, `changelog.md`, при необходимости `testing/index.md`
+- Quality Gates: `integration`, `e2e smoke`, `polling SLA verify evidence`
+
+## FT-006 — Operational Cancellation And Manual Refund
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT006-01 — Freeze cancellation policy, refund-state semantics and verify boundary
+- TASK-ID: `TASK-FT006-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-006`
+- REQs: `REQ-011`, `REQ-012`, `REQ-018`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-006-operational-cancellation-and-manual-refund.md`, `.memory-bank/tasks/plans/IMPL-FT-006.md`, при необходимости `.memory-bank/states/order-lifecycle.md`, `.memory-bank/runbooks/manual-refund-and-negative-alerts.md`, `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-011`, `REQ-012`, `REQ-018`
+- Verify: подтвердить, что allowed-role cancellation, cancellation statuses, `refund_status`/`refund_note` visibility, client prohibition и audit/error semantics явно зафиксированы и не конфликтуют с EP-002/RTM
+- Docs: `features/FT-006`, `tasks/plans/IMPL-FT-006`, при необходимости `states/order-lifecycle.md`, `runbooks/manual-refund-and-negative-alerts.md`, `testing/index.md`
+- Normative Inputs: `FT-006`, `requirements.md`, `order-lifecycle.md`, `manual-refund-and-negative-alerts.md`, `api-events-baseline.md`, `testing/index.md`
+
+### TASK-FT006-02 — Scaffold backend order-cancellation slice and refund persistence/test baseline
+- TASK-ID: `TASK-FT006-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-006`
+- REQs: `REQ-011`, `REQ-012`, `REQ-018`
+- Depends on: `TASK-FT006-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/order-cancellation/**/*`, `backend/src/shared/**/*`, `tests/slices/order-cancellation/**/*`
+- Tests: backend test skeleton for allowed-role cancellation, refund-state persistence, audit/event integration
+- Verify: repo содержит owning `order-cancellation` slice skeleton и execution-ready persistence/test harness без выноса cancellation/refund бизнес-правил в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: cancellation actor/reason и refund-state ownership остаются внутри `order-cancellation`
+
+### TASK-FT006-03 — Scaffold operator cancellation/refund route shell and frontend test harness
+- TASK-ID: `TASK-FT006-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-006`
+- REQs: `REQ-011`, `REQ-012`
+- Depends on: `TASK-FT006-01`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/app/**/*`, при необходимости `frontend/src/shared/ui/**/*`
+- Tests: frontend/admin smoke skeleton for cancellation form, refund-state rendering and success/error feedback
+- Verify: operator/admin route shell для cancellation/refund tracking существует и не втягивает unrelated review or auth implementation scope
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: auth/session logic не дублировать во frontend scope `FT-006`; использовать existing or fixture auth boundary
+
+### Wave W2 — core logic
+
+### TASK-FT006-04 — Implement authorized cancellation command with state validation and audit/event writes
+- TASK-ID: `TASK-FT006-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-006`
+- REQs: `REQ-011`, `REQ-018`
+- Depends on: `TASK-FT006-01`, `TASK-FT006-02`, `TASK-FT004-04`, `TASK-FT005-04`
+- Touched files: `backend/src/slices/order-cancellation/presentation/**/*`, `backend/src/slices/order-cancellation/application/**/*`, `backend/src/slices/order-cancellation/domain/**/*`, `backend/src/slices/order-cancellation/infrastructure/**/*`, `tests/slices/order-cancellation/**/*`
+- Tests: integration tests for admin cancellation, courier unavailable-case cancellation, forbidden client/role attempts, invalid states, cancellation reason/actor persistence and cancellation event publication
+- Verify: only allowed actors can cancel in allowed states; successful cancellation writes correct cancellation status, initiator, reason, audit/event data; invalid attempts return controlled error contract without side effects
+- Docs: `features/FT-006`, `requirements.md` при необходимости, `changelog.md`
+- Verification Targets: cancellation command endpoint, cancellation status transitions, audit trail, cancellation event publication
+- Invariants: client never cancels; cancellation не обходит server-side state machine
+
+### TASK-FT006-05 — Implement manual refund tracking state and note persistence
+- TASK-ID: `TASK-FT006-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-006`
+- REQs: `REQ-012`, `REQ-018`
+- Depends on: `TASK-FT006-01`, `TASK-FT006-02`, `TASK-FT006-04`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/order-cancellation/application/**/*`, `backend/src/slices/order-cancellation/domain/**/*`, `backend/src/slices/order-cancellation/infrastructure/**/*`, `tests/slices/order-cancellation/**/*`
+- Tests: integration tests for paid cancellation -> `PENDING_MANUAL`, refund note persistence, transitions to `DONE/REJECTED`, and audit writes for manual refund updates
+- Verify: paid cancelled orders never remain without visible refund tracking state; manual refund progress and notes persist explicitly and are auditable
+- Docs: `features/FT-006`, `runbooks/manual-refund-and-negative-alerts.md` при необходимости, `changelog.md`
+- Constraints: refund remains manual; no automated provider refund side effects
+
+### TASK-FT006-06 — Wire operator cancellation and refund tracking UX to backend flow
+- TASK-ID: `TASK-FT006-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-006`
+- REQs: `REQ-011`, `REQ-012`, `REQ-018`
+- Depends on: `TASK-FT006-03`, `TASK-FT006-04`, `TASK-FT006-05`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/tests/admin/**/*`
+- Tests: UI/integration smoke for allowed cancellation, forbidden cancellation messaging, refund-state rendering and manual refund note/status updates
+- Verify: operator/admin UI показывает allowed/forbidden cancellation outcomes и явный refund tracking state без скрытых side effects
+- Docs: `features/FT-006`, `changelog.md`
+
+### Wave W3 — integration & polish
+
+### TASK-FT006-07 — Add cancellation and refund verification suite
+- TASK-ID: `TASK-FT006-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-006`
+- REQs: `REQ-011`, `REQ-012`, `REQ-018`
+- Depends on: `TASK-FT006-04`, `TASK-FT006-05`, `TASK-FT006-06`
+- Touched files: `tests/slices/order-cancellation/**/*`, `frontend/src/tests/admin/**/*`, `.tasks/TASK-FT006-07/**/*`, `.memory-bank/features/FT-006-operational-cancellation-and-manual-refund.md`
+- Tests: final backend integration and e2e smoke for admin/courier allowed cancellation plus refund-state visibility
+- Verify: acceptance criteria по allowed-role cancellation, client prohibition, cancellation actor/reason persistence, refund tracking и audit/event generation покрыты end-to-end evidence
+- Docs: `features/FT-006`, `changelog.md`, при необходимости `requirements.md`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`
+
+### TASK-FT006-08 — Sync final refund runbook evidence and docs closure
+- TASK-ID: `TASK-FT006-08`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-006`
+- REQs: `REQ-012`, `REQ-018`
+- Depends on: `TASK-FT006-05`, `TASK-FT006-06`, `TASK-FT006-07`
+- Touched files: `.tasks/TASK-FT006-08/**/*`, `.memory-bank/features/FT-006-operational-cancellation-and-manual-refund.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, при необходимости `.memory-bank/runbooks/manual-refund-and-negative-alerts.md`
+- Tests: final refund tracking regression and operator evidence bundle for manual refund lifecycle
+- Verify: final closure явно подтверждает manual refund workflow, RTM остается согласованной, а repo-local evidence показывает отсутствие cancelled paid orders без refund tracking state
+- Docs: `features/FT-006`, `requirements.md`, `changelog.md`, при необходимости `runbooks/manual-refund-and-negative-alerts.md`
+- Quality Gates: `integration`, `e2e smoke`, `manual refund verify evidence`
+
+## FT-007 — Admin Auth And Session Security
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT007-01 — Freeze admin auth boundary, provisioning baseline and session policy
+- TASK-ID: `TASK-FT007-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/tasks/plans/IMPL-FT-007.md`, `.memory-bank/contracts/admin-auth-contract.md`, `.memory-bank/runbooks/security-auth-and-secret-response.md`, при необходимости `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Verify: подтвердить, что no-self-signup baseline, boss-controlled provisioning boundary, lockout/session lifetime policy, audit/error semantics и transport decision явно зафиксированы и не конфликтуют с EP-003/RTM
+- Docs: `features/FT-007`, `tasks/plans/IMPL-FT-007`, `contracts/admin-auth-contract.md`, при необходимости `runbooks/security-auth-and-secret-response.md`, `testing/index.md`
+- Normative Inputs: `FT-007`, `requirements.md`, `admin-auth-contract.md`, `security-auth-and-secret-response.md`, `system-contours-and-slices.md`, `testing/index.md`
+
+### TASK-FT007-02 — Scaffold backend admin-access slice and persistence/test baseline
+- TASK-ID: `TASK-FT007-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/admin-access/**/*`, `backend/src/shared/**/*`, `tests/slices/admin-access/**/*`
+- Tests: backend test skeleton for credentials verification, lockout window, session lifetime and auth audit integration
+- Verify: repo содержит owning `admin-access` slice skeleton и execution-ready persistence/test harness без выноса credentials/session invariants в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: ownership credentials, sessions и auth audit остается внутри `admin-access`
+
+### TASK-FT007-03 — Scaffold admin login route, protected shell and frontend test harness
+- TASK-ID: `TASK-FT007-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`
+- Depends on: `TASK-FT007-01`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/app/**/*`, при необходимости `frontend/src/shared/ui/**/*`
+- Tests: frontend/admin smoke skeleton for login form, protected-route shell and session-expired fallback rendering
+- Verify: admin-web login shell существует и может защищать existing assignment/cancellation routes без дублирования auth policy внутри feature pages
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: frontend не дублирует server-side auth rules; existing admin pages используют единый auth/session boundary
+
+### Wave W2 — core logic
+
+### TASK-FT007-04 — Implement backend login, lockout enforcement and auth audit
+- TASK-ID: `TASK-FT007-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-018`
+- Depends on: `TASK-FT007-01`, `TASK-FT007-02`
+- Touched files: `backend/src/slices/admin-access/presentation/**/*`, `backend/src/slices/admin-access/application/**/*`, `backend/src/slices/admin-access/domain/**/*`, `backend/src/slices/admin-access/infrastructure/**/*`, `tests/slices/admin-access/**/*`
+- Tests: integration tests for valid login, invalid credentials, 5-failures-in-15-minutes lockout, `429 TOO_MANY_REQUESTS`, and audit writes for `login_success/login_failed/locked`
+- Verify: `POST /admin/auth/login` аутентифицирует только provisioned accounts, включает lockout policy, пишет auth audit и возвращает controlled error contract без session side effects на неуспехе
+- Docs: `features/FT-007`, `changelog.md`, при необходимости `requirements.md`
+- Verification Targets: `POST /admin/auth/login`, lockout window, auth audit trail
+- Invariants: blocked account всегда получает `429`; failed login никогда не создает valid session chain
+
+### TASK-FT007-05 — Implement refresh, logout and session lifetime enforcement
+- TASK-ID: `TASK-FT007-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-007`
+- REQs: `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-01`, `TASK-FT007-02`, `TASK-FT007-04`
+- Touched files: `backend/src/slices/admin-access/presentation/**/*`, `backend/src/slices/admin-access/application/**/*`, `backend/src/slices/admin-access/domain/**/*`, `backend/src/slices/admin-access/infrastructure/**/*`, `tests/slices/admin-access/**/*`
+- Tests: integration tests for refresh token rotation, expired refresh rejection, idle-timeout expiry, logout revocation and absence of session resurrection after lifetime breach
+- Verify: `POST /admin/auth/refresh` и `POST /admin/auth/logout` соблюдают rotation/revocation policy, а expired or idle sessions не восстанавливаются вне допустимого lifetime
+- Docs: `features/FT-007`, `changelog.md`, при необходимости `requirements.md`
+- Verification Targets: `POST /admin/auth/refresh`, `POST /admin/auth/logout`, session repository lifetime rules
+- Constraints: предыдущий refresh token инвалидируется после rotation; secret-bearing tokens не логируются
+
+### Wave W3 — integration & polish
+
+### TASK-FT007-06 — Wire admin-web login and protected session UX
+- TASK-ID: `TASK-FT007-06`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-03`, `TASK-FT007-04`, `TASK-FT007-05`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/app/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/tests/admin/**/*`
+- Tests: UI/integration smoke for login happy path, protected-route redirect, locked/expired session messaging and logout flow
+- Verify: admin-web требует login перед existing operational pages, корректно обрабатывает valid refresh/logout paths и показывает controlled feedback для lockout/session expiry
+- Docs: `features/FT-007`, `changelog.md`
+- Constraints: `FT-004` и `FT-006` pages переиспользуют общий auth shell и не вводят page-local session logic
+
+### TASK-FT007-07 — Add admin auth verification suite and final docs sync
+- TASK-ID: `TASK-FT007-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`
+- Touched files: `tests/slices/admin-access/**/*`, `frontend/src/tests/admin/**/*`, `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.tasks/TASK-FT007-07/**/*`
+- Tests: final backend integration, admin login/refresh/logout e2e smoke, lockout/session/audit verify evidence bundle
+- Verify: acceptance criteria из `FT-007` полностью покрыты tests/UAT, RTM остается согласованной, а feature closure не размывает scope в отдельный provisioning UI или unrelated admin capabilities
+- Docs: `features/FT-007`, `requirements.md`, `changelog.md`, при необходимости `runbooks/security-auth-and-secret-response.md`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `auth lockout/session/audit verify evidence`
+
+### Wave W4 — bugfix hardening
+
+### TASK-FT007-08 — Implement real admin HTTP auth endpoints and cookie transport enforcement
+- TASK-ID: `TASK-FT007-08`
+- Status: `failed`
+- Wave: `W4`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`, `TASK-FT007-07`
+- Touched files: `.memory-bank/bugs/BUG-2026-04-06-ft007-missing-admin-auth-runtime-cookie-boundary.md`, `.memory-bank/tasks/plans/IMPL-FT-007-BUGFIX-auth-runtime-cookie-boundary.md`, `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/contracts/admin-auth-contract.md` при необходимости, `backend/src/**/*`, `backend/src/slices/admin-access/**/*`, `tests/slices/admin-access/**/*`, `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`, `.memory-bank/changelog.md`
+- Tests: backend HTTP integration for `POST /api/v1/admin/auth/login|refresh|logout`, cookie attribute coverage, invalid `Origin/Referer` rejection, and admin-web happy-path smoke against the real backend runtime boundary
+- Verify: `admin-web` auth no longer relies on mock-only assumptions; runtime endpoints exist, cookie transport policy is enforced, and protected-route restore/login/logout succeed end-to-end through the real backend boundary
+- Docs: `bugs/BUG-2026-04-06-ft007-missing-admin-auth-runtime-cookie-boundary.md`, `features/FT-007`, `contracts/admin-auth-contract.md` при необходимости, `changelog.md`
+- Bug: `BUG-2026-04-06-ft007-missing-admin-auth-runtime-cookie-boundary`
+- Plan: `IMPL-FT-007-BUGFIX-auth-runtime-cookie-boundary`
+- Constraints: не разносить admin auth ownership по page-level routes; secret-bearing tokens остаются только в HTTPS-only HttpOnly cookies; `Secure`/`HttpOnly`/`SameSite=Lax` и `Origin/Referer` validation обязательны, а не optional hardening
+
+### TASK-FT007-09 — Mount admin auth HTTP handler into the checked-in backend runtime entrypoint
+- TASK-ID: `TASK-FT007-09`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT007-08`
+- Touched files: `scripts/dev-api.mjs` или другой checked-in backend runtime entrypoint, `backend/src/slices/admin-access/presentation/admin-auth-http.ts`, `frontend/src/tests/admin/**/*`, `tests/slices/admin-access/**/*`, `.memory-bank/bugs/BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime.md`, `.memory-bank/changelog.md`
+- Tests: runtime verification against the actual mounted repo-local backend entrypoint used by `vite` proxy, plus regression coverage for mounted login/refresh/logout/cookie/origin behavior
+- Verify: `/api/v1/admin/auth/*` реально доступны через checked-in app runtime, а не только через test-created helper server
+- Docs: `bugs/BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime.md`, `features/FT-007`, `changelog.md`
+- Bug: `BUG-2026-04-06-ft007-admin-auth-handler-not-mounted-in-runtime`
+- Constraints: использовать реальный repo-local runtime entrypoint, не подменять fix очередным test-only harness
+- Result: `dev:api` now mounts `createAdminAuthHttpHandler` through the checked-in runtime used by the Vite `/api` proxy, and runtime-backed tests target that same mounted server module.
+
+### TASK-FT007-10 — Route `/admin/*` through the admin router via the shared frontend entrypoint
+- TASK-ID: `TASK-FT007-10`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-007`
+- REQs: `REQ-015`, `REQ-017`
+- Depends on: `TASK-FT007-06`, `TASK-FT007-07`, `TASK-FT007-09`
+- Touched files: `index.html`, `frontend/src/app/main.tsx`, `frontend/src/admin/main.tsx` при необходимости, `frontend/src/app/router.tsx` при необходимости, `frontend/src/tests/admin/**/*`, `frontend/src/tests/app/**/*`, `.memory-bank/features/FT-007-admin-auth-and-session-security.md`, `.memory-bank/changelog.md`
+- Tests: frontend route smoke for `/admin/login` renders `AdminLoginPage` instead of catalog; `/admin/assignments` still goes through `AdminProtectedShell`; customer routes `/`, `/checkout`, `/tracking` still render the customer app; `npm run build:frontend` still passes
+- Verify: shared `index.html` / frontend bootstrap chooses `AdminRouter` for pathname prefix `/admin`, non-admin paths still use `AppRouter`, and `/admin/login` no longer falls back to catalog in production build/runtime
+- Docs: `features/FT-007`, `changelog.md`
+- Constraints: не вводить второй deploy path или отдельный admin HTML entrypoint; оставить один общий frontend entrypoint; не дублировать routing/bootstrap logic больше необходимого; изменение должно быть минимальным и совместимым с текущим Vite build
+- Result: one shared frontend bootstrap routes between the customer app and the admin app based on `window.location.pathname`
+
+## FT-008 — Two-Sided Reviews And Negative Alerts
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT008-01 — Freeze review payload, duplicate-safety and negative alert boundary
+- TASK-ID: `TASK-FT008-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md`, `.memory-bank/tasks/plans/IMPL-FT-008.md`, `.memory-bank/contracts/telegram-bot-contract.md`, `.memory-bank/runbooks/manual-refund-and-negative-alerts.md`, при необходимости `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-013`, `REQ-014`
+- Verify: подтвердить, что `COMPLETED` activation gate, structured review payload, duplicate/replay guard, `review.negative` fan-out semantics и verify ownership явно зафиксированы и не конфликтуют с EP-004/RTM
+- Docs: `features/FT-008`, `tasks/plans/IMPL-FT-008`, `contracts/telegram-bot-contract.md`, при необходимости `runbooks/manual-refund-and-negative-alerts.md`, `testing/index.md`
+- Normative Inputs: `FT-008`, `requirements.md`, `telegram-bot-contract.md`, `manual-refund-and-negative-alerts.md`, `events-polling-and-bot-runtime.md`, `testing/index.md`
+
+### TASK-FT008-02 — Scaffold backend reviews-feedback slice and persistence/test baseline
+- TASK-ID: `TASK-FT008-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/reviews-feedback/**/*`, `backend/src/shared/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: backend test skeleton for completed-order gating, review persistence, duplicate guard and negative alert integration
+- Verify: repo содержит owning `reviews-feedback` slice skeleton и execution-ready persistence/test harness без выноса review business rules в `shared`
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: ownership review semantics и `review.negative` остается внутри `reviews-feedback`
+
+### TASK-FT008-03 — Scaffold Telegram bot review stepper and alert harness
+- TASK-ID: `TASK-FT008-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-01`
+- Touched files: `backend/src/integrations/telegram-bot/**/*`, `tests/slices/reviews-feedback/**/*`, при необходимости `backend/src/shared/**/*`
+- Tests: bot contract skeleton for review step prompts, callback parsing, dedupe keys and negative alert dispatch targeting
+- Verify: repo содержит minimal Telegram review-stepper/alert harness, переиспользующий existing bot integration patterns без втягивания admin auth/session scope
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: transport/runtime layer не владеет review rules; duplicate delivery не создает domain side effects
+
+### Wave W2 — core logic
+
+### TASK-FT008-04 — Implement completed-only review submission, structured payload persistence and duplicate guard
+- TASK-ID: `TASK-FT008-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-008`
+- REQs: `REQ-013`
+- Depends on: `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT005-07`
+- Touched files: `backend/src/slices/reviews-feedback/presentation/**/*`, `backend/src/slices/reviews-feedback/application/**/*`, `backend/src/slices/reviews-feedback/domain/**/*`, `backend/src/slices/reviews-feedback/infrastructure/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: integration tests for completed-order gating, actor/direction validation, required `rating/reason_code`, optional `comment`, and duplicate/replay submission protection
+- Verify: review write-path доступен только после `COMPLETED`, сохраняет structured payload и не создает повторный review при duplicate bot delivery
+- Docs: `features/FT-008`, `changelog.md`, при необходимости `requirements.md`
+- Verification Targets: review submission command path, duplicate guard, persisted review model
+- Invariants: незавершенный заказ не принимает review; duplicate delivery никогда не создает second review record
+
+### TASK-FT008-05 — Implement negative alert publication and active-admin Telegram fan-out
+- TASK-ID: `TASK-FT008-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-008`
+- REQs: `REQ-014`
+- Depends on: `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT008-03`, `TASK-FT008-04`
+- Touched files: `backend/src/slices/reviews-feedback/application/**/*`, `backend/src/slices/reviews-feedback/infrastructure/**/*`, `backend/src/integrations/telegram-bot/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: integration/contract tests for `rating <= 2` alert generation, `review.negative` publication, active-admin targeting and no duplicate escalation on replay
+- Verify: low rating с любой стороны публикует canonical `review.negative` и вызывает ровно один alert fan-out активным администраторам через bot/runtime boundary
+- Docs: `features/FT-008`, `runbooks/manual-refund-and-negative-alerts.md` при необходимости, `changelog.md`
+- Constraints: alert recipient resolution не переносит ownership admin auth/session в `FT-008`; transport retry не дублирует негативную эскалацию
+
+### TASK-FT008-06 — Wire bot-guided client and courier review flows
+- TASK-ID: `TASK-FT008-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`
+- Touched files: `backend/src/slices/reviews-feedback/**/*`, `backend/src/integrations/telegram-bot/**/*`, `tests/slices/reviews-feedback/**/*`
+- Tests: bot flow/integration smoke for client and courier review step progression `rating -> reason_code -> comment(optional)` plus controlled duplicate handling
+- Verify: Telegram bot review flow проходит обе стороны feedback loop и корректно доводит пользователя до backend review submission без bypass server-side validation
+- Docs: `features/FT-008`, `changelog.md`
+- Constraints: bot stepper reuse existing integration patterns; review flow не требует отдельного web UI
+
+### Wave W3 — integration & polish
+
+### TASK-FT008-07 — Add reviews and negative-alert verification suite plus final docs sync
+- TASK-ID: `TASK-FT008-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`
+- Touched files: `tests/slices/reviews-feedback/**/*`, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.tasks/TASK-FT008-07/**/*`, при необходимости `.memory-bank/runbooks/manual-refund-and-negative-alerts.md`
+- Tests: final backend integration, bot-guided two-sided review e2e smoke, negative-alert verify evidence bundle
+- Verify: acceptance criteria из `FT-008` полностью покрыты tests/UAT, RTM остается согласованной, а duplicate-safe review + low-rating fan-out closure подтверждены repo-local evidence
+- Docs: `features/FT-008`, `requirements.md`, `changelog.md`, при необходимости `runbooks/manual-refund-and-negative-alerts.md`
+- Quality Gates: `lint`, `typecheck`, `unit`, `integration`, `e2e smoke`, `review/negative-alert verify evidence`
+
+### Wave W4 — bugfix hardening
+
+### TASK-FT008-08 — Reject stale Telegram review callbacks with revision-aware step validation
+- TASK-ID: `TASK-FT008-08`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`, `TASK-FT008-07`
+- Touched files: `.memory-bank/bugs/BUG-2026-04-06-ft008-stale-review-callback-replay-gap.md`, `.memory-bank/tasks/plans/IMPL-FT-008-BUGFIX-review-callback-replay-hardening.md`, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md` при необходимости, `.memory-bank/contracts/telegram-bot-contract.md` при необходимости, `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.harness.ts`, `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts`, `tests/slices/reviews-feedback/**/*`, `.memory-bank/changelog.md`
+- Tests: bot contract/integration tests for stale rating and reason-code callbacks, replay of older prompt buttons after newer prompts, and regression coverage proving final submit plus `review.negative` semantics remain duplicate-safe
+- Verify: replayed or stale step callbacks no longer mutate the current draft; intermediate wizard transitions are revision-aware while final persisted review submission remains duplicate-safe
+- Docs: `bugs/BUG-2026-04-06-ft008-stale-review-callback-replay-gap.md`, `features/FT-008` при необходимости, `contracts/telegram-bot-contract.md` при необходимости, `changelog.md`
+- Bug: `BUG-2026-04-06-ft008-stale-review-callback-replay-gap`
+- Plan: `IMPL-FT-008-BUGFIX-review-callback-replay-hardening`
+- Constraints: сохранить owning `reviews-feedback` boundary; не ломать existing final-submit idempotency или low-rating alert fan-out semantics
+
+- Next recommended action: переходить к `TASK-FT008-09` для явного решения по runtime guarantees/durability review draft state.
+
+### TASK-FT008-09 — Make review-draft runtime guarantees explicit and durable if required
+- TASK-ID: `TASK-FT008-09`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-06`, `TASK-FT008-07`
+- Touched files: `.memory-bank/bugs/BUG-2026-04-06-ft008-ephemeral-review-draft-state.md`, `.memory-bank/tasks/plans/IMPL-FT-008-BUGFIX-review-draft-durability.md`, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md` при необходимости, `.memory-bank/contracts/telegram-bot-contract.md` при необходимости, `.memory-bank/runbooks/manual-refund-and-negative-alerts.md` при необходимости, `backend/prisma/schema.prisma` при необходимости, `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts`, `backend/src/slices/reviews-feedback/**/*` при необходимости, `tests/slices/reviews-feedback/**/*`, `.memory-bank/changelog.md`
+- Tests: integration/harness coverage for review flow resume after draft reload/reconstruction when durable behavior is chosen, regression checks for duplicate-safe submit and low-rating alerts, and explicit runtime evidence for the chosen guarantee or fallback assumption
+- Verify: restart/multi-instance assumptions are either fixed in runtime or explicitly narrowed and verified in docs/runbooks; the project no longer relies on an implicit draft-durability assumption
+- Docs: `bugs/BUG-2026-04-06-ft008-ephemeral-review-draft-state.md`, `features/FT-008` при необходимости, `contracts/telegram-bot-contract.md` при необходимости, `runbooks/manual-refund-and-negative-alerts.md` при необходимости, `changelog.md`
+- Bug: `BUG-2026-04-06-ft008-ephemeral-review-draft-state`
+- Plan: `IMPL-FT-008-BUGFIX-review-draft-durability`
+- Constraints: не размывать ownership финального review submit path; предпочесть минимально достаточную strategy и сначала зафиксировать product/runtime decision вместо автоматического broad rewrite
+
+- Red-verify note: core runtime fragility is fixed, but operational closure is not complete until schema rollout and expired-draft retention policy are made explicit.
+
+### TASK-FT008-10 — Close ReviewDraft rollout and retention operational assumptions
+- TASK-ID: `TASK-FT008-10`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-008`
+- REQs: `REQ-013`, `REQ-014`
+- Depends on: `TASK-FT008-09`
+- Touched files: `backend/prisma/migrations/**/*` или другой checked-in Prisma rollout artifact, `.memory-bank/features/FT-008-two-sided-reviews-and-negative-alerts.md` при необходимости, `.memory-bank/runbooks/manual-refund-and-negative-alerts.md` при необходимости, `.memory-bank/changelog.md`, `.protocols/TASK-FT008-09/red-verification.md` как input
+- Tests: rollout-aware verification that the checked-in runtime can materialize `ReviewDraft`, plus explicit retention/cleanup evidence or docs for expired drafts
+- Verify: durable review draft semantics are not only correct in code but operationally deployable and maintainable; schema rollout and retention policy are no longer implicit assumptions
+- Docs: `features/FT-008`, `runbooks/manual-refund-and-negative-alerts.md`, `changelog.md`, при необходимости новый runbook/ops note
+- Source: `TASK-FT008-09` red-verify semantic concern
+- Constraints: не переписывать review flow заново; закрыть именно rollout/retention assumptions минимально достаточным способом
+- Result: checked-in Prisma SQL rollout artifact now materializes `ReviewDraft`, and expired rows are explicitly delete-safe by runbook policy once `expiresAt <= now()`.
+
+## FT-009 — Mini App Shell And WebView UX
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT009-01 — Freeze shell runtime, storage and verify boundaries
+- TASK-ID: `TASK-FT009-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`, `REQ-023`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/tasks/plans/IMPL-FT-009.md`, `.memory-bank/contracts/mini-app-runtime-contract.md`, `.memory-bank/runbooks/telegram-mini-app-verification.md`, при необходимости `.memory-bank/testing/index.md`
+- Tests: doc-level traceability review against `REQ-019`, `REQ-022`, `REQ-023`
+- Verify: подтвердить, что `ready()/expand()`, safe-area, stable viewport, theme/lifecycle, centralized back/swipe policy и client-matrix ownership явно зафиксированы и не конфликтуют с уже выполненными `FT-002/FT-003`
+- Docs: `features/FT-009`, `contracts/mini-app-runtime-contract.md`, `runbooks/telegram-mini-app-verification.md`, `tasks/plans/IMPL-FT-009`
+- Normative Inputs: `FT-009`, `requirements.md`, `mini-app-runtime-contract.md`, `frontend-presentation-and-webview.md`, `testing/index.md`, `telegram-mini-app-verification.md`
+- Constraints: не переносить checkout/localization domain logic в shell layer; `REQ-022` учитывать только в shared shell/storage boundary части
+
+### TASK-FT009-02 — Scaffold app-level shell boundary and runtime test harness
+- TASK-ID: `TASK-FT009-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`
+- Depends on: `TASK-FT009-01`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/shared/telegram/**/*`, `frontend/src/shared/state/**/*`, `frontend/src/shared/styles/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/shared/**/*`
+- Tests: frontend unit/contract skeleton for shell state, runtime adapter events and app shell boundary
+- Verify: repo содержит централизованный shell boundary/runtime scaffold без direct component-level `Telegram.WebApp.*` access и с execution-ready Jest coverage для shell primitives
+- Docs: `tasks/backlog.md`, `changelog.md` при фактической реализации
+- Constraints: shell остается technical enabling layer; не дублировать slice-specific orchestration в `shared`
+
+- Next recommended action: закрытие `FT-009` завершено; переходить к следующей feature backlog wave.
+
+### Wave W2 — core logic
+
+### TASK-FT009-03 — Implement runtime adapter for theme, safe-area, stable viewport and lifecycle
+- TASK-ID: `TASK-FT009-03`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-023`
+- Depends on: `TASK-FT009-01`, `TASK-FT009-02`
+- Touched files: `frontend/src/shared/telegram/**/*`, `frontend/src/shared/state/**/*`, `frontend/src/shared/styles/**/*`, `frontend/src/app/**/*`, `frontend/src/tests/shared/**/*`, `frontend/src/tests/app/**/*`
+- Tests: unit/contract tests for `ready()/expand()`, `isVersionAtLeast()`, theme/safe-area/viewport/lifecycle events and CSS variable propagation
+- Verify: runtime adapter централизует Telegram WebApp event handling, использует `viewportStableHeight` как layout source of truth и не опирается на `env(safe-area-inset-*)` как основной baseline
+- Docs: `features/FT-009`, `contracts/mini-app-runtime-contract.md`, `changelog.md`
+- Verification Targets: runtime adapter wrappers, shell state transitions, stable viewport and safe-area CSS sync
+- Invariants: `viewportHeight` не становится primary anchor; старые Telegram clients получают graceful fallback
+
+### TASK-FT009-04 — Wire shell baseline into catalog and checkout UX
+- TASK-ID: `TASK-FT009-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`
+- Depends on: `TASK-FT009-02`, `TASK-FT009-03`, `TASK-FT002-07`, `TASK-FT003-05`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/shared/styles/**/*`, `frontend/src/slices/catalog/**/*`, `frontend/src/slices/checkout-payment/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/slices/catalog/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`
+- Tests: route/page smoke for shell-wrapped catalog/checkout rendering, loader/disabled action feedback and centralized back/swipe policy wiring
+- Verify: customer-facing catalog и checkout используют WebView-safe shell layout, visual confirmations и centralized shell policy без прямых Telegram runtime вызовов из slice-компонентов
+- Docs: `features/FT-009`, `changelog.md`
+- Constraints: business submit/auth/payment logic остается в owning slices; shell даёт только layout/runtime UX primitives
+
+### Wave W3 — integration & polish
+
+### TASK-FT009-05 — Add repo-local shell runtime verification suite
+- TASK-ID: `TASK-FT009-05`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-023`
+- Depends on: `TASK-FT009-03`, `TASK-FT009-04`
+- Touched files: `frontend/src/tests/app/**/*`, `frontend/src/tests/shared/**/*`, `frontend/src/tests/slices/catalog/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/changelog.md`
+- Tests: final repo-local unit/contract/runtime smoke for shell state, adapter events, catalog shell rendering and checkout visual feedback
+- Verify: acceptance criteria из `FT-009` покрыты repo-local deterministic tests, а shell runtime evidence достаточно для перехода к реальному Telegram client-matrix verify
+- Docs: `features/FT-009`, `changelog.md`, при необходимости `testing/index.md`
+- Quality Gates: `typecheck`, `unit`, `contract/runtime`, `route/page smoke`
+
+### TASK-FT009-06 — Sync Telegram client-matrix evidence and final shell docs closure
+- TASK-ID: `TASK-FT009-06`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-009`
+- REQs: `REQ-019`, `REQ-022`, `REQ-023`
+- Depends on: `TASK-FT009-03`, `TASK-FT009-04`, `TASK-FT009-05`
+- Touched files: `.tasks/TASK-FT009-06/**/*`, `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`, `.memory-bank/runbooks/telegram-mini-app-verification.md`
+- Tests: final repo-local shell/runtime suite, Telegram test environment usage где применимо, и mandatory real `Android Telegram` operator-confirmed evidence с customer-facing checkout UI
+- Verify: acceptance criteria из `FT-009` полностью покрыты tests/UAT, RTM остается согласованной, а shared shell/runtime closure для `REQ-019`, `REQ-022`, `REQ-023` явно подтверждена Android run notes; screenshots/videos optional
+- Docs: `features/FT-009`, `requirements.md`, `changelog.md`, `runbooks/telegram-mini-app-verification.md`, `index.md`
+- Quality Gates: `lint`, `typecheck`, `unit`, `contract/runtime`, `route/page smoke`, `Android Telegram runtime notes`
+
+## FT-010 — Seller Storefront Editing And Store Admin
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT010-01 — Scaffold backend catalog expansion, seller binding and provisioning baseline
+- TASK-ID: `TASK-FT010-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `none`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/shared/db/prisma-client.ts`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`
+- Tests: backend unit/integration skeleton for shop status, menu pages, seller binding, provisioning bootstrap and visibility read-model coverage
+- Verify: repo содержит execution-ready `catalog` persistence/test baseline для `WORKING/NOT_WORKING`, shop/product descriptions/media, menu pages и skeleton provisioning без выноса business logic в `shared`
+- Docs: `tasks/backlog.md`, `tasks/plans/IMPL-FT-010.md`, `changelog.md` при фактической реализации
+- Normative Inputs: `FT-010`, `catalog-seller-provisioning-and-visibility.md`, `seller-catalog-write-policy.md`, `data-boundaries-and-persistence.md`, `testing/index.md`
+- Constraints: legacy soft-delete нельзя закреплять как новый продуктовый boundary; ownership остается внутри `catalog`
+
+### TASK-FT010-02 — Scaffold shared storefront, `/seller/*`, and admin provisioning route boundaries
+- TASK-ID: `TASK-FT010-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `none`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/shared/lib/routes.ts`, `frontend/src/slices/catalog/**/*`, `frontend/src/admin/**/*`, `frontend/src/seller/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/seller/**/*`, `frontend/src/tests/slices/catalog/**/*`
+- Tests: route shell/test skeleton for shared storefront edit boundary, seller-web status page and admin provisioning screen
+- Verify: frontend contour scaffolding различает customer, admin и seller paths, но будущий seller edit mode остается на том же storefront tree, что и customer browse
+- Docs: `tasks/backlog.md`, `tasks/plans/IMPL-FT-010.md`, `changelog.md` при фактической реализации
+- Constraints: не вводить второй storefront implementation или отдельный seller HTML/bootstrap entrypoint без явной необходимости
+
+- Implementation note: checked-in frontend now routes `/shops/:shopId` through the same `CatalogRoute` tree as `/`, adds a narrow `/seller/shops/status` scaffold under `seller-web`, and mounts an authenticated admin provisioning page shell at `/admin/catalog/shops/provision` without introducing a second storefront bootstrap.
+
+- Next recommended action: `TASK-FT010-01` и `TASK-FT010-02` можно запускать параллельно; backend schema/slice baseline и frontend contour scaffold не конкурируют за одни и те же файлы.
+
+### Wave W2 — core logic
+
+### TASK-FT010-03 — Implement admin provisioning command and skeleton shop bootstrap
+- TASK-ID: `TASK-FT010-03`
+- Status: `failed`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`
+- Depends on: `TASK-FT010-01`
+- Touched files: `backend/prisma/schema.prisma`, `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*`, `tests/slices/catalog/**/*`
+- Tests: integration tests for admin provisioning, duplicate seller binding/provision conflicts, starter menu page/product creation and failure rollback
+- Verify: admin provisioning atomically создает shop, seller binding и starter catalog data; seller не стартует с пустого storefront shell
+- Docs: `features/FT-010`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`
+- Verification Targets: admin provisioning command path, skeleton shop creation, Telegram-linked seller binding
+- Invariants: partial shop/binding state не сохраняется при conflict/error; starter pages/products всегда создаются вместе с первым shop; canonical seller ownership between `Shop.sellerId` and Telegram-linked binding must be explicit and non-divergent
+
+### TASK-FT010-04 — Implement seller capability resolution and status-based catalog visibility
+- TASK-ID: `TASK-FT010-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-01`, `TASK-FT010-10`, `TASK-FT002-04`
+- Touched files: `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*`, `backend/src/slices/checkout-payment/**/*` при необходимости, `tests/slices/catalog/**/*`
+- Tests: integration tests for authenticated seller vs non-owner vs anonymous access across public browse, owner reads and `/seller/*` guards
+- Verify: server-side ownership resolution переиспользует Telegram-linked session family, не опирается на client-only seller flags и скрывает `NOT_WORKING` shops от public browse, оставляя их видимыми owning seller-у
+- Docs: `features/FT-010`, `contracts/catalog-seller-access-and-session.md`, `contracts/catalog-public-api.md`, `changelog.md`
+- Constraints: public browse остается auth-free; отдельный seller password/auth endpoint не вводится
+- Verification Targets: seller capability/read boundary, `WORKING/NOT_WORKING` visibility, `/seller/*` auth failure posture
+- Red-verify focus: capability resolution MUST trust Telegram-linked seller binding/session family rather than `shop.sellerId` alone
+
+### TASK-FT010-05 — Implement seller catalog writes for shop, menu page and product edit surfaces
+- TASK-ID: `TASK-FT010-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-01`, `TASK-FT010-04`
+- Touched files: `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `tests/slices/catalog/**/*`
+- Tests: integration tests for owned shop metadata edits, menu page add/rename, product description/image/price edits, rename policy and no-delete guardrails
+- Verify: seller может менять только owned shop/menu/product fields, `shop_name_snapshot` historical orders остается неизменным, а destructive removal semantics нигде не появляются
+- Docs: `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Invariants: foreign shop/menu/product writes fail closed; `REQ-020` rename/snapshot policy сохраняется при расширении editable fields
+- Constraints: add/edit flows допустимы, delete UI/API для seller baseline не допускаются
+
+### TASK-FT010-06 — Wire shared storefront seller edit mode into the existing catalog tree
+- TASK-ID: `TASK-FT010-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`
+- Depends on: `TASK-FT010-02`, `TASK-FT010-04`, `TASK-FT010-05`, `TASK-FT009-04`
+- Touched files: `frontend/src/app/**/*`, `frontend/src/slices/catalog/**/*`, `frontend/src/shared/ui/**/*`, `frontend/src/shared/i18n/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/slices/catalog/**/*`
+- Tests: route/component smoke for seller-owned edit affordances, contextual `click/long press` activation, controlled save feedback and absence of a second seller storefront tree
+- Verify: seller редактирует owned storefront на том же component tree, что и customer browse; non-seller users остаются в browse-only режиме, а новые menu/product flows не ломают storefront layout
+- Docs: `features/FT-010`, `changelog.md`
+- Constraints: не форкать catalog page в отдельный seller-only tree; использовать существующие shell/runtime primitives
+
+### TASK-FT010-07 — Wire seller-web status toggle and admin provisioning UI flows
+- TASK-ID: `TASK-FT010-07`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-02`, `TASK-FT010-10`, `TASK-FT010-04`, `TASK-FT010-05`
+- Touched files: `frontend/src/app/root-router.tsx`, `frontend/src/admin/**/*`, `frontend/src/seller/**/*`, `frontend/src/shared/lib/routes.ts`, `frontend/src/tests/app/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/seller/**/*`, `backend/src/dev-runtime/**/*`
+- Tests: UI/integration smoke for admin provisioning form, seller-web status toggle, forbidden/unauthenticated seller-web states and same-user access reuse/handoff
+- Verify: admin может создать и привязать shop из admin contour, seller может переключать статус только owned shop в `/seller/*`, а store-admin остается narrow surface без stats/reporting
+- Docs: `features/FT-010`, `contracts/catalog-seller-access-and-session.md`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`
+- Constraints: `/seller/*` должен оставаться отдельным contour от `/admin/*`, но внутри одной shared seller identity/session family; cross-slice reporting не добавлять
+
+### Wave W3 — integration & polish
+
+### TASK-FT010-08 — Add FT-010 verification suite and final docs/RTM sync
+- TASK-ID: `TASK-FT010-08`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-10`, `TASK-FT010-04`, `TASK-FT010-05`, `TASK-FT010-06`, `TASK-FT010-07`
+- Touched files: `tests/slices/catalog/**/*`, `frontend/src/tests/app/**/*`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/seller/**/*`, `frontend/src/tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/requirements.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`, `.tasks/TASK-FT010-08/**/*`
+- Tests: final backend integration, frontend shared-storefront and seller-web/admin smoke, UAT notes for admin provisioning and owner/public visibility, and explicit no-delete evidence
+- Verify: acceptance criteria из `FT-010` полностью покрыты tests/UAT, RTM остается согласованной, `NOT_WORKING` public gating доказан, а shared storefront и `/seller/*` остаются delete-free в baseline scope
+- Docs: `features/FT-010`, `requirements.md`, `changelog.md`, `index.md`, `.tasks/TASK-FT010-08/**/*`
+- Quality Gates: `npm run lint`, `npm run test:catalog`, `jest --config jest.config.cjs frontend/src/tests/admin`, `jest --config jest.config.cjs frontend/src/tests/seller`, `npm run build:frontend`
+- Verification Targets: shared storefront edit mode, skeleton provisioning, seller-web toggle, public visibility gating, no-delete baseline
+
+### TASK-FT010-20 — Isolate seller-web status toggle from stale storefront metadata writes
+- TASK-ID: `TASK-FT010-20`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-07`, `TASK-FT010-18`, `TASK-FT010-19`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/catalog/**/*`, `frontend/src/seller/**/*`, `tests/slices/catalog/**/*`, `frontend/src/tests/seller/**/*`, `frontend/src/tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/changelog.md`
+- Tests: focused runtime/integration coverage proving seller-web status toggles do not overwrite stale shop metadata last changed through the shared storefront, plus seller route regression coverage for status-only submit semantics
+- Verify: narrow `/seller/*` status control persists only `WORKING/NOT_WORKING` intent and cannot silently roll back `shop.name/description/media` from stale local state
+- Docs: `features/FT-010`, `changelog.md`, `.tasks/TASK-FT010-20/**/*`
+- Constraints: не превращать narrow status control в второй широкий storefront editor; не ломать existing rename/snapshot policy; prefer explicit status-only command or patch semantics over resubmitting unrelated metadata
+
+### TASK-FT010-09 — Enforce admin auth and RBAC on provisioning runtime route
+- TASK-ID: `TASK-FT010-09`
+- Status: `failed`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`
+- Depends on: `TASK-FT010-03`, `TASK-FT007-09`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/catalog/presentation/**/*`, `backend/src/slices/admin-access/**/*`, `tests/slices/catalog/**/*`, `.memory-bank/bugs/BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md`
+- Tests: negative runtime tests for anonymous/non-admin callers plus happy-path admin provisioning regression coverage
+- Verify: mounted admin provisioning route reuses checked-in admin session family and fails closed for anonymous/non-admin callers before any catalog write side effects
+- Docs: `tasks/backlog.md`, `bugs/BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md`, `changelog.md` при фактической реализации
+- Constraints: не вводить parallel seller/admin auth model и не обходить existing admin cookie/session boundary
+
+### TASK-FT010-10 — Replace refresh-cookie shortcut with a real protected admin provisioning boundary
+- TASK-ID: `TASK-FT010-10`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-017`
+- Depends on: `TASK-FT010-09`, `TASK-FT007-09`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/admin-access/**/*`, `tests/slices/catalog/**/*`, `tests/slices/admin-access/**/*`, `.memory-bank/bugs/BUG-2026-04-10-ft010-provisioning-route-uses-refresh-cookie-as-auth.md`
+- Tests: runtime regressions for expired/missing protected admin session vs valid refresh cookie, plus preserved admin provisioning happy-path/conflict coverage
+- Verify: privileged provisioning write reuses the real admin protected-route boundary without treating refresh cookie as a direct auth bearer, and the `FT-007` session model remains semantically intact
+- Docs: `tasks/backlog.md`, `bugs/BUG-2026-04-10-ft010-provisioning-route-uses-refresh-cookie-as-auth.md`, `changelog.md` при фактической реализации
+- Constraints: не превращать refresh cookie в общий auth bearer для admin writes; не дублировать session semantics по route-local helpers
+
+### TASK-FT010-11 — Mount seller access on the real Mini App auth/session runtime boundary
+- TASK-ID: `TASK-FT010-11`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-022`
+- Depends on: `TASK-FT010-04`, `TASK-FT002-04`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/checkout-payment/**/*`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: runtime/integration tests proving seller-protected reads reuse the same persistent Mini App session family and survive the checked-in backend auth/runtime boundary rather than a route-local in-memory clone
+- Verify: seller-owned catalog reads are mounted on the real checked-in Mini App auth/session runtime path backed by persistent `User` / `MiniAppSession` storage, so seller access no longer depends on a dev-runtime-local session clone
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/catalog-seller-access-and-session.md`, `changelog.md`
+- Constraints: не вводить отдельный seller auth model; не плодить второй session resolution path рядом с checkout/Mini App auth
+
+### TASK-FT010-12 — Remove route-local Mini App cookie issuance side channel
+- TASK-ID: `TASK-FT010-12`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-022`
+- Depends on: `TASK-FT010-11`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/checkout-payment/**/*`, `tests/slices/catalog/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: runtime/integration regressions proving mounted `POST /api/v1/auth/telegram` no longer predicts or reconstructs the session cookie token through route-local state, and stays aligned with the checked-in Mini App auth/session transport semantics
+- Verify: repo-local Mini App auth route consumes one explicit shared transport boundary for cookie issuance instead of the local `pendingMiniAppSessionToken` convention, so future checkout auth changes cannot silently drift at the cookie/session seam
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/telegram-mini-app-auth-contract.md`, `changelog.md`
+- Constraints: не возвращать route-local auth/session clone; не вводить отдельный seller auth transport
+
+### TASK-FT010-13 — Freeze or implement observability for seller catalog writes
+- TASK-ID: `TASK-FT010-13`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-018`, `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-05`
+- Touched files: `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/contracts/seller-catalog-write-policy.md`, `.memory-bank/invariants.md`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `.tasks/TASK-FT010-13/**/*`
+- Tests: integration coverage for seller shop/menu/product write observability or explicit verify evidence for a documented no-event exception
+- Verify: seller catalog writes no longer sit in an implicit silent-write gap relative to project-wide event/audit expectations; either canonical artifacts exist or the exception is frozen explicitly in spec/docs
+- Docs: `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-05`
+
+### TASK-FT010-14 — Align seller write observability across catalog adapters
+- TASK-ID: `TASK-FT010-14`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-018`, `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-13`
+- Touched files: `backend/src/slices/catalog/**/*`, `backend/src/dev-runtime/dev-api-server.ts`, `tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/contracts/seller-catalog-write-policy.md`, `.tasks/TASK-FT010-14/**/*`
+- Tests: runtime/integration coverage proving seller write observability semantics stay aligned across Prisma-backed and in-memory/runtime catalog adapters, or an explicit spec freeze that only the persisted adapter is normative
+- Verify: seller catalog write observability is no longer a Prisma-only implementation detail; adapter/runtime parity or an explicit bounded exception is made semantically clear and test-backed
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-13`
+
+### TASK-FT010-15 — Resolve seller event-sink parity for non-persistent catalog adapters
+- TASK-ID: `TASK-FT010-15`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-010`
+- REQs: `REQ-018`, `REQ-024`, `REQ-026`
+- Depends on: `TASK-FT010-14`
+- Touched files: `backend/src/dev-runtime/dev-api-server.ts`, `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/contracts/seller-catalog-write-policy.md`, `.tasks/TASK-FT010-15/**/*`
+- Tests: runtime/integration coverage proving alternate `catalog` adapters either write into one shared event-store analogue or a spec-frozen bounded exception explicitly documents why non-persistent adapters are not normative for sink semantics
+- Verify: seller write observability parity is closed not only at the returned artifact shape, but also at the operational event sink semantics relied on by the project-wide `events` model
+- Docs: `tasks/backlog.md`, `features/FT-010`, `contracts/seller-catalog-write-policy.md`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-14`
+
+### TASK-FT010-16 — Harden seller/admin contour route-family matching
+- TASK-ID: `TASK-FT010-16`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-02`
+- Touched files: `frontend/src/app/root-router.tsx`, `frontend/src/admin/app/router.tsx` if needed, `frontend/src/seller/app/router.tsx`, `frontend/src/shared/lib/routes.ts`, `frontend/src/tests/app/**/*`, `frontend/src/tests/seller/**/*`
+- Tests: hostile route smoke for adjacent prefixes like `/admin-help` and `/seller-guide`, plus explicit unknown seller-path behavior
+- Verify: contour routing respects slash-bounded route families instead of any broad string prefix, and seller/admin scaffolds no longer accept semantically foreign paths by accident; verified with targeted frontend router Jest coverage and lint on changed files
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-02`
+
+### TASK-FT010-17 — Remove implicit admin fallback for unknown `/admin/*` paths
+- TASK-ID: `TASK-FT010-17`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-010`
+- REQs: `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-16`
+- Touched files: `frontend/src/admin/app/router.tsx`, `frontend/src/tests/admin/**/*`, `frontend/src/tests/app/**/*` if needed, `.protocols/TASK-FT010-17/**/*`
+- Tests: hostile admin-route smoke proving unknown `/admin/*` paths no longer silently resolve to assignment/login fallbacks and instead return explicit not-found behavior under the admin contour
+- Verify: `admin-web` route handling becomes semantically aligned with the slash-bounded hardening already applied to the seller contour, so unsupported `/admin/*` paths cannot masquerade as valid operational screens by accident
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-16`
+
+### TASK-FT010-18 — Replace synthetic shared-storefront seller editing with canonical catalog data wiring
+- TASK-ID: `TASK-FT010-18`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-04`, `TASK-FT010-05`, `TASK-FT010-06`
+- Touched files: `frontend/src/slices/catalog/**/*`, `frontend/src/tests/slices/catalog/**/*`, `backend/src/dev-runtime/**/*` if seller storefront runtime surface must be mounted, and relevant `.memory-bank/*` docs
+- Tests: route/integration smoke proving `/shops/:shopId` loads real owner-visible menu pages/products for seller mode, owner-visible `NOT_WORKING` storefront data remains canonical, and submit flows call the checked-in backend seller write boundary instead of frontend-local success simulation
+- Verify: shared storefront seller edit mode no longer reconstructs pseudo-content from public browse or synthetic placeholders; it reads and writes canonical `catalog` data for owned shops while keeping the same storefront tree and browse-only fallback for non-sellers
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-06`
+
+### TASK-FT010-19 — Reconcile canonical seller storefront reads with unpaged legacy products
+- TASK-ID: `TASK-FT010-19`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-18`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/src/slices/catalog/**/*` if canonical read-model helpers need widening, `frontend/src/slices/catalog/**/*` only if explicit fallback rendering is required, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: hostile runtime/integration coverage proving owner-visible shared storefront reads do not drop real seller products when a checked-in shop still has `menuPageId = null` or no explicit menu pages
+- Verify: canonical seller storefront wiring remains semantically aligned for both newly provisioned skeleton shops and older checked-in product shapes, without falling back to synthetic pseudo-content or hiding real seller-owned items
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`
+- Source: opened by `red-verify` on `TASK-FT010-18`
+
+### TASK-FT010-21 — Replace synthetic storefront fallback with controlled missing/error states
+- TASK-ID: `TASK-FT010-21`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-025`, `REQ-026`
+- Depends on: `TASK-FT010-18`, `TASK-FT010-19`
+- Touched files: `frontend/src/slices/catalog/routes/**/*`, `frontend/src/slices/catalog/components/**/*`, `frontend/src/slices/catalog/api/**/*`, `frontend/src/tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: route/component regressions proving `/shops/:shopId` no longer fabricates synthetic browseable storefront content when canonical seller data and public data are both missing or failing; instead it renders controlled not-found/error states while preserving valid public/seller scenarios
+- Verify: shared storefront seller mode must not reconstruct fake products or a fake shop shell from swallowed errors or absent data; nonexistent/failed storefront loads return explicit controlled states, while legitimate public browse and owner-visible storefront cases remain intact
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`, `index.md`
+- Source: opened from `/review` finding after `FT-010` closure
+
+## FT-011 — DB-Backed Catalog Runtime Baseline
+
+### Wave W1 — low-risk / foundation
+
+### TASK-FT011-01 — Switch repo-local catalog runtime to the Prisma-backed module
+- TASK-ID: `TASK-FT011-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-011`
+- REQs: `REQ-027`
+- Depends on: `none`
+- Touched files: `backend/src/dev-runtime/dev-api-server.ts`, `backend/src/slices/catalog/presentation/catalog.module.ts`, `backend/src/shared/db/**/*`, `tests/slices/catalog/catalog.runtime.integration.spec.ts`, and relevant `.memory-bank/*` docs
+- Tests: runtime/integration coverage proving the mounted repo-local API no longer uses `InMemoryCatalogRepository` as the default `catalog` path
+- Verify: `dev:api` and equivalent repo-local runtime entrypoints resolve `catalog` through the checked-in Prisma-backed module, while any remaining in-memory adapter stays explicitly non-normative
+- Docs: `tasks/backlog.md`, `tasks/plans/IMPL-FT-011.md`, `features/FT-011`, `changelog.md`
+- Normative Inputs: `FT-011`, `catalog-public-api.md`, `catalog-seller-access-and-session.md`, `system-contours-and-slices.md`, `data-boundaries-and-persistence.md`
+
+### TASK-FT011-02 — Replace hidden in-memory demo bootstrap with a DB-backed catalog seed baseline
+- TASK-ID: `TASK-FT011-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-011`
+- REQs: `REQ-027`
+- Depends on: `TASK-FT011-01`
+- Touched files: `backend/src/dev-runtime/**/*`, `backend/prisma/**/*`, repo seed/bootstrap scripts, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: bootstrap/runtime checks proving catalog start data comes from durable DB-backed seed/fixtures rather than process-local `seededShops/seededProducts`
+- Verify: local start/restart path no longer fabricates storefront availability from hidden process memory and can be repeated against the same persisted catalog state
+- Docs: `tasks/backlog.md`, `features/FT-011`, `testing/index.md`, `changelog.md`
+- Constraints: clean DB-backed baseline is acceptable; do not add legacy in-memory backfill logic
+
+### Wave W2 — core logic
+
+### TASK-FT011-03 — Enforce transactional catalog provisioning with fail-closed duplicate handling
+- TASK-ID: `TASK-FT011-03`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-028`
+- Depends on: `TASK-FT011-01`
+- Touched files: `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/domain/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*` if mounted transport needs alignment, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: integration coverage for `shop + seller binding + starter menu pages/products` commit/rollback semantics plus duplicate/conflict fail-closed behavior
+- Verify: provisioning either persists the full starter catalog bundle or rolls back entirely; duplicate/conflicting requests return controlled errors and leave no partial rows
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`
+- Verification Targets: `POST /api/v1/admin/catalog/shops/provision`
+
+### TASK-FT011-04 — Move storefront and seller catalog resolution onto persisted runtime state
+- TASK-ID: `TASK-FT011-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-027`
+- Depends on: `TASK-FT011-01`, `TASK-FT010-21`
+- Touched files: `backend/src/slices/catalog/**/*`, `backend/src/dev-runtime/**/*`, `frontend/src/slices/catalog/**/*` only if canonical read wiring exposes UI-state drift, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: runtime/integration coverage proving `/shops/:shopId`, public browse and seller-protected reads/writes survive restart/reset and do not fall back to synthetic or route-local state
+- Verify: all mounted catalog surfaces resolve canonical persisted data after runtime restart/reset, while missing persisted data returns controlled not-found/error outcomes instead of fabricated success
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/catalog-public-api.md`, `contracts/catalog-seller-access-and-session.md`, `changelog.md`
+- Invariants: shared storefront and `seller-web` keep existing ownership/no-delete semantics from `FT-010` while switching the runtime source of truth
+- Delivered: mounted seller capability checks and seller storefront payload resolution now use repository-backed catalog reads instead of direct `catalogState` access, and runtime coverage proves seller storefront data plus later seller edits survive restart on the same persisted DB path
+
+### TASK-FT011-05 — Add durability regression suite for restart-safe catalog behavior
+- TASK-ID: `TASK-FT011-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-027`, `REQ-028`
+- Depends on: `TASK-FT011-02`, `TASK-FT011-03`, `TASK-FT011-04`
+- Touched files: `tests/slices/catalog/**/*`, runtime test helpers, optional `.tasks/TASK-FT011-05/**/*`, and relevant `.memory-bank/*` docs
+- Tests: automated repo-local coverage for persisted provisioning, restart-safe storefront resolution, and duplicate/conflict rollback invariants on the mounted DB-backed runtime path
+- Verify: automated evidence now proves the feature beyond isolated repository tests and guards against regressions that silently reintroduce default in-memory runtime behavior
+- Docs: `tasks/backlog.md`, `testing/index.md`, `changelog.md`
+- Quality Gates: `npm run test:catalog`, plus any targeted runtime suite introduced by the task
+- Delivered: mounted runtime regressions now explicitly cover repeated identical provisioning after runtime restart on the same persisted DB path, and `npm run test:catalog:runtime` provides a dedicated rerunnable gate for the DB-backed durability/conflict suite
+
+### TASK-FT011-07 — Make provisioning conflict handling race-safe at the persistence boundary
+- TASK-ID: `TASK-FT011-07`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-028`
+- Depends on: `TASK-FT011-03`
+- Touched files: `backend/prisma/schema.prisma` if a canonical uniqueness key is required, `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/dev-runtime/**/*` only if mounted conflict semantics must stay aligned, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: hostile unit/integration/runtime coverage proving concurrent or repeated identical provisioning intent remains conflict-safe and leaves exactly one persisted starter bundle
+- Verify: duplicate/conflicting provisioning is enforced by a race-safe repository/DB boundary rather than only by a service-layer precheck, so concurrent identical requests cannot create duplicate durable rows
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`, `index.md`
+- Source: opened by `red-verify` on `TASK-FT011-03`
+- Delivered: canonical `Shop` identity uniqueness is now enforced as durable `sellerId + shop name`, the in-memory/runtime helper mirrors that boundary, and hostile integration/runtime coverage proves repeated or concurrent identical provisioning leaves exactly one starter bundle
+
+### TASK-FT011-08 — Reconcile seller rename conflicts with the durable shop identity invariant
+- TASK-ID: `TASK-FT011-08`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-011`
+- REQs: `REQ-028`, `REQ-020`
+- Depends on: `TASK-FT011-07`
+- Touched files: `backend/src/slices/catalog/application/**/*`, `backend/src/slices/catalog/infrastructure/**/*`, `backend/src/slices/catalog/presentation/**/*` only if error mapping must stay explicit at the HTTP boundary, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: focused unit/integration/runtime coverage proving the new durable `Shop(sellerId, name)` constraint yields controlled seller rename conflict behavior rather than raw persistence failures
+- Verify: seller rename collisions against another owned shop are either rejected through a controlled `409` business error or explicitly frozen as a different tested contract, so the provisioning uniqueness fix does not leave `FT-010` rename flows with opaque failures
+- Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/seller-catalog-write-policy.md`, `contracts/catalog-seller-provisioning-and-visibility.md`, `changelog.md`, `index.md`
+- Source: opened by `red-verify` on `TASK-FT011-07`
+
+### Wave W3 — integration & polish
+
+### TASK-FT011-06 — Close FT-011 with manual durability smoke and RTM/docs sync
+- TASK-ID: `TASK-FT011-06`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-011`
+- REQs: `REQ-027`, `REQ-028`
+- Depends on: `TASK-FT011-05`
+- Touched files: `.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md`, `.memory-bank/requirements.md`, `.memory-bank/testing/index.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`, optional `.memory-bank/runbooks/*`, `.tasks/TASK-FT011-06/**/*`
+- Tests: final automated gate rerun plus manual `provision -> restart/reset -> /shops/:shopId` smoke evidence
+- Verify: acceptance criteria из `FT-011` полностью покрыты automated/runtime/manual evidence, RTM переводится из `implemented` в `verified` (legacy `done`), а Memory Bank явно фиксирует DB-backed runtime как canonical baseline
+- Docs: `features/FT-011`, `requirements.md`, `testing/index.md`, `changelog.md`, `index.md`, optional `runbooks/*`, `.tasks/TASK-FT011-06/**/*`
+- Verification Targets: admin provisioning, shared storefront resolution, seller-protected reads/writes, repo-local restart durability smoke
+- Delivered: final `npm run lint` + `npm run test:catalog` gates passed, and manual restart-smoke evidence now proves provisioning plus a later seller edit survive restart on the same DB path while public browse feeds and seller storefront reads keep resolving from persisted catalog state
+
+## Conventions
+Each task should include:
+- goal
+- expected touched files
+- tests
+- verification steps
+- docs-first update
+
+## Task state model
+- `Status: planned|ready|in_progress|blocked|done|failed`
+- `Wave: W1|W2|W3|...`
+- `Depends on: TASK-... | none`
+
+## Task card template
+### TASK-001 — short title
+- TASK-ID: TASK-001
+- Status: ready
+- Wave: W1
+- Feature: FT-001
+- REQs: REQ-001, REQ-002
+- Depends on: none
+- Touched files: `src/...`, `tests/...`
+- Tests: `npm test -- foo`
+- Verify: API/manual/UAT steps
+- Docs: product/requirements/feature/changelog/index
+### TASK-FT010-13 — Close seller catalog write observability semantics
+- TASK-ID: `TASK-FT010-13`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-010`
+- REQs: `REQ-024`, `REQ-026`, `REQ-018`
+- Depends on: `TASK-FT010-05`
+- Touched files: `backend/src/slices/catalog/**/*`, `tests/slices/catalog/**/*`, `.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md`, `.memory-bank/invariants.md`, `.memory-bank/changelog.md`
+- Tests: integration/unit coverage proving seller shop/menu/product writes either emit explicit catalog-owned events/audit artifacts or are covered by an explicit spec-level no-event exception with verify evidence
+- Verify: significant seller catalog writes no longer remain silently unobservable relative to project audit/event invariants, and the chosen event-backed policy is explicit and test-backed
+- Docs: `tasks/backlog.md`, `features/FT-010`, `changelog.md`, and normative docs if a no-event exception is intentionally frozen
+- Constraints: не выносить observability ownership из `catalog`; не добавлять cross-slice reporting scope

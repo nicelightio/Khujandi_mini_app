@@ -12,6 +12,7 @@ status: active
 - `seller-web`: отдельная узкая админка магазина для легких catalog-owned функций seller-а; canonical route family для первой версии: `/seller/*`.
 - `admin-web`: отдельный login/password контур операционного управления; в MVP может временно жить в том же репозитории до физического выделения.
 - `telegram-bot`: presentation-канал для уведомлений, статусов и review flows.
+- Каждый contour сохраняет собственную entry/bundle boundary, чтобы customer-facing `mini-app` first render не тянул presentation code и runtime dependencies из `admin-web` или `seller-web`.
 
 ## Capability slices
 
@@ -35,6 +36,7 @@ status: active
 - Внутри slice действуют зависимости `presentation -> application -> domain -> infrastructure`.
 - Shared допустим только для технических primitives: auth helpers, db bootstrap, error primitives, event transport, UI basics.
 - В `mini-app` shared дополнительно допустимы только runtime-enabling primitives: Telegram bootstrap, theme/safe-area/viewport/lifecycle adapters, feature detection, storage-policy helpers и shell-level navigation policies.
+- Cross-contour shared код не должен разрушать bundle isolation: optional heavy UI/runtime dependencies и contour-specific presentation code остаются за своим contour boundary или lazy edge.
 - Если change затрагивает несколько UI contour-ов, каждый contour реализует только свой presentation-layer одного и того же owning slice.
 - Seller management остается внутри owning slice `catalog`, даже если использует одновременно shared storefront в `mini-app` и отдельный `seller-web` contour.
 - Public `mini-app`, shared seller storefront, narrow `seller-web`, and admin-side catalog provisioning MUST share one canonical DB-backed `catalog` runtime path; contour-specific in-memory state MUST NOT становиться отдельным source of truth.

@@ -13,6 +13,7 @@ status: active
 - [.memory-bank/features/index.md](features/index.md): Feature-спеки MVP (C4 L3) для `/prd-to-tasks`.
 - [.memory-bank/tasks/backlog.md](tasks/backlog.md): Backlog / waves.
 - [.memory-bank/tasks/plans/index.md](tasks/plans/index.md): Роутер по implementation plans и bugfix plans (C4 L4).
+- [.memory-bank/tasks/archive/index.md](tasks/archive/index.md): Архив historical task cards и backlog waves.
 
 - [.memory-bank/spec-index.md](spec-index.md): Реестр normative docs и маршрутизация по source-of-truth.
 - [.memory-bank/glossary.md](glossary.md): Общий словарь терминов и доменных значений.
@@ -27,6 +28,7 @@ status: active
 - [.memory-bank/runbooks/index.md](runbooks/index.md): Runbooks и operational procedures.
 - [.memory-bank/testing/index.md](testing/index.md): Testing strategy.
 - [.memory-bank/workflows/index.md](workflows/index.md): Execution/workflow docs для task loop и MB sync.
+- [.memory-bank/changelog/archive/index.md](changelog/archive/index.md): Архив старых записей changelog.
 - [.memory-bank/skills/index.md](skills/index.md): Skill registry.
 - [.memory-bank/bugs/index.md](bugs/index.md): Bug records и verification failures.
 

@@ -367,6 +367,12 @@ describe("admin router", () => {
       });
       await flushPromises();
     });
+
+    const textAfterLateRefresh = collectText(renderer.toJSON()).join(" ");
+
+    expect(textAfterLateRefresh).toContain("Signed in as manager (admin-account-7).");
+    expect(textAfterLateRefresh).toContain("Catalog shop provisioning");
+    expect(textAfterLateRefresh).not.toContain("Signed in as admin (ignored-refresh-account).");
   });
 
   it("logs out through the shared auth boundary and returns to the login route", async () => {

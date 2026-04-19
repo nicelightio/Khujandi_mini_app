@@ -24,6 +24,14 @@ status: active
 - Shell владеет подписками на `themeChanged`, `viewportChanged`, `safeAreaChanged`, `contentSafeAreaChanged`, `activated`, `deactivated`.
 - Feature usage проверяется через `isVersionAtLeast()` и graceful fallback.
 - `viewportStableHeight` является layout source of truth для pin-to-bottom UI; `viewportHeight` не используется как основной anchor.
+- Сырые high-churn runtime events нормализуются один раз в shell/runtime adapter и не должны фан-аутиться как прямые slice-level подписки по всему приложению.
+- Feature-код получает runtime state через derived stable values, CSS variables или narrow shell-owned primitives; frequent viewport/theme/safe-area updates не должны требовать broad multi-slice recomputation.
+
+## Layout and action-zone policy
+
+- Shell владеет общими primitives для keyboard-safe page layout и bottom action zones на customer-facing CTA/input surfaces.
+- Input-heavy страницы и fixed bottom controls интегрируются через shell policy/primitives, а не через ad hoc page-local `position: fixed` baseline.
+- Bottom action zone должна учитывать `viewportStableHeight`, safe-area и keyboard-open behavior так, чтобы critical action оставался reachable.
 
 ## Safe-area baseline
 
@@ -41,6 +49,15 @@ status: active
 - Явный выбор пользователя имеет приоритет над Telegram hint и pre-auth fallback storage.
 - После появления auth-контекста backend profile становится source of truth для user-level language/session metadata, где это применимо.
 - Shell/runtime слой может читать только non-sensitive shell preferences и MUST NOT вводить отдельный JS-readable persistence contour для session identifiers или trusted payment/auth metadata.
+
+## Runtime budget baseline
+
+- Baseline device class для customer-facing shell — weak/mid Android inside Telegram WebView, а не desktop browser.
+- Responsive tap feedback, stable scroll, predictable bottom action zones и controlled keyboard behavior имеют приоритет над ornamental heavy effects.
+- Default motion path — CSS `transform/opacity` и WAAPI; per-frame React-state animation и постоянные background render loops не входят в baseline contract.
+- Expensive visual layers требуют explicit justification, lazy loading и graceful fallback/disable path; они не должны быть обязательной основой catalog/checkout shell.
+- Customer-facing initial shell path не должен тянуть `admin-web`, `seller-web` или optional heavy visual/runtime layers в обязательный first render bundle.
+- Weak-device/old-client degradation policy определяется централизованно shell-level capability layer; optional motion/effects и decorative enhancements обязаны уважать этот policy.
 
 ## Verification ownership
 

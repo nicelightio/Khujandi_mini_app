@@ -1,0 +1,92 @@
+import { InMemoryCatalogRepository, createCatalogRuntimeState, startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
+import { adminOrigin, createTelegramInitData } from "./catalog.runtime.test-helpers";
+
+export const registerCatalogRuntimeMiscCases = () => {
+  it("issues Mini App session cookies from the shared auth boundary instead of the old route-local token convention", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      const client = runtime.createClient();
+      const authResponse = await client.request({
+        path: "/api/v1/auth/telegram",
+        origin: adminOrigin,
+        body: {
+          initData: createTelegramInitData({
+            authDate: Math.floor(Date.now() / 1000),
+            telegramId: "303",
+          }),
+        },
+      });
+
+      expect(authResponse.status).toBe(200);
+      expect(client.readCookieValue("khujandi_mini_app_session")).not.toBeNull();
+      expect(client.readCookieValue("khujandi_mini_app_session")).not.toBe("mini-app-session-token-1");
+      expect(String(authResponse.headers["set-cookie"] ?? "")).not.toContain("mini-app-session-token-");
+      expect(runtime.checkoutPaymentState.sessions).toHaveLength(1);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("keeps seller write observability explicit in the in-memory catalog adapter", async () => {
+    const state = createCatalogRuntimeState();
+    const repository = new InMemoryCatalogRepository(state);
+
+    const createdMenuPage = await repository.createMenuPage({
+      shopId: "shop-1",
+      name: "Seasonal",
+      position: 1,
+    });
+    const updatedShop = await repository.updateShop("shop-1", {
+      name: "Плов в новом парке",
+      renameCount: 1,
+      requiresManualRenameReview: false,
+    });
+    const createdProduct = await repository.createProduct({
+      shopId: "shop-1",
+      menuPageId: createdMenuPage.record.id,
+      name: "Весенний плов",
+      priceMinor: 4900,
+    });
+
+    expect(createdMenuPage.record).toMatchObject({
+      shopId: "shop-1",
+      name: "Seasonal",
+    });
+    expect(createdMenuPage.event).toMatchObject({
+      type: "catalog.menu_page.created",
+      entity: "menu_page",
+      entityId: createdMenuPage.record.id,
+      payload: expect.objectContaining({
+        menuPageId: createdMenuPage.record.id,
+        shopId: "shop-1",
+      }),
+    });
+    expect(updatedShop.event).toMatchObject({
+      type: "catalog.shop.updated",
+      entity: "shop",
+      entityId: "shop-1",
+      payload: expect.objectContaining({
+        shopId: "shop-1",
+        name: "Плов в новом парке",
+      }),
+    });
+    expect(createdProduct.event).toMatchObject({
+      type: "catalog.product.created",
+      entity: "product",
+      entityId: createdProduct.record.id,
+      payload: expect.objectContaining({
+        productId: createdProduct.record.id,
+        menuPageId: createdMenuPage.record.id,
+      }),
+    });
+    expect(state.events).toEqual([
+      createdMenuPage.event,
+      updatedShop.event,
+      createdProduct.event,
+    ]);
+  });
+};
