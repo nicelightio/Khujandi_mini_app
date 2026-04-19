@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SupportedLanguage } from "../../../shared/i18n/languages";
+import { createTelegramWebAppBridge } from "../../../shared/telegram/webapp";
 import type { CatalogApi } from "../api/catalog-api";
 import type { CatalogStorefrontEditorTarget, CatalogStorefrontViewModel } from "../components/catalog-page";
 import {
@@ -37,6 +38,27 @@ type UseCatalogStorefrontResult = {
   handleSubmitEditor: () => Promise<void>;
 };
 
+const ensureTelegramStorefrontSession = async (): Promise<void> => {
+  const initData = createTelegramWebAppBridge().getInitData()?.trim() ?? "";
+
+  if (initData.length === 0) {
+    return;
+  }
+
+  const response = await fetch("/api/v1/auth/telegram", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ initData }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Telegram storefront auth failed with status ${response.status}.`);
+  }
+};
+
 export const useCatalogStorefront = ({
   shopId,
   api,
@@ -51,7 +73,9 @@ export const useCatalogStorefront = ({
 
     setStorefrontState(createLoadingCatalogStorefrontState());
 
-    void loadStorefrontData(shopId, api)
+    void ensureTelegramStorefrontSession()
+      .catch(() => undefined)
+      .then(() => loadStorefrontData(shopId, api))
       .then((data) => {
         if (!isActive) {
           return;
