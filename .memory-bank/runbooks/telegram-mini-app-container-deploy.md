@@ -270,3 +270,22 @@ tail -n 200 /var/log/tgmeal/$(ls -1t /var/log/tgmeal | head -n 1)
 - `docker-compose.yml`: container stack для `web` + `api`.
 - `Dockerfile.web`: build and serve frontend static app.
 - `Dockerfile.api`: Node runtime для repo-local demo/admin auth API.
+
+TG ID Луганский: 
+5281851429
+
+корень
+https://tgmeal.natureonzoom.win
+
+админка селлера 
+https://tgmeal.natureonzoom.win/seller/shops/status
+
+
+главная Админка добавить магазины 
+https://tgmeal.natureonzoom.win/admin/catalog/shops/provision
+
+Магазин 888
+https://tgmeal.natureonzoom.win/shops/888
+
+проверка оплаты
+https://tgmeal.natureonzoom.win/checkout

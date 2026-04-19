@@ -10,6 +10,7 @@
     "test:catalog": "jest --config jest.config.cjs",
     "test:catalog:unit": "jest --config jest.config.cjs tests/slices/catalog/catalog.unit.spec.ts",
     "test:catalog:integration": "jest --config jest.config.cjs tests/slices/catalog/catalog.integration.spec.ts",
+    "test:catalog:runtime": "jest --config jest.config.cjs tests/slices/catalog/catalog.runtime.integration.spec.ts",
     "test:delivery-assignment": "jest --config jest.config.cjs tests/slices/delivery-assignment",
     "test:delivery-assignment:frontend": "jest --config jest.config.cjs frontend/src/tests/admin",
     "test:delivery-assignment:unit": "jest --config jest.config.cjs tests/slices/delivery-assignment/delivery-assignment.unit.spec.ts",

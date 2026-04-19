@@ -81,8 +81,8 @@ status: active
 | REQ-024 | EP-001 | FT-010 | e2e: seller edits shared storefront without separate builder; repo-local shared-storefront tests now prove owner edit-mode reuse on the existing catalog tree and explicit delete-free baseline evidence | done |
 | REQ-025 | EP-001 | FT-010 | integration/e2e: admin-provisioned skeleton + Telegram-linked seller access; provisioning/runtime and admin/seller smoke coverage now verify starter bootstrap and shared seller session/access reuse | done |
 | REQ-026 | EP-001 | FT-010 | e2e: `WORKING/NOT_WORKING` visibility and seller store-admin status toggle; runtime/frontend verification now proves owner-only `NOT_WORKING` visibility, public gating, status-only seller-web control, and delete-free narrow scope | done |
-| REQ-027 | EP-001 | FT-011 | integration/manual: durable provisioning and restart-safe storefront resolution from canonical persisted catalog state | implemented |
-| REQ-028 | EP-001 | FT-011 | integration: transactional provisioning rollback + duplicate/conflict fail-closed behavior | implemented |
+| REQ-027 | EP-001 | FT-011 | integration/manual: durable provisioning and restart-safe storefront resolution from canonical persisted catalog state | verified |
+| REQ-028 | EP-001 | FT-011 | integration/manual: transactional provisioning rollback + duplicate/conflict fail-closed behavior plus final restart-durability closure | verified |
 
 ## Source artifacts
 

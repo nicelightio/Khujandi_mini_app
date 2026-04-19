@@ -514,6 +514,209 @@ describe("catalog provisioning runtime", () => {
     }
   });
 
+  it("resolves seller storefront data from persisted catalog state after runtime restart", async () => {
+    const runtimeDirectory = mkdtempSync(join(tmpdir(), "khujandi-catalog-storefront-test-"));
+    const catalogDatabasePath = join(runtimeDirectory, "catalog-runtime.sqlite");
+    let shopId = "";
+    let productId = "";
+    let menuPageId = "";
+
+    const firstRuntime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      catalogDatabasePath,
+    });
+
+    try {
+      const adminClient = firstRuntime.createClient();
+      await loginAdmin(adminClient);
+
+      const provisionResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-storefront-restart",
+          telegramId: "920",
+          name: "Restart Seller Storefront",
+          status: "NOT_WORKING",
+        },
+      });
+
+      expect(provisionResponse.status).toBe(201);
+      const provisionedBody = provisionResponse.body as {
+        shop: { id: string };
+        menuPages: Array<{ id: string }>;
+        products: Array<{ id: string }>;
+      };
+      shopId = provisionedBody.shop.id;
+      menuPageId = provisionedBody.menuPages[0]!.id;
+      productId = provisionedBody.products[0]!.id;
+
+      const sellerClient = firstRuntime.createClient();
+      await loginSeller(sellerClient, "920");
+
+      const updateProductResponse = await sellerClient.request({
+        path: `/api/v1/seller/products/${productId}`,
+        method: "PUT",
+        origin: adminOrigin,
+        body: {
+          shopId,
+          menuPageId,
+          name: "Persisted Seller Product",
+          description: "Survives restart on canonical seller storefront reads",
+          imageUrl: null,
+          priceMinor: 2200,
+        },
+      });
+
+      expect(updateProductResponse.status).toBe(200);
+    } finally {
+      await firstRuntime.stop();
+    }
+
+    const restartedRuntime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      catalogDatabasePath,
+    });
+
+    try {
+      const sellerClient = restartedRuntime.createClient();
+      await loginSeller(sellerClient, "920");
+
+      const sellerShopsResponse = await sellerClient.request({
+        path: "/api/v1/seller/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(sellerShopsResponse.status).toBe(200);
+      expect(sellerShopsResponse.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: shopId,
+            name: "Restart Seller Storefront",
+            status: "NOT_WORKING",
+          }),
+        ]),
+      );
+
+      const storefrontResponse = await sellerClient.request({
+        path: `/api/v1/seller/shops/${shopId}`,
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(storefrontResponse.status).toBe(200);
+      expect(storefrontResponse.body).toEqual(
+        expect.objectContaining({
+          id: shopId,
+          status: "NOT_WORKING",
+          menuPages: expect.arrayContaining([
+            expect.objectContaining({
+              id: menuPageId,
+              products: expect.arrayContaining([
+                expect.objectContaining({
+                  id: productId,
+                  name: "Persisted Seller Product",
+                  description: "Survives restart on canonical seller storefront reads",
+                  priceMinor: 2200,
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      );
+    } finally {
+      await restartedRuntime.stop();
+      rmSync(runtimeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps repeated identical provisioning fail-closed after runtime restart on the same persisted DB path", async () => {
+    const runtimeDirectory = mkdtempSync(join(tmpdir(), "khujandi-catalog-conflict-restart-test-"));
+    const catalogDatabasePath = join(runtimeDirectory, "catalog-runtime.sqlite");
+
+    const firstRuntime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      catalogDatabasePath,
+    });
+
+    try {
+      const adminClient = firstRuntime.createClient();
+      await loginAdmin(adminClient);
+
+      const firstProvisionResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-conflict-restart",
+          telegramId: "921",
+          name: "Restart Conflict Bakery",
+        },
+      });
+
+      expect(firstProvisionResponse.status).toBe(201);
+      expect(firstRuntime.catalogState.shops.filter((shop) => shop.name === "Restart Conflict Bakery")).toHaveLength(1);
+      expect(firstRuntime.catalogState.bindings.filter((binding) => binding.telegramId === "921")).toHaveLength(1);
+    } finally {
+      await firstRuntime.stop();
+    }
+
+    const restartedRuntime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      catalogDatabasePath,
+    });
+
+    try {
+      const adminClient = restartedRuntime.createClient();
+      await loginAdmin(adminClient);
+
+      const repeatedProvisionResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-conflict-restart",
+          telegramId: "921",
+          name: "Restart Conflict Bakery",
+        },
+      });
+
+      expect(repeatedProvisionResponse.status).toBe(409);
+      expect(repeatedProvisionResponse.body).toEqual({
+        error: {
+          code: "SHOP_PROVISIONING_CONFLICT",
+          message: "Shop provisioning conflicts with an existing seller binding or shop record",
+          details: undefined,
+        },
+        trace_id: "trace-catalog-runtime",
+      });
+      expect(
+        restartedRuntime.catalogState.shops.filter(
+          (shop) => shop.sellerId === "seller-conflict-restart" && shop.name === "Restart Conflict Bakery",
+        ),
+      ).toHaveLength(1);
+
+      const persistedShop = restartedRuntime.catalogState.shops.find(
+        (shop) => shop.sellerId === "seller-conflict-restart" && shop.name === "Restart Conflict Bakery",
+      );
+
+      expect(persistedShop).toBeDefined();
+      expect(
+        restartedRuntime.catalogState.bindings.filter(
+          (binding) => binding.sellerId === "seller-conflict-restart" && binding.telegramId === "921",
+        ),
+      ).toHaveLength(1);
+      expect(restartedRuntime.catalogState.menuPages.filter((page) => page.shopId === persistedShop?.id)).toHaveLength(2);
+      expect(restartedRuntime.catalogState.products.filter((product) => product.shopId === persistedShop?.id)).toHaveLength(2);
+    } finally {
+      await restartedRuntime.stop();
+      rmSync(runtimeDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("keeps seller write observability explicit in the in-memory catalog adapter", async () => {
     const state = createCatalogRuntimeState();
     const repository = new InMemoryCatalogRepository(state);

@@ -116,6 +116,8 @@ const mapMenuPage = (menuPage: {
   shopStatus: menuPage.shop.status,
 });
 
+type SellerMenuPageRecord = Parameters<typeof mapMenuPage>[0];
+
 const mapProduct = (product: {
   id: string;
   shopId: string;
@@ -139,6 +141,8 @@ const mapProduct = (product: {
   isDeleted: product.isDeleted,
   sellerId: product.shop.sellerId,
 });
+
+type SellerProductRecord = Parameters<typeof mapProduct>[0];
 
 const createCatalogEventPayload = (input: {
   type: string;
@@ -232,6 +236,38 @@ export class PrismaCatalogRepository implements CatalogRepository {
       },
       select: selectSellerBinding,
     });
+  }
+
+  async listSellerMenuPagesByShop(shopId: ShopId): Promise<SellerCatalogMenuPage[]> {
+    const menuPages = (await this.prisma.client.menuPage.findMany({
+      where: {
+        shopId,
+        shop: {
+          isDeleted: false,
+        },
+      },
+      orderBy: {
+        position: "asc",
+      },
+      select: selectSellerMenuPage,
+    })) as SellerMenuPageRecord[];
+
+    return menuPages.map((menuPage) => mapMenuPage(menuPage));
+  }
+
+  async listSellerProductsByShop(shopId: ShopId): Promise<SellerCatalogProduct[]> {
+    const products = (await this.prisma.client.product.findMany({
+      where: {
+        shopId,
+        isDeleted: false,
+        shop: {
+          isDeleted: false,
+        },
+      },
+      select: selectSellerProduct,
+    })) as SellerProductRecord[];
+
+    return products.map((product) => mapProduct(product));
   }
 
   async findShopById(shopId: ShopId): Promise<SellerCatalogShop | null> {

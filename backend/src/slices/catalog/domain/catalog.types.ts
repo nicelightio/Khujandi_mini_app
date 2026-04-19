@@ -194,6 +194,8 @@ export interface CatalogRepository {
   listPublicMenuPagesByShop(shopId: ShopId): Promise<CatalogMenuPage[]>;
   listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]>;
   listSellerBindingsByTelegramId(telegramId: string): Promise<SellerShopBinding[]>;
+  listSellerMenuPagesByShop(shopId: ShopId): Promise<SellerCatalogMenuPage[]>;
+  listSellerProductsByShop(shopId: ShopId): Promise<SellerCatalogProduct[]>;
   findShopById(shopId: ShopId): Promise<SellerCatalogShop | null>;
   createShop(input: CreateProvisionedShopInput): Promise<SellerCatalogShop>;
   updateShop(shopId: ShopId, input: UpdateSellerShopInput & Pick<SellerCatalogShop, "renameCount" | "requiresManualRenameReview">): Promise<CatalogWriteResult<SellerCatalogShop>>;

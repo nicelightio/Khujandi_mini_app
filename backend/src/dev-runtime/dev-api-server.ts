@@ -237,13 +237,14 @@ const resolveCatalogDatabasePersistence = (databasePath: string | undefined): Ca
   return createCatalogStatePersistence(join(temporaryDirectory, "catalog-runtime.sqlite"), temporaryDirectory);
 };
 
-const buildSellerStorefrontPayload = (state: CatalogRuntimeState, shop: SellerCatalogShop) => {
-  const shopMenuPages = state.menuPages.filter((page) => page.shopId === shop.id);
+const buildSellerStorefrontPayload = (
+  shop: SellerCatalogShop,
+  shopMenuPages: SellerCatalogMenuPage[],
+  shopProducts: SellerCatalogProduct[],
+) => {
   const shopMenuPageIds = new Set(shopMenuPages.map((page) => page.id));
-  const shopProducts = state.products.filter((product) => product.shopId === shop.id && !product.isDeleted);
 
-  const menuPages = state.menuPages
-    .filter((page) => page.shopId === shop.id)
+  const menuPages = shopMenuPages
     .sort((left, right) => left.position - right.position)
     .map((page) => ({
       id: page.id,
@@ -330,6 +331,19 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return this.state.bindings
       .filter((binding) => binding.telegramId === telegramId)
       .map(cloneBinding);
+  }
+
+  async listSellerMenuPagesByShop(shopId: ShopId) {
+    return this.state.menuPages
+      .filter((page) => page.shopId === shopId)
+      .sort((left, right) => left.position - right.position)
+      .map(cloneMenuPage);
+  }
+
+  async listSellerProductsByShop(shopId: ShopId) {
+    return this.state.products
+      .filter((product) => product.shopId === shopId && !product.isDeleted)
+      .map(cloneProduct);
   }
 
   async findShopById(shopId: ShopId) {
@@ -796,7 +810,13 @@ const createInMemoryCatalogPrisma = (
       },
     },
     menuPage: {
-      findMany: async ({ where }: { where: { shopId: string; shop: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } } }) => {
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where: { shopId: string; shop: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } };
+        select?: { shop?: { select: { sellerId: boolean; isDeleted?: boolean; status?: boolean } } };
+      }) => {
         const shop = target.shops.find((candidate) => candidate.id === where.shopId);
 
         if (
@@ -810,12 +830,28 @@ const createInMemoryCatalogPrisma = (
         return target.menuPages
           .filter((page) => page.shopId === where.shopId)
           .sort((left, right) => left.position - right.position)
-          .map((page) => ({
-            id: page.id,
-            shopId: page.shopId,
-            name: page.name,
-            position: page.position,
-          }));
+          .map((page) => {
+            if (select?.shop !== undefined) {
+              return {
+                id: page.id,
+                shopId: page.shopId,
+                name: page.name,
+                position: page.position,
+                shop: {
+                  sellerId: shop.sellerId,
+                  isDeleted: shop.isDeleted,
+                  status: shop.status,
+                },
+              };
+            }
+
+            return {
+              id: page.id,
+              shopId: page.shopId,
+              name: page.name,
+              position: page.position,
+            };
+          });
       },
       findUnique: async ({ where }: { where: { id: string } }) => {
         const page = target.menuPages.find((candidate) => candidate.id === where.id) ?? null;
@@ -905,7 +941,13 @@ const createInMemoryCatalogPrisma = (
       },
     },
     product: {
-      findMany: async ({ where }: { where: { shopId: string; isDeleted: boolean; shop: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } } }) => {
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where: { shopId: string; isDeleted: boolean; shop: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } };
+        select?: { shop?: { select: { sellerId: boolean; isDeleted?: boolean } } };
+      }) => {
         const shop = target.shops.find((candidate) => candidate.id === where.shopId);
 
         if (
@@ -918,13 +960,32 @@ const createInMemoryCatalogPrisma = (
 
         return target.products
           .filter((product) => product.shopId === where.shopId && product.isDeleted === where.isDeleted)
-          .map((product) => ({
-            id: product.id,
-            shopId: product.shopId,
-            menuPageId: product.menuPageId,
-            name: product.name,
-            priceMinor: product.priceMinor,
-          }));
+          .map((product) => {
+            if (select?.shop !== undefined) {
+              return {
+                id: product.id,
+                shopId: product.shopId,
+                menuPageId: product.menuPageId,
+                name: product.name,
+                description: product.description,
+                imageUrl: product.imageUrl,
+                priceMinor: product.priceMinor,
+                isDeleted: product.isDeleted,
+                shop: {
+                  sellerId: shop.sellerId,
+                  isDeleted: shop.isDeleted,
+                },
+              };
+            }
+
+            return {
+              id: product.id,
+              shopId: product.shopId,
+              menuPageId: product.menuPageId,
+              name: product.name,
+              priceMinor: product.priceMinor,
+            };
+          });
       },
       findUnique: async ({ where }: { where: { id: string } }) => {
         const product = target.products.find((candidate) => candidate.id === where.id) ?? null;
@@ -1674,7 +1735,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           200,
           {
             user: authResult.user,
-            sellerCapabilities: catalogState.bindings.some((binding) => binding.telegramId === authResult.user.telegramId),
+            sellerCapabilities: (await catalogModule.repository.listSellerBindingsByTelegramId(authResult.user.telegramId)).length > 0,
           },
           "POST,OPTIONS",
         );
@@ -1735,7 +1796,11 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
           });
           const shopId = decodeURIComponent(sellerShopMatch[1]);
           const shop = await catalogModule.controller.getSellerShop(user.telegramId, shopId);
-          result = json(200, buildSellerStorefrontPayload(catalogState, shop), "GET,OPTIONS");
+          const [menuPages, products] = await Promise.all([
+            catalogModule.repository.listSellerMenuPagesByShop(shop.id),
+            catalogModule.repository.listSellerProductsByShop(shop.id),
+          ]);
+          result = json(200, buildSellerStorefrontPayload(shop, menuPages, products), "GET,OPTIONS");
         } catch (error) {
           if (error instanceof AppError) {
             result = json(error.statusCode, error.toPayload("trace-catalog-runtime"), "GET,OPTIONS");

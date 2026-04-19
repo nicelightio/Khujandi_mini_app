@@ -32,6 +32,9 @@ status: active
 
 ## Recent updates
 
+- `FT-011`: `TASK-FT011-06` is complete; final catalog gates plus manual restart-smoke evidence now verify the DB-backed runtime baseline end to end, so `REQ-027/028` are promoted to `verified` and `FT-011` is closed.
+- `FT-011`: `TASK-FT011-05` is complete; mounted runtime durability coverage now proves persisted provisioning still fails closed through the controlled conflict contract after restart on the same DB path, and `npm run test:catalog:runtime` exposes that DB-backed regression suite as an explicit gate.
+- `FT-011`: `TASK-FT011-04` is complete; mounted seller capability checks and seller storefront payload resolution now use repository-backed persisted catalog reads instead of direct `catalogState` access, and runtime coverage proves seller storefront data survives restart on the same DB path.
 - `FT-011`: `TASK-FT011-08` is complete; seller rename flows are now reconciled with the durable `sellerId + shop name` invariant, so mounted/runtime rename collisions fail through controlled `SHOP_RENAME_CONFLICT` `409` semantics instead of leaking raw persistence behavior.
 - `FT-011`: the `semantic-concern` opened by post-change `red-verify` on `TASK-FT011-07` is now closed by `TASK-FT011-08`, so the durable `sellerId + shop name` invariant no longer leaves seller rename collisions on a raw persistence-failure path.
 - `FT-011`: `TASK-FT011-07` is complete; catalog provisioning conflicts are now enforced at the persistence boundary through durable `sellerId + shop name` uniqueness, and hostile integration/runtime coverage proves repeated or concurrent identical provisioning leaves exactly one starter bundle.

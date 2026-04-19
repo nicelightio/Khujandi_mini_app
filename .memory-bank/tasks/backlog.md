@@ -1410,7 +1410,7 @@ status: active
 
 ### TASK-FT011-04 — Move storefront and seller catalog resolution onto persisted runtime state
 - TASK-ID: `TASK-FT011-04`
-- Status: `in_progress`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-011`
 - REQs: `REQ-027`
@@ -1420,10 +1420,11 @@ status: active
 - Verify: all mounted catalog surfaces resolve canonical persisted data after runtime restart/reset, while missing persisted data returns controlled not-found/error outcomes instead of fabricated success
 - Docs: `tasks/backlog.md`, `features/FT-011`, `contracts/catalog-public-api.md`, `contracts/catalog-seller-access-and-session.md`, `changelog.md`
 - Invariants: shared storefront and `seller-web` keep existing ownership/no-delete semantics from `FT-010` while switching the runtime source of truth
+- Delivered: mounted seller capability checks and seller storefront payload resolution now use repository-backed catalog reads instead of direct `catalogState` access, and runtime coverage proves seller storefront data plus later seller edits survive restart on the same persisted DB path
 
 ### TASK-FT011-05 — Add durability regression suite for restart-safe catalog behavior
 - TASK-ID: `TASK-FT011-05`
-- Status: `planned`
+- Status: `done`
 - Wave: `W2`
 - Feature: `FT-011`
 - REQs: `REQ-027`, `REQ-028`
@@ -1433,6 +1434,7 @@ status: active
 - Verify: automated evidence now proves the feature beyond isolated repository tests and guards against regressions that silently reintroduce default in-memory runtime behavior
 - Docs: `tasks/backlog.md`, `testing/index.md`, `changelog.md`
 - Quality Gates: `npm run test:catalog`, plus any targeted runtime suite introduced by the task
+- Delivered: mounted runtime regressions now explicitly cover repeated identical provisioning after runtime restart on the same persisted DB path, and `npm run test:catalog:runtime` provides a dedicated rerunnable gate for the DB-backed durability/conflict suite
 
 ### TASK-FT011-07 — Make provisioning conflict handling race-safe at the persistence boundary
 - TASK-ID: `TASK-FT011-07`
@@ -1465,7 +1467,7 @@ status: active
 
 ### TASK-FT011-06 — Close FT-011 with manual durability smoke and RTM/docs sync
 - TASK-ID: `TASK-FT011-06`
-- Status: `planned`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-011`
 - REQs: `REQ-027`, `REQ-028`
@@ -1475,6 +1477,7 @@ status: active
 - Verify: acceptance criteria из `FT-011` полностью покрыты automated/runtime/manual evidence, RTM переводится из `implemented` в `verified` (legacy `done`), а Memory Bank явно фиксирует DB-backed runtime как canonical baseline
 - Docs: `features/FT-011`, `requirements.md`, `testing/index.md`, `changelog.md`, `index.md`, optional `runbooks/*`, `.tasks/TASK-FT011-06/**/*`
 - Verification Targets: admin provisioning, shared storefront resolution, seller-protected reads/writes, repo-local restart durability smoke
+- Delivered: final `npm run lint` + `npm run test:catalog` gates passed, and manual restart-smoke evidence now proves provisioning plus a later seller edit survive restart on the same DB path while public browse feeds and seller storefront reads keep resolving from persisted catalog state
 
 ## Conventions
 Each task should include:

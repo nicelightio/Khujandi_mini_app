@@ -19,7 +19,7 @@ status: active
 
 ## Slice-based baseline
 
-- `catalog`: public browse e2e + seller ownership integration coverage + shared storefront seller edit mode and `WORKING/NOT_WORKING` visibility checks for seller contours + transactional/durable runtime verification for DB-backed provisioning and restart-safe storefront resolution (`FT-011`); the checked-in repo-local bootstrap baseline now starts from `backend/prisma/seeds/catalog-runtime-baseline.json` plus a SQLite-backed runtime state store rather than hidden demo arrays, and provisioning conflict coverage now includes hostile repeated/concurrent identity collisions at the persistence boundary.
+- `catalog`: public browse e2e + seller ownership integration coverage + shared storefront seller edit mode and `WORKING/NOT_WORKING` visibility checks for seller contours + transactional/durable runtime verification for DB-backed provisioning and restart-safe storefront resolution (`FT-011`); the checked-in repo-local bootstrap baseline now starts from `backend/prisma/seeds/catalog-runtime-baseline.json` plus a SQLite-backed runtime state store rather than hidden demo arrays, provisioning conflict coverage includes hostile repeated/concurrent identity collisions at the persistence boundary plus restart-aware duplicate/conflict regressions on the same persisted DB path, and final feature closure is anchored by the manual restart-smoke notes in `.tasks/TASK-FT011-06/TASK-FT011-06-S-VERIFY-final-report-docs-01.md`.
 - `checkout-payment`: paid order creation happy path, failed payment retry, auth validation.
 - `mini app shell`: first-run language overlay, WebView-safe viewport, theme, lifecycle and action feedback smoke.
 - `delivery-assignment`: admin assignment e2e + RBAC integration.
@@ -49,4 +49,5 @@ status: active
 
 - `npm run test:catalog:unit` runs `tests/slices/catalog/catalog.unit.spec.ts`.
 - `npm run test:catalog:integration` runs `tests/slices/catalog/catalog.integration.spec.ts`.
+- `npm run test:catalog:runtime` runs `tests/slices/catalog/catalog.runtime.integration.spec.ts` for the mounted repo-local runtime regressions, including restart-safe durability/conflict coverage.
 - `npm run test:catalog` runs the checked-in backend catalog specs plus frontend catalog API/view-model and route/page smoke specs through the root Jest config.
