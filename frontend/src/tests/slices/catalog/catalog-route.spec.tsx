@@ -126,6 +126,7 @@ describe("catalog route", () => {
     expect(text).toContain("Khujand Bakery");
     expect(text).toContain("Somsa");
     expect(text).toContain("15.00 TJS");
+    expect(renderer.root.findByProps({ href: "/shops/shop-1" }).children).toContain("Khujand Bakery");
   });
 
   it("renders a controlled error state when the public browse request fails", async () => {

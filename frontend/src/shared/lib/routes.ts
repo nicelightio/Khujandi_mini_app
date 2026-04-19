@@ -14,3 +14,5 @@ export const isStorefrontPathname = (pathname: string): boolean =>
 
 export const isRouteFamilyPathname = (pathname: string, familyPrefix: string): boolean =>
   pathname === familyPrefix || pathname.startsWith(`${familyPrefix}/`);
+
+export const buildStorefrontPath = (shopId: string): string => `/shops/${encodeURIComponent(shopId)}`;

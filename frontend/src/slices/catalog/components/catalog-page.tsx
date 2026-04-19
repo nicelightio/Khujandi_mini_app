@@ -1,6 +1,7 @@
 import { useLanguageContext } from "../../../app/language-context";
 import { getCopy } from "../../../shared/i18n/copy";
 import { PageShell } from "../../../shared/ui/page-shell";
+import { buildStorefrontPath } from "../../../shared/lib/routes";
 import type { CatalogViewModel } from "../model/catalog-view-model";
 
 export type CatalogStorefrontEditorField = {
@@ -309,7 +310,9 @@ export const CatalogPage = ({
         <section>
           {viewModel.shops.map((shop) => (
             <article key={shop.id} data-shop-id={shop.id}>
-              <h2>{shop.name}</h2>
+              <h2>
+                <a href={buildStorefrontPath(shop.id)}>{shop.name}</a>
+              </h2>
 
               {shop.emptyLabel !== null ? (
                 <p>{shop.emptyLabel}</p>
