@@ -338,6 +338,32 @@ describe("catalog provisioning integration", () => {
     expect(state.products).toHaveLength(2);
   });
 
+  it("allows multiple admin-provisioned shops for one seller identity when shop names differ", async () => {
+    const { prisma, state } = createProvisioningPrisma();
+    const module = createCatalogModule(prisma);
+
+    const firstResult = await module.controller.provisionShop({
+      sellerId: "seller-1",
+      telegramId: "123456",
+      name: "Bakery",
+    });
+
+    const secondResult = await module.controller.provisionShop({
+      sellerId: "seller-1",
+      telegramId: "123456",
+      name: "Coffee Corner",
+    });
+
+    expect(firstResult.shop.id).not.toBe(secondResult.shop.id);
+    expect(state.shops).toHaveLength(2);
+    expect(state.shops.map((shop) => shop.name)).toEqual(["Bakery", "Coffee Corner"]);
+    expect(state.bindings).toHaveLength(2);
+    expect(state.bindings.every((binding) => binding.sellerId === "seller-1")).toBe(true);
+    expect(state.bindings.every((binding) => binding.telegramId === "123456")).toBe(true);
+    expect(state.menuPages).toHaveLength(4);
+    expect(state.products).toHaveLength(4);
+  });
+
   it("keeps concurrent identical provisioning race-safe at the persistence boundary", async () => {
     const { prisma, state } = createProvisioningPrisma({ stallConcurrentShopCreate: true });
     const module = createCatalogModule(prisma);

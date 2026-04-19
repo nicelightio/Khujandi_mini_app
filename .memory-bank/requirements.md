@@ -37,7 +37,7 @@ status: active
 - `REQ-025` Seller provisioning and access: первый skeleton shop создается admin-side provisioning flow с названием магазина и привязкой Telegram-аккаунта seller-а; seller access по обоим contour-ам должен резолвиться из Telegram-linked identity без отдельного независимого seller password baseline.
 - `REQ-026` Shop visibility and store admin: магазин имеет статусы `WORKING` и `NOT_WORKING`; `WORKING` магазин виден seller-у и клиентам, `NOT_WORKING` магазин виден только owning seller-у; отдельная узкая `seller-web` админка магазина в первой версии включает только легкие catalog-owned функции, начиная с переключения этого статуса, без статистики продаж.
 - `REQ-027` Catalog runtime durability: канонический runtime path для `catalog` provisioning, seller reads/writes и public storefront resolution должен использовать durable DB-backed persistence; успешные catalog write outcomes должны переживать runtime restart/reset, а `/shops/:shopId` и связанные catalog reads должны резолвиться из canonical persisted state, а не из route-local in-memory data.
-- `REQ-028` Transactional catalog provisioning: admin-side provisioning MUST атомарно persist-ить `shop`, Telegram-linked seller binding, starter menu pages и starter products как обычные catalog записи; duplicate/conflicting provisioning возвращает controlled error и не оставляет partial state.
+- `REQ-028` Transactional catalog provisioning: admin-side provisioning MUST атомарно persist-ить `shop`, Telegram-linked seller binding, starter menu pages и starter products как обычные catalog записи; один seller/Telegram identity MAY иметь несколько shops, если их создает admin provisioning flow, а duplicate/conflicting provisioning для одного и того же target shop identity возвращает controlled error и не оставляет partial state.
 
 ## Out of scope
 - Авто-назначение курьеров.
@@ -82,7 +82,7 @@ status: active
 | REQ-025 | EP-001 | FT-010 | integration/e2e: admin-provisioned skeleton + Telegram-linked seller access; provisioning/runtime and admin/seller smoke coverage now verify starter bootstrap and shared seller session/access reuse | done |
 | REQ-026 | EP-001 | FT-010 | e2e: `WORKING/NOT_WORKING` visibility and seller store-admin status toggle; runtime/frontend verification now proves owner-only `NOT_WORKING` visibility, public gating, status-only seller-web control, and delete-free narrow scope | done |
 | REQ-027 | EP-001 | FT-011 | integration/manual: durable provisioning and restart-safe storefront resolution from canonical persisted catalog state | verified |
-| REQ-028 | EP-001 | FT-011 | integration/manual: transactional provisioning rollback + duplicate/conflict fail-closed behavior plus final restart-durability closure | verified |
+| REQ-028 | EP-001 | FT-011 | integration/manual: transactional provisioning rollback + duplicate/conflict fail-closed behavior, same-seller multi-shop provisioning when names differ, plus final restart-durability closure | verified |
 
 ## Source artifacts
 

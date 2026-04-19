@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `FT-011`: `TASK-FT011-09` is complete; the mounted repo-local provisioning path no longer enforces accidental `single-shop-per-seller` behavior, and focused integration/runtime coverage now proves one seller identity may own multiple admin-provisioned shops when canonical shop names differ.
 - `FT-011`: `TASK-FT011-06` is complete; final catalog gates plus manual restart-smoke evidence now verify the DB-backed runtime baseline end to end, so `REQ-027/028` are promoted to `verified` and `FT-011` is closed.
 - `FT-011`: `TASK-FT011-05` is complete; mounted runtime durability coverage now proves persisted provisioning still fails closed through the controlled conflict contract after restart on the same DB path, and `npm run test:catalog:runtime` exposes that DB-backed regression suite as an explicit gate.
 - `FT-011`: `TASK-FT011-04` is complete; mounted seller capability checks and seller storefront payload resolution now use repository-backed persisted catalog reads instead of direct `catalogState` access, and runtime coverage proves seller storefront data survives restart on the same DB path.

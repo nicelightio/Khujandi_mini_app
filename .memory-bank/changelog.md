@@ -15,6 +15,14 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] TASK-FT011-09 removed mounted single-shop-per-seller drift
+- Narrowed the repo-local mounted `catalog` runtime parity fix to `backend/src/dev-runtime/catalog-runtime-prisma.ts`, so `SellerShopBinding` creation no longer rejects a second admin-provisioned shop only because the same seller or Telegram identity already owns another shop.
+- Added focused integration and mounted runtime regressions proving one seller identity can own multiple admin-provisioned shops when shop names differ, while identical `sellerId + shop name` provisioning still returns the controlled `SHOP_PROVISIONING_CONFLICT` behavior.
+
+## [2026-04-20] Spec layer clarified multi-shop admin provisioning policy for catalog
+- Clarified `REQ-028`, the catalog provisioning contract, `FT-011`, and testing guidance so one seller/Telegram identity may own multiple shops when those shops are created through admin provisioning, while the canonical conflict key remains `sellerId + shop name`.
+- Added active backlog card `TASK-FT011-09` to fix the mounted runtime/test drift where the repo-local provisioning path can still behave like single-shop-per-seller despite the spec baseline.
+
 ## [2026-04-19] Dev runtime server refactored into focused runtime modules without contract drift
 - Split `backend/src/dev-runtime/dev-api-server.ts` into focused `catalog-runtime`, `admin-access-runtime`, `checkout-payment-runtime`, and `http-runtime` modules while keeping `dev-api-server.ts` as the composition root and preserving the existing exported test/runtime helpers.
 - Re-ran the mounted `catalog` runtime regression suite and the full `admin-access` suite to confirm the repo-local auth/catalog routes, durable runtime behavior, and helper exports remained behaviorally unchanged.

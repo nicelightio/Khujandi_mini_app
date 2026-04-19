@@ -388,7 +388,7 @@ export const createInMemoryCatalogPrisma = (
           .filter((binding) => binding.telegramId === where.telegramId)
           .map((binding) => ({ ...binding })),
       create: async ({ data }: { data: { shopId: string; sellerId: string; telegramId: string } }) => {
-        if (target.bindings.some((binding) => binding.sellerId === data.sellerId || binding.telegramId === data.telegramId)) {
+        if (target.bindings.some((binding) => binding.shopId === data.shopId)) {
           const error = new Error("duplicate binding");
           Object.assign(error, { code: "P2002" });
           throw error;

@@ -21,6 +21,7 @@ status: active
 ## Provisioning rules
 - Admin provisioning MUST collect at minimum the shop name and the seller's Telegram-linked identity.
 - Durable provisioning identity MUST be enforced at the persistence boundary with a canonical uniqueness key equivalent to `sellerId + shop name`, so concurrent identical retries cannot create duplicate starter shops.
+- Один seller/Telegram-linked identity MAY быть привязан к нескольким shops, если эти shops provision-ятся admin-side flow; uniqueness MUST NOT ужесточаться до `sellerId`-only или `telegramId`-only блокировки.
 - Successful provisioning MUST create a skeleton shop automatically; seller does not start from an empty shop canvas.
 - Skeleton provisioning MUST create starter menu pages and starter products that can be edited later by the seller.
 - Shop record creation, Telegram-linked binding creation, and starter catalog bootstrap MUST succeed or fail atomically.
@@ -31,6 +32,7 @@ status: active
 ## Ownership and access rules
 - Seller ownership is resolved from the Telegram-linked identity bound during provisioning.
 - Provisioning MUST persist the same canonical seller identity in both `Shop.sellerId` and the created seller-binding record.
+- Наличие существующего seller binding для другого owned shop само по себе MUST NOT блокировать admin-side provisioning следующего shop для того же seller identity.
 - Seller access to shared storefront edit mode and to `seller-web` store-admin MUST depend on that bound ownership.
 - Missing or mismatched Telegram binding MUST NOT grant seller access.
 

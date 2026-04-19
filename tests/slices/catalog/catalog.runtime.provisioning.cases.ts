@@ -122,6 +122,71 @@ export const registerCatalogRuntimeProvisioningCases = () => {
     }
   });
 
+  it("accepts multiple admin-provisioned shops for one seller identity when names differ", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      runtime.prisma.state.account.role = "BOSS";
+      const adminClient = runtime.createClient();
+      await loginAdmin(adminClient);
+
+      const firstResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-multi-shop",
+          telegramId: "921",
+          name: "Tea House",
+        },
+      });
+
+      const secondResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-multi-shop",
+          telegramId: "921",
+          name: "Bakery Corner",
+        },
+      });
+
+      expect(firstResponse.status).toBe(201);
+      expect(secondResponse.status).toBe(201);
+      expect(
+        runtime.catalogState.shops.filter(
+          (shop) => shop.sellerId === "seller-multi-shop" && ["Tea House", "Bakery Corner"].includes(shop.name),
+        ),
+      ).toHaveLength(2);
+      expect(
+        runtime.catalogState.bindings.filter(
+          (binding) => binding.sellerId === "seller-multi-shop" && binding.telegramId === "921",
+        ),
+      ).toHaveLength(2);
+
+      const sellerClient = runtime.createClient();
+      await loginSeller(sellerClient, "921");
+
+      const sellerShopsResponse = await sellerClient.request({
+        path: "/api/v1/seller/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(sellerShopsResponse.status).toBe(200);
+      expect(sellerShopsResponse.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: "Tea House" }),
+          expect.objectContaining({ name: "Bakery Corner" }),
+        ]),
+      );
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("rejects refresh-only, forged-access, or expired protected admin sessions before provisioning writes", async () => {
     let now = new Date("2026-04-10T10:00:00.000Z");
     const runtime = await startDevApiServer({

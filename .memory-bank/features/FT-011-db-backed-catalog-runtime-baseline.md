@@ -18,6 +18,7 @@ status: active
 - `TASK-FT011-08` closes that follow-up: seller rename writes now map the same durable `sellerId + shop name` uniqueness invariant to an explicit controlled `SHOP_RENAME_CONFLICT` contract, and the mounted repo-local runtime mirrors that behavior instead of leaking raw persistence failures or silently allowing duplicate owned shop names.
 - `TASK-FT011-04` closes the remaining mounted seller/storefront read-path drift inside the checked-in runtime shell: seller capability checks and `GET /api/v1/seller/shops/:shopId` now resolve through repository-backed catalog reads rather than direct `catalogState` access, and restart coverage proves seller storefront data survives runtime restart on the same persisted DB path.
 - `TASK-FT011-05` closes the automated regression follow-up for the mounted repo-local path: runtime coverage now proves persisted provisioning success survives restart and repeated identical provisioning still fails through the controlled conflict contract after restart on the same DB path, without creating duplicate or partial starter bundles.
+- `TASK-FT011-09` closes the remaining mounted runtime parity drift after the runtime split: admin provisioning now allows multiple shops for the same seller/Telegram identity when shop names differ, matching the canonical `sellerId + shop name` conflict boundary already enforced by the service/spec layer.
 - `TASK-FT011-06` closes the feature: final automated gates were rerun and manual restart-smoke evidence now shows a newly provisioned working shop plus a later seller edit surviving runtime restart on the same DB path, with public browse inputs and seller storefront payloads still resolving from persisted catalog state.
 - `FT-010` continues to own seller storefront/store-admin behavior and ownership semantics; `FT-011` now owns the durable DB-backed runtime baseline for those same catalog surfaces.
 - Legacy demo or in-memory catalog state is not a compatibility target for this feature; a clean DB-backed baseline is acceptable.
@@ -33,6 +34,7 @@ status: active
 
 - Канонический backend runtime path для `catalog` provisioning, seller reads/writes и public storefront resolution является DB-backed.
 - Успешный admin provisioning durably persist-ит `shop`, seller binding, starter menu pages и starter products как обычные catalog записи.
+- Один seller identity MAY получать несколько admin-provisioned shops; fail-closed conflict boundary для provisioning определяется canonical `sellerId + shop name` identity, а не single-shop-per-seller ограничением.
 - Успешно созданные через provisioning или later seller edits catalog данные переживают runtime restart/reset.
 - `/shops/:shopId`, public browse и seller-protected shop reads резолвятся из canonical persisted catalog state, а не из synthetic или route-local in-memory state.
 - Provisioning остается атомарным: `shop`, seller binding и starter catalog bootstrap либо commit-ятся вместе, либо целиком roll back.
@@ -43,6 +45,7 @@ status: active
 ## Edge cases & failure modes
 
 - Duplicate provisioning для того же canonical seller binding или того же target shop identity MUST fail closed без partial rows, включая concurrent retries against the same `sellerId + shop name` identity.
+- Наличие уже привязанного другого shop для того же seller/Telegram identity само по себе не считается conflict, если новый shop имеет другое canonical identity и создается через admin provisioning flow.
 - Ошибка на шаге starter bootstrap после создания shop MUST roll back всю provisioning operation.
 - Runtime restart после успешного provisioning или seller edit MUST NOT делать магазин недоступным.
 - Отсутствие DB-backed catalog данных может возвращать controlled not-found/error states, но runtime MUST NOT фабриковать success из process-local fallback state.
@@ -84,3 +87,4 @@ status: active
 ## Verification closure
 
 - `FT-011` is closed: `TASK-FT011-01`, `TASK-FT011-02`, `TASK-FT011-03`, `TASK-FT011-04`, `TASK-FT011-05`, `TASK-FT011-07`, and `TASK-FT011-08` established the DB-backed mounted runtime baseline, transactional/conflict-safe provisioning, persisted seller/public read paths, and restart-aware automated regressions; `TASK-FT011-06` then reran the final catalog gates and added explicit manual restart-smoke evidence that `provision -> seller edit -> restart -> public/seller storefront reads` stays on canonical persisted catalog state.
+- `TASK-FT011-09` later removed the residual mounted-runtime drift that still behaved like `single-shop-per-seller`, so the checked-in repo-local runtime/test path now fully matches the spec-level `sellerId + shop name` provisioning identity semantics.

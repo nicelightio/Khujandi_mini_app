@@ -33,6 +33,20 @@ status: active
 - `FT-009` follow-up hardening wave is now reopened through active backlog cards for keyboard-safe bottom actions and centralized degradation policy.
 - Current scoped follow-up intentionally excludes the broader `high-churn runtime propagation` refactor; that concern remains in the open bug record but is not part of the execution-ready wave below.
 
+### TASK-FT011-09 — Allow multiple admin-provisioned shops per seller identity
+- TASK-ID: `TASK-FT011-09`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-011`
+- REQs: `REQ-028`
+- Depends on: `none`
+- Touched files: `backend/src/dev-runtime/catalog-runtime-prisma.ts`, optional `backend/src/dev-runtime/catalog-runtime-repository.ts`, `tests/slices/catalog/**/*`, and relevant `.memory-bank/*` docs
+- Tests: mounted/runtime and integration coverage proving admin can provision multiple shops for one seller/Telegram identity when canonical shop names differ, while identical provisioning for the same `sellerId + shop name` still fails closed
+- Verify: repo-local mounted runtime accepts `shop A` and `shop B` for the same seller via admin provisioning, seller still has no self-create shop surface, and repeated/conflicting provisioning remains controlled and atomic
+- Docs: `tasks/backlog.md`, `contracts/catalog-seller-provisioning-and-visibility.md`, `features/FT-011-db-backed-catalog-runtime-baseline.md`, `requirements.md`, `testing/index.md`, `changelog.md` if implementation lands
+- Source: post-change review finding on mounted `sellerShopBinding` uniqueness drift after `catalog-runtime` split
+- Constraints: preserve canonical conflict key `sellerId + shop name`; do not widen scope into seller self-provisioning or broader catalog redesign
+
 ### TASK-FT009-07 — Add shell-owned keyboard-safe bottom action primitive
 - TASK-ID: `TASK-FT009-07`
 - Status: `ready`
