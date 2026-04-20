@@ -9,6 +9,7 @@ import type {
   SellerCatalogProduct,
   SellerShopBinding,
 } from "../../domain/catalog.types";
+import { buildUniqueShopPublicPaths } from "../../domain/shop-public-paths";
 import { mapMenuPage, mapProduct } from "./catalog-prisma.mappers";
 import {
   selectSellerBinding,
@@ -21,11 +22,60 @@ import type { CatalogPrismaClientLike, CatalogPrismaTransactionalClientLike } fr
 export class CatalogProvisioningWriter {
   constructor(private readonly prisma: CatalogPrismaClientLike | CatalogPrismaTransactionalClientLike) {}
 
-  createShop(input: CreateProvisionedShopInput): Promise<SellerCatalogShop> {
+  private async resolvePublicPaths(input: CreateProvisionedShopInput): Promise<{
+    primaryPublicPath: string;
+    secondaryPublicPath: string;
+  }> {
+    if (
+      typeof input.primaryPublicPath === "string" &&
+      input.primaryPublicPath.length > 0 &&
+      typeof input.secondaryPublicPath === "string" &&
+      input.secondaryPublicPath.length > 0
+    ) {
+      return {
+        primaryPublicPath: input.primaryPublicPath,
+        secondaryPublicPath: input.secondaryPublicPath,
+      };
+    }
+
+    const [allPathRecords, sellerPathRecords] = await Promise.all([
+      this.prisma.shop.findMany({
+        where: {},
+        select: {
+          primaryPublicPath: true,
+          secondaryPublicPath: true,
+        },
+      }),
+      this.prisma.shop.findMany({
+        where: {
+          sellerId: input.sellerId,
+        },
+        select: {
+          primaryPublicPath: true,
+        },
+      }),
+    ]);
+
+    return buildUniqueShopPublicPaths({
+      sellerId: input.sellerId,
+      shopName: input.name,
+      existingPublicPaths: allPathRecords.flatMap((record) => [
+        String(record.primaryPublicPath),
+        String(record.secondaryPublicPath),
+      ]),
+      existingSellerPrimaryPublicPaths: sellerPathRecords.map((record) => String(record.primaryPublicPath)),
+    });
+  }
+
+  async createShop(input: CreateProvisionedShopInput): Promise<SellerCatalogShop> {
+    const publicPaths = await this.resolvePublicPaths(input);
+
     return this.prisma.shop.create({
       data: {
         sellerId: input.sellerId,
         name: input.name,
+        primaryPublicPath: publicPaths.primaryPublicPath,
+        secondaryPublicPath: publicPaths.secondaryPublicPath,
         description: input.description,
         headerImageUrl: input.headerImageUrl,
         backgroundImageUrl: input.backgroundImageUrl,
@@ -58,6 +108,8 @@ export class CatalogProvisioningWriter {
         data: {
           sellerId: input.sellerId,
           name: input.name,
+          primaryPublicPath: input.primaryPublicPath,
+          secondaryPublicPath: input.secondaryPublicPath,
           description: input.description,
           headerImageUrl: input.headerImageUrl,
           backgroundImageUrl: input.backgroundImageUrl,

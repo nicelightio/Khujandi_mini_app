@@ -13,7 +13,7 @@ status: active
 - `backend/prisma/schema.prisma` пока содержит только `Shop` и `Product` с legacy `isDeleted` baseline; полей для `WORKING/NOT_WORKING`, shop/product descriptions/media, menu pages и explicit seller-binding/provisioning artifacts нет.
 - `backend/src/shared/db/prisma-client.ts` и `backend/src/slices/catalog/**/*` покрывают только public `shops/products`, seller rename и seller product create/update; admin provisioning, menu page writes, seller capability resolution и status-based visibility там отсутствуют.
 - `backend/src/dev-runtime/dev-api-server.ts` сейчас монтирует только demo public catalog reads и admin auth runtime; seller/admin catalog runtime paths для `FT-010` еще не присутствуют.
-- `TASK-FT010-02` added checked-in route/page scaffolding for `/shops/:shopId`, `/seller/shops/status`, and `/admin/catalog/shops/provision`; the shared storefront boundary still points to the same `CatalogRoute` tree instead of a second seller storefront implementation.
+- `TASK-FT010-02` added checked-in route/page scaffolding for `/shops/:publicPath`, `/seller/shops/status`, and `/admin/catalog/shops/provision`; the shared storefront boundary still points to the same `CatalogRoute` tree instead of a second seller storefront implementation.
 - `frontend/src/slices/catalog/components/catalog-page.tsx` все еще рендерит browse-only список shops/products без menu page model, edit affordances и seller-aware storefront state.
 - `frontend/src/seller/**/*` and seller-specific frontend smoke coverage now exist only as contour scaffolding; real auth/runtime wiring and status toggle behavior remain for later tasks.
 

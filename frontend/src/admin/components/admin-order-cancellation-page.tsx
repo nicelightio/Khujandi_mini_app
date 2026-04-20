@@ -19,15 +19,29 @@ export const AdminOrderCancellationPage = ({
   onRefundSubmit,
 }: AdminOrderCancellationPageProps) => (
   <AdminPageShell title={viewModel.headline}>
-    <section aria-live="polite">
+    <section aria-live="polite" data-admin-panel="context">
+      <span data-admin-ui="micro-label">Cancellation status</span>
       <p>{viewModel.statusLabel}</p>
-      <p>{viewModel.orderStatusLabel}</p>
-      <p>{viewModel.authBoundaryNote}</p>
+      <div data-admin-ui="fact-list">
+        <div>
+          <span>Order</span>
+          <strong>{viewModel.orderLabel}</strong>
+        </div>
+        <div>
+          <span>Current state</span>
+          <strong>{viewModel.orderStatusLabel}</strong>
+        </div>
+        <div>
+          <span>Refund state</span>
+          <strong>{viewModel.refundStatus}</strong>
+        </div>
+      </div>
       <p>
         Refund state: <strong>{viewModel.refundStatus}</strong>
       </p>
       <p>{viewModel.refundStatusLabel}</p>
       <p>{viewModel.refundVisibilityNote}</p>
+      <p>{viewModel.authBoundaryNote}</p>
       {viewModel.refundNote !== null ? <p>Latest refund note: {viewModel.refundNote}</p> : null}
       {viewModel.successMessage !== null ? <p role="status">{viewModel.successMessage}</p> : null}
       {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
@@ -38,6 +52,7 @@ export const AdminOrderCancellationPage = ({
         event.preventDefault();
         onCancellationSubmit();
       }}
+      data-admin-panel="workspace"
     >
       <fieldset disabled={viewModel.isLoading || viewModel.isCancellationSubmitting}>
         <legend>{viewModel.orderLabel}</legend>
@@ -55,6 +70,19 @@ export const AdminOrderCancellationPage = ({
           </select>
         </label>
       </fieldset>
+      <div data-admin-ui="selection-table">
+        {viewModel.cancellationReasons.map((reason) => (
+          <div
+            key={reason.code}
+            data-admin-ui="selection-row"
+            data-selected={reason.code === viewModel.selectedReasonCode ? "true" : "false"}
+          >
+            <strong>{reason.label}</strong>
+            <span>{reason.detail}</span>
+            <span>{reason.code}</span>
+          </div>
+        ))}
+      </div>
       <button type="submit" disabled={viewModel.isCancellationSubmitDisabled}>
         {viewModel.cancellationSubmitLabel}
       </button>
@@ -65,16 +93,25 @@ export const AdminOrderCancellationPage = ({
         event.preventDefault();
         onRefundSubmit();
       }}
+      data-admin-panel="workspace"
     >
       <fieldset disabled={viewModel.isLoading || viewModel.isRefundSubmitting}>
         <legend>Manual refund tracking</legend>
+        <div data-admin-ui="fact-list">
+          <div>
+            <span>Visible state</span>
+            <strong>{viewModel.refundStatus}</strong>
+          </div>
+          <div>
+            <span>Operator note</span>
+            <strong>{viewModel.refundNote === null ? "Not recorded" : "Available"}</strong>
+          </div>
+        </div>
         <label>
           Refund outcome
           <select
             value={viewModel.selectedRefundOutcome}
-            onChange={(event) =>
-              onRefundOutcomeChange(event.target.value as "DONE" | "REJECTED")
-            }
+            onChange={(event) => onRefundOutcomeChange(event.target.value as "DONE" | "REJECTED")}
           >
             {viewModel.refundOutcomeOptions.map((option) => (
               <option key={option.value} value={option.value}>

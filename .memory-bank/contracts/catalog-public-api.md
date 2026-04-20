@@ -22,9 +22,12 @@ status: active
 - Public reads MUST stay within `catalog` scope and MUST NOT leak seller-only edit semantics.
 - Public reads MUST return only shops whose status is publicly visible according to the catalog visibility policy.
 - Public storefront resolution MUST read canonical persisted catalog state from the DB-backed runtime baseline; route-local in-memory catalog state is not a normative source of truth.
+- Public storefront route shape is `/shops/:publicPath`; customer-facing links SHOULD prefer the human-readable vanity path, while both persisted public paths of the same shop MAY resolve to the same storefront.
+- Technical `shop.id` MUST remain internal and MUST NOT be used as the customer-facing routing identity baseline.
 
 ## Resource boundary
 - `shops`: customer-visible storefront entities with browse-safe metadata such as name, description, cover/background assets, and public status.
+- `shops` also expose one browse-safe routing field `publicPath`; this is not the same identity as technical `shop.id`.
 - `menu pages`: customer-visible menu groupings that belong to visible shops.
 - `products`: customer-visible items that belong to visible menu pages and visible shops.
 
@@ -32,6 +35,7 @@ status: active
 - Public browse includes only shops in status `WORKING`.
 - Public browse excludes menu pages and products whose parent shop is not publicly visible.
 - Preserve a stable browse contract so later runtime implementations can sit behind REST without changing product intent.
+- Public browse links SHOULD default to the persisted vanity path (`secondaryPublicPath`) when present; seller-ordinal path remains a valid alias/fallback.
 
 ## Error posture
 - Unauthorized error is not expected for public browse endpoints.
@@ -42,6 +46,7 @@ status: active
 - `REQ-020`: shop rename policy does not alter historical order snapshots.
 - `REQ-026`: `NOT_WORKING` shops remain excluded from public storefront browse.
 - `REQ-027`: public storefront reads resolve from durable catalog persistence rather than process-local runtime state.
+- `REQ-029`: public routing identity stays separate from technical `shop.id` and remains immutable across rename.
 
 ## Related docs
 - [.memory-bank/features/FT-001-catalog-browse-and-seller-management.md](../features/FT-001-catalog-browse-and-seller-management.md): public catalog baseline.

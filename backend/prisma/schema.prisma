@@ -66,6 +66,8 @@ model Shop {
   id                          String    @id @default(cuid())
   sellerId                    String
   name                        String
+  primaryPublicPath           String    @unique
+  secondaryPublicPath         String    @unique
   description                 String?
   headerImageUrl              String?
   backgroundImageUrl          String?

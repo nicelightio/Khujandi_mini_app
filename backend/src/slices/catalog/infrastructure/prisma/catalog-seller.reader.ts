@@ -76,6 +76,28 @@ export class CatalogSellerReader {
     });
   }
 
+  findShopByPublicPath(publicPath: string): Promise<SellerCatalogShop | null> {
+    if (typeof this.prisma.shop.findFirst !== "function") {
+      return this.prisma.shop.findUnique({
+        where: {
+          id: publicPath,
+        },
+        select: {
+          ...selectSellerShop,
+        },
+      });
+    }
+
+    return this.prisma.shop.findFirst({
+      where: {
+        OR: [{ primaryPublicPath: publicPath }, { secondaryPublicPath: publicPath }],
+      },
+      select: {
+        ...selectSellerShop,
+      },
+    }) as Promise<SellerCatalogShop | null>;
+  }
+
   async findMenuPageById(menuPageId: MenuPageId): Promise<SellerCatalogMenuPage | null> {
     const menuPage = await this.prisma.menuPage.findUnique({
       where: {

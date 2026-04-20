@@ -109,6 +109,7 @@ describe("catalog route", () => {
         {
           id: "shop-1",
           name: "Khujand Bakery",
+          publicPath: "khujand-bakery",
           products: [
             {
               id: "product-1",
@@ -126,7 +127,7 @@ describe("catalog route", () => {
     expect(text).toContain("Khujand Bakery");
     expect(text).toContain("Somsa");
     expect(text).toContain("15.00 TJS");
-    expect(renderer.root.findByProps({ href: "/shops/shop-1" }).children).toContain("Khujand Bakery");
+    expect(renderer.root.findByProps({ href: "/shops/khujand-bakery" }).children).toContain("Khujand Bakery");
   });
 
   it("renders a controlled error state when the public browse request fails", async () => {
@@ -162,6 +163,7 @@ describe("catalog route", () => {
     let storefrontData: CatalogStorefrontData = {
       shop: {
         id: "shop-1",
+        publicPath: "khujand-bakery",
         name: "Khujand Bakery",
         description: "Fresh bread and pastries",
         headerImageUrl: null,
@@ -216,7 +218,7 @@ describe("catalog route", () => {
       renderer = create(
         <LanguageContextProvider value={createLanguageContextValue()}>
           <CatalogRoute
-            pathname="/shops/shop-1"
+            pathname="/shops/khujand-bakery"
             loadStorefrontData={async () => storefrontData}
             persistStorefrontEdit={persistStorefrontEdit}
           />
@@ -225,7 +227,7 @@ describe("catalog route", () => {
       await flushPromises();
     });
 
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Seller edit mode is active on the shared storefront tree.");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Khujand Bakery");
 
     await act(async () => {
       renderer.root.findByProps({ "data-product-id": "product-1" }).props.onClick({
@@ -261,7 +263,7 @@ describe("catalog route", () => {
     expect(persistStorefrontEdit).toHaveBeenCalledTimes(1);
     expect(persistStorefrontEdit.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
-        shopId: "shop-1",
+        shopId: "khujand-bakery",
         target: {
           type: "product",
           menuPageId: "page-1",
@@ -275,6 +277,7 @@ describe("catalog route", () => {
     const storefrontData: CatalogStorefrontData = {
       shop: {
         id: "shop-1",
+        publicPath: "khujand-bakery",
         name: "Khujand Bakery",
         description: null,
         headerImageUrl: null,
@@ -307,14 +310,14 @@ describe("catalog route", () => {
     await act(async () => {
       renderer = create(
         <LanguageContextProvider value={createLanguageContextValue()}>
-          <CatalogRoute pathname="/shops/shop-1" loadStorefrontData={async () => storefrontData} />
+          <CatalogRoute pathname="/shops/khujand-bakery" loadStorefrontData={async () => storefrontData} />
         </LanguageContextProvider>,
       );
       await flushPromises();
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Browse-only storefront. Seller edit mode stays hidden until ownership is confirmed server-side.");
+    expect(text).toContain("Khujand Bakery");
     expect(renderer.root.findAllByProps({ "data-catalog-editor": "active" })).toHaveLength(0);
     expect(renderer.root.findAllByType("button").some((node) => collectText(node.props.children).join(" ") === "Add menu page")).toBe(false);
   });
@@ -325,6 +328,7 @@ describe("catalog route", () => {
         {
           id: "shop-1",
           name: "Khujand Bakery",
+          publicPath: "khujand-bakery",
           products: [],
         },
       ],
@@ -359,6 +363,7 @@ describe("catalog route", () => {
         {
           id: "shop-1",
           name: "Khujand Bakery",
+          publicPath: "khujand-bakery",
           products: [
             {
               id: "product-1",
@@ -384,7 +389,7 @@ describe("catalog route", () => {
     await act(async () => {
       renderer = create(
         <LanguageContextProvider value={createLanguageContextValue()}>
-          <CatalogRoute api={api} pathname="/shops/shop-1" />
+          <CatalogRoute api={api} pathname="/shops/khujand-bakery" />
         </LanguageContextProvider>,
       );
       await flushPromises();
@@ -416,7 +421,7 @@ describe("catalog route", () => {
     await act(async () => {
       renderer = create(
         <LanguageContextProvider value={createLanguageContextValue()}>
-          <CatalogRoute api={api} pathname="/shops/shop-1" />
+          <CatalogRoute api={api} pathname="/shops/khujand-bakery" />
         </LanguageContextProvider>,
       );
       await flushPromises();
@@ -432,6 +437,7 @@ describe("catalog route", () => {
     let storefrontData: CatalogStorefrontData = {
       shop: {
         id: "shop-legacy",
+        publicPath: "legacy-bakery",
         name: "Legacy Bakery",
         description: null,
         headerImageUrl: null,
@@ -476,7 +482,7 @@ describe("catalog route", () => {
       renderer = create(
         <LanguageContextProvider value={createLanguageContextValue()}>
           <CatalogRoute
-            pathname="/shops/shop-legacy"
+            pathname="/shops/legacy-bakery"
             loadStorefrontData={async () => storefrontData}
             persistStorefrontEdit={persistStorefrontEdit}
           />

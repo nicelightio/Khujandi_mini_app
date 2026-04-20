@@ -4,12 +4,18 @@ export type MenuPageId = string;
 export type SellerId = string;
 export type ShopStatus = "WORKING" | "NOT_WORKING";
 
+export type ShopPublicPaths = {
+  primaryPublicPath: string;
+  secondaryPublicPath: string;
+};
+
 export type CatalogShop = {
   id: ShopId;
   name: string;
+  publicPath: string;
 };
 
-export type SellerCatalogShop = {
+export type SellerCatalogShop = ShopPublicPaths & {
   id: ShopId;
   sellerId: SellerId;
   name: string;
@@ -75,6 +81,8 @@ export type AdminProvisionedShopSummary = {
   status: ShopStatus;
   sellerId: SellerId;
   telegramId: string | null;
+  primaryPublicPath: string;
+  secondaryPublicPath: string;
 };
 
 export type CatalogWriteEventEntity = "shop" | "menu_page" | "product";
@@ -95,6 +103,8 @@ export type CatalogWriteResult<TRecord> = {
 export type CreateProvisionedShopInput = {
   sellerId: SellerId;
   name: string;
+  primaryPublicPath?: string;
+  secondaryPublicPath?: string;
   description?: string | null;
   headerImageUrl?: string | null;
   backgroundImageUrl?: string | null;
@@ -111,6 +121,8 @@ export type ProvisionSellerShopInput = {
   sellerId: SellerId;
   telegramId: string;
   name: string;
+  primaryPublicPath: string;
+  secondaryPublicPath: string;
   description?: string | null;
   headerImageUrl?: string | null;
   backgroundImageUrl?: string | null;
@@ -199,6 +211,8 @@ export type ProvisionedSellerShop = {
 
 export interface CatalogRepository {
   listPublicShops(): Promise<CatalogShop[]>;
+  listAllPublicPaths(): Promise<string[]>;
+  listSellerPrimaryPublicPaths(sellerId: SellerId): Promise<string[]>;
   listPublicMenuPagesByShop(shopId: ShopId): Promise<CatalogMenuPage[]>;
   listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]>;
   listAdminProvisionedShops(): Promise<AdminProvisionedShopSummary[]>;
@@ -206,6 +220,7 @@ export interface CatalogRepository {
   listSellerMenuPagesByShop(shopId: ShopId): Promise<SellerCatalogMenuPage[]>;
   listSellerProductsByShop(shopId: ShopId): Promise<SellerCatalogProduct[]>;
   findShopById(shopId: ShopId): Promise<SellerCatalogShop | null>;
+  findShopByPublicPath(publicPath: string): Promise<SellerCatalogShop | null>;
   createShop(input: CreateProvisionedShopInput): Promise<SellerCatalogShop>;
   updateShop(shopId: ShopId, input: UpdateSellerShopInput & Pick<SellerCatalogShop, "renameCount" | "requiresManualRenameReview">): Promise<CatalogWriteResult<SellerCatalogShop>>;
   findMenuPageById(menuPageId: MenuPageId): Promise<SellerCatalogMenuPage | null>;

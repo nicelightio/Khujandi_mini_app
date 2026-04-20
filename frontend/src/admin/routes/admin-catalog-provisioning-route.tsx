@@ -109,7 +109,7 @@ export const AdminCatalogProvisioningRoute = ({ api }: AdminCatalogProvisioningR
       });
 
       setSuccessMessage(
-        `Provisioned ${result.shopName} (${result.shopStatus}) for seller ${result.sellerId}. Starter pages: ${result.menuPagesCount}. Starter products: ${result.productsCount}.`,
+        `Provisioned ${result.shopName} (${result.shopStatus}) for seller ${result.sellerId}. Paths: ${result.secondaryPublicPath} / ${result.primaryPublicPath}. Starter pages: ${result.menuPagesCount}. Starter products: ${result.productsCount}.`,
       );
 
       try {

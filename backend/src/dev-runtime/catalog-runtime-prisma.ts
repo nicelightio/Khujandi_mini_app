@@ -53,12 +53,28 @@ export const createInMemoryCatalogPrisma = (
         where,
         select,
       }: {
-        where: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" };
+        where: {
+          isDeleted?: boolean;
+          status?: "WORKING" | "NOT_WORKING";
+          sellerId?: string;
+          OR?: Array<{
+            primaryPublicPath?: string;
+            secondaryPublicPath?: string;
+          }>;
+        };
         select?: {
           id?: boolean;
           name?: boolean;
           sellerId?: boolean;
           status?: boolean;
+          primaryPublicPath?: boolean;
+          secondaryPublicPath?: boolean;
+          description?: boolean;
+          headerImageUrl?: boolean;
+          backgroundImageUrl?: boolean;
+          renameCount?: boolean;
+          requiresManualRenameReview?: boolean;
+          isDeleted?: boolean;
           sellerBindings?: {
             select: {
               telegramId: boolean;
@@ -67,33 +83,91 @@ export const createInMemoryCatalogPrisma = (
         };
       }) =>
         target.shops
-          .filter((shop) => shop.isDeleted === where.isDeleted)
+          .filter((shop) => where.isDeleted === undefined || shop.isDeleted === where.isDeleted)
           .filter((shop) => where.status === undefined || shop.status === where.status)
+          .filter((shop) => where.sellerId === undefined || shop.sellerId === where.sellerId)
+          .filter(
+            (shop) =>
+              where.OR === undefined ||
+              where.OR.some(
+                (condition) =>
+                  condition.primaryPublicPath === shop.primaryPublicPath ||
+                  condition.secondaryPublicPath === shop.secondaryPublicPath,
+              ),
+          )
           .map((shop) => {
-            if (select?.sellerId === true || select?.status === true || select?.sellerBindings !== undefined) {
-              return {
-                ...(select.id === true ? { id: shop.id } : {}),
-                ...(select.name === true ? { name: shop.name } : {}),
-                ...(select.sellerId === true ? { sellerId: shop.sellerId } : {}),
-                ...(select.status === true ? { status: shop.status } : {}),
-                ...(select.sellerBindings !== undefined
-                  ? {
-                      sellerBindings: target.bindings
-                        .filter((binding) => binding.shopId === shop.id)
-                        .map((binding) => ({ telegramId: binding.telegramId })),
-                    }
-                  : {}),
-              };
-            }
-
-            return { id: shop.id, name: shop.name };
+            return {
+              ...(select?.id === true ? { id: shop.id } : {}),
+              ...(select?.name === true ? { name: shop.name } : {}),
+              ...(select?.sellerId === true ? { sellerId: shop.sellerId } : {}),
+              ...(select?.status === true ? { status: shop.status } : {}),
+              ...(select?.primaryPublicPath === true ? { primaryPublicPath: shop.primaryPublicPath } : {}),
+              ...(select?.secondaryPublicPath === true ? { secondaryPublicPath: shop.secondaryPublicPath } : {}),
+              ...(select?.description === true ? { description: shop.description } : {}),
+              ...(select?.headerImageUrl === true ? { headerImageUrl: shop.headerImageUrl } : {}),
+              ...(select?.backgroundImageUrl === true ? { backgroundImageUrl: shop.backgroundImageUrl } : {}),
+              ...(select?.renameCount === true ? { renameCount: shop.renameCount } : {}),
+              ...(select?.requiresManualRenameReview === true
+                ? { requiresManualRenameReview: shop.requiresManualRenameReview }
+                : {}),
+              ...(select?.isDeleted === true ? { isDeleted: shop.isDeleted } : {}),
+              ...(select?.sellerBindings !== undefined
+                ? {
+                    sellerBindings: target.bindings
+                      .filter((binding) => binding.shopId === shop.id)
+                      .map((binding) => ({ telegramId: binding.telegramId })),
+                  }
+                : {}),
+            };
           }),
+      findFirst: async (args: {
+        where: {
+          isDeleted?: boolean;
+          status?: "WORKING" | "NOT_WORKING";
+          sellerId?: string;
+          OR?: Array<{
+            primaryPublicPath?: string;
+            secondaryPublicPath?: string;
+          }>;
+        };
+        select?: {
+          id?: boolean;
+          name?: boolean;
+          sellerId?: boolean;
+          status?: boolean;
+          primaryPublicPath?: boolean;
+          secondaryPublicPath?: boolean;
+          description?: boolean;
+          headerImageUrl?: boolean;
+          backgroundImageUrl?: boolean;
+          renameCount?: boolean;
+          requiresManualRenameReview?: boolean;
+          isDeleted?: boolean;
+        };
+      }) => {
+        const records = await createClient(target).shop.findMany(args);
+        return records[0] ?? null;
+      },
       findUnique: async ({ where }: { where: { id: string } }) => {
         const shop = target.shops.find((candidate) => candidate.id === where.id) ?? null;
         return shop === null ? null : { ...shop };
       },
-      create: async ({ data }: { data: { sellerId: string; name: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status: "WORKING" | "NOT_WORKING" } }) => {
+      create: async ({ data }: { data: { sellerId: string; name: string; primaryPublicPath: string; secondaryPublicPath: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status: "WORKING" | "NOT_WORKING" } }) => {
         if (target.shops.some((shop) => shop.sellerId === data.sellerId && shop.name === data.name)) {
+          const error = new Error("Unique constraint failed");
+          Object.assign(error, { code: "P2002" });
+          throw error;
+        }
+
+        if (
+          target.shops.some(
+            (shop) =>
+              shop.primaryPublicPath === data.primaryPublicPath ||
+              shop.secondaryPublicPath === data.primaryPublicPath ||
+              shop.primaryPublicPath === data.secondaryPublicPath ||
+              shop.secondaryPublicPath === data.secondaryPublicPath,
+          )
+        ) {
           const error = new Error("Unique constraint failed");
           Object.assign(error, { code: "P2002" });
           throw error;
@@ -103,6 +177,8 @@ export const createInMemoryCatalogPrisma = (
           id: `shop-runtime-${target.nextShopId++}`,
           sellerId: data.sellerId,
           name: data.name,
+          primaryPublicPath: data.primaryPublicPath,
+          secondaryPublicPath: data.secondaryPublicPath,
           description: data.description ?? null,
           headerImageUrl: data.headerImageUrl ?? null,
           backgroundImageUrl: data.backgroundImageUrl ?? null,

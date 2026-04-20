@@ -19,8 +19,8 @@ status: active
 - `TASK-FT010-14` closes the remaining adapter drift by making seller write observability explicit at the `CatalogRepository` boundary itself and aligning the checked-in in-memory/runtime adapter with the same seller write event semantics.
 - `TASK-FT010-15` closes the remaining sink-level asymmetry from the `TASK-FT010-14` red-verify follow-up: the checked-in in-memory/runtime adapter now records seller write artifacts into a shared runtime `events`-store analogue instead of a private seller-only sink, so non-persistent adapter behavior stays aligned with the project-wide event model.
 - Post-change `red-verify` for `TASK-FT010-15` did not find a new semantic concern: for the checked-in repo-local runtime scope, seller write observability parity is now closed both at the repository artifact boundary and at the adapter sink semantics level.
-- `TASK-FT010-02` added the checked-in frontend contour scaffold: `/shops/:shopId` now resolves through the same `CatalogRoute` tree as public browse, `/seller/shops/status` exists as a narrow `seller-web` shell, and `/admin/catalog/shops/provision` exists as an admin-side page shell for later runtime wiring.
-- `TASK-FT010-06` now wires seller-owned edit affordances into that same shared storefront tree: `/shops/:shopId` stays on `CatalogRoute`/`CatalogPage`, owner-only click/long-press activation opens inline editors for shop/menu/product flows, non-seller users remain browse-only, and no second seller storefront tree is introduced.
+- `TASK-FT010-02` added the checked-in frontend contour scaffold: `/shops/:publicPath` now resolves through the same `CatalogRoute` tree as public browse, `/seller/shops/status` exists as a narrow `seller-web` shell, and `/admin/catalog/shops/provision` exists as an admin-side page shell for later runtime wiring.
+- `TASK-FT010-06` now wires seller-owned edit affordances into that same shared storefront tree: `/shops/:publicPath` stays on `CatalogRoute`/`CatalogPage`, owner-only click/long-press activation opens inline editors for shop/menu/product flows, non-seller users remain browse-only, and no second seller storefront tree is introduced.
 - The checked-in save path for `TASK-FT010-06` is still repo-local frontend state/UX wiring rather than a mounted backend persistence runtime, while narrow `seller-web` status-toggle behavior remains for later UI/runtime closure.
 - Post-change `red-verify` for `TASK-FT010-06` returned `semantic-concern`: the current shared-storefront seller edit mode still reconstructs menu/product content from public browse plus synthetic fallback data and reports frontend-local save success without the canonical seller storefront read/write boundary, so follow-up `TASK-FT010-18` is now `ready`.
 - `TASK-FT010-18` closes that semantic/runtime gap: protected seller storefront reads now return canonical owner-visible `menuPages/products`, shared storefront submits call the checked-in seller write boundary and reload canonical data, and owner-visible `NOT_WORKING` storefront content no longer depends on public browse derivation or frontend-local success simulation.
@@ -37,7 +37,7 @@ status: active
 - `TASK-FT010-08` closes final verification/docs sync for the checked-in feature scope: repo-local backend/runtime and frontend smoke coverage now explicitly prove shared storefront edit-mode reuse, admin-provisioned skeleton bootstrap, Telegram-linked seller access reuse, `WORKING/NOT_WORKING` owner/public visibility gating, and the baseline absence of delete UI on shared storefront plus narrow `seller-web` surfaces.
 - Post-change `red-verify` for `TASK-FT010-08` returned `semantic-pass`: the final docs/RTM closure remains substantively aligned for the checked-in repo scope and does not hide a remaining `FT-010` semantic gap.
 - `FT-011` now owns the DB-backed runtime baseline and restart-safe durability for admin provisioning, shared storefront reads, and seller/admin catalog runtime writes; `FT-010` remains the seller-behavior and contour-spec feature for those surfaces.
-- Post-closure `/review` found one remaining checked-in repo follow-up outside the red-verify chain: `/shops/:shopId` still swallows missing/error cases into a synthetic fallback storefront, so `TASK-FT010-21` is now `ready` to replace fake browseable content with controlled missing/error states.
+- Post-closure `/review` found one remaining checked-in repo follow-up outside the red-verify chain: `/shops/:publicPath` still swallows missing/error cases into a synthetic fallback storefront, so `TASK-FT010-21` is now `ready` to replace fake browseable content with controlled missing/error states.
 - `TASK-FT010-21` closes that remaining repo-local follow-up: the shared storefront route now prefers canonical seller data, falls back only to real public shop data, and renders controlled not-found/error states instead of fabricating a fake shop shell or starter product when both sources are absent or failing.
 - Seller-aware session/access resolution is now formalized in the checked-in repo-local runtime: `POST /api/v1/auth/telegram` issues the existing Mini App cookie session family and protected seller reads resolve ownership from Telegram-linked bindings plus canonical `shop.sellerId` alignment.
 - `TASK-FT010-11` closed the remaining runtime drift from `TASK-FT010-04`: repo-local `POST /api/v1/auth/telegram` and seller-protected catalog reads now share the checked-in `checkout-payment` auth/session module boundary and one Mini App user/session state instead of a route-local clone.
@@ -68,6 +68,7 @@ status: active
 - Seller access по shared storefront и `seller-web` store-admin contour должен резолвиться из Telegram-linked identity; отдельный независимый seller password baseline не вводится.
 - Магазин имеет статусы `WORKING` и `NOT_WORKING`.
 - `WORKING` магазин виден клиентам и owning seller-у; `NOT_WORKING` магазин скрыт из public browse и остается видимым только owning seller-у.
+- Customer-facing storefront route использует `/shops/:publicPath`, где browse links по умолчанию публикуют human-readable vanity path, а seller-facing protected resolution принимает оба immutable public path того же shop.
 - Отдельная `seller-web` админка магазина в первой версии включает только легкие catalog-owned функции и не включает sales stats или другой cross-slice reporting.
 
 ## Edge cases & failure modes
@@ -77,6 +78,7 @@ status: active
 - `NOT_WORKING` магазин MUST NOT появляться в public storefront browse.
 - Shared storefront edit mode MUST NOT требовать второго, визуально отдельного storefront tree только ради seller UX.
 - Create/add flows MAY вводить новые UI сущности, но они MUST NOT ломать существующую storefront layout model.
+- Rename shop name MUST NOT менять уже выданные public path и MUST NOT требовать redirect/history layer в baseline scope.
 
 ## Constraints / invariants
 

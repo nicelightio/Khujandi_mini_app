@@ -11,7 +11,7 @@ import {
 
 const storefrontPrefix = "/shops/";
 
-export const getStorefrontShopId = (pathname: string): string | null => {
+export const getStorefrontPublicPath = (pathname: string): string | null => {
   if (!isStorefrontPathname(pathname)) {
     return null;
   }
@@ -22,6 +22,7 @@ export const getStorefrontShopId = (pathname: string): string | null => {
 export const buildStorefrontDataFromSellerAccess = (sellerAccess: SellerStorefrontAccess): CatalogStorefrontData => ({
   shop: {
     id: sellerAccess.id,
+    publicPath: sellerAccess.publicPath,
     name: sellerAccess.name,
     description: sellerAccess.description,
     headerImageUrl: sellerAccess.headerImageUrl,
@@ -62,6 +63,7 @@ export const buildStorefrontDataFromPublicShop = (
 ): CatalogStorefrontData => ({
   shop: {
     id: publicShop.id,
+    publicPath: publicShop.publicPath,
     name: publicShop.name,
     description: null,
     headerImageUrl: null,
@@ -92,10 +94,10 @@ export const buildStorefrontDataFromPublicShop = (
   unpagedProducts: [],
 });
 
-export const defaultLoadStorefrontData: LoadCatalogStorefrontData = async (shopId, api) => {
+export const defaultLoadStorefrontData: LoadCatalogStorefrontData = async (publicPath, api) => {
   const [publicCatalogResult, sellerAccessResult] = await Promise.allSettled([
     api.listCatalog(),
-    api.getSellerStorefrontAccess(shopId),
+    api.getSellerStorefrontAccess(publicPath),
   ]);
 
   if (sellerAccessResult.status === "fulfilled" && sellerAccessResult.value !== null) {
@@ -103,7 +105,7 @@ export const defaultLoadStorefrontData: LoadCatalogStorefrontData = async (shopI
   }
 
   if (publicCatalogResult.status === "fulfilled") {
-    const publicShop = publicCatalogResult.value.find((shop) => shop.id === shopId) ?? null;
+    const publicShop = publicCatalogResult.value.find((shop) => shop.publicPath === publicPath) ?? null;
 
     if (publicShop !== null) {
       return buildStorefrontDataFromPublicShop(publicShop);

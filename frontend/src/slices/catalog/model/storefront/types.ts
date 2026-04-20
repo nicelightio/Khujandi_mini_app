@@ -8,6 +8,7 @@ import type {
 export type CatalogStorefrontData = {
   shop: {
     id: string;
+    publicPath: string;
     name: string;
     description: string | null;
     headerImageUrl: string | null;

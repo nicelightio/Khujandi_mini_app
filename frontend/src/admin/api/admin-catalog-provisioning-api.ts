@@ -14,6 +14,8 @@ export type AdminCatalogProvisioningCommandResult = {
   shopStatus: "WORKING" | "NOT_WORKING";
   sellerId: string;
   telegramId: string;
+  primaryPublicPath: string;
+  secondaryPublicPath: string;
   menuPagesCount: number;
   productsCount: number;
 };
@@ -24,6 +26,8 @@ export type AdminProvisionedShopSummary = {
   status: "WORKING" | "NOT_WORKING";
   sellerId: string;
   telegramId: string | null;
+  primaryPublicPath: string;
+  secondaryPublicPath: string;
 };
 
 type AdminCatalogProvisioningErrorPayload = {
@@ -100,6 +104,8 @@ const toCommandResult = (value: unknown): AdminCatalogProvisioningCommandResult 
     binding === null ||
     typeof shop.id !== "string" ||
     typeof shop.name !== "string" ||
+    typeof shop.primaryPublicPath !== "string" ||
+    typeof shop.secondaryPublicPath !== "string" ||
     (shop.status !== "WORKING" && shop.status !== "NOT_WORKING") ||
     typeof binding.sellerId !== "string" ||
     typeof binding.telegramId !== "string" ||
@@ -115,6 +121,8 @@ const toCommandResult = (value: unknown): AdminCatalogProvisioningCommandResult 
     shopStatus: shop.status,
     sellerId: binding.sellerId,
     telegramId: binding.telegramId,
+    primaryPublicPath: shop.primaryPublicPath,
+    secondaryPublicPath: shop.secondaryPublicPath,
     menuPagesCount: record.menuPages.length,
     productsCount: record.products.length,
   };
@@ -129,6 +137,8 @@ const toProvisionedShopSummary = (value: unknown): AdminProvisionedShopSummary =
     typeof record.shopName !== "string" ||
     (record.status !== "WORKING" && record.status !== "NOT_WORKING") ||
     typeof record.sellerId !== "string" ||
+    typeof record.primaryPublicPath !== "string" ||
+    typeof record.secondaryPublicPath !== "string" ||
     (record.telegramId !== null && typeof record.telegramId !== "string")
   ) {
     throw new Error("Provisioned shops payload is invalid.");
@@ -140,6 +150,8 @@ const toProvisionedShopSummary = (value: unknown): AdminProvisionedShopSummary =
     status: record.status,
     sellerId: record.sellerId,
     telegramId: record.telegramId,
+    primaryPublicPath: record.primaryPublicPath,
+    secondaryPublicPath: record.secondaryPublicPath,
   };
 };
 

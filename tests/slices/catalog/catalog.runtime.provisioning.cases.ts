@@ -236,20 +236,20 @@ export const registerCatalogRuntimeProvisioningCases = () => {
       expect(listResponse.status).toBe(200);
       expect(listResponse.body).toEqual(
         expect.arrayContaining([
-          {
+          expect.objectContaining({
             shopId: expect.any(String),
             shopName: "Working Shop",
             status: "WORKING",
             sellerId: "seller-admin-list-1",
             telegramId: "5001",
-          },
-          {
+          }),
+          expect.objectContaining({
             shopId: expect.any(String),
             shopName: "Hidden Shop",
             status: "NOT_WORKING",
             sellerId: "seller-admin-list-2",
             telegramId: "5002",
-          },
+          }),
         ]),
       );
 

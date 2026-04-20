@@ -25,7 +25,7 @@ status: active
 
 - `POST /api/v1/admin/catalog/shops/provision`
 - repo-local `dev:api` / mounted backend catalog runtime bootstrap
-- shared storefront route `/shops/:shopId`
+- shared storefront route `/shops/:publicPath`
 - seller-protected catalog reads and writes after restart/reset
 
 ## Normative inputs
@@ -54,7 +54,7 @@ status: active
 - Successful provisioning persists `shop`, seller binding, starter menu pages и starter products atomically or rolls back entirely.
 - Duplicate/conflicting provisioning fails closed and leaves no partial catalog state.
 - Runtime restart/reset must not make previously successful catalog writes disappear.
-- `/shops/:shopId` and related catalog reads must not fabricate success from process-local fallback state.
+- `/shops/:publicPath` and related catalog reads must not fabricate success from process-local fallback state.
 - Seller-protected writes remain durable after restart/reset and continue to respect existing ownership/no-delete semantics from `FT-010`.
 
 ## Steps
@@ -99,13 +99,13 @@ status: active
 - `npm run lint`
 - `npm run test:catalog`
 - `npm run build:frontend` if frontend storefront wiring changes
-- final manual `provision -> restart/reset -> /shops/:shopId` smoke evidence
+- final manual `provision -> restart/reset -> /shops/:publicPath` smoke evidence
 
 ## UAT steps
 
 1. Запустить repo-local DB-backed runtime baseline и убедиться, что public storefront читается из persisted catalog data, а не из hidden seeded memory state.
 2. Через admin provisioning создать новый shop с seller binding и starter catalog bootstrap; подтвердить success response и наличие persisted rows.
-3. Перезапустить runtime или явно сбросить process memory без очистки DB, затем открыть `/shops/:shopId` и seller-protected shop reads для того же shop.
+3. Перезапустить runtime или явно сбросить process memory без очистки DB, затем открыть `/shops/:publicPath` и seller-protected shop reads для того же shop.
 4. Подтвердить, что storefront, starter menu pages/products и later seller edits остались доступными после restart/reset.
 5. Повторить provisioning с duplicate/conflicting identity/input и убедиться, что возвращается controlled error без partial state.
 6. Проверить, что runtime при отсутствии persisted data возвращает controlled not-found/error states, а не synthetic success из process-local fallback.

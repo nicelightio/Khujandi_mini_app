@@ -3,6 +3,8 @@
     {
       "id": "shop-1",
       "sellerId": "seller-runtime-1",
+      "primaryPublicPath": "seller-runtime-11",
+      "secondaryPublicPath": "plov-v-parke-somoni",
       "name": "Плов в парке Сомони",
       "description": null,
       "headerImageUrl": null,
@@ -15,6 +17,8 @@
     {
       "id": "shop-2",
       "sellerId": "seller-runtime-2",
+      "primaryPublicPath": "seller-runtime-21",
+      "secondaryPublicPath": "bobocha-sambusa",
       "name": "Бобоча самбуса",
       "description": null,
       "headerImageUrl": null,

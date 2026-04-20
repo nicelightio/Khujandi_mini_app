@@ -19,6 +19,6 @@ export {
   buildStorefrontDataFromSellerAccess,
   defaultLoadStorefrontData,
   defaultPersistStorefrontEdit,
-  getStorefrontShopId,
+  getStorefrontPublicPath,
 } from "./mappers";
 export { buildStorefrontCatalogViewModel, buildStorefrontViewModel } from "./view-model";

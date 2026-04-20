@@ -7,6 +7,8 @@ type AdminProvisionedShopRecord = {
   name: string;
   sellerId: string;
   status: "WORKING" | "NOT_WORKING";
+  primaryPublicPath: string;
+  secondaryPublicPath: string;
   sellerBindings: Array<{
     telegramId: string;
   }>;
@@ -29,6 +31,8 @@ export class CatalogAdminReader {
       status: shop.status,
       sellerId: shop.sellerId,
       telegramId: shop.sellerBindings[0]?.telegramId ?? null,
+      primaryPublicPath: shop.primaryPublicPath,
+      secondaryPublicPath: shop.secondaryPublicPath,
     }));
   }
 }

@@ -89,6 +89,7 @@ describe("catalog public browse integration", () => {
       {
         id: "shop-1",
         name: "Khujand Bakery",
+        secondaryPublicPath: "khujand-bakery",
       },
     ]);
     const context = createTestContext(prisma.client);
@@ -99,6 +100,7 @@ describe("catalog public browse integration", () => {
       {
         id: "shop-1",
         name: "Khujand Bakery",
+        publicPath: "khujand-bakery",
       },
     ]);
     expect(mocks.shopFindMany).toHaveBeenCalledWith({
@@ -109,6 +111,7 @@ describe("catalog public browse integration", () => {
       select: {
         id: true,
         name: true,
+        secondaryPublicPath: true,
       },
     });
   });
@@ -122,6 +125,8 @@ describe("catalog public browse integration", () => {
         name: "Night Bakery",
         sellerId: "seller-1",
         status: "NOT_WORKING",
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "night-bakery",
         sellerBindings: [
           {
             telegramId: "1042",
@@ -137,6 +142,8 @@ describe("catalog public browse integration", () => {
         status: "NOT_WORKING",
         sellerId: "seller-1",
         telegramId: "1042",
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "night-bakery",
       },
     ]);
     expect(mocks.shopFindMany).toHaveBeenCalledWith({
@@ -148,6 +155,8 @@ describe("catalog public browse integration", () => {
         name: true,
         sellerId: true,
         status: true,
+        primaryPublicPath: true,
+        secondaryPublicPath: true,
         sellerBindings: {
           select: {
             telegramId: true,
@@ -278,6 +287,8 @@ describe("catalog public browse integration", () => {
       data: {
         sellerId: "seller-1",
         name: "Bakery",
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "bakery",
         description: "Fresh bread and pastries",
         headerImageUrl: "https://example.com/header.png",
         backgroundImageUrl: "https://example.com/background.png",
@@ -287,6 +298,8 @@ describe("catalog public browse integration", () => {
         id: true,
         sellerId: true,
         name: true,
+        primaryPublicPath: true,
+        secondaryPublicPath: true,
         description: true,
         headerImageUrl: true,
         backgroundImageUrl: true,
@@ -663,6 +676,8 @@ describe("catalog public browse integration", () => {
         id: true,
         sellerId: true,
         name: true,
+        primaryPublicPath: true,
+        secondaryPublicPath: true,
         description: true,
         headerImageUrl: true,
         backgroundImageUrl: true,
@@ -688,6 +703,8 @@ describe("catalog public browse integration", () => {
         id: true,
         sellerId: true,
         name: true,
+        primaryPublicPath: true,
+        secondaryPublicPath: true,
         description: true,
         headerImageUrl: true,
         backgroundImageUrl: true,
@@ -797,6 +814,7 @@ describe("catalog public browse integration", () => {
         description: "Updated description",
         headerImageUrl: "https://example.com/header.png",
         backgroundImageUrl: undefined,
+        status: undefined,
         renameCount: 0,
         requiresManualRenameReview: false,
       },
@@ -804,6 +822,8 @@ describe("catalog public browse integration", () => {
         id: true,
         sellerId: true,
         name: true,
+        primaryPublicPath: true,
+        secondaryPublicPath: true,
         description: true,
         headerImageUrl: true,
         backgroundImageUrl: true,
@@ -889,6 +909,8 @@ describe("catalog public browse integration", () => {
         id: true,
         sellerId: true,
         name: true,
+        primaryPublicPath: true,
+        secondaryPublicPath: true,
         description: true,
         headerImageUrl: true,
         backgroundImageUrl: true,

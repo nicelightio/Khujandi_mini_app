@@ -52,6 +52,14 @@ export class PrismaCatalogRepository implements CatalogRepository {
     return this.publicReader.listPublicShops();
   }
 
+  listAllPublicPaths(): Promise<string[]> {
+    return this.publicReader.listAllPublicPaths();
+  }
+
+  listSellerPrimaryPublicPaths(sellerId: string): Promise<string[]> {
+    return this.publicReader.listSellerPrimaryPublicPaths(sellerId);
+  }
+
   listPublicMenuPagesByShop(shopId: ShopId): Promise<CatalogMenuPage[]> {
     return this.publicReader.listPublicMenuPagesByShop(shopId);
   }
@@ -78,6 +86,10 @@ export class PrismaCatalogRepository implements CatalogRepository {
 
   findShopById(shopId: ShopId): Promise<SellerCatalogShop | null> {
     return this.sellerReader.findShopById(shopId);
+  }
+
+  findShopByPublicPath(publicPath: string): Promise<SellerCatalogShop | null> {
+    return this.sellerReader.findShopByPublicPath(publicPath);
   }
 
   createShop(input: CreateProvisionedShopInput): Promise<SellerCatalogShop> {

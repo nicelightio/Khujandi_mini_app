@@ -23,13 +23,15 @@ status: active
 - Public storefront visibility опирается на явный shop status boundary (`WORKING` / `NOT_WORKING`), а не на скрытые removal flags.
 - Catalog MVP не вводит destructive removal semantics как продуктовую норму для shops, menu pages и products.
 - Catalog runtime baseline для admin provisioning, seller catalog writes, seller-protected reads и public storefront resolution является durable DB-backed storage; route-local in-memory catalog state не является нормативным runtime source of truth.
+- `shops` имеют три разные identity roles: technical PK `shop.id`, durable provisioning identity `sellerId + shop name`, и public routing identity (`primaryPublicPath`, `secondaryPublicPath`). Эти роли MUST NOT сливаться молча в один field.
+- Public routing identity immutable across rename; history/redirect layer for older paths is not part of the current baseline.
 - Starter menu pages/products, созданные provisioning flow, являются обычными durable `catalog` записями, а не скрытым demo bootstrap state.
 - Payment identity и anti-replay markers (`payment_provider_tx_id`, `telegram_payment_charge_id`, `provider_payment_charge_id`, invoice/payment reference) должны иметь явную persistence policy и DB-level uniqueness там, где это применимо.
 - Session/security persistence отделяется по чувствительности данных: session identifiers не попадают в JS-readable persistent storage baseline, а non-sensitive client preferences имеют explicit fallback policy.
 
 ## Slice to data ownership
 
-- `catalog`: `shops`, shop description/media/status, menu pages, products, product description/media, seller ownership rules, seller Telegram binding read-model needs, public visibility rules, and the durable runtime persistence boundary for provisioning/storefront resolution.
+- `catalog`: `shops`, shop description/media/status, immutable public routing paths, menu pages, products, product description/media, seller ownership rules, seller Telegram binding read-model needs, public visibility rules, and the durable runtime persistence boundary for provisioning/storefront resolution.
 - `checkout-payment`: paid order creation, payment transaction identity, order snapshots.
 - `delivery-assignment`: `orders` read/update touchpoints for `CREATED -> ASSIGNED`, `order_status_history`, slice-owned `delivery_assignment_audit`, `events`.
 - `delivery-tracking`: post-assignment order lifecycle and its `order_status_history`/`events` writes.

@@ -42,6 +42,7 @@ describe("catalog view model", () => {
         {
           id: "shop-1",
           name: "Khujand Bakery",
+          publicPath: "khujand-bakery",
           products: [
             {
               id: "product-1",
@@ -54,6 +55,7 @@ describe("catalog view model", () => {
         {
           id: "shop-2",
           name: "Tea Corner",
+          publicPath: "tea-corner",
           products: [],
         },
       ]),
@@ -63,6 +65,7 @@ describe("catalog view model", () => {
       shops: [
         {
           id: "shop-1",
+          publicPath: "khujand-bakery",
           name: "Khujand Bakery",
           products: [
             {
@@ -75,6 +78,7 @@ describe("catalog view model", () => {
         },
         {
           id: "shop-2",
+          publicPath: "tea-corner",
           name: "Tea Corner",
           products: [],
           emptyLabel: "В этом магазине пока нет товаров.",

@@ -10,6 +10,7 @@ export type CatalogProductViewModel = {
 
 export type CatalogShopViewModel = {
   id: string;
+  publicPath: string;
   name: string;
   products: CatalogProductViewModel[];
   emptyLabel: string | null;
@@ -70,6 +71,7 @@ export const createCatalogViewModel = (
 
   const shops = catalog.map((shop) => ({
     id: shop.id,
+    publicPath: shop.publicPath,
     name: shop.name,
       products: shop.products.map((product) => ({
         id: product.id,

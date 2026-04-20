@@ -2,6 +2,8 @@ export const selectSellerShop = {
   id: true,
   sellerId: true,
   name: true,
+  primaryPublicPath: true,
+  secondaryPublicPath: true,
   description: true,
   headerImageUrl: true,
   backgroundImageUrl: true,
@@ -54,6 +56,8 @@ export const selectAdminProvisionedShop = {
   name: true,
   sellerId: true,
   status: true,
+  primaryPublicPath: true,
+  secondaryPublicPath: true,
   sellerBindings: {
     select: {
       telegramId: true,

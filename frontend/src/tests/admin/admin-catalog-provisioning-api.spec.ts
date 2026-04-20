@@ -15,6 +15,8 @@ describe("admin catalog provisioning api", () => {
           status: "NOT_WORKING",
           sellerId: "seller-42",
           telegramId: "1042",
+          primaryPublicPath: "seller-421",
+          secondaryPublicPath: "night-bakery",
         },
       ],
     });
@@ -28,6 +30,8 @@ describe("admin catalog provisioning api", () => {
         status: "NOT_WORKING",
         sellerId: "seller-42",
         telegramId: "1042",
+        primaryPublicPath: "seller-421",
+        secondaryPublicPath: "night-bakery",
       },
     ]);
 
@@ -45,6 +49,8 @@ describe("admin catalog provisioning api", () => {
         shop: {
           id: "shop-42",
           name: "Night Bakery",
+          primaryPublicPath: "seller-421",
+          secondaryPublicPath: "night-bakery",
           status: "NOT_WORKING",
         },
         binding: {
@@ -72,6 +78,8 @@ describe("admin catalog provisioning api", () => {
       shopStatus: "NOT_WORKING",
       sellerId: "seller-42",
       telegramId: "1042",
+      primaryPublicPath: "seller-421",
+      secondaryPublicPath: "night-bakery",
       menuPagesCount: 2,
       productsCount: 3,
     });

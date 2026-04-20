@@ -15,6 +15,10 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] Catalog storefront routing now uses immutable public paths instead of technical shop ids
+- Fixed the checked-in browse/runtime drift so public catalog fetches and storefront links now use persisted `publicPath` rather than raw `shop.id`, while seller-protected storefront resolution remains compatible with both immutable public aliases of the same shop.
+- Synced the catalog spec layer around `/shops/:publicPath`, dual immutable public paths (`sellerId + N` plus vanity translit), and the explicit separation between technical `shop.id`, provisioning identity `sellerId + shop name`, and public routing identity; `npm run test:catalog` and `npm run lint` both pass after the update.
+
 ## [2026-04-20] Frontend debug mode now gates diagnostics and storefront title uses shop name
 - Added a build-time `DEBUG` switch for the web container and a shared frontend debug panel so temporary diagnostics, keyboard test input, and shell/runtime hints appear only when debug mode is enabled.
 - Shared storefront pages now use the shop name as the page title, hide the catalog browse count label inside storefront mode, and keep temporary Telegram auth diagnostics behind debug mode instead of showing them in normal production UI.

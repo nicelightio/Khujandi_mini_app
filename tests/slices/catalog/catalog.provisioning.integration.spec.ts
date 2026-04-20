@@ -7,6 +7,8 @@ type ProvisioningState = {
     id: string;
     sellerId: string;
     name: string;
+    primaryPublicPath: string;
+    secondaryPublicPath: string;
     description: string | null;
     headerImageUrl: string | null;
     backgroundImageUrl: string | null;
@@ -102,15 +104,33 @@ const createProvisioningPrisma = (options: {
 
   const createClient = (target: ProvisioningState) => ({
     shop: {
-      findMany: async () => [],
+      findMany: async ({ where, select }: { where?: { sellerId?: string }; select?: { primaryPublicPath?: boolean; secondaryPublicPath?: boolean } }) =>
+        target.shops
+          .filter((shop) => where?.sellerId === undefined || shop.sellerId === where.sellerId)
+          .map((shop) => ({
+            ...(select?.primaryPublicPath === true ? { primaryPublicPath: shop.primaryPublicPath } : {}),
+            ...(select?.secondaryPublicPath === true ? { secondaryPublicPath: shop.secondaryPublicPath } : {}),
+          })),
       findUnique: async ({ where }: { where: { id: string } }) => {
         const shop = target.shops.find((candidate) => candidate.id === where.id) ?? null;
         return shop === null ? null : { ...shop };
       },
-      create: async ({ data }: { data: { sellerId: string; name: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status: "WORKING" | "NOT_WORKING" } }) => {
+      create: async ({ data }: { data: { sellerId: string; name: string; primaryPublicPath: string; secondaryPublicPath: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status: "WORKING" | "NOT_WORKING" } }) => {
         await waitForConcurrentShopCreate();
 
         if (hasDuplicateShopIdentity(target, data.sellerId, data.name)) {
+          throwUniqueConstraintError();
+        }
+
+        if (
+          target.shops.some(
+            (shop) =>
+              shop.primaryPublicPath === data.primaryPublicPath ||
+              shop.secondaryPublicPath === data.primaryPublicPath ||
+              shop.primaryPublicPath === data.secondaryPublicPath ||
+              shop.secondaryPublicPath === data.secondaryPublicPath,
+          )
+        ) {
           throwUniqueConstraintError();
         }
 
@@ -118,6 +138,8 @@ const createProvisioningPrisma = (options: {
           id: `shop-${target.nextShopId++}`,
           sellerId: data.sellerId,
           name: data.name,
+          primaryPublicPath: data.primaryPublicPath,
+          secondaryPublicPath: data.secondaryPublicPath,
           description: data.description ?? null,
           headerImageUrl: data.headerImageUrl ?? null,
           backgroundImageUrl: data.backgroundImageUrl ?? null,

@@ -1,6 +1,7 @@
 export type CatalogShop = {
   id: string;
   name: string;
+  publicPath: string;
 };
 
 export type CatalogProduct = {
@@ -12,6 +13,7 @@ export type CatalogProduct = {
 
 export type SellerStorefrontAccess = {
   id: string;
+  publicPath: string;
   sellerId: string;
   name: string;
   description: string | null;
@@ -130,6 +132,7 @@ const toCatalogShop = (value: unknown): CatalogShop | null => {
   return {
     id: record.id,
     name: record.name,
+    publicPath: typeof record.publicPath === "string" ? record.publicPath : record.id,
   };
 };
 
@@ -178,6 +181,7 @@ const toSellerStorefrontAccess = (value: unknown): SellerStorefrontAccess | null
 
   return {
     id: record.id,
+    publicPath: typeof record.publicPath === "string" ? record.publicPath : record.id,
     sellerId: record.sellerId,
     name: record.name,
     description: record.description,
@@ -336,7 +340,7 @@ export const createCatalogApi = (options: CatalogApiOptions = {}): CatalogApi =>
       const shopsWithProducts = await Promise.all(
         shops.map(async (shop) => {
           const products = toCatalogProducts(
-            await readJson(fetchImpl(`${baseUrl}/api/v1/shops/${encodeURIComponent(shop.id)}/products`)),
+            await readJson(fetchImpl(`${baseUrl}/api/v1/shops/${encodeURIComponent(shop.publicPath)}/products`)),
           );
 
           return {
@@ -348,8 +352,8 @@ export const createCatalogApi = (options: CatalogApiOptions = {}): CatalogApi =>
 
       return shopsWithProducts;
     },
-    getSellerStorefrontAccess: async (shopId) => {
-      const response = await fetchImpl(`${baseUrl}/api/v1/seller/shops/${encodeURIComponent(shopId)}`, {
+    getSellerStorefrontAccess: async (publicPath) => {
+      const response = await fetchImpl(`${baseUrl}/api/v1/seller/shops/${encodeURIComponent(publicPath)}`, {
         credentials: "include",
       });
 

@@ -10,6 +10,7 @@ import {
 import { AdminLoginPage } from "../components/admin-login-page";
 import { AdminProtectedShell } from "../components/admin-protected-shell";
 import { AdminShell } from "../components/admin-shell";
+import { AdminUnknownRoute } from "../components/admin-unknown-route";
 import { adminRoutes as adminRoutePaths } from "../lib/routes";
 import { AdminAssignmentRoute } from "../routes/admin-assignment-route";
 import { AdminCatalogProvisioningRoute } from "../routes/admin-catalog-provisioning-route";
@@ -20,13 +21,6 @@ export type AdminRoute = {
   element: ReactElement;
   requiresAuth: boolean;
 };
-
-const AdminUnknownRoute = () => (
-  <section>
-    <h1>Admin page not found</h1>
-    <p>Unknown admin-web path. Use the explicit admin routes only.</p>
-  </section>
-);
 
 export const adminRoutes: AdminRoute[] = [
   {

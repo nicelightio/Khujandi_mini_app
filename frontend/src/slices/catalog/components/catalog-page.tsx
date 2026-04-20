@@ -43,6 +43,7 @@ export type CatalogStorefrontEditor = {
 export type CatalogStorefrontViewModel = {
   shop: {
     id: string;
+    publicPath: string;
     name: string;
     description: string | null;
     headerImageUrl: string | null;
@@ -142,7 +143,7 @@ export const CatalogPage = ({
         {viewModel.statusLabel.length > 0 ? <p>{viewModel.statusLabel}</p> : null}
         {viewModel.isLoading ? <p>{copy.loadingBody}</p> : null}
         {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
-        {storefront?.access.statusLabel !== undefined ? <p>{storefront.access.statusLabel}</p> : null}
+        {isDebugEnabled && storefront !== undefined ? <p>{storefront.access.statusLabel}</p> : null}
         {isDebugEnabled && storefront !== undefined && storefront.access.currentTelegramId !== null ? (
           <p data-storefront-telegram-id>{`Current Telegram ID: ${storefront.access.currentTelegramId}`}</p>
         ) : null}
@@ -309,7 +310,7 @@ export const CatalogPage = ({
           {viewModel.shops.map((shop) => (
             <article key={shop.id} data-shop-id={shop.id}>
               <h2>
-                <a href={buildStorefrontPath(shop.id)}>{shop.name}</a>
+                <a href={buildStorefrontPath(shop.publicPath)}>{shop.name}</a>
               </h2>
 
               {shop.emptyLabel !== null ? (

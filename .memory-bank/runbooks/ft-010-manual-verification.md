@@ -8,10 +8,10 @@ status: active
 
 Зафиксировать канонический ручной сценарий проверки `FT-010` в checked-in repo/runtime scope:
 - admin-side provisioning skeleton shop;
-- shared storefront seller edit mode на `/shops/:shopId`;
+- shared storefront seller edit mode на `/shops/:publicPath`;
 - narrow `seller-web` status toggle на `/seller/shops/status`;
 - public visibility gating для `WORKING/NOT_WORKING`;
-- controlled missing/error states на `/shops/:shopId`.
+- controlled missing/error states на `/shops/:publicPath`.
 
 ## Preconditions
 
@@ -50,7 +50,7 @@ status: active
 
 ## Scenario 2: Public browse baseline
 
-1. Открой shared storefront route созданного магазина как обычный public visitor: `/shops/:shopId`.
+1. Открой shared storefront route созданного магазина как обычный public visitor: `/shops/:publicPath`.
 2. Убедись, что storefront рендерится без seller edit affordances.
 3. Проверь, что starter content виден как обычная customer-facing storefront page.
 
@@ -62,7 +62,7 @@ status: active
 ## Scenario 3: Shared storefront seller edit mode
 
 1. Войди в seller runtime через Telegram-linked identity, привязанную на шаге provisioning.
-2. Открой тот же route `/shops/:shopId`.
+2. Открой тот же route `/shops/:publicPath`.
 3. Активируй edit mode через contextual `click` / `long press` на существующих storefront компонентах.
 4. Измени последовательно:
    - `shop.name` или `shop.description`;
@@ -83,8 +83,8 @@ status: active
 
 ## Scenario 4: Access control negative cases
 
-1. Открой `/shops/:shopId` как anonymous visitor.
-2. Открой `/shops/:shopId` под другим seller, не владеющим магазином.
+1. Открой `/shops/:publicPath` как anonymous visitor.
+2. Открой `/shops/:publicPath` под другим seller, не владеющим магазином.
 3. Попробуй открыть `/seller/shops/status` без seller auth.
 
 ### Expected result
@@ -98,7 +98,7 @@ status: active
 2. Убедись, что страница показывает только owned shops и остается narrow store-admin surface.
 3. Переключи статус магазина из `WORKING` в `NOT_WORKING`.
 4. Не меняя seller identity, проверь:
-   - `/shops/:shopId` все еще доступен owning seller;
+   - `/shops/:publicPath` все еще доступен owning seller;
    - public browse больше не показывает этот магазин.
 5. Верни статус в `WORKING`.
 6. Еще раз проверь public browse.
@@ -110,7 +110,7 @@ status: active
 - `NOT_WORKING` скрыт из public browse, но виден owning seller.
 - После возврата в `WORKING` магазин снова появляется в public browse.
 
-## Scenario 6: Missing and error states for `/shops/:shopId`
+## Scenario 6: Missing and error states for `/shops/:publicPath`
 
 1. Открой несуществующий путь `/shops/<nonexistent-shop-id>`.
 2. Если есть безопасный способ локально воспроизвести API failure без изменения кода, проверь route при ошибке источника данных.
@@ -133,7 +133,7 @@ Create/add flows допустимы, destructive removal semantics в baseline `
 
 Сохрани в `.tasks/TASK-XXX/` или другом operator artifact месте:
 - дату/время прогона;
-- использованный `shopId`, `sellerId`, `telegramId`;
+- использованный `shopId`, `publicPath`, `sellerId`, `telegramId`;
 - какие шаги прошли успешно;
 - какие шаги дали controlled error/forbidden behavior;
 - краткую заметку, что no-delete baseline проверен вручную.

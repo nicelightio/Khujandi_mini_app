@@ -11,12 +11,13 @@ describe("catalog api", () => {
             {
               id: "shop-1",
               name: "Khujand Bakery",
+              publicPath: "khujand-bakery",
             },
           ],
         };
       }
 
-      if (input === "/api/v1/shops/shop-1/products") {
+      if (input === "/api/v1/shops/khujand-bakery/products") {
         return {
           ok: true,
           status: 200,
@@ -40,6 +41,7 @@ describe("catalog api", () => {
       {
         id: "shop-1",
         name: "Khujand Bakery",
+        publicPath: "khujand-bakery",
         products: [
           {
             id: "product-1",
@@ -51,7 +53,7 @@ describe("catalog api", () => {
       },
     ]);
     expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/v1/shops");
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/shops/shop-1/products");
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/shops/khujand-bakery/products");
   });
 
   it("returns seller storefront access when the protected owner read succeeds", async () => {
@@ -62,6 +64,7 @@ describe("catalog api", () => {
           status: 200,
           json: async () => ({
             id: "shop-1",
+            publicPath: "khujand-bakery",
             sellerId: "seller-1",
             name: "Khujand Bakery",
             description: "Fresh bread and pastries",
@@ -111,6 +114,7 @@ describe("catalog api", () => {
 
     await expect(api.getSellerStorefrontAccess("shop-1")).resolves.toEqual({
       id: "shop-1",
+      publicPath: "khujand-bakery",
       sellerId: "seller-1",
       name: "Khujand Bakery",
       description: "Fresh bread and pastries",
@@ -221,6 +225,7 @@ describe("catalog api", () => {
       status: 200,
       json: async () => ({
         id: "shop-legacy",
+        publicPath: "legacy-bakery",
         sellerId: "seller-legacy",
         name: "Legacy Bakery",
         description: null,
@@ -249,6 +254,7 @@ describe("catalog api", () => {
     await expect(api.getSellerStorefrontAccess("shop-legacy")).resolves.toEqual(
       expect.objectContaining({
         id: "shop-legacy",
+        publicPath: "legacy-bakery",
         menuPages: [],
         unpagedProducts: [
           expect.objectContaining({

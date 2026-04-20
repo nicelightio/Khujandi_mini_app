@@ -3,6 +3,7 @@ import type {
   SellerCatalogProduct,
   SellerCatalogShop,
 } from "../slices/catalog/domain/catalog.types";
+import { getPreferredPublicPath } from "../slices/catalog/domain/shop-public-paths";
 
 export const buildSellerStorefrontPayload = (
   shop: SellerCatalogShop,
@@ -45,6 +46,7 @@ export const buildSellerStorefrontPayload = (
 
   return {
     ...shop,
+    publicPath: getPreferredPublicPath(shop),
     menuPages,
     unpagedProducts,
   };

@@ -18,11 +18,14 @@ const withWriteEvent = <TRecord>(record: TRecord) => ({
 
 const createRepository = (): CatalogRepository => ({
   listPublicShops: async () => [],
+  listAllPublicPaths: async () => [],
+  listSellerPrimaryPublicPaths: async () => [],
   listPublicMenuPagesByShop: async () => [],
   listPublicProductsByShop: async () => [],
   listAdminProvisionedShops: async () => [],
   listSellerBindingsByTelegramId: async () => [],
   findShopById: async () => null,
+  findShopByPublicPath: async () => null,
   createShop: async () => {
     throw new Error("not implemented");
   },
@@ -401,6 +404,8 @@ describe("catalog service", () => {
       sellerId: "seller-1",
       telegramId: "123456",
       name: "Bakery",
+      primaryPublicPath: "seller-11",
+      secondaryPublicPath: "bakery",
       description: undefined,
       headerImageUrl: undefined,
       backgroundImageUrl: undefined,
@@ -480,6 +485,8 @@ describe("catalog service", () => {
       sellerId: "seller-1",
       telegramId: "654321",
       name: "Bakery",
+      primaryPublicPath: "seller-11",
+      secondaryPublicPath: "bakery",
       description: undefined,
       headerImageUrl: undefined,
       backgroundImageUrl: undefined,

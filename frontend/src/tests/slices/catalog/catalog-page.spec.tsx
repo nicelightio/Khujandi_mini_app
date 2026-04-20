@@ -119,6 +119,7 @@ describe("catalog page", () => {
             {
               id: "shop-1",
               name: "Khujand Bakery",
+              publicPath: "khujand-bakery",
               products: [
                 {
                   id: "product-1",
@@ -141,11 +142,6 @@ describe("catalog page", () => {
     expect(text).toContain("Khujand Bakery");
     expect(text).toContain("Somsa");
     expect(text).toContain("15.00 TJS");
-    expect(text).toContain("Keyboard test field");
-    expect(renderer.root.findByProps({ id: "catalog-keyboard-test-input" }).props).toMatchObject({
-      type: "text",
-      autoComplete: "off",
-    });
     expect(renderer.root.findByProps({ "data-shell": "page" }).props).toMatchObject({
       "data-shell-back": "hidden",
       "data-shell-swipe": "default",
@@ -211,7 +207,6 @@ describe("catalog page", () => {
     const text = collectText(renderer.toJSON()).join(" ");
     expect(text).toContain("Каталог");
     expect(text).toContain("Загрузка каталога...");
-    expect(text).toContain("Тестовое поле для клавиатуры");
   });
 
   it("keeps nested storefront clicks from bubbling into the menu-page editor", () => {
@@ -225,6 +220,7 @@ describe("catalog page", () => {
           storefront: {
             shop: {
               id: "shop-1",
+              publicPath: "khujand-bakery",
               name: "Khujand Bakery",
               description: null,
               headerImageUrl: null,

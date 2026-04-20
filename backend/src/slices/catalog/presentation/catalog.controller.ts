@@ -15,8 +15,8 @@ export class CatalogController {
     return this.service.listPublicShops();
   }
 
-  getProducts(shopId: string) {
-    return this.service.listPublicProductsByShop(shopId);
+  getProducts(publicPath: string) {
+    return this.service.listPublicProductsByShopPublicPath(publicPath);
   }
 
   getAdminProvisionedShops() {

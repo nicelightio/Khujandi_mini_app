@@ -49,17 +49,38 @@ export const AdminLoginPage = ({
   };
 
   return (
-    <AdminPageShell title="Admin login">
-      <section aria-live="polite">
-        <p>Separate login/password auth for the admin contour stays isolated from Telegram Mini App auth.</p>
+    <AdminPageShell title="Admin login" layout="hero">
+      <section aria-live="polite" data-admin-login="stage">
+        <p data-admin-login="eyebrow">Secure operator entry</p>
+        <p data-admin-login="lede">
+          Separate login/password auth for the admin contour stays isolated from Telegram Mini App auth.
+        </p>
         <p>{session.loginHint}</p>
         {session.reason !== null ? <p role="status">{session.reason}</p> : null}
         {submissionError === null ? null : <p role="alert">{submissionError}</p>}
         <p>Protected routes redirect here until a valid admin-access session exists.</p>
         <p data-admin-auth="redirect-target">{`Requested path: ${redirectPath}`}</p>
+
+        <div data-admin-login="rules">
+          <div>
+            <span data-admin-ui="micro-label">Boundary</span>
+            <strong>Cookie-backed admin session</strong>
+            <p>Runtime restores access through the shared admin-access boundary.</p>
+          </div>
+          <div>
+            <span data-admin-ui="micro-label">Policy</span>
+            <strong>No self-signup</strong>
+            <p>Only provisioned admin accounts can enter the control surface.</p>
+          </div>
+          <div>
+            <span data-admin-ui="micro-label">Recovery</span>
+            <strong>Controlled expiry and lockout</strong>
+            <p>Expired or unavailable sessions always return to this entrypoint.</p>
+          </div>
+        </div>
       </section>
 
-      <form onSubmit={(event) => void handleSubmit(event)}>
+      <form onSubmit={(event) => void handleSubmit(event)} data-admin-login="form">
         <fieldset>
           <legend>Provisioned account sign-in</legend>
           <label>

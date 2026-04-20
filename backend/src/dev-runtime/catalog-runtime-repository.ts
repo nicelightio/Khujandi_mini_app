@@ -19,6 +19,7 @@ import type {
   UpdateSellerProductInput,
   UpdateSellerShopInput,
 } from "../slices/catalog/domain/catalog.types";
+import { getPreferredPublicPath } from "../slices/catalog/domain/shop-public-paths";
 import {
   cloneBinding,
   cloneCatalogState,
@@ -39,7 +40,17 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   async listPublicShops() {
     return this.state.shops
       .filter((shop) => !shop.isDeleted && shop.status === "WORKING")
-      .map((shop) => ({ id: shop.id, name: shop.name }));
+      .map((shop) => ({ id: shop.id, name: shop.name, publicPath: getPreferredPublicPath(shop) }));
+  }
+
+  async listAllPublicPaths() {
+    return this.state.shops.flatMap((shop) => [shop.primaryPublicPath, shop.secondaryPublicPath]);
+  }
+
+  async listSellerPrimaryPublicPaths(sellerId: string) {
+    return this.state.shops
+      .filter((shop) => shop.sellerId === sellerId)
+      .map((shop) => shop.primaryPublicPath);
   }
 
   async listPublicMenuPagesByShop(shopId: ShopId) {
@@ -80,6 +91,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         shopName: shop.name,
         status: shop.status,
         sellerId: shop.sellerId,
+        primaryPublicPath: shop.primaryPublicPath,
+        secondaryPublicPath: shop.secondaryPublicPath,
         telegramId:
           this.state.bindings.find((binding) => binding.shopId === shop.id)?.telegramId ?? null,
       }));
@@ -109,8 +122,33 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return shop === null ? null : cloneShop(shop);
   }
 
+  async findShopByPublicPath(publicPath: string) {
+    const normalizedPublicPath = publicPath.toLowerCase();
+    const shop =
+      this.state.shops.find(
+        (candidate) =>
+          candidate.primaryPublicPath.toLowerCase() === normalizedPublicPath ||
+          candidate.secondaryPublicPath.toLowerCase() === normalizedPublicPath,
+      ) ?? null;
+    return shop === null ? null : cloneShop(shop);
+  }
+
   async createShop(input: CreateProvisionedShopInput) {
     if (this.state.shops.some((shop) => shop.sellerId === input.sellerId && shop.name === input.name)) {
+      const error = new Error("Unique constraint failed");
+      (error as Error & { code: string }).code = "P2002";
+      throw error;
+    }
+
+    if (
+      this.state.shops.some(
+        (shop) =>
+          shop.primaryPublicPath === input.primaryPublicPath ||
+          shop.secondaryPublicPath === input.primaryPublicPath ||
+          shop.primaryPublicPath === input.secondaryPublicPath ||
+          shop.secondaryPublicPath === input.secondaryPublicPath,
+      )
+    ) {
       const error = new Error("Unique constraint failed");
       (error as Error & { code: string }).code = "P2002";
       throw error;
@@ -120,6 +158,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       id: `shop-runtime-${this.state.nextShopId++}`,
       sellerId: input.sellerId,
       name: input.name,
+      primaryPublicPath: input.primaryPublicPath,
+      secondaryPublicPath: input.secondaryPublicPath,
       description: input.description ?? null,
       headerImageUrl: input.headerImageUrl ?? null,
       backgroundImageUrl: input.backgroundImageUrl ?? null,
@@ -316,6 +356,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     const shop = await draftRepository.createShop({
       sellerId: input.sellerId,
       name: input.name,
+      primaryPublicPath: input.primaryPublicPath,
+      secondaryPublicPath: input.secondaryPublicPath,
       description: input.description,
       headerImageUrl: input.headerImageUrl,
       backgroundImageUrl: input.backgroundImageUrl,

@@ -18,6 +18,7 @@ status: active
 - `TASK-FT011-07` moved the remaining duplicate/conflict guarantee onto the persistence boundary: catalog provisioning now relies on a canonical durable `sellerId + shop name` uniqueness key, so concurrent identical retries collapse to one persisted starter bundle instead of racing past the service-layer precheck.
 - `TASK-FT011-08` closes that follow-up: seller rename writes now map the same durable `sellerId + shop name` uniqueness invariant to an explicit controlled `SHOP_RENAME_CONFLICT` contract, and the mounted repo-local runtime mirrors that behavior instead of leaking raw persistence failures or silently allowing duplicate owned shop names.
 - `TASK-FT011-04` closes the remaining mounted seller/storefront read-path drift inside the checked-in runtime shell: seller capability checks and `GET /api/v1/seller/shops/:shopId` now resolve through repository-backed catalog reads rather than direct `catalogState` access, and restart coverage proves seller storefront data survives runtime restart on the same persisted DB path.
+- Public storefront routing now sits on an explicit public-path layer: `shop.id` remains the technical PK, while canonical persisted state also owns immutable `primaryPublicPath` and `secondaryPublicPath` per shop.
 - `TASK-FT011-05` closes the automated regression follow-up for the mounted repo-local path: runtime coverage now proves persisted provisioning success survives restart and repeated identical provisioning still fails through the controlled conflict contract after restart on the same DB path, without creating duplicate or partial starter bundles.
 - `TASK-FT011-09` closes the remaining mounted runtime parity drift after the runtime split: admin provisioning now allows multiple shops for the same seller/Telegram identity when shop names differ, matching the canonical `sellerId + shop name` conflict boundary already enforced by the service/spec layer.
 - Follow-up hardening after `TASK-FT011-09` removed the stale service-level duplicate precheck that still reasoned through Telegram bindings, so exact duplicate provisioning now consistently resolves on the canonical `sellerId + shop name` identity even when `telegramId` differs.
@@ -38,10 +39,11 @@ status: active
 - Успешный admin provisioning durably persist-ит `shop`, seller binding, starter menu pages и starter products как обычные catalog записи.
 - Один seller identity MAY получать несколько admin-provisioned shops; fail-closed conflict boundary для provisioning определяется canonical `sellerId + shop name` identity, а не single-shop-per-seller ограничением.
 - Успешно созданные через provisioning или later seller edits catalog данные переживают runtime restart/reset.
-- `/shops/:shopId`, public browse и seller-protected shop reads резолвятся из canonical persisted catalog state, а не из synthetic или route-local in-memory state.
+- `/shops/:publicPath`, public browse и seller-protected shop reads резолвятся из canonical persisted catalog state, а не из synthetic или route-local in-memory state.
 - Provisioning остается атомарным: `shop`, seller binding и starter catalog bootstrap либо commit-ятся вместе, либо целиком roll back.
 - Duplicate/conflicting provisioning requests возвращают controlled error и не создают partial или duplicate catalog state.
 - Concurrent identical provisioning retries also collapse to one durable starter bundle because the canonical conflict check now lives at the repository/DB boundary.
+- Public routing identity is separate from provisioning identity: durable provisioning conflicts still key on `sellerId + shop name`, while public storefront resolution keys on immutable persisted public paths.
 - In-memory/demo adapters, если они остаются для tests или bounded tooling, являются non-normative и MUST NOT быть default runtime path для `catalog`.
 
 ## Edge cases & failure modes
@@ -75,7 +77,7 @@ status: active
 ## Verification targets
 
 - `POST /api/v1/admin/catalog/shops/provision`
-- shared storefront route `/shops/:shopId`
+- shared storefront route `/shops/:publicPath`
 - seller-protected shop reads and writes
 - checked-in repo-local `catalog` runtime bootstrap
 
@@ -83,7 +85,7 @@ status: active
 
 - integration: provisioning commit/rollback semantics для `shop + binding + starter catalog bootstrap`.
 - integration/runtime: duplicate/conflict provisioning остается controlled и side-effect free.
-- runtime/manual smoke: `provision shop -> runtime restart/reset -> open /shops/:shopId -> same storefront still resolves from persisted data`.
+- runtime/manual smoke: `provision shop -> runtime restart/reset -> open /shops/:publicPath -> same storefront still resolves from persisted data`.
 - verify: repo-local automated gates могут оставаться `lint/typecheck/unit/integration/e2e`, но final closure для `FT-011` дополнительно требует explicit manual durability smoke evidence.
 
 ## Verification closure

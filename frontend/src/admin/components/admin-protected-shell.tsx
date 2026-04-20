@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { AdminSessionState } from "../model/admin-access-shell";
+import { adminRoutes } from "../lib/routes";
 import { AdminLoginPage } from "./admin-login-page";
 import { AdminShell } from "./admin-shell";
 
@@ -26,6 +27,12 @@ export const AdminProtectedShell = ({
   onLogin,
   onLogout,
 }: AdminProtectedShellProps) => {
+  const navigationItems = [
+    { href: adminRoutes.assignment, label: "Assignment" },
+    { href: adminRoutes.cancellation, label: "Cancellation" },
+    { href: adminRoutes.catalogProvisioning, label: "Provisioning" },
+  ];
+
   if (isLoginSessionState(session)) {
     return (
       <AdminShell>
@@ -42,21 +49,48 @@ export const AdminProtectedShell = ({
   return (
     <AdminShell>
       <div data-admin-auth="protected">
-        <p>{session.actorLabel}</p>
-        <p>{session.idleTimeoutLabel}</p>
-        <button
-          type="button"
-          data-admin-auth="logout"
-          disabled={isLogoutSubmitting}
-          onClick={() => {
-            if (onLogout !== undefined) {
-              void onLogout();
-            }
-          }}
-        >
-          {isLogoutSubmitting ? "Signing out..." : "Sign out"}
-        </button>
-        {children}
+        <div data-admin-auth="frame">
+          <header data-admin-auth="topbar">
+            <div>
+              <div data-admin-auth="brand">
+                <p data-admin-auth="brand-kicker">Khujandi</p>
+                <h1 data-admin-auth="brand-title">Admin Control Surface</h1>
+                <p data-admin-auth="brand-note">
+                  Operational tools for delivery flow, protected sessions, and catalog provisioning.
+                </p>
+              </div>
+              <nav aria-label="Admin routes" data-admin-auth="nav">
+                {navigationItems.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    data-admin-auth="nav-link"
+                    aria-current={pathname === item.href ? "page" : undefined}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            </div>
+            <div data-admin-auth="session">
+              <p data-admin-auth="session-chip">{session.actorLabel}</p>
+              <p data-admin-auth="session-chip">{session.idleTimeoutLabel}</p>
+              <button
+                type="button"
+                data-admin-auth="logout"
+                disabled={isLogoutSubmitting}
+                onClick={() => {
+                  if (onLogout !== undefined) {
+                    void onLogout();
+                  }
+                }}
+              >
+                {isLogoutSubmitting ? "Signing out..." : "Sign out"}
+              </button>
+            </div>
+          </header>
+          {children}
+        </div>
       </div>
     </AdminShell>
   );

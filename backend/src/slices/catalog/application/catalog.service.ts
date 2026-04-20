@@ -1,6 +1,7 @@
 import {
   buildProvisioningTemplateBlueprint,
 } from "../domain/catalog.types";
+import { buildUniqueShopPublicPaths } from "../domain/shop-public-paths";
 import type {
   AdminProvisionedShopSummary,
   CatalogProduct,
@@ -46,8 +47,22 @@ export class CatalogService {
     return this.repository.listPublicShops();
   }
 
-  listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]> {
-    return this.repository.listPublicProductsByShop(shopId);
+  listPublicProductsByShop(publicPath: string): Promise<CatalogProduct[]> {
+    return this.listPublicProductsByShopPublicPath(publicPath);
+  }
+
+  async listPublicProductsByShopPublicPath(publicPath: string): Promise<CatalogProduct[]> {
+    const shop = await this.repository.findShopByPublicPath(publicPath);
+
+    if (shop === null) {
+      return this.repository.listPublicProductsByShop(publicPath);
+    }
+
+    if (shop.isDeleted || shop.status !== "WORKING") {
+      return [];
+    }
+
+    return this.repository.listPublicProductsByShop(shop.id);
   }
 
   listAdminProvisionedShops(): Promise<AdminProvisionedShopSummary[]> {
@@ -94,7 +109,12 @@ export class CatalogService {
 
   async getSellerShopByTelegramId(telegramId: string, shopId: ShopId): Promise<SellerCatalogShop> {
     const shops = await this.listSellerShopsByTelegramId(telegramId);
-    const ownedShop = shops.find((shop) => shop.id === shopId);
+    const ownedShop = shops.find(
+      (shop) =>
+        shop.id === shopId ||
+        shop.primaryPublicPath.toLowerCase() === shopId.toLowerCase() ||
+        shop.secondaryPublicPath.toLowerCase() === shopId.toLowerCase(),
+    );
 
     if (ownedShop === undefined) {
       throw new AppError("FORBIDDEN", "Seller cannot access this shop", 403, {
@@ -119,10 +139,23 @@ export class CatalogService {
     }
 
     try {
+      const [existingPublicPaths, existingSellerPrimaryPublicPaths] = await Promise.all([
+        this.repository.listAllPublicPaths(),
+        this.repository.listSellerPrimaryPublicPaths(sellerId),
+      ]);
+      const publicPaths = buildUniqueShopPublicPaths({
+        sellerId,
+        shopName: name,
+        existingPublicPaths,
+        existingSellerPrimaryPublicPaths,
+      });
+
       return await this.repository.provisionSellerShop({
         sellerId,
         telegramId,
         name,
+        primaryPublicPath: publicPaths.primaryPublicPath,
+        secondaryPublicPath: publicPaths.secondaryPublicPath,
         description: input.description,
         headerImageUrl: input.headerImageUrl,
         backgroundImageUrl: input.backgroundImageUrl,

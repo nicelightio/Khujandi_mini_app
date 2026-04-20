@@ -39,8 +39,23 @@ export const AdminCatalogProvisioningPage = ({
 }: AdminCatalogProvisioningPageProps) => (
   <AdminPageShell title="Catalog shop provisioning">
     <section aria-live="polite" data-admin-provisioning="summary">
+      <span data-admin-ui="micro-label">Provisioning status</span>
       <p>Protected admin session is provided by the shared admin-access boundary.</p>
       <p>This form provisions a skeleton shop and binds one Telegram-linked seller identity.</p>
+      <div data-admin-ui="fact-list">
+        <div>
+          <span>Runtime list</span>
+          <strong>{isLoadingShops ? "Loading provisioned shops..." : `${provisionedShops.length} visible`}</strong>
+        </div>
+        <div>
+          <span>Initial visibility</span>
+          <strong>{value.status}</strong>
+        </div>
+        <div>
+          <span>Seller binding</span>
+          <strong>{value.telegramId.trim().length === 0 ? "Pending" : value.telegramId}</strong>
+        </div>
+      </div>
       {successMessage !== null ? <p role="status">{successMessage}</p> : null}
       {errorMessage !== null ? <p role="alert">{errorMessage}</p> : null}
       {shopsErrorMessage !== null ? <p role="alert">{shopsErrorMessage}</p> : null}
@@ -52,8 +67,9 @@ export const AdminCatalogProvisioningPage = ({
         event.preventDefault();
         onSubmit();
       }}
-    >
+      >
       <fieldset disabled={isSubmitting}>
+        <legend>Provisioning workspace</legend>
         <label>
           Seller ID
           <input
@@ -117,14 +133,28 @@ export const AdminCatalogProvisioningPage = ({
       {isLoadingShops ? <p>Loading provisioned shops...</p> : null}
       {!isLoadingShops && provisionedShops.length === 0 ? <p>No shops have been provisioned yet.</p> : null}
       {provisionedShops.length > 0 ? (
-        <ul>
-          {provisionedShops.map((shop) => (
-            <li key={shop.shopId}>
-              {shop.shopName} ({shop.status}) seller {shop.sellerId}
-              {shop.telegramId === null ? "" : ` telegram ${shop.telegramId}`}
-            </li>
-          ))}
-        </ul>
+        <table data-admin-ui="table">
+          <thead>
+            <tr>
+              <th scope="col">Shop</th>
+              <th scope="col">Visibility</th>
+              <th scope="col">Seller</th>
+              <th scope="col">Telegram</th>
+              <th scope="col">Paths</th>
+            </tr>
+          </thead>
+          <tbody>
+            {provisionedShops.map((shop) => (
+              <tr key={shop.shopId}>
+                <td>{shop.shopName}</td>
+                <td>{shop.status}</td>
+                <td>{shop.sellerId}</td>
+                <td>{shop.telegramId === null ? "Unbound" : shop.telegramId}</td>
+                <td>{`${shop.secondaryPublicPath} / ${shop.primaryPublicPath}`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       ) : null}
     </section>
   </AdminPageShell>

@@ -5,7 +5,7 @@ import { createCatalogApi, type CatalogApi } from "../api/catalog-api";
 import { CatalogPage } from "../components/catalog-page";
 import { useCatalogViewModel } from "../hooks/use-catalog-view-model";
 import {
-  getStorefrontShopId,
+  getStorefrontPublicPath,
   type LoadCatalogStorefrontData,
   type PersistCatalogStorefrontEdit,
 } from "../model/storefront";
@@ -40,12 +40,12 @@ export const CatalogRoute = ({
 }: CatalogRouteProps) => {
   const { state } = useLanguageContext();
   const catalogApi = useMemo(() => api ?? createCatalogApi(), [api]);
-  const shopId = useMemo(() => getStorefrontShopId(pathname), [pathname]);
+  const publicPath = useMemo(() => getStorefrontPublicPath(pathname), [pathname]);
 
-  if (shopId !== null) {
+  if (publicPath !== null) {
     return (
       <CatalogStorefrontRoute
-        shopId={shopId}
+        shopId={publicPath}
         api={catalogApi}
         language={state.language}
         loadStorefrontData={loadStorefrontData}

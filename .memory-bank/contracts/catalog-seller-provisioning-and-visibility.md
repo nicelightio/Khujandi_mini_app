@@ -27,12 +27,14 @@ status: active
 - Skeleton provisioning MUST create starter menu pages and starter products that can be edited later by the seller.
 - Shop record creation, Telegram-linked binding creation, and starter catalog bootstrap MUST succeed or fail atomically.
 - Successful provisioning MUST durably persist the shop, binding, and starter catalog data in the canonical DB-backed `catalog` runtime and MUST survive runtime restart/reset.
+- Successful provisioning MUST also durably persist two immutable public paths for the shop: primary seller-ordinal path `sellerId + N` and secondary vanity translit path with conflict suffixing when needed.
 - Starter menu pages and starter products created by provisioning become ordinary catalog records, not ephemeral demo fixtures.
 - Duplicate or conflicting provisioning MUST fail closed with a controlled error and MUST NOT create partial or duplicate catalog state.
 
 ## Ownership and access rules
 - Seller ownership is resolved from the Telegram-linked identity bound during provisioning.
 - Provisioning MUST persist the same canonical seller identity in both `Shop.sellerId` and the created seller-binding record.
+- Public routing identity is separate from provisioning identity: `shop.id` stays technical, `sellerId + shop name` remains the durable provisioning conflict key, and storefront resolution uses immutable persisted public paths.
 - Наличие существующего seller binding для другого owned shop само по себе MUST NOT блокировать admin-side provisioning следующего shop для того же seller identity.
 - Seller access to shared storefront edit mode and to `seller-web` store-admin MUST depend on that bound ownership.
 - Missing or mismatched Telegram binding MUST NOT grant seller access.
@@ -47,7 +49,7 @@ status: active
 - This read model exists only to support the admin provisioning page and MUST NOT become a second public browse or seller surface.
 - The admin provisioning read view MUST read canonical persisted `catalog` state from the mounted runtime path rather than route-local synthetic UI state.
 - The admin provisioning read view MUST include both `WORKING` and `NOT_WORKING` shops because it is an admin-owned operational surface, not a public visibility surface.
-- The minimum summary fields for this read model are `shopId`, `shopName`, `status`, `sellerId`, and `telegramId` when the Telegram binding is naturally available from the same catalog-owned read path.
+- The minimum summary fields for this read model are `shopId`, `shopName`, `status`, `sellerId`, `telegramId`, `primaryPublicPath`, and `secondaryPublicPath` when the public paths are naturally available from the same catalog-owned read path.
 
 ## Store-admin scope rules
 - Separate `seller-web` store-admin exists to host light catalog-owned controls that do not fit the shared storefront editing flow.

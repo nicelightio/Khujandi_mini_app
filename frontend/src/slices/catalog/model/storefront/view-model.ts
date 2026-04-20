@@ -76,6 +76,7 @@ export const buildStorefrontCatalogViewModel = (
     [
       {
         id: state.data.shop.id,
+        publicPath: state.data.shop.publicPath,
         name: state.data.shop.name,
         products: [
           ...state.data.menuPages.flatMap((menuPage) =>

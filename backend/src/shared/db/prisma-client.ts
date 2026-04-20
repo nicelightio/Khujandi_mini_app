@@ -3,6 +3,7 @@ export type ShopStatusRecord = "WORKING" | "NOT_WORKING";
 export type PublicShopRecord = {
   id: string;
   name: string;
+  secondaryPublicPath?: string;
 };
 
 export type PublicProductRecord = {
@@ -62,6 +63,8 @@ export type SellerShopRecord = {
   id: string;
   sellerId: string;
   name: string;
+   primaryPublicPath: string;
+   secondaryPublicPath: string;
   description: string | null;
   headerImageUrl: string | null;
   backgroundImageUrl: string | null;
@@ -83,12 +86,32 @@ export type EventRecord = {
 
 type ShopFindManyArgs = {
   where: {
-    isDeleted: boolean;
+    isDeleted?: boolean;
     status?: ShopStatusRecord;
+    sellerId?: string;
+    OR?: Array<{
+      primaryPublicPath?: string;
+      secondaryPublicPath?: string;
+    }>;
   };
   select: {
-    id: true;
-    name: true;
+    id?: true;
+    name?: true;
+    sellerId?: true;
+    status?: true;
+    primaryPublicPath?: true;
+    secondaryPublicPath?: true;
+    description?: true;
+    headerImageUrl?: true;
+    backgroundImageUrl?: true;
+    renameCount?: true;
+    requiresManualRenameReview?: true;
+    isDeleted?: true;
+    sellerBindings?: {
+      select: {
+        telegramId: true;
+      };
+    };
   };
 };
 
@@ -100,6 +123,8 @@ type ShopFindUniqueArgs = {
     id: true;
     sellerId: true;
     name: true;
+    primaryPublicPath: true;
+    secondaryPublicPath: true;
     description: true;
     headerImageUrl: true;
     backgroundImageUrl: true;
@@ -114,6 +139,8 @@ type ShopCreateArgs = {
   data: {
     sellerId: string;
     name: string;
+    primaryPublicPath: string;
+    secondaryPublicPath: string;
     description?: string | null;
     headerImageUrl?: string | null;
     backgroundImageUrl?: string | null;
@@ -123,6 +150,8 @@ type ShopCreateArgs = {
     id: true;
     sellerId: true;
     name: true;
+    primaryPublicPath: true;
+    secondaryPublicPath: true;
     description: true;
     headerImageUrl: true;
     backgroundImageUrl: true;
@@ -367,8 +396,9 @@ type SellerShopBindingFindManyArgs = {
 
 export interface PrismaClientLike {
   shop: {
-    findMany(args: ShopFindManyArgs): Promise<PublicShopRecord[]>;
+    findMany(args: ShopFindManyArgs): Promise<Array<Record<string, unknown>>>;
     findUnique(args: ShopFindUniqueArgs): Promise<SellerShopRecord | null>;
+    findFirst(args: ShopFindManyArgs): Promise<Record<string, unknown> | null>;
     create(args: ShopCreateArgs): Promise<SellerShopRecord>;
     update(args: ShopUpdateArgs): Promise<SellerShopRecord>;
   };
