@@ -75,13 +75,13 @@ install -d -o tgmeal -g tgmeal /srv/tgmeal
 ### 5.1 Check pending migrations
 
 ```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx prisma migrate status'
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx --yes prisma migrate status'
 ```
 
 ### 5.2 Apply migrations
 
 ```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx prisma migrate deploy'
+sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx --yes prisma migrate deploy'
 ```
 
 Ожидаемый вывод для новой миграции:
@@ -128,6 +128,8 @@ chmod 600 /srv/tgmeal/app/.env
 ```
 
 Важно: `scripts/dev-api.ts` хранит runtime SQLite state по `ADMIN_DB_PATH` и `CATALOG_DB_PATH`. Если не задать явные path и не примонтировать persistent Docker volume, admin cookie-сессии и catalog provisioning/seller edits останутся внутри filesystem конкретного `api` контейнера и исчезнут после `docker compose up -d --build` / recreate.
+
+Prisma CLI в checked-in `api` image запускается из `/app`, а каноническая schema лежит в `backend/prisma/schema.prisma`. Root `package.json` фиксирует этот path через `prisma.schema`, а pinned repo-local dependency `prisma` попадает в image через `npm ci --omit=dev`, поэтому `docker compose run --rm api npx --yes prisma migrate status|deploy` должен использовать совместимый checked-in CLI и работать без отдельного `--schema` workaround.
 
 ## 8. Build and start containers
 
@@ -282,6 +284,7 @@ tail -n 200 /var/log/tgmeal/$(ls -1t /var/log/tgmeal | head -n 1)
 - `docker-compose.yml`: container stack для `web` + `api`.
 - `Dockerfile.web`: build and serve frontend static app.
 - `Dockerfile.api`: Node runtime для repo-local demo/admin auth API.
+- `package.json`: canonical Prisma CLI schema path and pinned repo-local Prisma dependency for root/container runtime.
 
 TG ID Луганский: 
 5281851429

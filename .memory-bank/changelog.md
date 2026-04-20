@@ -15,6 +15,14 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] Fixed api container Prisma CLI schema discovery for checked-in migrate commands
+- Added checked-in Prisma metadata and a pinned repo-local `prisma` dependency in `package.json`, so `docker compose run --rm api npx --yes prisma migrate status|deploy` now resolves `backend/prisma/schema.prisma` from `/app` and uses the repo-compatible CLI instead of a latest-network download.
+- Synced the container deploy runbook and archived the active bug after repo-local verification showed Prisma CLI now gets past schema discovery and reaches normal runtime checks instead of failing with `Could not find Prisma Schema`.
+
+## [2026-04-20] Opened deploy bug for missing Prisma schema inside the api container image
+- Recorded an active deploy/runtime bug after VPS rollout evidence showed that `docker compose run --rm api npx --yes prisma migrate status|deploy` fails with `Could not find Prisma Schema`, because the checked-in `api` image starts the runtime but does not expose a canonical Prisma schema path for CLI operations.
+- This keeps the issue visible in the Memory Bank as a container-image/runbook drift instead of losing it inside shell history while the admin provisioning payload investigation continues.
+
 ## [2026-04-20] Admin provisioning shop-list tests now enforce the canonical flat payload
 - Tightened the `/admin/catalog/shops/provision` contract coverage so frontend API/route tests, catalog unit coverage, and mounted runtime regressions all require the flat admin-owned list payload with `shopId`, `shopName`, `status`, `sellerId`, `telegramId`, `primaryPublicPath`, and `secondaryPublicPath`.
 - Added an explicit no-fallback frontend API test that rejects the older nested list shape, keeping the project on the new catalog payload end-to-end instead of silently tolerating legacy response forms.

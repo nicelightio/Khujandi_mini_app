@@ -4,6 +4,7 @@ status: active
 ---
 # Bugs Index
 
+- [.memory-bank/bugs/BUG-2026-04-20-api-container-missing-prisma-schema.md](BUG-2026-04-20-api-container-missing-prisma-schema.md): архивированный deploy/runtime bug; root `package.json` now declares `backend/prisma/schema.prisma` as the canonical Prisma CLI path and ships a pinned repo-local `prisma` dependency, so the checked-in `api` image can run documented `prisma migrate status|deploy` commands without a `--schema` workaround or latest-version drift.
 - [.memory-bank/bugs/BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md](BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md): активный quality-gate bug; `TASK-FT009-09` не может получить `PASS` без свежего real `Android Telegram` evidence для keyboard-open CTA reachability и degradation fallback behavior.
 - [.memory-bank/bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md](BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md): активный bug по незакрытому shell-runtime hardening gap; high-churn runtime propagation, keyboard-safe bottom action primitives и centralized degradation policy еще не доведены до spec baseline.
 - [.memory-bank/bugs/BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md](BUG-2026-04-10-ft010-admin-provisioning-runtime-open-without-admin-auth.md): архивированный semantic bug; `TASK-FT010-09` закрыл open admin provisioning route через существующую admin cookie/session boundary и RBAC.

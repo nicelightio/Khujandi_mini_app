@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
 import { PrismaCatalogRepository } from "../../../backend/src/slices/catalog/infrastructure/prisma-catalog.repository";
 import { adminOrigin, loginAdmin, loginSeller } from "./catalog.runtime.test-helpers";
@@ -796,6 +797,115 @@ export const registerCatalogRuntimeProvisioningCases = () => {
       expect(restartedRuntime.catalogState.products.filter((product) => product.shopId === persistedShop?.id)).toHaveLength(2);
     } finally {
       await restartedRuntime.stop();
+      rmSync(runtimeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("normalizes legacy persisted admin catalog shops to the flat public-path summary", async () => {
+    const runtimeDirectory = mkdtempSync(join(tmpdir(), "khujandi-catalog-runtime-legacy-"));
+    const catalogDatabasePath = join(runtimeDirectory, "catalog-runtime.sqlite");
+    const database = new DatabaseSync(catalogDatabasePath);
+
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS catalog_runtime_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        payload TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
+    database
+      .prepare(
+        `INSERT INTO catalog_runtime_state (id, payload, updated_at)
+         VALUES (1, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at`,
+      )
+      .run(
+        JSON.stringify({
+          shops: [
+            {
+              id: "shop-legacy-1",
+              sellerId: "seller-legacy",
+              name: "Legacy Shop",
+              description: null,
+              headerImageUrl: null,
+              backgroundImageUrl: null,
+              status: "WORKING",
+              renameCount: 0,
+              requiresManualRenameReview: false,
+              isDeleted: false,
+            },
+          ],
+          menuPages: [],
+          products: [],
+          bindings: [
+            {
+              id: "binding-legacy-1",
+              shopId: "shop-legacy-1",
+              sellerId: "seller-legacy",
+              telegramId: "7001",
+            },
+          ],
+          events: [],
+          nextShopId: 2,
+          nextMenuPageId: 1,
+          nextProductId: 1,
+          nextBindingId: 2,
+        }),
+        new Date().toISOString(),
+      );
+    database.close();
+
+    let runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      catalogDatabasePath,
+    });
+
+    try {
+      runtime.prisma.state.account.role = "BOSS";
+      const adminClient = runtime.createClient();
+      await loginAdmin(adminClient);
+
+      const firstListResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(firstListResponse.status).toBe(200);
+      expect(firstListResponse.body).toEqual([
+        {
+          shopId: "shop-legacy-1",
+          shopName: "Legacy Shop",
+          status: "WORKING",
+          sellerId: "seller-legacy",
+          telegramId: "7001",
+          primaryPublicPath: "seller-legacy1",
+          secondaryPublicPath: "legacy-shop",
+        },
+      ]);
+
+      await runtime.stop();
+      runtime = await startDevApiServer({
+        host: "127.0.0.1",
+        port: 0,
+        catalogDatabasePath,
+      });
+
+      runtime.prisma.state.account.role = "BOSS";
+      const reloadedAdminClient = runtime.createClient();
+      await loginAdmin(reloadedAdminClient);
+
+      const reloadedListResponse = await reloadedAdminClient.request({
+        path: "/api/v1/admin/catalog/shops",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(reloadedListResponse.status).toBe(200);
+      expect(reloadedListResponse.body).toEqual(firstListResponse.body);
+    } finally {
+      await runtime.stop();
       rmSync(runtimeDirectory, { recursive: true, force: true });
     }
   });

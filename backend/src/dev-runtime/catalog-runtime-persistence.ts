@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { buildUniqueShopPublicPaths } from "../slices/catalog/domain/shop-public-paths";
 import { createCatalogRuntimeState, type CatalogRuntimeState } from "./catalog-runtime-state";
 
 export type CatalogStatePersistence = {
@@ -10,6 +11,67 @@ export type CatalogStatePersistence = {
   saveState: (state: CatalogRuntimeState) => void;
   close: () => void;
   cleanup: () => void;
+};
+
+const hasNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
+const normalizeCatalogRuntimeState = (state: CatalogRuntimeState): CatalogRuntimeState => {
+  const occupiedPublicPaths = new Set<string>();
+  const sellerPrimaryPublicPaths = new Map<string, string[]>();
+
+  const normalizedShops = state.shops.map((shop) => {
+    let primaryPublicPath =
+      hasNonEmptyString(shop.primaryPublicPath) && !occupiedPublicPaths.has(shop.primaryPublicPath.toLowerCase())
+        ? shop.primaryPublicPath
+        : null;
+    let secondaryPublicPath =
+      hasNonEmptyString(shop.secondaryPublicPath) &&
+      !occupiedPublicPaths.has(shop.secondaryPublicPath.toLowerCase()) &&
+      shop.secondaryPublicPath.toLowerCase() !== primaryPublicPath?.toLowerCase()
+        ? shop.secondaryPublicPath
+        : null;
+
+    if (primaryPublicPath === null) {
+      primaryPublicPath = buildUniqueShopPublicPaths({
+        sellerId: shop.sellerId,
+        shopName: shop.name,
+        existingPublicPaths: [
+          ...occupiedPublicPaths,
+          ...(secondaryPublicPath === null ? [] : [secondaryPublicPath.toLowerCase()]),
+        ],
+        existingSellerPrimaryPublicPaths: sellerPrimaryPublicPaths.get(shop.sellerId) ?? [],
+      }).primaryPublicPath;
+    }
+
+    occupiedPublicPaths.add(primaryPublicPath.toLowerCase());
+    sellerPrimaryPublicPaths.set(shop.sellerId, [
+      ...(sellerPrimaryPublicPaths.get(shop.sellerId) ?? []),
+      primaryPublicPath,
+    ]);
+
+    if (secondaryPublicPath === null) {
+      secondaryPublicPath = buildUniqueShopPublicPaths({
+            sellerId: shop.sellerId,
+            shopName: shop.name,
+            existingPublicPaths: [...occupiedPublicPaths],
+            existingSellerPrimaryPublicPaths: sellerPrimaryPublicPaths.get(shop.sellerId) ?? [],
+          }).secondaryPublicPath;
+    }
+
+    occupiedPublicPaths.add(secondaryPublicPath.toLowerCase());
+
+    return {
+      ...shop,
+      primaryPublicPath,
+      secondaryPublicPath,
+    };
+  });
+
+  return {
+    ...state,
+    shops: normalizedShops,
+  };
 };
 
 const createCatalogStatePersistence = (databasePath: string, cleanupDirectory: string | null): CatalogStatePersistence => {
@@ -43,7 +105,13 @@ const createCatalogStatePersistence = (databasePath: string, cleanupDirectory: s
       return seededState;
     }
 
-    return JSON.parse(row.payload) as CatalogRuntimeState;
+    const normalizedState = normalizeCatalogRuntimeState(JSON.parse(row.payload) as CatalogRuntimeState);
+
+    if (JSON.stringify(normalizedState) !== row.payload) {
+      saveState(normalizedState);
+    }
+
+    return normalizedState;
   };
 
   return {
