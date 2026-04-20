@@ -242,6 +242,8 @@ export const registerCatalogRuntimeProvisioningCases = () => {
             status: "WORKING",
             sellerId: "seller-admin-list-1",
             telegramId: "5001",
+            primaryPublicPath: expect.any(String),
+            secondaryPublicPath: expect.any(String),
           }),
           expect.objectContaining({
             shopId: expect.any(String),
@@ -249,6 +251,8 @@ export const registerCatalogRuntimeProvisioningCases = () => {
             status: "NOT_WORKING",
             sellerId: "seller-admin-list-2",
             telegramId: "5002",
+            primaryPublicPath: expect.any(String),
+            secondaryPublicPath: expect.any(String),
           }),
         ]),
       );
@@ -276,12 +280,22 @@ export const registerCatalogRuntimeProvisioningCases = () => {
       expect(reloadedListResponse.body).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
+            shopId: expect.any(String),
             shopName: "Working Shop",
             status: "WORKING",
+            sellerId: "seller-admin-list-1",
+            telegramId: "5001",
+            primaryPublicPath: expect.any(String),
+            secondaryPublicPath: expect.any(String),
           }),
           expect.objectContaining({
+            shopId: expect.any(String),
             shopName: "Hidden Shop",
             status: "NOT_WORKING",
+            sellerId: "seller-admin-list-2",
+            telegramId: "5002",
+            primaryPublicPath: expect.any(String),
+            secondaryPublicPath: expect.any(String),
           }),
         ]),
       );

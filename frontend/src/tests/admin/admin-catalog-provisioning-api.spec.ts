@@ -108,4 +108,30 @@ describe("admin catalog provisioning api", () => {
       ),
     );
   });
+
+  it("rejects the legacy provisioned shops payload shape without fallback", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [
+        {
+          shop: {
+            id: "shop-1",
+            name: "Night Bakery",
+            status: "NOT_WORKING",
+            primaryPublicPath: "seller-421",
+            secondaryPublicPath: "night-bakery",
+          },
+          binding: {
+            sellerId: "seller-42",
+            telegramId: "1042",
+          },
+        },
+      ],
+    });
+
+    await expect(
+      createAdminCatalogProvisioningApi({ fetch: fetchMock }).listProvisionedShops(),
+    ).rejects.toThrow("Provisioned shops payload is invalid.");
+  });
 });

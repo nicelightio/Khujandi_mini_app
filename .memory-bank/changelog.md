@@ -15,6 +15,14 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] Admin provisioning shop-list tests now enforce the canonical flat payload
+- Tightened the `/admin/catalog/shops/provision` contract coverage so frontend API/route tests, catalog unit coverage, and mounted runtime regressions all require the flat admin-owned list payload with `shopId`, `shopName`, `status`, `sellerId`, `telegramId`, `primaryPublicPath`, and `secondaryPublicPath`.
+- Added an explicit no-fallback frontend API test that rejects the older nested list shape, keeping the project on the new catalog payload end-to-end instead of silently tolerating legacy response forms.
+
+## [2026-04-20] Admin contour styling now loads through the shared frontend bootstrap
+- Fixed the current `/admin/*` visual regression by importing `frontend/src/admin/styles/admin-theme.css` through the real shared entrypoint `frontend/src/app/main.tsx`, because the old `frontend/src/admin/main.tsx` import path was no longer mounted by `index.html`.
+- Kept one shared root-router/bootstrap architecture: `RootRouter` now marks `body[data-root-contour]` for the active contour, and the admin theme scopes its only global selectors to `admin-web` so customer/seller surfaces keep the existing runtime path unchanged.
+
 ## [2026-04-20] Catalog storefront routing now uses immutable public paths instead of technical shop ids
 - Fixed the checked-in browse/runtime drift so public catalog fetches and storefront links now use persisted `publicPath` rather than raw `shop.id`, while seller-protected storefront resolution remains compatible with both immutable public aliases of the same shop.
 - Synced the catalog spec layer around `/shops/:publicPath`, dual immutable public paths (`sellerId + N` plus vanity translit), and the explicit separation between technical `shop.id`, provisioning identity `sellerId + shop name`, and public routing identity; `npm run test:catalog` and `npm run lint` both pass after the update.

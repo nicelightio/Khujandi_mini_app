@@ -54,6 +54,8 @@ describe("admin catalog provisioning route", () => {
       shopStatus: "NOT_WORKING",
       sellerId: "seller-42",
       telegramId: "1042",
+      primaryPublicPath: "seller-421",
+      secondaryPublicPath: "night-bakery",
       menuPagesCount: 2,
       productsCount: 3,
     }),
@@ -86,6 +88,8 @@ describe("admin catalog provisioning route", () => {
           status: "WORKING",
           sellerId: "seller-1",
           telegramId: "1001",
+          primaryPublicPath: "seller-11",
+          secondaryPublicPath: "old-bakery",
         },
       ])
       .mockResolvedValueOnce([
@@ -95,6 +99,8 @@ describe("admin catalog provisioning route", () => {
           status: "WORKING",
           sellerId: "seller-1",
           telegramId: "1001",
+          primaryPublicPath: "seller-11",
+          secondaryPublicPath: "old-bakery",
         },
         {
           shopId: "shop-42",
@@ -102,6 +108,8 @@ describe("admin catalog provisioning route", () => {
           status: "NOT_WORKING",
           sellerId: "seller-42",
           telegramId: "1042",
+          primaryPublicPath: "seller-421",
+          secondaryPublicPath: "night-bakery",
         },
       ]);
     let renderer!: ReactTestRenderer;
@@ -151,12 +159,15 @@ describe("admin catalog provisioning route", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
     expect(text).toContain("Provisioned Night Bakery (NOT_WORKING) for seller seller-42.");
+    expect(text).toContain("Paths: night-bakery / seller-421.");
     expect(text).toContain("Starter pages: 2. Starter products: 3.");
     expect(text).toContain("Old Bakery");
     expect(text).toContain("Night Bakery");
     expect(text).toContain("NOT_WORKING");
     expect(text).toContain("seller-42");
     expect(text).toContain("1042");
+    expect(text).toContain("old-bakery / seller-11");
+    expect(text).toContain("night-bakery / seller-421");
     expect(api.listProvisionedShops).toHaveBeenCalledTimes(2);
   });
 

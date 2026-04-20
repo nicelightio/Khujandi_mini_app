@@ -15,7 +15,7 @@
   --admin-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
 }
 
-body {
+body[data-root-contour="admin-web"] {
   margin: 0;
   background:
     radial-gradient(circle at top, rgba(80, 109, 255, 0.16), transparent 34%),
@@ -25,14 +25,14 @@ body {
   font-family: Inter, "Segoe UI", sans-serif;
 }
 
-a {
+body[data-root-contour="admin-web"] a {
   color: inherit;
 }
 
-button,
-input,
-select,
-textarea {
+body[data-root-contour="admin-web"] button,
+body[data-root-contour="admin-web"] input,
+body[data-root-contour="admin-web"] select,
+body[data-root-contour="admin-web"] textarea {
   font: inherit;
 }
 

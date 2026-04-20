@@ -96,6 +96,10 @@ describe("root router", () => {
 
       expect(text).toContain("Admin login");
       expect(text).not.toContain("Каталог");
+
+      if (typeof document !== "undefined") {
+        expect(document.body.dataset.rootContour).toBe("admin-web");
+      }
     } finally {
       Object.defineProperty(globalThis, "window", {
         value: previousWindow,
@@ -169,6 +173,10 @@ describe("root router", () => {
       expect(shellBoundary.props["data-app-shell"]).toBe("root");
       expect(text).toContain("Выберите язык");
       expect(text).not.toContain("Admin login");
+
+      if (typeof document !== "undefined") {
+        expect(document.body.dataset.rootContour).toBe("mini-app");
+      }
     } finally {
       Object.defineProperty(globalThis, "window", {
         value: previousWindow,

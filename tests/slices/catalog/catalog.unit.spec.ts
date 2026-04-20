@@ -72,6 +72,8 @@ describe("catalog service", () => {
           status: "NOT_WORKING",
           sellerId: "seller-1",
           telegramId: "telegram-1",
+          primaryPublicPath: "seller-11",
+          secondaryPublicPath: "hidden-from-public",
         },
       ],
     });
@@ -83,6 +85,8 @@ describe("catalog service", () => {
         status: "NOT_WORKING",
         sellerId: "seller-1",
         telegramId: "telegram-1",
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "hidden-from-public",
       },
     ]);
   });
