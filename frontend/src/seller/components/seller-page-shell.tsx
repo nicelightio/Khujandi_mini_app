@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DebugPanel } from "../../shared/ui/debug-panel";
 
 type SellerPageShellProps = {
   title: string;
@@ -12,5 +13,6 @@ export const SellerPageShell = ({ title, children }: SellerPageShellProps) => (
       <h1>{title}</h1>
     </header>
     <div data-seller-page="body">{children}</div>
+    <DebugPanel />
   </main>
 );

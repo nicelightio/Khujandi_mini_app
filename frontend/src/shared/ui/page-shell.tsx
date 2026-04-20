@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { DebugPanel } from "./debug-panel";
 import { useOptionalUiShell } from "../state/ui-shell-context";
 
 type PageShellProps = {
@@ -75,6 +76,7 @@ export const PageShell = ({
         <p data-shell-action-feedback={actionFeedbackState}>{actionLabel}</p>
       ) : null}
       <div data-shell-section="body">{children}</div>
+      <DebugPanel />
       {bottomAction !== undefined ? (
         <footer data-shell-section="footer" data-shell-footer-layout={bottomActionLayout}>
           <div data-shell-bottom-action={bottomActionMode}>{bottomAction}</div>

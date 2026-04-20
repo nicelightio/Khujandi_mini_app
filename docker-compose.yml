@@ -25,6 +25,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+      args:
+        DEBUG: ${DEBUG:-FALSE}
     depends_on:
       api:
         condition: service_healthy

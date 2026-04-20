@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DebugPanel } from "../../shared/ui/debug-panel";
 
 type AdminPageShellProps = {
   title: string;
@@ -12,5 +13,6 @@ export const AdminPageShell = ({ title, children }: AdminPageShellProps) => (
       <h1>{title}</h1>
     </header>
     <div data-admin-page="body">{children}</div>
+    <DebugPanel />
   </main>
 );

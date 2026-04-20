@@ -15,6 +15,10 @@ status: active
 
 ## Recent entries
 
+## [2026-04-20] Frontend debug mode now gates diagnostics and storefront title uses shop name
+- Added a build-time `DEBUG` switch for the web container and a shared frontend debug panel so temporary diagnostics, keyboard test input, and shell/runtime hints appear only when debug mode is enabled.
+- Shared storefront pages now use the shop name as the page title, hide the catalog browse count label inside storefront mode, and keep temporary Telegram auth diagnostics behind debug mode instead of showing them in normal production UI.
+
 ## [2026-04-20] Mounted storefront seller auth now uses runtime Telegram bot token
 - Fixed mounted `dev-runtime` Telegram auth wiring so `POST /api/v1/auth/telegram` reads `TELEGRAM_BOT_TOKEN` from runtime environment instead of validating production Mini App `initData` against a hardcoded test token.
 - `scripts/dev-api.ts` and `docker-compose.yml` now pass the bot token through to the runtime, unblocking seller session bootstrap for shared storefront owner access on deployed Mini App flows.

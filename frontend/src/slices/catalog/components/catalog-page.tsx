@@ -1,4 +1,5 @@
 import { useLanguageContext } from "../../../app/language-context";
+import { isDebugEnabled } from "../../../shared/config/debug";
 import { getCopy } from "../../../shared/i18n/copy";
 import { PageShell } from "../../../shared/ui/page-shell";
 import { buildStorefrontPath } from "../../../shared/lib/routes";
@@ -138,29 +139,18 @@ export const CatalogPage = ({
   return (
     <PageShell title={viewModel.headline} actionLabel={actionLabel} isActionPending={storefront?.isSaving === true}>
       <section aria-live="polite">
-        <p>{viewModel.statusLabel}</p>
+        {viewModel.statusLabel.length > 0 ? <p>{viewModel.statusLabel}</p> : null}
         {viewModel.isLoading ? <p>{copy.loadingBody}</p> : null}
         {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
         {storefront?.access.statusLabel !== undefined ? <p>{storefront.access.statusLabel}</p> : null}
-        {storefront !== undefined && storefront.access.currentTelegramId !== null ? (
+        {isDebugEnabled && storefront !== undefined && storefront.access.currentTelegramId !== null ? (
           <p data-storefront-telegram-id>{`Current Telegram ID: ${storefront.access.currentTelegramId}`}</p>
         ) : null}
-        {storefront !== undefined && storefront.access.authDebugLabel !== null ? (
+        {isDebugEnabled && storefront !== undefined && storefront.access.authDebugLabel !== null ? (
           <p data-storefront-auth-debug>{storefront.access.authDebugLabel}</p>
         ) : null}
         {storefront !== undefined && storefront.successMessage !== null ? <p role="status">{storefront.successMessage}</p> : null}
         {storefront !== undefined && storefront.errorMessage !== null ? <p role="alert">{storefront.errorMessage}</p> : null}
-      </section>
-
-      <section data-catalog-keyboard-test="true">
-        <label htmlFor="catalog-keyboard-test-input">{copy.keyboardTestLabel}</label>
-        <input
-          id="catalog-keyboard-test-input"
-          name="catalogKeyboardTest"
-          type="text"
-          placeholder={copy.keyboardTestPlaceholder}
-          autoComplete="off"
-        />
       </section>
 
       {storefront !== undefined && !viewModel.isLoading && viewModel.errorMessage === null ? (

@@ -72,7 +72,7 @@ export const buildStorefrontCatalogViewModel = (
 
   const storefrontShopId = state.data.shop.id;
 
-  return createCatalogViewModel(
+  const baseViewModel = createCatalogViewModel(
     [
       {
         id: state.data.shop.id,
@@ -97,4 +97,10 @@ export const buildStorefrontCatalogViewModel = (
     ],
     language,
   );
+
+  return {
+    ...baseViewModel,
+    headline: state.data.shop.name,
+    statusLabel: "",
+  };
 };
