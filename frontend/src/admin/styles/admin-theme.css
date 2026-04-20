@@ -13,13 +13,23 @@
   --admin-success: #93f4bf;
   --admin-danger: #ff8f9f;
   --admin-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+  --admin-scene-spot-alpha: 0.34;
+  --admin-scene-spot-blur: 20px;
+  --admin-scene-beam-alpha: 0.14;
+  --admin-scene-beam-spread: 1.08;
+  --admin-scene-mist-alpha: 0.18;
+  --admin-scene-vignette: 0.3;
+  --admin-scene-panel-glow: 0.16;
+  --admin-scene-surface-lift: 0.08;
 }
 
 body[data-root-contour="admin-web"] {
   margin: 0;
   background:
-    radial-gradient(circle at top, rgba(80, 109, 255, 0.16), transparent 34%),
-    radial-gradient(circle at 20% 20%, rgba(88, 203, 255, 0.08), transparent 30%),
+    radial-gradient(circle at 14% 8%, rgba(125, 153, 255, calc(var(--admin-scene-spot-alpha) * 0.95)), transparent 24%),
+    radial-gradient(circle at 78% 14%, rgba(83, 202, 255, calc(var(--admin-scene-spot-alpha) * 0.55)), transparent 22%),
+    radial-gradient(circle at 45% 100%, rgba(118, 142, 255, calc(var(--admin-scene-mist-alpha) * 0.58)), transparent 34%),
+    linear-gradient(180deg, rgba(10, 13, 31, var(--admin-scene-vignette)) 0%, transparent 26%),
     linear-gradient(180deg, #060816 0%, #050712 55%, #03040a 100%);
   color: var(--admin-text);
   font-family: Inter, "Segoe UI", sans-serif;
@@ -44,6 +54,12 @@ body[data-root-contour="admin-web"] textarea {
   background: transparent;
 }
 
+[data-admin-shell="controls-wrap"] {
+  width: min(1280px, calc(100% - 56px));
+  margin: 0 auto;
+  padding: 0 0 32px;
+}
+
 [data-admin-shell="root"]::before,
 [data-admin-shell="root"]::after {
   content: "";
@@ -55,19 +71,21 @@ body[data-root-contour="admin-web"] textarea {
 
 [data-admin-shell="root"]::before {
   background:
-    radial-gradient(circle at 18% 18%, rgba(95, 129, 255, 0.22), transparent 22%),
-    radial-gradient(circle at 78% 14%, rgba(73, 182, 255, 0.14), transparent 18%),
-    radial-gradient(circle at 62% 78%, rgba(188, 127, 255, 0.12), transparent 20%);
-  filter: blur(12px);
+    radial-gradient(circle at 16% 16%, rgba(112, 140, 255, calc(var(--admin-scene-spot-alpha) * 1.1)), transparent 18%),
+    radial-gradient(circle at 72% 12%, rgba(88, 207, 255, calc(var(--admin-scene-spot-alpha) * 0.66)), transparent 16%),
+    radial-gradient(circle at 60% 74%, rgba(198, 138, 255, calc(var(--admin-scene-spot-alpha) * 0.42)), transparent 18%);
+  filter: blur(var(--admin-scene-spot-blur));
   animation: adminSceneFloat 22s ease-in-out infinite alternate;
 }
 
 [data-admin-shell="root"]::after {
   background:
-    linear-gradient(116deg, transparent 33%, rgba(156, 182, 255, 0.08) 48%, transparent 61%),
-    linear-gradient(142deg, transparent 57%, rgba(132, 214, 255, 0.05) 66%, transparent 74%);
-  opacity: 0.7;
+    radial-gradient(circle at 46% 28%, rgba(187, 201, 255, calc(var(--admin-scene-mist-alpha) * 0.45)), transparent 22%),
+    linear-gradient(115deg, transparent 31%, rgba(164, 187, 255, calc(var(--admin-scene-beam-alpha) * 0.9)) 47%, transparent 61%),
+    linear-gradient(140deg, transparent 54%, rgba(128, 216, 255, calc(var(--admin-scene-beam-alpha) * 0.75)) 66%, transparent 76%);
+  opacity: 0.82;
   transform-origin: top center;
+  transform: scale(var(--admin-scene-beam-spread));
   animation: adminBeamDrift 18s ease-in-out infinite alternate;
 }
 
@@ -205,7 +223,7 @@ body[data-root-contour="admin-web"] textarea {
   border: 1px solid var(--admin-border);
   border-radius: 28px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, calc(0.03 + var(--admin-scene-surface-lift))), transparent 28%),
     var(--admin-surface);
   box-shadow: var(--admin-shadow);
 }
@@ -216,7 +234,8 @@ body[data-root-contour="admin-web"] textarea {
   inset: 0;
   border-radius: inherit;
   background:
-    radial-gradient(circle at top left, rgba(132, 160, 255, 0.14), transparent 26%),
+    radial-gradient(circle at top left, rgba(132, 160, 255, calc(0.08 + var(--admin-scene-panel-glow))), transparent 26%),
+    radial-gradient(circle at 88% 14%, rgba(115, 186, 255, calc(var(--admin-scene-panel-glow) * 0.75)), transparent 18%),
     linear-gradient(120deg, transparent 45%, rgba(213, 222, 255, 0.04) 52%, transparent 62%);
   pointer-events: none;
 }
@@ -261,7 +280,9 @@ body[data-root-contour="admin-web"] textarea {
   padding: 20px 22px;
   border: 1px solid rgba(163, 188, 255, 0.08);
   border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+  background:
+    radial-gradient(circle at top right, rgba(132, 156, 255, calc(var(--admin-scene-panel-glow) * 0.5)), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, calc(0.02 + var(--admin-scene-surface-lift))), rgba(255, 255, 255, 0.012));
 }
 
 [data-admin-page="body"] > form {
@@ -539,9 +560,86 @@ body[data-root-contour="admin-web"] textarea {
   opacity: 0.72;
 }
 
+[data-admin-scene="controls"] {
+  display: grid;
+  gap: 18px;
+  margin-top: 10px;
+  padding: 22px 24px 28px;
+  border: 1px solid rgba(163, 188, 255, 0.12);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(102, 126, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012));
+}
+
+[data-admin-scene="controls"] h2 {
+  margin: 4px 0 0;
+  font-size: clamp(1.2rem, 1vw + 0.95rem, 1.65rem);
+}
+
+[data-admin-scene="controls-header"] {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+[data-admin-scene="controls-note"] {
+  margin: 0;
+  max-width: 24rem;
+  color: var(--admin-text-dim);
+  text-align: right;
+}
+
+[data-admin-scene="sliders"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+[data-admin-scene="slider"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid rgba(163, 188, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-admin-scene="slider"] span,
+[data-admin-scene="slider"] strong {
+  margin: 0;
+}
+
+[data-admin-scene="slider"] span {
+  color: var(--admin-text-soft);
+}
+
+[data-admin-scene="slider"] input {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-admin-scene="slider"] input:focus {
+  box-shadow: none;
+}
+
 @media (max-width: 920px) {
   [data-admin-auth="protected"] {
     padding: 16px;
+  }
+
+  [data-admin-shell="controls-wrap"] {
+    width: calc(100% - 32px);
+    padding-bottom: 20px;
   }
 
   [data-admin-auth="topbar"] {
@@ -582,6 +680,35 @@ body[data-root-contour="admin-web"] textarea {
   [data-admin-ui="table"] {
     display: block;
     overflow-x: auto;
+  }
+
+  [data-admin-scene="controls"] {
+    padding: 18px;
+  }
+
+  [data-admin-scene="controls-header"] {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  [data-admin-scene="controls-note"] {
+    text-align: left;
+  }
+
+  [data-admin-scene="sliders"] {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1320px) and (min-width: 921px) {
+  [data-admin-auth="topbar"] {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 18px;
+  }
+
+  [data-admin-auth="session"] {
+    justify-content: flex-start;
   }
 }
 
