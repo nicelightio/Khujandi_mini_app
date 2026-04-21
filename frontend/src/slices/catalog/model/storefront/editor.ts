@@ -25,13 +25,7 @@ export const createStorefrontEditor = (
       fields: [
         { name: "name", label: "Shop name", value: data.shop.name, inputMode: "text" },
         { name: "description", label: "Description", value: data.shop.description ?? "", inputMode: "textarea" },
-        { name: "headerImageUrl", label: "Header image URL", value: data.shop.headerImageUrl ?? "", inputMode: "text" },
-        {
-          name: "backgroundImageUrl",
-          label: "Background image URL",
-          value: data.shop.backgroundImageUrl ?? "",
-          inputMode: "text",
-        },
+        { name: "headerImageUrl", label: "Shop header image", value: data.shop.headerImageUrl ?? "", inputMode: "image" },
       ],
     };
   }
@@ -65,7 +59,7 @@ export const createStorefrontEditor = (
       fields: [
         { name: "name", label: "Product name", value: product.name, inputMode: "text" },
         { name: "description", label: "Description", value: product.description ?? "", inputMode: "textarea" },
-        { name: "imageUrl", label: "Image URL", value: product.imageUrl ?? "", inputMode: "text" },
+        { name: "imageUrl", label: "Product image", value: product.imageUrl ?? "", inputMode: "image" },
         { name: "priceMinor", label: "Price (minor units)", value: String(product.priceMinor), inputMode: "number" },
       ],
     };
@@ -87,7 +81,7 @@ export const createStorefrontEditor = (
     fields: [
       { name: "name", label: "Product name", value: "", inputMode: "text" },
       { name: "description", label: "Description", value: "", inputMode: "textarea" },
-      { name: "imageUrl", label: "Image URL", value: "", inputMode: "text" },
+      { name: "imageUrl", label: "Product image", value: "", inputMode: "image" },
       { name: "priceMinor", label: "Price (minor units)", value: "0", inputMode: "number" },
     ],
   };

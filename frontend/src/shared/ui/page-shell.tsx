@@ -12,6 +12,7 @@ type PageShellProps = {
   isActionPending?: boolean;
   isActionDisabled?: boolean;
   swipeBehavior?: "default" | "locked";
+  hideHeader?: boolean;
 };
 
 export const PageShell = ({
@@ -24,6 +25,7 @@ export const PageShell = ({
   isActionPending = false,
   isActionDisabled = false,
   swipeBehavior = "default",
+  hideHeader = false,
 }: PageShellProps) => {
   const shell = useOptionalUiShell();
   const setPagePolicy = shell?.setPagePolicy;
@@ -63,15 +65,18 @@ export const PageShell = ({
       data-shell-back={backHref === undefined ? "hidden" : "visible"}
       data-shell-swipe={swipeBehavior}
       data-shell-action-feedback={actionFeedbackState}
+      data-shell-header={hideHeader ? "hidden" : "visible"}
     >
-      <header data-shell-section="header">
-        {backHref !== undefined && backLabel !== undefined ? (
-          <a data-shell-back-link="visible" href={backHref}>
-            {backLabel}
-          </a>
-        ) : null}
-        <h1>{title}</h1>
-      </header>
+      {hideHeader ? null : (
+        <header data-shell-section="header">
+          {backHref !== undefined && backLabel !== undefined ? (
+            <a data-shell-back-link="visible" href={backHref}>
+              {backLabel}
+            </a>
+          ) : null}
+          <h1>{title}</h1>
+        </header>
+      )}
       {actionLabel !== undefined ? (
         <p data-shell-action-feedback={actionFeedbackState}>{actionLabel}</p>
       ) : null}

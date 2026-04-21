@@ -14,14 +14,14 @@ type SceneSettings = {
 };
 
 const defaultSettings: SceneSettings = {
-  spotAlpha: 0.34,
-  spotBlur: 20,
-  beamAlpha: 0.14,
-  beamSpread: 1.08,
-  mistAlpha: 0.18,
-  vignette: 0.3,
-  panelGlow: 0.16,
-  surfaceLift: 0.08,
+  spotAlpha: 0.44,
+  spotBlur: 2,
+  beamAlpha: 0.27,
+  beamSpread: 0.94,
+  mistAlpha: 0.24,
+  vignette: 0.47,
+  panelGlow: 0.24,
+  surfaceLift: 0.01,
 };
 
 const readStoredSettings = (): SceneSettings => {

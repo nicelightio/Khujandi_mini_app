@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `FT-010`: shared `/shops/:publicPath` storefront now uses a mobile-first poster composition with a 38/62 hero-to-content split, sticky horizontal menu tabs, and seller-side client crop flows for shop header/product imagery via `react-easy-crop`, while still saving through the existing catalog string-image boundary.
 - `FT-011`: mounted catalog runtime now repairs legacy persisted shop rows that lacked immutable public-path fields, so deployed `/api/v1/admin/catalog/shops` rehydrates DB-backed shops onto the canonical flat summary with `primaryPublicPath` and `secondaryPublicPath` instead of leaking pre-path persisted shape.
 - `admin-web`: `/admin/login` now uses a dedicated login-first hero composition, while `assignment`, `cancellation`, and `catalog provisioning` reuse one lightweight operator-surface grammar (fact lists, selection rows, table-style shop list) on top of the shared cinematic dark shell, keeping future AI edits concentrated in existing page files plus `frontend/src/admin/styles/admin-theme.css`.
 - `FT-010/FT-011`: storefront routing is now explicitly split from technical shop identity: `/shops/:publicPath` resolves immutable persisted public paths, browse links default to the human-readable vanity path, and `shop.id` remains an internal technical identifier while provisioning conflicts still key on `sellerId + shop name`.

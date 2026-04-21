@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RootRouter } from "./root-router";
 import "../shared/styles/webview-shell.css";
 import "../admin/styles/admin-theme.css";
+import "../slices/catalog/styles/catalog-storefront.css";
 
 const rootElement = document.getElementById("root");
 
