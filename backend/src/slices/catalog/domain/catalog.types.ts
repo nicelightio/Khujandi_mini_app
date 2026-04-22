@@ -15,6 +15,15 @@ export type CatalogShop = {
   publicPath: string;
 };
 
+export type PublicStorefrontShop = {
+  id: ShopId;
+  name: string;
+  publicPath: string;
+  description: string | null;
+  headerImageUrl: string | null;
+  backgroundImageUrl: string | null;
+};
+
 export type SellerCatalogShop = ShopPublicPaths & {
   id: ShopId;
   sellerId: SellerId;
@@ -41,6 +50,8 @@ export type CatalogProduct = {
   shopId: ShopId;
   menuPageId: MenuPageId | null;
   name: string;
+  description: string | null;
+  imageUrl: string | null;
   priceMinor: number;
 };
 
@@ -49,6 +60,18 @@ export type CatalogMenuPage = {
   shopId: ShopId;
   name: string;
   position: number;
+};
+
+export type PublicStorefrontProduct = CatalogProduct;
+
+export type PublicStorefrontMenuPage = CatalogMenuPage & {
+  products: PublicStorefrontProduct[];
+};
+
+export type PublicCatalogStorefront = {
+  shop: PublicStorefrontShop;
+  menuPages: PublicStorefrontMenuPage[];
+  unpagedProducts: PublicStorefrontProduct[];
 };
 
 export type SellerCatalogProduct = {

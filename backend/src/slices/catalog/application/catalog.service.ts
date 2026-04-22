@@ -1,12 +1,14 @@
 import {
   buildProvisioningTemplateBlueprint,
 } from "../domain/catalog.types";
+import { buildPublicStorefrontPayload } from "../domain/storefront-payloads";
 import { buildUniqueShopPublicPaths } from "../domain/shop-public-paths";
 import type {
   AdminProvisionedShopSummary,
   CatalogProduct,
   CatalogRepository,
   CatalogShop,
+  PublicCatalogStorefront,
   CreateSellerMenuPageInput,
   CreateSellerProductInput,
   MenuPageId,
@@ -67,6 +69,23 @@ export class CatalogService {
 
   listAdminProvisionedShops(): Promise<AdminProvisionedShopSummary[]> {
     return this.repository.listAdminProvisionedShops();
+  }
+
+  async getPublicStorefrontByPublicPath(publicPath: string): Promise<PublicCatalogStorefront> {
+    const shop = await this.repository.findShopByPublicPath(publicPath);
+
+    if (shop === null || shop.isDeleted || shop.status !== "WORKING") {
+      throw new AppError("SHOP_NOT_FOUND", "Shop storefront was not found", 404, {
+        publicPath,
+      });
+    }
+
+    const [menuPages, products] = await Promise.all([
+      this.repository.listPublicMenuPagesByShop(shop.id),
+      this.repository.listPublicProductsByShop(shop.id),
+    ]);
+
+    return buildPublicStorefrontPayload(shop, menuPages, products);
   }
 
   async listSellerShopsByTelegramId(telegramId: string): Promise<SellerCatalogShop[]> {

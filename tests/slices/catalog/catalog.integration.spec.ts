@@ -5,6 +5,7 @@ import { createTestContext } from "../../../backend/src/shared/testing/create-te
 const createPrismaMock = () => {
   const shopFindMany = jest.fn().mockResolvedValue([]);
   const shopFindUnique = jest.fn().mockResolvedValue(null);
+  const shopFindFirst = jest.fn().mockResolvedValue(null);
   const shopCreate = jest.fn();
   const shopUpdate = jest.fn();
   const menuPageFindMany = jest.fn().mockResolvedValue([]);
@@ -29,6 +30,7 @@ const createPrismaMock = () => {
     shop: {
       findMany: shopFindMany,
       findUnique: shopFindUnique,
+      findFirst: shopFindFirst,
       create: shopCreate,
       update: shopUpdate,
     },
@@ -64,6 +66,7 @@ const createPrismaMock = () => {
     mocks: {
       shopFindMany,
       shopFindUnique,
+      shopFindFirst,
       shopCreate,
       shopUpdate,
       menuPageFindMany,
@@ -111,7 +114,96 @@ describe("catalog public browse integration", () => {
       select: {
         id: true,
         name: true,
+        primaryPublicPath: true,
         secondaryPublicPath: true,
+      },
+    });
+  });
+
+  it("reads a canonical public storefront payload by either immutable public path alias", async () => {
+    const { prisma, mocks } = createPrismaMock();
+    const module = createCatalogModule(prisma);
+    mocks.shopFindFirst.mockResolvedValue({
+      id: "shop-1",
+      sellerId: "seller-1",
+      name: "Khujand Bakery",
+      primaryPublicPath: "seller-11",
+      secondaryPublicPath: "khujand-bakery",
+      description: "Fresh bread and pastries",
+      headerImageUrl: "https://example.com/header.png",
+      backgroundImageUrl: "https://example.com/background.png",
+      status: "WORKING",
+      renameCount: 0,
+      requiresManualRenameReview: false,
+      isDeleted: false,
+    });
+    mocks.menuPageFindMany.mockResolvedValue([
+      {
+        id: "page-1",
+        shopId: "shop-1",
+        name: "Popular",
+        position: 1,
+      },
+    ]);
+    mocks.productFindMany.mockResolvedValue([
+      {
+        id: "product-1",
+        shopId: "shop-1",
+        menuPageId: "page-1",
+        name: "Somsa",
+        description: "Fresh and hot",
+        imageUrl: "https://example.com/somsa.png",
+        priceMinor: 1500,
+      },
+    ]);
+
+    await expect(module.controller.getStorefront("seller-11")).resolves.toEqual({
+      shop: {
+        id: "shop-1",
+        name: "Khujand Bakery",
+        publicPath: "khujand-bakery",
+        description: "Fresh bread and pastries",
+        headerImageUrl: "https://example.com/header.png",
+        backgroundImageUrl: "https://example.com/background.png",
+      },
+      menuPages: [
+        {
+          id: "page-1",
+          shopId: "shop-1",
+          name: "Popular",
+          position: 1,
+          products: [
+            {
+              id: "product-1",
+              shopId: "shop-1",
+              menuPageId: "page-1",
+              name: "Somsa",
+              description: "Fresh and hot",
+              imageUrl: "https://example.com/somsa.png",
+              priceMinor: 1500,
+            },
+          ],
+        },
+      ],
+      unpagedProducts: [],
+    });
+    expect(mocks.shopFindFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [{ primaryPublicPath: "seller-11" }, { secondaryPublicPath: "seller-11" }],
+      },
+      select: {
+        id: true,
+        sellerId: true,
+        name: true,
+        primaryPublicPath: true,
+        secondaryPublicPath: true,
+        description: true,
+        headerImageUrl: true,
+        backgroundImageUrl: true,
+        status: true,
+        renameCount: true,
+        requiresManualRenameReview: true,
+        isDeleted: true,
       },
     });
   });
@@ -215,6 +307,8 @@ describe("catalog public browse integration", () => {
         shopId: "shop-1",
         menuPageId: "page-1",
         name: "Somsa",
+        description: "Fresh and hot",
+        imageUrl: "https://example.com/somsa.png",
         priceMinor: 1500,
       },
     ]);
@@ -225,6 +319,8 @@ describe("catalog public browse integration", () => {
         shopId: "shop-1",
         menuPageId: "page-1",
         name: "Somsa",
+        description: "Fresh and hot",
+        imageUrl: "https://example.com/somsa.png",
         priceMinor: 1500,
       },
     ]);
@@ -242,6 +338,8 @@ describe("catalog public browse integration", () => {
         shopId: true,
         menuPageId: true,
         name: true,
+        description: true,
+        imageUrl: true,
         priceMinor: true,
       },
     });

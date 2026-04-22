@@ -26,6 +26,37 @@ export type SellerStorefrontAccess = {
   unpagedProducts: SellerStorefrontProduct[];
 };
 
+export type PublicStorefront = {
+  shop: {
+    id: string;
+    publicPath: string;
+    name: string;
+    description: string | null;
+    headerImageUrl: string | null;
+    backgroundImageUrl: string | null;
+  };
+  menuPages: PublicStorefrontMenuPage[];
+  unpagedProducts: PublicStorefrontProduct[];
+};
+
+export type PublicStorefrontProduct = {
+  id: string;
+  shopId: string;
+  menuPageId: string | null;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  priceMinor: number;
+};
+
+export type PublicStorefrontMenuPage = {
+  id: string;
+  shopId: string;
+  name: string;
+  position: number;
+  products: PublicStorefrontProduct[];
+};
+
 export type SellerStorefrontProduct = {
   id: string;
   shopId: string;
@@ -91,6 +122,7 @@ export type CatalogFetch = (input: string, init?: RequestInit) => Promise<Catalo
 
 export type CatalogApi = {
   listCatalog: () => Promise<CatalogShopWithProducts[]>;
+  getPublicStorefront: (publicPath: string) => Promise<PublicStorefront | null>;
   getSellerStorefrontAccess: (shopId: string) => Promise<SellerStorefrontAccess | null>;
   updateSellerShop: (input: UpdateSellerShopRequest) => Promise<void>;
   createSellerMenuPage: (input: CreateSellerMenuPageRequest) => Promise<void>;
@@ -125,14 +157,19 @@ const ensureObject = (value: unknown): Record<string, unknown> | null => {
 const toCatalogShop = (value: unknown): CatalogShop | null => {
   const record = ensureObject(value);
 
-  if (record === null || typeof record.id !== "string" || typeof record.name !== "string") {
+  if (
+    record === null ||
+    typeof record.id !== "string" ||
+    typeof record.name !== "string" ||
+    typeof record.publicPath !== "string"
+  ) {
     return null;
   }
 
   return {
     id: record.id,
     name: record.name,
-    publicPath: typeof record.publicPath === "string" ? record.publicPath : record.id,
+    publicPath: record.publicPath,
   };
 };
 
@@ -165,6 +202,7 @@ const toSellerStorefrontAccess = (value: unknown): SellerStorefrontAccess | null
   if (
     record === null ||
     typeof record.id !== "string" ||
+    typeof record.publicPath !== "string" ||
     typeof record.sellerId !== "string" ||
     typeof record.name !== "string" ||
     (record.description !== null && typeof record.description !== "string") ||
@@ -181,7 +219,7 @@ const toSellerStorefrontAccess = (value: unknown): SellerStorefrontAccess | null
 
   return {
     id: record.id,
-    publicPath: typeof record.publicPath === "string" ? record.publicPath : record.id,
+    publicPath: record.publicPath,
     sellerId: record.sellerId,
     name: record.name,
     description: record.description,
@@ -195,7 +233,69 @@ const toSellerStorefrontAccess = (value: unknown): SellerStorefrontAccess | null
   };
 };
 
+const toPublicStorefront = (value: unknown): PublicStorefront | null => {
+  const record = ensureObject(value);
+  const shopRecord = ensureObject(record?.shop);
+  const menuPages = toPublicStorefrontMenuPages(record?.menuPages);
+  const unpagedProducts = toPublicStorefrontProducts(record?.unpagedProducts);
+
+  if (
+    record === null ||
+    shopRecord === null ||
+    typeof shopRecord.id !== "string" ||
+    typeof shopRecord.publicPath !== "string" ||
+    typeof shopRecord.name !== "string" ||
+    (shopRecord.description !== null && typeof shopRecord.description !== "string") ||
+    (shopRecord.headerImageUrl !== null && typeof shopRecord.headerImageUrl !== "string") ||
+    (shopRecord.backgroundImageUrl !== null && typeof shopRecord.backgroundImageUrl !== "string") ||
+    menuPages === null ||
+    unpagedProducts === null
+  ) {
+    return null;
+  }
+
+  return {
+    shop: {
+      id: shopRecord.id,
+      publicPath: shopRecord.publicPath,
+      name: shopRecord.name,
+      description: shopRecord.description,
+      headerImageUrl: shopRecord.headerImageUrl,
+      backgroundImageUrl: shopRecord.backgroundImageUrl,
+    },
+    menuPages,
+    unpagedProducts,
+  };
+};
+
 const toSellerStorefrontProduct = (value: unknown): SellerStorefrontProduct | null => {
+  const record = ensureObject(value);
+
+  if (
+    record === null ||
+    typeof record.id !== "string" ||
+    typeof record.shopId !== "string" ||
+    (record.menuPageId !== null && typeof record.menuPageId !== "string") ||
+    typeof record.name !== "string" ||
+    (record.description !== null && typeof record.description !== "string") ||
+    (record.imageUrl !== null && typeof record.imageUrl !== "string") ||
+    typeof record.priceMinor !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    shopId: record.shopId,
+    menuPageId: record.menuPageId,
+    name: record.name,
+    description: record.description,
+    imageUrl: record.imageUrl,
+    priceMinor: record.priceMinor,
+  };
+};
+
+const toPublicStorefrontProduct = (value: unknown): PublicStorefrontProduct | null => {
   const record = ensureObject(value);
 
   if (
@@ -251,6 +351,35 @@ const toSellerStorefrontMenuPage = (value: unknown): SellerStorefrontMenuPage | 
   };
 };
 
+const toPublicStorefrontMenuPage = (value: unknown): PublicStorefrontMenuPage | null => {
+  const record = ensureObject(value);
+
+  if (
+    record === null ||
+    typeof record.id !== "string" ||
+    typeof record.shopId !== "string" ||
+    typeof record.name !== "string" ||
+    typeof record.position !== "number" ||
+    !Array.isArray(record.products)
+  ) {
+    return null;
+  }
+
+  const products = record.products.map((entry) => toPublicStorefrontProduct(entry));
+
+  if (products.some((entry) => entry === null)) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    shopId: record.shopId,
+    name: record.name,
+    position: record.position,
+    products: products as PublicStorefrontProduct[],
+  };
+};
+
 const toSellerStorefrontMenuPages = (value: unknown): SellerStorefrontMenuPage[] | null => {
   if (!Array.isArray(value)) {
     return null;
@@ -277,6 +406,34 @@ const toSellerStorefrontProducts = (value: unknown): SellerStorefrontProduct[] |
   }
 
   return products as SellerStorefrontProduct[];
+};
+
+const toPublicStorefrontMenuPages = (value: unknown): PublicStorefrontMenuPage[] | null => {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const menuPages = value.map((entry) => toPublicStorefrontMenuPage(entry));
+
+  if (menuPages.some((entry) => entry === null)) {
+    return null;
+  }
+
+  return menuPages as PublicStorefrontMenuPage[];
+};
+
+const toPublicStorefrontProducts = (value: unknown): PublicStorefrontProduct[] | null => {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const products = value.map((entry) => toPublicStorefrontProduct(entry));
+
+  if (products.some((entry) => entry === null)) {
+    return null;
+  }
+
+  return products as PublicStorefrontProduct[];
 };
 
 const toCatalogShops = (value: unknown): CatalogShop[] => {
@@ -351,6 +508,25 @@ export const createCatalogApi = (options: CatalogApiOptions = {}): CatalogApi =>
       );
 
       return shopsWithProducts;
+    },
+    getPublicStorefront: async (publicPath) => {
+      const response = await fetchImpl(`${baseUrl}/api/v1/shops/${encodeURIComponent(publicPath)}`);
+
+      if (response.status === 404) {
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Catalog request failed with status ${response.status}.`);
+      }
+
+      const publicStorefront = toPublicStorefront(await response.json());
+
+      if (publicStorefront === null) {
+        throw new Error("Public storefront payload is invalid.");
+      }
+
+      return publicStorefront;
     },
     getSellerStorefrontAccess: async (publicPath) => {
       const response = await fetchImpl(`${baseUrl}/api/v1/seller/shops/${encodeURIComponent(publicPath)}`, {

@@ -78,14 +78,7 @@ export class CatalogSellerReader {
 
   findShopByPublicPath(publicPath: string): Promise<SellerCatalogShop | null> {
     if (typeof this.prisma.shop.findFirst !== "function") {
-      return this.prisma.shop.findUnique({
-        where: {
-          id: publicPath,
-        },
-        select: {
-          ...selectSellerShop,
-        },
-      });
+      return Promise.resolve(null);
     }
 
     return this.prisma.shop.findFirst({

@@ -83,6 +83,7 @@ describe("catalog route", () => {
         new Promise((resolve) => {
           resolveCatalog = resolve;
         }),
+      getPublicStorefront: async () => null,
       getSellerStorefrontAccess: async () => null,
       updateSellerShop: async () => undefined,
       createSellerMenuPage: async () => undefined,
@@ -135,6 +136,7 @@ describe("catalog route", () => {
       listCatalog: async () => {
         throw new Error("Catalog request failed with status 503.");
       },
+      getPublicStorefront: async () => null,
       getSellerStorefrontAccess: async () => null,
       updateSellerShop: async () => undefined,
       createSellerMenuPage: async () => undefined,
@@ -332,6 +334,7 @@ describe("catalog route", () => {
           products: [],
         },
       ],
+      getPublicStorefront: async () => null,
       getSellerStorefrontAccess: async () => null,
       updateSellerShop: async () => undefined,
       createSellerMenuPage: async () => undefined,
@@ -374,6 +377,46 @@ describe("catalog route", () => {
           ],
         },
       ],
+      getPublicStorefront: async () => ({
+        shop: {
+          id: "shop-1",
+          publicPath: "khujand-bakery",
+          name: "Khujand Bakery",
+          description: "Fresh bread and pastries",
+          headerImageUrl: "https://example.com/header.png",
+          backgroundImageUrl: "https://example.com/background.png",
+        },
+        menuPages: [
+          {
+            id: "page-1",
+            shopId: "shop-1",
+            name: "Popular",
+            position: 1,
+            products: [
+              {
+                id: "product-1",
+                shopId: "shop-1",
+                menuPageId: "page-1",
+                name: "Somsa",
+                description: "Baked fresh today",
+                imageUrl: "https://example.com/somsa.png",
+                priceMinor: 1500,
+              },
+            ],
+          },
+        ],
+        unpagedProducts: [
+          {
+            id: "product-legacy",
+            shopId: "shop-1",
+            menuPageId: null,
+            name: "Legacy Pilaf",
+            description: "Still missing a menu page",
+            imageUrl: null,
+            priceMinor: 2200,
+          },
+        ],
+      }),
       getSellerStorefrontAccess: async () => {
         throw new Error("Seller runtime is temporarily unavailable.");
       },
@@ -398,12 +441,29 @@ describe("catalog route", () => {
     const text = collectText(renderer.toJSON()).join(" ");
     expect(text).toContain("Khujand Bakery");
     expect(text).toContain("Somsa");
+    expect(text).toContain("Fresh bread and pastries");
+    expect(text).toContain("Popular");
+    expect(text).toContain("Legacy");
     expect(text).not.toContain("Seller runtime is temporarily unavailable.");
+
+    await act(async () => {
+      renderer.root.findByProps({ "data-storefront-tab-state": "idle" }).props.onClick({
+        stopPropagation: jest.fn(),
+      });
+      await flushPromises();
+    });
+
+    const legacyText = collectText(renderer.toJSON()).join(" ");
+    expect(legacyText).toContain("Legacy products without a menu page");
+    expect(legacyText).toContain("Legacy Pilaf");
   });
 
   it("renders a controlled error state when both storefront sources fail", async () => {
     const api: CatalogApi = {
       listCatalog: async () => {
+        throw new Error("Catalog request failed with status 503.");
+      },
+      getPublicStorefront: async () => {
         throw new Error("Catalog request failed with status 503.");
       },
       getSellerStorefrontAccess: async () => {

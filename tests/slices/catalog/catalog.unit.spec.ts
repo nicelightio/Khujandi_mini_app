@@ -91,6 +91,102 @@ describe("catalog service", () => {
     ]);
   });
 
+  it("builds a canonical public storefront from the persisted storefront model", async () => {
+    const service = new CatalogService({
+      ...createRepository(),
+      findShopByPublicPath: async () => ({
+        id: "shop-1",
+        sellerId: "seller-1",
+        name: "Bakery",
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "bakery",
+        description: "Fresh bread and pastries",
+        headerImageUrl: "https://example.com/header.png",
+        backgroundImageUrl: "https://example.com/background.png",
+        status: "WORKING",
+        renameCount: 0,
+        requiresManualRenameReview: false,
+        isDeleted: false,
+      }),
+      listPublicMenuPagesByShop: async () => [
+        {
+          id: "page-1",
+          shopId: "shop-1",
+          name: "Popular",
+          position: 1,
+        },
+      ],
+      listPublicProductsByShop: async () => [
+        {
+          id: "product-1",
+          shopId: "shop-1",
+          menuPageId: "page-1",
+          name: "Somsa",
+          description: "Fresh and hot",
+          imageUrl: "https://example.com/somsa.png",
+          priceMinor: 1500,
+        },
+      ],
+    });
+
+    await expect(service.getPublicStorefrontByPublicPath("seller-11")).resolves.toEqual({
+      shop: {
+        id: "shop-1",
+        name: "Bakery",
+        publicPath: "bakery",
+        description: "Fresh bread and pastries",
+        headerImageUrl: "https://example.com/header.png",
+        backgroundImageUrl: "https://example.com/background.png",
+      },
+      menuPages: [
+        {
+          id: "page-1",
+          shopId: "shop-1",
+          name: "Popular",
+          position: 1,
+          products: [
+            {
+              id: "product-1",
+              shopId: "shop-1",
+              menuPageId: "page-1",
+              name: "Somsa",
+              description: "Fresh and hot",
+              imageUrl: "https://example.com/somsa.png",
+              priceMinor: 1500,
+            },
+          ],
+        },
+      ],
+      unpagedProducts: [],
+    });
+  });
+
+  it("fails closed when the requested public storefront is missing or hidden from public browse", async () => {
+    const service = new CatalogService({
+      ...createRepository(),
+      findShopByPublicPath: async () => ({
+        id: "shop-1",
+        sellerId: "seller-1",
+        name: "Hidden From Public",
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "hidden-from-public",
+        description: null,
+        headerImageUrl: null,
+        backgroundImageUrl: null,
+        status: "NOT_WORKING",
+        renameCount: 0,
+        requiresManualRenameReview: false,
+        isDeleted: false,
+      }),
+    });
+
+    await expect(service.getPublicStorefrontByPublicPath("hidden-from-public")).rejects.toEqual(
+      new AppError("SHOP_NOT_FOUND", "Shop storefront was not found", 404, {
+        publicPath: "hidden-from-public",
+      }),
+    );
+  });
+
   it("builds a default provisioning blueprint with starter pages and products", () => {
     expect(buildProvisioningTemplateBlueprint()).toEqual({
       shopStatus: "WORKING",

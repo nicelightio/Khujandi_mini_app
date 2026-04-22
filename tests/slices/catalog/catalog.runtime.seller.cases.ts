@@ -2,6 +2,81 @@ import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-serv
 import { adminOrigin, loginAdmin, loginSeller } from "./catalog.runtime.test-helpers";
 
 export const registerCatalogRuntimeSellerCases = () => {
+  it("serves the canonical public storefront payload from the same persisted shop model for both public path aliases", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      const adminClient = runtime.createClient();
+      await loginAdmin(adminClient);
+
+      const provisionResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-public-runtime",
+          telegramId: "901",
+          name: "Public Runtime Bakery",
+          description: "Canonical public storefront payload",
+          headerImageUrl: "https://example.com/header-public.png",
+          backgroundImageUrl: "https://example.com/background-public.png",
+          status: "WORKING",
+        },
+      });
+
+      expect(provisionResponse.status).toBe(201);
+
+      const provisionedBody = provisionResponse.body as {
+        shop: {
+          primaryPublicPath: string;
+          secondaryPublicPath: string;
+        };
+      };
+
+      const primaryResponse = await runtime.createClient().request({
+        path: `/api/v1/shops/${provisionedBody.shop.primaryPublicPath}`,
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(primaryResponse.status).toBe(200);
+      expect(primaryResponse.body).toEqual(
+        expect.objectContaining({
+          shop: expect.objectContaining({
+            name: "Public Runtime Bakery",
+            publicPath: provisionedBody.shop.secondaryPublicPath,
+            description: "Canonical public storefront payload",
+            headerImageUrl: "https://example.com/header-public.png",
+            backgroundImageUrl: "https://example.com/background-public.png",
+          }),
+          menuPages: expect.arrayContaining([
+            expect.objectContaining({
+              name: "Popular",
+              products: expect.arrayContaining([
+                expect.objectContaining({
+                  name: "Starter Dish",
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      );
+
+      const secondaryResponse = await runtime.createClient().request({
+        path: `/api/v1/shops/${provisionedBody.shop.secondaryPublicPath}`,
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(secondaryResponse.status).toBe(200);
+      expect(secondaryResponse.body).toEqual(primaryResponse.body);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("keeps public browse auth-free while allowing the owning seller to read not-working shops through the protected seller boundary", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",

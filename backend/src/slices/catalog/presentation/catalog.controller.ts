@@ -15,6 +15,10 @@ export class CatalogController {
     return this.service.listPublicShops();
   }
 
+  getStorefront(publicPath: string) {
+    return this.service.getPublicStorefrontByPublicPath(publicPath);
+  }
+
   getProducts(publicPath: string) {
     return this.service.listPublicProductsByShopPublicPath(publicPath);
   }

@@ -1,5 +1,5 @@
 import { isStorefrontPathname } from "../../../../shared/lib/routes";
-import type { CatalogApi, SellerStorefrontAccess } from "../../api/catalog-api";
+import type { PublicStorefront, SellerStorefrontAccess } from "../../api/catalog-api";
 import { findStorefrontProduct } from "./editor";
 import {
   storefrontNotFoundMessage,
@@ -65,16 +65,16 @@ export const buildStorefrontDataFromSellerAccess = (sellerAccess: SellerStorefro
   ]),
 });
 
-export const buildStorefrontDataFromPublicShop = (
-  publicShop: Awaited<ReturnType<CatalogApi["listCatalog"]>>[number],
+export const buildStorefrontDataFromPublicStorefront = (
+  publicStorefront: PublicStorefront,
 ): CatalogStorefrontData => ({
   shop: {
-    id: publicShop.id,
-    publicPath: publicShop.publicPath,
-    name: publicShop.name,
-    description: null,
-    headerImageUrl: null,
-    backgroundImageUrl: null,
+    id: publicStorefront.shop.id,
+    publicPath: publicStorefront.shop.publicPath,
+    name: publicStorefront.shop.name,
+    description: publicStorefront.shop.description,
+    headerImageUrl: publicStorefront.shop.headerImageUrl,
+    backgroundImageUrl: publicStorefront.shop.backgroundImageUrl,
     renameReviewNote: null,
   },
   canEdit: false,
@@ -82,32 +82,34 @@ export const buildStorefrontDataFromPublicShop = (
   authDebugLabel: null,
   accessStatusLabel: "Browse-only storefront. Seller edit mode stays hidden until ownership is confirmed server-side.",
   activationHint: null,
-  menuPages:
-    publicShop.products.length === 0
-      ? []
-      : [
-          {
-            id: `${publicShop.id}-page-main`,
-            name: "Shared storefront menu",
-            products: publicShop.products.map((product) => ({
-              id: product.id,
-              name: product.name,
-              description: null,
-              imageUrl: null,
-              priceMinor: product.priceMinor,
-            })),
-          },
-        ],
-  unpagedProducts: [],
+  menuPages: publicStorefront.menuPages.map((menuPage) => ({
+    id: menuPage.id,
+    name: menuPage.name,
+    products: menuPage.products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      imageUrl: product.imageUrl,
+      priceMinor: product.priceMinor,
+    })),
+  })),
+  unpagedProducts: publicStorefront.unpagedProducts.map((product) => ({
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    imageUrl: product.imageUrl,
+    priceMinor: product.priceMinor,
+    menuPageId: product.menuPageId,
+  })),
   debugLogs: createDebugBootstrapLogs([
-    `public storefront fallback loaded for shop ${publicShop.id}`,
+    `public storefront loaded for shop ${publicStorefront.shop.id}`,
     "seller access unavailable or not granted",
   ]),
 });
 
 export const defaultLoadStorefrontData: LoadCatalogStorefrontData = async (publicPath, api) => {
-  const [publicCatalogResult, sellerAccessResult] = await Promise.allSettled([
-    api.listCatalog(),
+  const [publicStorefrontResult, sellerAccessResult] = await Promise.allSettled([
+    api.getPublicStorefront(publicPath),
     api.getSellerStorefrontAccess(publicPath),
   ]);
 
@@ -115,21 +117,17 @@ export const defaultLoadStorefrontData: LoadCatalogStorefrontData = async (publi
     return buildStorefrontDataFromSellerAccess(sellerAccessResult.value);
   }
 
-  if (publicCatalogResult.status === "fulfilled") {
-    const publicShop = publicCatalogResult.value.find((shop) => shop.publicPath === publicPath) ?? null;
-
-    if (publicShop !== null) {
-      return buildStorefrontDataFromPublicShop(publicShop);
-    }
+  if (publicStorefrontResult.status === "fulfilled" && publicStorefrontResult.value !== null) {
+    return buildStorefrontDataFromPublicStorefront(publicStorefrontResult.value);
   }
 
-  if (publicCatalogResult.status === "fulfilled" && sellerAccessResult.status === "fulfilled") {
+  if (publicStorefrontResult.status === "fulfilled" && sellerAccessResult.status === "fulfilled") {
     throw new Error(storefrontNotFoundMessage);
   }
 
-  if (publicCatalogResult.status === "rejected") {
-    throw publicCatalogResult.reason instanceof Error
-      ? publicCatalogResult.reason
+  if (publicStorefrontResult.status === "rejected") {
+    throw publicStorefrontResult.reason instanceof Error
+      ? publicStorefrontResult.reason
       : new Error(storefrontUnavailableMessage);
   }
 

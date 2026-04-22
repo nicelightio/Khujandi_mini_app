@@ -19,6 +19,7 @@ export class CatalogPublicReader {
       select: {
         id: true,
         name: true,
+        primaryPublicPath: true,
         secondaryPublicPath: true,
       },
     });
@@ -29,7 +30,7 @@ export class CatalogPublicReader {
       publicPath:
         typeof shop.secondaryPublicPath === "string" && shop.secondaryPublicPath.length > 0
           ? shop.secondaryPublicPath
-          : String(shop.id),
+          : String(shop.primaryPublicPath),
     }));
   }
 
@@ -60,25 +61,7 @@ export class CatalogPublicReader {
 
   async findShopByPublicPath(publicPath: string): Promise<SellerCatalogShop | null> {
     if (typeof this.prisma.shop.findFirst !== "function") {
-      return this.prisma.shop.findUnique({
-        where: {
-          id: publicPath,
-        },
-        select: {
-          id: true,
-          sellerId: true,
-          name: true,
-          primaryPublicPath: true,
-          secondaryPublicPath: true,
-          description: true,
-          headerImageUrl: true,
-          backgroundImageUrl: true,
-          status: true,
-          renameCount: true,
-          requiresManualRenameReview: true,
-          isDeleted: true,
-        },
-      });
+      return null;
     }
 
     const shop = (await this.prisma.shop.findFirst({
@@ -140,6 +123,8 @@ export class CatalogPublicReader {
         shopId: true,
         menuPageId: true,
         name: true,
+        description: true,
+        imageUrl: true,
         priceMinor: true,
       },
     });

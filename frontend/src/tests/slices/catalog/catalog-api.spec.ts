@@ -56,6 +56,103 @@ describe("catalog api", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/shops/khujand-bakery/products");
   });
 
+  it("loads canonical public storefront payloads for /shops/:publicPath", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async (input) => {
+      if (input === "/api/v1/shops/khujand-bakery") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            shop: {
+              id: "shop-1",
+              name: "Khujand Bakery",
+              publicPath: "khujand-bakery",
+              description: "Fresh bread and pastries",
+              headerImageUrl: "https://example.com/header.png",
+              backgroundImageUrl: "https://example.com/background.png",
+            },
+            menuPages: [
+              {
+                id: "page-1",
+                shopId: "shop-1",
+                name: "Popular",
+                position: 1,
+                products: [
+                  {
+                    id: "product-1",
+                    shopId: "shop-1",
+                    menuPageId: "page-1",
+                    name: "Somsa",
+                    description: "Baked fresh today",
+                    imageUrl: "https://example.com/somsa.png",
+                    priceMinor: 1500,
+                  },
+                ],
+              },
+            ],
+            unpagedProducts: [
+              {
+                id: "product-legacy",
+                shopId: "shop-1",
+                menuPageId: null,
+                name: "Legacy Pilaf",
+                description: "Still missing a menu page",
+                imageUrl: null,
+                priceMinor: 2200,
+              },
+            ],
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${input}`);
+    });
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await expect(api.getPublicStorefront("khujand-bakery")).resolves.toEqual({
+      shop: {
+        id: "shop-1",
+        name: "Khujand Bakery",
+        publicPath: "khujand-bakery",
+        description: "Fresh bread and pastries",
+        headerImageUrl: "https://example.com/header.png",
+        backgroundImageUrl: "https://example.com/background.png",
+      },
+      menuPages: [
+        {
+          id: "page-1",
+          shopId: "shop-1",
+          name: "Popular",
+          position: 1,
+          products: [
+            {
+              id: "product-1",
+              shopId: "shop-1",
+              menuPageId: "page-1",
+              name: "Somsa",
+              description: "Baked fresh today",
+              imageUrl: "https://example.com/somsa.png",
+              priceMinor: 1500,
+            },
+          ],
+        },
+      ],
+      unpagedProducts: [
+        {
+          id: "product-legacy",
+          shopId: "shop-1",
+          menuPageId: null,
+          name: "Legacy Pilaf",
+          description: "Still missing a menu page",
+          imageUrl: null,
+          priceMinor: 2200,
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/shops/khujand-bakery");
+  });
+
   it("returns seller storefront access when the protected owner read succeeds", async () => {
     const fetchMock: CatalogFetch = jest.fn(async (input) => {
       if (input === "/api/v1/seller/shops/shop-1") {
@@ -181,6 +278,91 @@ describe("catalog api", () => {
     const api = createCatalogApi({ fetch: fetchMock });
 
     await expect(api.listCatalog()).rejects.toThrow("Catalog request failed with status 503.");
+  });
+
+  it("fails closed with null when the public storefront path is missing", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async () => ({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: { code: "SHOP_NOT_FOUND" } }),
+    }));
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await expect(api.getPublicStorefront("missing-shop")).resolves.toBeNull();
+  });
+
+  it("rejects public browse payloads that fall back to technical shop ids", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async (input) => {
+      if (input === "/api/v1/shops") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              id: "shop-1",
+              name: "Khujand Bakery",
+            },
+          ],
+        };
+      }
+
+      throw new Error(`Unexpected request: ${input}`);
+    });
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await expect(api.listCatalog()).rejects.toThrow("Catalog shop payload is invalid.");
+  });
+
+  it("rejects canonical storefront payloads that omit publicPath", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        shop: {
+          id: "shop-1",
+          name: "Khujand Bakery",
+          description: "Fresh bread and pastries",
+          headerImageUrl: null,
+          backgroundImageUrl: null,
+        },
+        menuPages: [],
+        unpagedProducts: [],
+      }),
+    }));
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await expect(api.getPublicStorefront("khujand-bakery")).rejects.toThrow(
+      "Public storefront payload is invalid.",
+    );
+  });
+
+  it("rejects seller storefront payloads that omit alias-aware publicPath", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: "shop-1",
+        sellerId: "seller-1",
+        name: "Khujand Bakery",
+        description: null,
+        headerImageUrl: null,
+        backgroundImageUrl: null,
+        status: "WORKING",
+        renameCount: 0,
+        requiresManualRenameReview: false,
+        menuPages: [],
+        unpagedProducts: [],
+      }),
+    }));
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await expect(api.getSellerStorefrontAccess("khujand-bakery")).rejects.toThrow(
+      "Seller storefront access payload is invalid.",
+    );
   });
 
   it("sends seller write requests through the checked-in backend boundary", async () => {

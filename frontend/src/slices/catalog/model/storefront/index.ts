@@ -15,7 +15,7 @@ export type {
 } from "./types";
 export { createStorefrontEditor, findStorefrontProduct } from "./editor";
 export {
-  buildStorefrontDataFromPublicShop,
+  buildStorefrontDataFromPublicStorefront,
   buildStorefrontDataFromSellerAccess,
   defaultLoadStorefrontData,
   defaultPersistStorefrontEdit,

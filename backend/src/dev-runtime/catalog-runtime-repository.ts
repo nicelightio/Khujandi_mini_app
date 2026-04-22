@@ -79,6 +79,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
         shopId: product.shopId,
         menuPageId: product.menuPageId,
         name: product.name,
+        description: product.description,
+        imageUrl: product.imageUrl,
         priceMinor: product.priceMinor,
       }));
   }

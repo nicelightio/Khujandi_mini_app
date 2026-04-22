@@ -36,6 +36,8 @@ status: active
 - Public browse excludes menu pages and products whose parent shop is not publicly visible.
 - Preserve a stable browse contract so later runtime implementations can sit behind REST without changing product intent.
 - Public browse links SHOULD default to the persisted vanity path (`secondaryPublicPath`) when present; seller-ordinal path remains a valid alias/fallback.
+- Canonical public storefront read endpoint is `GET /api/v1/shops/:publicPath`; it MUST resolve both immutable public path aliases of the same persisted shop and MUST return one public-safe storefront payload from that same canonical shop record, including `shop.description`, `shop.headerImageUrl`, `shop.backgroundImageUrl`, `menuPages[].products[]`, and `unpagedProducts[]` when legacy public products have no menu-page linkage.
+- Public storefront resolution MUST fail closed with a controlled `404` when the path is missing, deleted, or points to a `NOT_WORKING` shop; it MUST NOT fabricate a synthetic storefront from route-local browse fallbacks.
 
 ## Error posture
 - Unauthorized error is not expected for public browse endpoints.

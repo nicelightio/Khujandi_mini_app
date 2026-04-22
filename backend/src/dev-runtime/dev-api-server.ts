@@ -198,12 +198,28 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
     } else if (method === "GET" && url.pathname === "/api/v1/shops") {
       result = json(200, await catalogModule.controller.getShops(), "GET,OPTIONS");
     } else {
+      const storefrontMatch = url.pathname.match(/^\/api\/v1\/shops\/([^/]+)$/u);
       const productsMatch = url.pathname.match(/^\/api\/v1\/shops\/([^/]+)\/products$/u);
       const sellerShopMatch = url.pathname.match(/^\/api\/v1\/seller\/shops\/([^/]+)$/u);
       const sellerMenuPageMatch = url.pathname.match(/^\/api\/v1\/seller\/menu-pages\/([^/]+)$/u);
       const sellerProductMatch = url.pathname.match(/^\/api\/v1\/seller\/products\/([^/]+)$/u);
 
-      if (method === "GET" && productsMatch !== null) {
+      if (method === "GET" && storefrontMatch !== null) {
+        try {
+          const publicPath = decodeURIComponent(storefrontMatch[1]);
+          result = json(200, await catalogModule.controller.getStorefront(publicPath), "GET,OPTIONS");
+        } catch (error) {
+          if (error instanceof AppError) {
+            result = json(error.statusCode, error.toPayload("trace-catalog-runtime"), "GET,OPTIONS");
+          } else {
+            result = json(
+              500,
+              new AppError("INTERNAL_ERROR", "Catalog runtime is temporarily unavailable", 500).toPayload("trace-catalog-runtime"),
+              "GET,OPTIONS",
+            );
+          }
+        }
+      } else if (method === "GET" && productsMatch !== null) {
         const shopId = decodeURIComponent(productsMatch[1]);
         result = json(200, await catalogModule.controller.getProducts(shopId), "GET,OPTIONS");
       } else if (method === "GET" && url.pathname === "/api/v1/seller/shops") {
