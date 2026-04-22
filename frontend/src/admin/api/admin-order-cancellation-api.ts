@@ -1,3 +1,5 @@
+import { fetchProtectedAdminRoute } from "./admin-protected-api";
+
 export type AdminOrderCancellationCommandInput = {
   orderId: string;
   reasonCode: string;
@@ -175,7 +177,9 @@ export const createAdminOrderCancellationApi = (
 
   return {
     submitCancellation: async (input) => {
-      const response = await fetchImpl(
+      const response = await fetchProtectedAdminRoute(
+        fetchImpl,
+        baseUrl,
         `${baseUrl}/api/v1/admin/orders/${encodeURIComponent(input.orderId)}/cancellation`,
         {
           method: "POST",
@@ -198,7 +202,9 @@ export const createAdminOrderCancellationApi = (
       return toCancellationResult(payload);
     },
     submitRefundUpdate: async (input) => {
-      const response = await fetchImpl(
+      const response = await fetchProtectedAdminRoute(
+        fetchImpl,
+        baseUrl,
         `${baseUrl}/api/v1/admin/orders/${encodeURIComponent(input.orderId)}/refund`,
         {
           method: "POST",

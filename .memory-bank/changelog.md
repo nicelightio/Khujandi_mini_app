@@ -15,6 +15,10 @@ status: active
 
 ## Recent entries
 
+## [2026-04-21] Admin protected routes now refresh once before retrying expired access-cookie requests
+- Fixed the checked-in `admin-web` drift where `/admin/catalog/shops/provision` and the other protected admin command surfaces could still show `AUTH_REQUIRED` after the page had already rendered an authenticated shell, because route-entry refresh happened only on initial protected navigation and not on later expired access-cookie requests.
+- Added a shared frontend admin protected-request helper that performs one `POST /api/v1/admin/auth/refresh` retry before repeating the original protected request, and added focused Jest regression coverage for the provisioning flow so valid refresh-cookie sessions recover instead of failing closed until a manual reload.
+
 ## [2026-04-20] Fixed api container Prisma CLI schema discovery for checked-in migrate commands
 - Added checked-in Prisma metadata and a pinned repo-local `prisma` dependency in `package.json`, so `docker compose run --rm api npx --yes prisma migrate status|deploy` now resolves `backend/prisma/schema.prisma` from `/app` and uses the repo-compatible CLI instead of a latest-network download.
 - Synced the container deploy runbook and archived the active bug after repo-local verification showed Prisma CLI now gets past schema discovery and reaches normal runtime checks instead of failing with `Could not find Prisma Schema`.

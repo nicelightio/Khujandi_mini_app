@@ -1,3 +1,5 @@
+import { fetchProtectedAdminRoute } from "./admin-protected-api";
+
 export type AdminAssignmentCommandInput = {
   orderId: string;
   courierId: string;
@@ -112,7 +114,11 @@ export const createAdminAssignmentApi = (options: AdminAssignmentApiOptions = {}
 
   return {
     submitAssignment: async (input) => {
-      const response = await fetchImpl(`${baseUrl}/api/v1/admin/orders/${encodeURIComponent(input.orderId)}/assignment`, {
+      const response = await fetchProtectedAdminRoute(
+        fetchImpl,
+        baseUrl,
+        `${baseUrl}/api/v1/admin/orders/${encodeURIComponent(input.orderId)}/assignment`,
+        {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -121,7 +127,8 @@ export const createAdminAssignmentApi = (options: AdminAssignmentApiOptions = {}
         body: JSON.stringify({
           courierId: input.courierId,
         }),
-      });
+        },
+      );
 
       const payload = await response.json();
 

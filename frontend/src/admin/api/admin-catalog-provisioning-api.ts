@@ -1,3 +1,5 @@
+import { fetchProtectedAdminRoute } from "./admin-protected-api";
+
 export type AdminCatalogProvisioningCommandInput = {
   sellerId: string;
   telegramId: string;
@@ -183,7 +185,7 @@ export const createAdminCatalogProvisioningApi = (
 
   return {
     listProvisionedShops: async () => {
-      const response = await fetchImpl(`${baseUrl}/api/v1/admin/catalog/shops`, {
+      const response = await fetchProtectedAdminRoute(fetchImpl, baseUrl, `${baseUrl}/api/v1/admin/catalog/shops`, {
         method: "GET",
         credentials: "include",
       });
@@ -197,7 +199,7 @@ export const createAdminCatalogProvisioningApi = (
       return toProvisionedShops(payload);
     },
     submitProvisioning: async (input) => {
-      const response = await fetchImpl(`${baseUrl}/api/v1/admin/catalog/shops/provision`, {
+      const response = await fetchProtectedAdminRoute(fetchImpl, baseUrl, `${baseUrl}/api/v1/admin/catalog/shops/provision`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
