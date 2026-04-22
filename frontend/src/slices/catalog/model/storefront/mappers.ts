@@ -144,10 +144,11 @@ export const defaultLoadStorefrontData: LoadCatalogStorefrontData = async (publi
 
 export const defaultPersistStorefrontEdit: PersistCatalogStorefrontEdit = async (edit, data, api) => {
   const fieldValue = (name: string): string => edit.fields.find((field) => field.name === name)?.value ?? "";
+  const canonicalShopId = data.shop.id;
 
   if (edit.target.type === "shop") {
     await api.updateSellerShop({
-      shopId: edit.shopId,
+      shopId: canonicalShopId,
       name: fieldValue("name").trim() || data.shop.name,
       description: fieldValue("description").trim() || null,
       headerImageUrl: fieldValue("headerImageUrl").trim() || null,
@@ -163,7 +164,7 @@ export const defaultPersistStorefrontEdit: PersistCatalogStorefrontEdit = async 
 
     await api.updateSellerMenuPage({
       menuPageId: target.menuPageId,
-      shopId: edit.shopId,
+      shopId: canonicalShopId,
       name: fieldValue("name").trim() || menuPage?.name || "Menu page",
     });
 
@@ -172,7 +173,7 @@ export const defaultPersistStorefrontEdit: PersistCatalogStorefrontEdit = async 
 
   if (edit.target.type === "new-menu-page") {
     await api.createSellerMenuPage({
-      shopId: edit.shopId,
+      shopId: canonicalShopId,
       name: fieldValue("name").trim() || "New menu page",
       position: data.menuPages.length + 1,
     });
@@ -186,7 +187,7 @@ export const defaultPersistStorefrontEdit: PersistCatalogStorefrontEdit = async 
 
     await api.updateSellerProduct({
       productId: target.productId,
-      shopId: edit.shopId,
+      shopId: canonicalShopId,
       menuPageId: target.menuPageId,
       name: fieldValue("name").trim() || product?.name || "Product",
       description: fieldValue("description").trim() || null,
@@ -200,7 +201,7 @@ export const defaultPersistStorefrontEdit: PersistCatalogStorefrontEdit = async 
   const target = edit.target;
 
   await api.createSellerProduct({
-    shopId: edit.shopId,
+    shopId: canonicalShopId,
     menuPageId: target.menuPageId,
     name: fieldValue("name").trim() || "New product",
     description: fieldValue("description").trim() || null,

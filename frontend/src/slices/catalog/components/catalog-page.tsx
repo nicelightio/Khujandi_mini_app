@@ -7,8 +7,8 @@ import { buildStorefrontPath } from "../../../shared/lib/routes";
 import type { CatalogViewModel } from "../model/catalog-view-model";
 import { StorefrontImageCropField } from "./storefront-image-crop-field";
 
-const defaultShopHeaderImage = "/media/shop-example.png";
-const defaultStorefrontBackgroundImage = "/media/background_green.png";
+const defaultShopHeaderImage = "/media/shop-example.png?v=storefront-defaults-20260422";
+const defaultStorefrontBackgroundImage = "/media/background_green.png?v=storefront-defaults-20260422";
 
 export type CatalogStorefrontEditorField = {
   name: string;
