@@ -40,6 +40,7 @@ status: active
 - Seller management остается внутри owning slice `catalog`, даже если использует одновременно shared storefront в `mini-app` и отдельный `seller-web` contour.
 - Public `mini-app`, shared seller storefront, narrow `seller-web`, and admin-side catalog provisioning MUST share one canonical DB-backed `catalog` runtime path; contour-specific in-memory state MUST NOT становиться отдельным source of truth.
 - `seller-web` baseline не должен втягивать reporting/analytics или другой cross-slice behavior без отдельного explicit spec change.
+- Debug-only contour relaxations MUST оставаться runtime-policy override внутри existing owning contour/runtime path, а не становиться вторым debug-specific contour, second API family или parallel source of truth. Для shared storefront это означает: `DEBUG=TRUE` может временно ослабить ownership guard и включить diagnostics, но canonical reads/writes все равно идут через тот же `catalog` boundary и те же `/api/v1/seller/*` endpoints.
 - Бизнес-правила и state machine остаются внутри owning slice.
 
 ## Related guide

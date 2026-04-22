@@ -38,6 +38,21 @@ type UseCatalogStorefrontResult = {
   handleSubmitEditor: () => Promise<void>;
 };
 
+const appendDebugLog = (currentLogs: string[] | undefined, line: string): string[] =>
+  [...(Array.isArray(currentLogs) ? currentLogs : []), `${new Date().toISOString()} ${line}`].slice(-40);
+
+const summarizeStringValue = (value: string | null | undefined): string => {
+  if (value === undefined) {
+    return "undefined";
+  }
+
+  if (value === null) {
+    return "null";
+  }
+
+  return `len=${value.length} prefix=${value.slice(0, 48)}`;
+};
+
 const ensureTelegramStorefrontSession = async (): Promise<{ telegramId: string | null; authDebugLabel: string | null }> => {
   const bridge = createTelegramWebAppBridge();
   const initData = bridge.getInitData()?.trim() ?? "";
@@ -117,6 +132,10 @@ export const useCatalogStorefront = ({
 
         data.currentTelegramId = authenticatedTelegramId;
         data.authDebugLabel = authDebugLabel;
+        data.debugLogs = appendDebugLog(
+          data.debugLogs,
+          `load resolved shop=${data.shop.id} canEdit=${String(data.canEdit)} header=${summarizeStringValue(data.shop.headerImageUrl)} background=${summarizeStringValue(data.shop.backgroundImageUrl)}`,
+        );
 
         setStorefrontState(createLoadedCatalogStorefrontState(data));
       })
@@ -148,6 +167,10 @@ export const useCatalogStorefront = ({
         editor: createStorefrontEditor(currentState.data, target),
         successMessage: null,
         saveErrorMessage: null,
+        data: {
+          ...currentState.data,
+          debugLogs: appendDebugLog(currentState.data.debugLogs, `editor opened target=${target.type}`),
+        },
       };
     });
   };
@@ -164,6 +187,13 @@ export const useCatalogStorefront = ({
           ...currentState.editor,
           fields: currentState.editor.fields.map((field) => (field.name === name ? { ...field, value } : field)),
         },
+        data:
+          currentState.data === null
+            ? currentState.data
+            : {
+                ...currentState.data,
+                debugLogs: appendDebugLog(currentState.data.debugLogs, `editor field changed ${name}=${summarizeStringValue(value)}`),
+              },
       };
     });
   };
@@ -173,6 +203,13 @@ export const useCatalogStorefront = ({
       ...currentState,
       editor: null,
       saveErrorMessage: null,
+      data:
+        currentState.data === null
+          ? currentState.data
+          : {
+              ...currentState.data,
+              debugLogs: appendDebugLog(currentState.data.debugLogs, "editor cancelled"),
+            },
     }));
   };
 
@@ -197,10 +234,30 @@ export const useCatalogStorefront = ({
         target: currentEditor.target,
         fields: currentEditor.fields,
       };
+      setStorefrontState((currentState) => {
+        if (currentState.data === null) {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          data: {
+            ...currentState.data,
+            debugLogs: appendDebugLog(
+              currentState.data.debugLogs,
+              `submit target=${currentEditor.target.type} header=${summarizeStringValue(currentEditor.fields.find((field) => field.name === "headerImageUrl")?.value)} background=${summarizeStringValue(currentEditor.fields.find((field) => field.name === "backgroundImageUrl")?.value)}`,
+            ),
+          },
+        };
+      });
       const result = await persistStorefrontEdit(edit, currentData, api);
       const reloadedData = await loadStorefrontData(shopId, api);
       reloadedData.currentTelegramId = currentData.currentTelegramId;
       reloadedData.authDebugLabel = currentData.authDebugLabel;
+      reloadedData.debugLogs = appendDebugLog(
+        [...currentData.debugLogs, ...reloadedData.debugLogs],
+        `reload after save header=${summarizeStringValue(reloadedData.shop.headerImageUrl)} background=${summarizeStringValue(reloadedData.shop.backgroundImageUrl)}`,
+      );
 
       setStorefrontState((currentState) => {
         if (currentState.data === null) {
@@ -221,6 +278,13 @@ export const useCatalogStorefront = ({
         ...currentState,
         isSaving: false,
         saveErrorMessage: error instanceof Error ? error.message : "Storefront save failed.",
+        data:
+          currentState.data === null
+            ? currentState.data
+            : {
+                ...currentState.data,
+                debugLogs: appendDebugLog(currentState.data.debugLogs, `save failed ${error instanceof Error ? error.message : "Storefront save failed."}`),
+              },
       }));
     }
   };

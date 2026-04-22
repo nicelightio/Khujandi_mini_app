@@ -11,6 +11,8 @@ import {
 
 const storefrontPrefix = "/shops/";
 
+const createDebugBootstrapLogs = (lines: string[]): string[] => lines.map((line) => `[bootstrap] ${line}`);
+
 export const getStorefrontPublicPath = (pathname: string): string | null => {
   if (!isStorefrontPathname(pathname)) {
     return null;
@@ -56,6 +58,11 @@ export const buildStorefrontDataFromSellerAccess = (sellerAccess: SellerStorefro
     priceMinor: product.priceMinor,
     menuPageId: product.menuPageId,
   })),
+  debugLogs: createDebugBootstrapLogs([
+    `seller access loaded for shop ${sellerAccess.id}`,
+    `header image ${sellerAccess.headerImageUrl === null ? "null" : `len=${sellerAccess.headerImageUrl.length}`}`,
+    `background image ${sellerAccess.backgroundImageUrl === null ? "null" : `len=${sellerAccess.backgroundImageUrl.length}`}`,
+  ]),
 });
 
 export const buildStorefrontDataFromPublicShop = (
@@ -92,6 +99,10 @@ export const buildStorefrontDataFromPublicShop = (
           },
         ],
   unpagedProducts: [],
+  debugLogs: createDebugBootstrapLogs([
+    `public storefront fallback loaded for shop ${publicShop.id}`,
+    "seller access unavailable or not granted",
+  ]),
 });
 
 export const defaultLoadStorefrontData: LoadCatalogStorefrontData = async (publicPath, api) => {

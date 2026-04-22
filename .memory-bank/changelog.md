@@ -15,6 +15,10 @@ status: active
 
 ## Recent entries
 
+## [2026-04-22] Shared storefront DEBUG mode now exposes diagnostics and a backend bypass on the same catalog path
+- Added an explicit `REQ-030` / `FT-010` debug-runtime policy: when `DEBUG=TRUE`, the shared storefront may show copyable diagnostics and the mounted `/api/v1/seller/*` runtime may temporarily bypass owner-only shop access through the same canonical `catalog` boundary instead of a second debug API family.
+- `scripts/dev-api.ts` now passes the debug flag into the runtime, seller storefront reads/writes emit structured debug logs for media/save/reload traces, and the storefront UI records copyable `load -> edit -> save -> reload` diagnostics to help debug embedded Telegram flows without browser devtools.
+
 ## [2026-04-21] Admin protected routes now refresh once before retrying expired access-cookie requests
 - Fixed the checked-in `admin-web` drift where `/admin/catalog/shops/provision` and the other protected admin command surfaces could still show `AUTH_REQUIRED` after the page had already rendered an authenticated shell, because route-entry refresh happened only on initial protected navigation and not on later expired access-cookie requests.
 - Added a shared frontend admin protected-request helper that performs one `POST /api/v1/admin/auth/refresh` retry before repeating the original protected request, and added focused Jest regression coverage for the provisioning flow so valid refresh-cookie sessions recover instead of failing closed until a manual reload.

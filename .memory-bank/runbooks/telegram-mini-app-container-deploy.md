@@ -122,12 +122,15 @@ cat >/srv/tgmeal/app/.env <<'EOF'
 ADMIN_ALLOWED_ORIGINS=https://tgmeal.natureonzoom.win
 ADMIN_DB_PATH=/var/lib/khujandi/admin-access-runtime.sqlite
 CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite
+DEBUG=FALSE
 EOF
 chown tgmeal:tgmeal /srv/tgmeal/app/.env
 chmod 600 /srv/tgmeal/app/.env
 ```
 
 Важно: `scripts/dev-api.ts` хранит runtime SQLite state по `ADMIN_DB_PATH` и `CATALOG_DB_PATH`. Если не задать явные path и не примонтировать persistent Docker volume, admin cookie-сессии и catalog provisioning/seller edits останутся внутри filesystem конкретного `api` контейнера и исчезнут после `docker compose up -d --build` / recreate.
+
+`DEBUG=TRUE` допускается только как temporary diagnostic mode для embedded Telegram debugging: web build включает storefront diagnostic panel, а mounted runtime может временно ослаблять owner-only seller storefront guard и писать structured debug logs. Для нормального production-like deploy значение должно оставаться `FALSE`.
 
 Prisma CLI в checked-in `api` image запускается из `/app`, а каноническая schema лежит в `backend/prisma/schema.prisma`. Root `package.json` фиксирует этот path через `prisma.schema`, а pinned repo-local dependency `prisma` попадает в image через `npm ci --omit=dev`, поэтому `docker compose run --rm api npx --yes prisma migrate status|deploy` должен использовать совместимый checked-in CLI и работать без отдельного `--schema` workaround.
 

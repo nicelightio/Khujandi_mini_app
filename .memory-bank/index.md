@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `FT-010`: shared storefront now has an explicit env-gated `DEBUG=TRUE` diagnostic mode: mounted `/api/v1/seller/*` runtime can temporarily bypass owner-only guard through the same canonical catalog path, storefront UI can expose copyable debug logs for `load -> edit -> save -> reload`, and `scripts/dev-api.ts` passes the same flag into backend debug logging for seller storefront read/write traces.
 - `admin-web`: protected assignment/cancellation/provisioning API calls now perform one shared admin refresh-and-retry on `AUTH_REQUIRED`, so a boss/admin shell that stays open past the 15-minute access-cookie TTL can still recover through the valid refresh-cookie boundary instead of falsely failing provisioning until manual reload.
 - `FT-010`: shared `/shops/:publicPath` storefront now uses a mobile-first poster composition with a 38/62 hero-to-content split, sticky horizontal menu tabs, and seller-side client crop flows for shop header/product imagery via `react-easy-crop`, while still saving through the existing catalog string-image boundary.
 - `FT-011`: mounted catalog runtime now repairs legacy persisted shop rows that lacked immutable public-path fields, so deployed `/api/v1/admin/catalog/shops` rehydrates DB-backed shops onto the canonical flat summary with `primaryPublicPath` and `secondaryPublicPath` instead of leaking pre-path persisted shape.

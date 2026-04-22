@@ -39,6 +39,7 @@ export type CatalogStorefrontData = {
     priceMinor: number;
     menuPageId: string | null;
   }>;
+  debugLogs: string[];
 };
 
 export type CatalogStorefrontState = {

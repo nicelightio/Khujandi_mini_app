@@ -42,6 +42,7 @@ status: active
 - Current checked-in storefront presentation now follows a mobile-first poster layout on `/shops/:publicPath`: the hero/header plane occupies roughly `38%` of the first viewport, the content/background plane occupies the remaining `62%`, seller-editable shop name/description stay overlaid on the hero, the hero scrolls fully off-screen during downward browse, and menu navigation is rendered as horizontal sticky tabs inside the content plane rather than as a second storefront tree.
 - Current checked-in seller media edit baseline now uses client-side file selection plus `react-easy-crop` for `shop.header_image` and `product.image`, then persists the cropped result through the existing string-valued catalog media boundary (`headerImageUrl` / `imageUrl`) without introducing a new upload/storage contract in this scope.
 - Seller-aware session/access resolution is now formalized in the checked-in repo-local runtime: `POST /api/v1/auth/telegram` issues the existing Mini App cookie session family and protected seller reads resolve ownership from Telegram-linked bindings plus canonical `shop.sellerId` alignment.
+- Debug-mode follow-up for checked-in repo scope: when `DEBUG=TRUE`, shared storefront MAY expose an explicit diagnostic panel with copyable logs and MAY temporarily bypass owner-only edit gating for `/shops/:publicPath`, but only through the same mounted seller runtime/read-write path and only as an env-gated verification aid.
 - `TASK-FT010-11` closed the remaining runtime drift from `TASK-FT010-04`: repo-local `POST /api/v1/auth/telegram` and seller-protected catalog reads now share the checked-in `checkout-payment` auth/session module boundary and one Mini App user/session state instead of a route-local clone.
 - `TASK-FT010-12` closed the remaining transport-level seam from that `red-verify`: repo-local Mini App cookie issuance now comes from the shared `checkout-payment` auth result itself, so mounted runtime auth no longer predicts or reconstructs the session token through `dev-runtime`-local state.
 - Post-change `red-verify` for `TASK-FT010-12` did not open a new follow-up: the checked-in fix is substantively aligned with the shared Mini App auth transport intent, with only a maintenance note to keep raw cookie values server-only.
@@ -62,6 +63,7 @@ status: active
 
 - Seller storefront edit mode использует тот же storefront contour и те же базовые storefront-компоненты, что и customer browse.
 - Edit affordances активируются contextual `long press`/`click` на существующих storefront-компонентах; отдельный heavy seller builder/editor не вводится.
+- При `DEBUG=TRUE` shared storefront MAY дополнительно показывать diagnostic panel с копируемыми логами `load -> edit -> save -> reload`, чтобы отлаживать embedded Telegram runtime без browser devtools.
 - Seller может редактировать `shop.name`, `shop.description`, `shop.header_image`, `shop.background_image` в пределах owned shop.
 - Seller может редактировать имена страниц меню и добавлять новые страницы меню в пределах owned shop.
 - Seller может добавлять и редактировать продукты в пределах owned shop, включая `product.name`, `product.description`, `product.price`, `product.image`.
@@ -80,6 +82,7 @@ status: active
 - `NOT_WORKING` магазин MUST NOT появляться в public storefront browse.
 - Shared storefront edit mode MUST NOT требовать второго, визуально отдельного storefront tree только ради seller UX.
 - Create/add flows MAY вводить новые UI сущности, но они MUST NOT ломать существующую storefront layout model.
+- Debug-mode bypass MUST NOT silently leak into normal runtime: при `DEBUG!=TRUE` owner-only storefront edit guard, Telegram-linked ownership resolution и hidden diagnostics остаются обязательными.
 - Rename shop name MUST NOT менять уже выданные public path и MUST NOT требовать redirect/history layer в baseline scope.
 
 ## Constraints / invariants
@@ -89,6 +92,7 @@ status: active
 - `REQ-020` rename/snapshot policy остается в силе для shop name edits.
 - MVP seller direction не вводит destructive removal semantics и не проектирует отдельный visual page builder.
 - `seller-web` baseline ограничен только легкими catalog-owned controls; reporting/analytics требуют отдельного explicit scope change.
+- Debug-mode diagnostics для shared storefront остаются repo-local runtime policy и не меняют owner slice, public API family или persistence ownership.
 
 ## Normative inputs
 

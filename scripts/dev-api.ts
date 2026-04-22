@@ -21,6 +21,9 @@ const parseAllowedOrigins = (value: string | undefined): string[] | undefined =>
     .filter((origin) => origin.length > 0);
 };
 
+const parseBooleanFlag = (value: string | undefined): boolean =>
+  String(value ?? "FALSE").trim().toLowerCase() === "true";
+
 const runtime = await startDevApiServer({
   host: process.env.HOST,
   port: parsePort(process.env.PORT),
@@ -28,6 +31,7 @@ const runtime = await startDevApiServer({
   adminDatabasePath: process.env.ADMIN_DB_PATH ?? resolve(process.cwd(), "backend", "prisma", "dev-admin-access-runtime.sqlite"),
   catalogDatabasePath: process.env.CATALOG_DB_PATH ?? resolve(process.cwd(), "backend", "prisma", "dev-catalog-runtime.sqlite"),
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+  isDebugEnabled: parseBooleanFlag(process.env.DEBUG),
 });
 
 process.stdout.write(`Demo API listening on ${runtime.baseUrl}\n`);

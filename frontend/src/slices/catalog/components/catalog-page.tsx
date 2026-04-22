@@ -89,6 +89,33 @@ export type CatalogStorefrontViewModel = {
   errorMessage: string | null;
   isSaving: boolean;
   editor: CatalogStorefrontEditor | null;
+  debugLogs: string[];
+};
+
+const StorefrontDebugPanel = ({ logs }: { logs: string[] }) => {
+  const joinedLogs = logs.join("\n");
+
+  return (
+    <section data-storefront-debug="panel">
+      <div data-storefront-debug="header">
+        <div>
+          <p data-storefront-section-label>Debug logs</p>
+          <h3>Storefront diagnostics</h3>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof navigator !== "undefined" && navigator.clipboard !== undefined) {
+              void navigator.clipboard.writeText(joinedLogs);
+            }
+          }}
+        >
+          Copy logs
+        </button>
+      </div>
+      <textarea readOnly value={joinedLogs} data-storefront-debug="output" />
+    </section>
+  );
 };
 
 type CatalogPageProps = {
@@ -545,6 +572,8 @@ export const CatalogPage = ({
                   }));
                 }}
               />
+
+              {isDebugEnabled ? <StorefrontDebugPanel logs={storefront.debugLogs} /> : null}
             </div>
           </article>
 

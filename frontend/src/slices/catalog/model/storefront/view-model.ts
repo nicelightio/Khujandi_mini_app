@@ -51,6 +51,7 @@ export const buildStorefrontViewModel = (state: CatalogStorefrontState): Catalog
     errorMessage: state.saveErrorMessage,
     isSaving: state.isSaving,
     editor: state.editor,
+    debugLogs: state.data.debugLogs,
   };
 };
 
