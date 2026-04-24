@@ -367,7 +367,17 @@ export const createInMemoryCatalogPrisma = (
         select,
       }: {
         where: { shopId: string; isDeleted: boolean; shop: { isDeleted: boolean; status?: "WORKING" | "NOT_WORKING" } };
-        select?: { shop?: { select: { sellerId: boolean; isDeleted?: boolean } } };
+        select?: {
+          id?: boolean;
+          shopId?: boolean;
+          menuPageId?: boolean;
+          name?: boolean;
+          description?: boolean;
+          imageUrl?: boolean;
+          priceMinor?: boolean;
+          isDeleted?: boolean;
+          shop?: { select: { sellerId: boolean; isDeleted?: boolean } };
+        };
       }) => {
         const shop = target.shops.find((candidate) => candidate.id === where.shopId);
 
@@ -381,32 +391,24 @@ export const createInMemoryCatalogPrisma = (
 
         return target.products
           .filter((product) => product.shopId === where.shopId && product.isDeleted === where.isDeleted)
-          .map((product) => {
-            if (select?.shop !== undefined) {
-              return {
-                id: product.id,
-                shopId: product.shopId,
-                menuPageId: product.menuPageId,
-                name: product.name,
-                description: product.description,
-                imageUrl: product.imageUrl,
-                priceMinor: product.priceMinor,
-                isDeleted: product.isDeleted,
-                shop: {
-                  sellerId: shop.sellerId,
-                  isDeleted: shop.isDeleted,
-                },
-              };
-            }
-
-            return {
-              id: product.id,
-              shopId: product.shopId,
-              menuPageId: product.menuPageId,
-              name: product.name,
-              priceMinor: product.priceMinor,
-            };
-          });
+          .map((product) => ({
+            ...(select?.id === true ? { id: product.id } : {}),
+            ...(select?.shopId === true ? { shopId: product.shopId } : {}),
+            ...(select?.menuPageId === true ? { menuPageId: product.menuPageId } : {}),
+            ...(select?.name === true ? { name: product.name } : {}),
+            ...(select?.description === true ? { description: product.description } : {}),
+            ...(select?.imageUrl === true ? { imageUrl: product.imageUrl } : {}),
+            ...(select?.priceMinor === true ? { priceMinor: product.priceMinor } : {}),
+            ...(select?.isDeleted === true ? { isDeleted: product.isDeleted } : {}),
+            ...(select?.shop !== undefined
+              ? {
+                  shop: {
+                    sellerId: shop.sellerId,
+                    ...(select.shop.select.isDeleted === true ? { isDeleted: shop.isDeleted } : {}),
+                  },
+                }
+              : {}),
+          }));
       },
       findUnique: async ({ where }: { where: { id: string } }) => {
         const product = target.products.find((candidate) => candidate.id === where.id) ?? null;

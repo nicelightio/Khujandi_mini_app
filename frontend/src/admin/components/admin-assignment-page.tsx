@@ -26,7 +26,11 @@ export const AdminAssignmentPage = ({
           </div>
           <div>
             <span>Selected courier</span>
-            <strong>{selectedCourier === null ? "Not selected" : selectedCourier.label}</strong>
+            <strong>
+              <span data-admin-ui="status-chip" data-admin-status-tone={selectedCourier === null ? "neutral" : "accent"}>
+                {selectedCourier === null ? "Not selected" : selectedCourier.label}
+              </span>
+            </strong>
           </div>
           <div>
             <span>Session boundary</span>
@@ -73,7 +77,7 @@ export const AdminAssignmentPage = ({
             </div>
           ))}
         </div>
-        <button type="submit" disabled={viewModel.isSubmitDisabled}>
+        <button type="submit" data-magnetic="true" disabled={viewModel.isSubmitDisabled}>
           {viewModel.submitLabel}
         </button>
       </form>

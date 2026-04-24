@@ -68,7 +68,7 @@ export const SellerShopStatusPage = ({
           </label>
         </fieldset>
 
-        <button type="submit" disabled={isLoading || isSubmitting}>
+        <button type="submit" data-magnetic="true" disabled={isLoading || isSubmitting}>
           {isSubmitting ? "Saving status..." : "Save status"}
         </button>
       </form>

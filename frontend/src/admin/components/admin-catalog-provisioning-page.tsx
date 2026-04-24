@@ -49,7 +49,11 @@ export const AdminCatalogProvisioningPage = ({
         </div>
         <div>
           <span>Initial visibility</span>
-          <strong>{value.status}</strong>
+          <strong>
+            <span data-admin-ui="status-chip" data-admin-status-tone={value.status === "WORKING" ? "success" : "danger"}>
+              {value.status}
+            </span>
+          </strong>
         </div>
         <div>
           <span>Seller binding</span>
@@ -123,7 +127,7 @@ export const AdminCatalogProvisioningPage = ({
         </label>
       </fieldset>
 
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" data-magnetic="true" disabled={isSubmitting}>
         {isSubmitting ? "Provisioning shop..." : "Provision shop"}
       </button>
     </form>
@@ -147,7 +151,11 @@ export const AdminCatalogProvisioningPage = ({
             {provisionedShops.map((shop) => (
               <tr key={shop.shopId}>
                 <td>{shop.shopName}</td>
-                <td>{shop.status}</td>
+                <td>
+                  <span data-admin-ui="status-chip" data-admin-status-tone={shop.status === "WORKING" ? "success" : "danger"}>
+                    {shop.status}
+                  </span>
+                </td>
                 <td>{shop.sellerId}</td>
                 <td>{shop.telegramId === null ? "Unbound" : shop.telegramId}</td>
                 <td>{`${shop.secondaryPublicPath} / ${shop.primaryPublicPath}`}</td>

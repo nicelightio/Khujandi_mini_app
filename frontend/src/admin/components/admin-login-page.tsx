@@ -110,6 +110,7 @@ export const AdminLoginPage = ({
         </fieldset>
         <button
           type="submit"
+          data-magnetic="true"
           disabled={isSubmitting || login.trim().length === 0 || password.length === 0}
         >
           {isSubmitting ? "Signing in..." : "Sign in"}

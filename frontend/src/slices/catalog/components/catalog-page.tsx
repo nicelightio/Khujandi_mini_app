@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useLanguageContext } from "../../../app/language-context";
 import { isDebugEnabled } from "../../../shared/config/debug";
 import { getCopy } from "../../../shared/i18n/copy";
+import { useMagneticElements } from "../../../shared/ui/use-magnetic-elements";
 import { PageShell } from "../../../shared/ui/page-shell";
 import { buildStorefrontPath } from "../../../shared/lib/routes";
 import type { CatalogViewModel } from "../model/catalog-view-model";
@@ -9,6 +10,7 @@ import { StorefrontImageCropField } from "./storefront-image-crop-field";
 
 const defaultShopHeaderImage = "/media/shop-example.png?v=storefront-defaults-20260422";
 const defaultStorefrontBackgroundImage = "/media/background_green.png?v=storefront-defaults-20260422";
+const storefrontMediaCrossfadeMs = 280;
 
 export type CatalogStorefrontEditorField = {
   name: string;
@@ -104,6 +106,7 @@ const StorefrontDebugPanel = ({ logs }: { logs: string[] }) => {
         </div>
         <button
           type="button"
+          data-magnetic="true"
           onClick={() => {
             if (typeof navigator !== "undefined" && navigator.clipboard !== undefined) {
               void navigator.clipboard.writeText(joinedLogs);
@@ -115,6 +118,67 @@ const StorefrontDebugPanel = ({ logs }: { logs: string[] }) => {
       </div>
       <textarea readOnly value={joinedLogs} data-storefront-debug="output" />
     </section>
+  );
+};
+
+const useStorefrontMediaCrossfade = (value: string) => {
+  const [currentValue, setCurrentValue] = useState(value);
+  const [previousValue, setPreviousValue] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (value === currentValue) {
+      return;
+    }
+
+    setPreviousValue(currentValue);
+    setCurrentValue(value);
+
+    const timeoutHandle = window.setTimeout(() => {
+      setPreviousValue(null);
+    }, storefrontMediaCrossfadeMs);
+
+    return () => {
+      window.clearTimeout(timeoutHandle);
+    };
+  }, [currentValue, value]);
+
+  return {
+    currentValue,
+    previousValue,
+  };
+};
+
+const createStorefrontMediaStyle = (imageUrl: string): CSSProperties => ({
+  "--storefront-media-image": `url(${imageUrl})`,
+} as CSSProperties);
+
+const StorefrontCrossfadeBackground = ({ imageUrl, media }: { imageUrl: string; media: "hero" | "content" }) => {
+  const { currentValue, previousValue } = useStorefrontMediaCrossfade(imageUrl);
+
+  return (
+    <div data-storefront-media={media}>
+      {previousValue !== null ? <div data-storefront-media-layer="previous" style={createStorefrontMediaStyle(previousValue)} /> : null}
+      <div
+        data-storefront-media-layer={previousValue === null ? "static" : "current"}
+        style={createStorefrontMediaStyle(currentValue)}
+      />
+    </div>
+  );
+};
+
+const StorefrontCrossfadeImage = ({ src, alt }: { src: string; alt: string }) => {
+  const { currentValue, previousValue } = useStorefrontMediaCrossfade(src);
+
+  return (
+    <div data-storefront-product="media">
+      {previousValue !== null ? <img src={previousValue} alt="" aria-hidden="true" data-storefront-product="image" data-storefront-image-layer="previous" /> : null}
+      <img
+        src={currentValue}
+        alt={alt}
+        data-storefront-product="image"
+        data-storefront-image-layer={previousValue === null ? "static" : "current"}
+      />
+    </div>
   );
 };
 
@@ -168,7 +232,7 @@ const StorefrontVisualControls = ({
       event.stopPropagation();
     }}
   >
-    <button type="button" data-storefront-fx="toggle" onClick={onToggle}>
+    <button type="button" data-storefront-fx="toggle" data-magnetic="true" onClick={onToggle}>
       {isOpen ? "Hide effects" : "Show effects"}
     </button>
     {isOpen ? (
@@ -257,28 +321,9 @@ export const CatalogPage = ({
   const actionLabel = storefront?.isSaving === true ? "Saving storefront changes..." : undefined;
   const [visualTuning, setVisualTuning] = useState<StorefrontVisualTuning>(defaultStorefrontVisualTuning);
   const [isVisualPanelOpen, setIsVisualPanelOpen] = useState(false);
-  const heroBackgroundStyle = useMemo<CSSProperties | undefined>(() => {
-    if (storefront === undefined) {
-      return undefined;
-    }
-
-    const imageUrl = storefront.shop.headerImageUrl ?? defaultShopHeaderImage;
-
-    return {
-      "--storefront-hero-image": `url(${imageUrl})`,
-    };
-  }, [storefront]);
-  const contentBackgroundStyle = useMemo<CSSProperties | undefined>(() => {
-    if (storefront === undefined) {
-      return undefined;
-    }
-
-    const imageUrl = storefront.shop.backgroundImageUrl ?? defaultStorefrontBackgroundImage;
-
-    return {
-      "--storefront-content-image": `url(${imageUrl})`,
-    };
-  }, [storefront]);
+  const shopRef = useRef<HTMLElement | null>(null);
+  const heroImageUrl = storefront?.shop.headerImageUrl ?? defaultShopHeaderImage;
+  const contentImageUrl = storefront?.shop.backgroundImageUrl ?? defaultStorefrontBackgroundImage;
   const visualStyle = useMemo(() => createStorefrontVisualStyle(visualTuning), [visualTuning]);
   const storefrontTabs = useMemo(() => {
     if (storefront === undefined) {
@@ -316,6 +361,54 @@ export const CatalogPage = ({
 
     setActiveTabId(storefrontTabs[0]?.id ?? null);
   }, [resolvedActiveTabId, storefrontTabs]);
+
+  useMagneticElements(shopRef);
+
+  useEffect(() => {
+    if (storefront === undefined || typeof window === "undefined") {
+      return;
+    }
+
+    const shopElement = shopRef.current;
+
+    if (shopElement === null || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true) {
+      return;
+    }
+
+    let frameHandle = 0;
+
+    const updateParallax = () => {
+      frameHandle = 0;
+
+      const rect = shopElement.getBoundingClientRect();
+      const heroOffset = Math.max(-56, Math.min(56, rect.top * -0.14));
+      const beamOffset = Math.max(-24, Math.min(24, rect.top * -0.08));
+
+      shopElement.style.setProperty("--storefront-hero-parallax", `${heroOffset}px`);
+      shopElement.style.setProperty("--storefront-beam-shift", `${beamOffset}px`);
+    };
+
+    const scheduleParallax = () => {
+      if (frameHandle !== 0) {
+        return;
+      }
+
+      frameHandle = window.requestAnimationFrame(updateParallax);
+    };
+
+    scheduleParallax();
+    window.addEventListener("scroll", scheduleParallax, { passive: true });
+    window.addEventListener("resize", scheduleParallax);
+
+    return () => {
+      if (frameHandle !== 0) {
+        window.cancelAnimationFrame(frameHandle);
+      }
+
+      window.removeEventListener("scroll", scheduleParallax);
+      window.removeEventListener("resize", scheduleParallax);
+    };
+  }, [storefront?.shop.id]);
 
   const activateEditor = (target: CatalogStorefrontEditorTarget) => {
     if (storefront?.access.canEdit !== true || onActivateEditor === undefined) {
@@ -372,6 +465,7 @@ export const CatalogPage = ({
       {storefront !== undefined && !viewModel.isLoading && viewModel.errorMessage === null ? (
         <section data-catalog-storefront="viewport">
           <article
+            ref={shopRef}
             key={storefront.shop.id}
             data-shop-id={storefront.shop.id}
             data-catalog-storefront="shop"
@@ -385,8 +479,8 @@ export const CatalogPage = ({
           >
             <div
               data-storefront-hero="image"
-              style={heroBackgroundStyle}
             >
+              <StorefrontCrossfadeBackground imageUrl={heroImageUrl} media="hero" />
               <div data-storefront-hero="overlay">
                 <p data-storefront-hero="eyebrow">{storefront.access.canEdit ? "Seller storefront" : "Storefront"}</p>
                 <h1>{storefront.shop.name}</h1>
@@ -398,6 +492,7 @@ export const CatalogPage = ({
                   <button
                     type="button"
                     data-storefront-hero="edit"
+                    data-magnetic="true"
                     onClick={(event) => activateNestedEditor(event, { type: "shop" })}
                   >
                     Edit storefront
@@ -408,10 +503,15 @@ export const CatalogPage = ({
 
             <div
               data-storefront-content="surface"
-              style={contentBackgroundStyle}
             >
+              <StorefrontCrossfadeBackground imageUrl={contentImageUrl} media="content" />
+              <div aria-hidden="true" data-storefront-fx="viewport-beam" />
               <div data-storefront-content="intro">
-                <p>{storefront.access.statusLabel}</p>
+                <div data-storefront-status="row">
+                  <span data-storefront-status="chip" data-storefront-status-tone={storefront.access.canEdit ? "accent" : "neutral"}>
+                    {storefront.access.statusLabel}
+                  </span>
+                </div>
                 {storefront.access.activationHint !== null ? <p>{storefront.access.activationHint}</p> : null}
               </div>
 
@@ -422,6 +522,7 @@ export const CatalogPage = ({
                       <button
                         key={tab.id}
                         type="button"
+                        data-magnetic="true"
                         role="tab"
                         aria-selected={tab.id === resolvedActiveTabId}
                         data-storefront-tab-state={tab.id === resolvedActiveTabId ? "active" : "idle"}
@@ -437,6 +538,7 @@ export const CatalogPage = ({
                       <button
                         type="button"
                         data-storefront-tab-action="add"
+                        data-magnetic="true"
                         onClick={(event) => activateNestedEditor(event, { type: "new-menu-page" })}
                       >
                         {storefront.addMenuPageLabel}
@@ -471,6 +573,7 @@ export const CatalogPage = ({
                       {storefront.access.canEdit ? (
                         <button
                           type="button"
+                          data-magnetic="true"
                           onClick={(event) => activateNestedEditor(event, { type: "new-product", menuPageId: menuPage.id })}
                         >
                           {storefront.addProductLabel}
@@ -501,7 +604,7 @@ export const CatalogPage = ({
                             })
                           }
                         >
-                          {product.imageUrl !== null ? <img src={product.imageUrl} alt="" data-storefront-product="image" /> : null}
+                          {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : null}
                           <div data-storefront-product="body">
                             <div data-storefront-product="meta">
                               <strong>{product.name}</strong>
@@ -545,7 +648,7 @@ export const CatalogPage = ({
                           })
                         }
                       >
-                        {product.imageUrl !== null ? <img src={product.imageUrl} alt="" data-storefront-product="image" /> : null}
+                        {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : null}
                         <div data-storefront-product="body">
                           <div data-storefront-product="meta">
                             <strong>{product.name}</strong>
@@ -592,7 +695,7 @@ export const CatalogPage = ({
                     <p data-storefront-section-label>Seller edit mode</p>
                     <h3>{storefront.editor.title}</h3>
                   </div>
-                  <button type="button" onClick={() => onCancelEditor?.()} disabled={storefront.isSaving}>
+                  <button type="button" data-magnetic="true" onClick={() => onCancelEditor?.()} disabled={storefront.isSaving}>
                     Close
                   </button>
                 </div>
@@ -631,10 +734,10 @@ export const CatalogPage = ({
                   })}
                 </div>
                 <div data-storefront-editor="actions">
-                  <button type="submit" disabled={storefront.isSaving}>
+                  <button type="submit" data-magnetic="true" disabled={storefront.isSaving}>
                     {storefront.isSaving ? "Saving..." : storefront.editor.submitLabel}
                   </button>
-                  <button type="button" onClick={() => onCancelEditor?.()} disabled={storefront.isSaving}>
+                  <button type="button" data-magnetic="true" onClick={() => onCancelEditor?.()} disabled={storefront.isSaving}>
                     Cancel
                   </button>
                 </div>

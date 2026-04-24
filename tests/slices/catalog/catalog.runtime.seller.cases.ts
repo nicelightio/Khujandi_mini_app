@@ -57,6 +57,8 @@ export const registerCatalogRuntimeSellerCases = () => {
               products: expect.arrayContaining([
                 expect.objectContaining({
                   name: "Starter Dish",
+                  description: "Edit this product after admin provisioning.",
+                  imageUrl: null,
                 }),
               ]),
             }),

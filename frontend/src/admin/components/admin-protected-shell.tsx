@@ -65,6 +65,7 @@ export const AdminProtectedShell = ({
                     key={item.href}
                     href={item.href}
                     data-admin-auth="nav-link"
+                    data-magnetic="true"
                     aria-current={pathname === item.href ? "page" : undefined}
                   >
                     {item.label}
@@ -78,6 +79,7 @@ export const AdminProtectedShell = ({
               <button
                 type="button"
                 data-admin-auth="logout"
+                data-magnetic="true"
                 disabled={isLogoutSubmitting}
                 onClick={() => {
                   if (onLogout !== undefined) {

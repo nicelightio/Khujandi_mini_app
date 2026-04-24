@@ -29,15 +29,34 @@ export const AdminOrderCancellationPage = ({
         </div>
         <div>
           <span>Current state</span>
-          <strong>{viewModel.orderStatusLabel}</strong>
+          <strong>
+            <span data-admin-ui="status-chip" data-admin-status-tone="accent">
+              {viewModel.orderStatusLabel}
+            </span>
+          </strong>
         </div>
         <div>
           <span>Refund state</span>
-          <strong>{viewModel.refundStatus}</strong>
+          <strong>
+            <span
+              data-admin-ui="status-chip"
+              data-admin-status-tone={viewModel.refundStatus === "DONE" ? "success" : viewModel.refundStatus === "REJECTED" ? "danger" : "neutral"}
+            >
+              {viewModel.refundStatus}
+            </span>
+          </strong>
         </div>
       </div>
       <p>
-        Refund state: <strong>{viewModel.refundStatus}</strong>
+        Refund state:{" "}
+        <strong>
+          <span
+            data-admin-ui="status-chip"
+            data-admin-status-tone={viewModel.refundStatus === "DONE" ? "success" : viewModel.refundStatus === "REJECTED" ? "danger" : "neutral"}
+          >
+            {viewModel.refundStatus}
+          </span>
+        </strong>
       </p>
       <p>{viewModel.refundStatusLabel}</p>
       <p>{viewModel.refundVisibilityNote}</p>
@@ -83,7 +102,7 @@ export const AdminOrderCancellationPage = ({
           </div>
         ))}
       </div>
-      <button type="submit" disabled={viewModel.isCancellationSubmitDisabled}>
+      <button type="submit" data-magnetic="true" disabled={viewModel.isCancellationSubmitDisabled}>
         {viewModel.cancellationSubmitLabel}
       </button>
     </form>
@@ -100,7 +119,14 @@ export const AdminOrderCancellationPage = ({
         <div data-admin-ui="fact-list">
           <div>
             <span>Visible state</span>
-            <strong>{viewModel.refundStatus}</strong>
+            <strong>
+              <span
+                data-admin-ui="status-chip"
+                data-admin-status-tone={viewModel.refundStatus === "DONE" ? "success" : viewModel.refundStatus === "REJECTED" ? "danger" : "neutral"}
+              >
+                {viewModel.refundStatus}
+              </span>
+            </strong>
           </div>
           <div>
             <span>Operator note</span>
@@ -128,7 +154,7 @@ export const AdminOrderCancellationPage = ({
           />
         </label>
       </fieldset>
-      <button type="submit" disabled={viewModel.isRefundSubmitDisabled}>
+      <button type="submit" data-magnetic="true" disabled={viewModel.isRefundSubmitDisabled}>
         {viewModel.refundSubmitLabel}
       </button>
     </form>
