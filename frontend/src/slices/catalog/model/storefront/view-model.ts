@@ -1,12 +1,11 @@
 import type { SupportedLanguage } from "../../../../shared/i18n/languages";
-import type { CatalogStorefrontViewModel } from "../../components/catalog-page";
 import {
   createCatalogViewModel,
   createErrorCatalogViewModel,
   createLoadingCatalogViewModel,
   type CatalogViewModel,
 } from "../catalog-view-model";
-import { storefrontUnavailableMessage, type CatalogStorefrontState } from "./types";
+import { storefrontUnavailableMessage, type CatalogStorefrontState, type CatalogStorefrontViewModel } from "./types";
 
 const formatPrice = (priceMinor: number): string => `${(priceMinor / 100).toFixed(2)} TJS`;
 

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { buildUniqueShopPublicPaths } from "../slices/catalog/domain/shop-public-paths";
 import { createCatalogRuntimeState, type CatalogRuntimeState } from "./catalog-runtime-state";
 
@@ -15,6 +15,15 @@ export type CatalogStatePersistence = {
 
 const hasNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
+
+const defaultCatalogRuntimeDatabasePath = resolve(
+  process.cwd(),
+  "backend",
+  "prisma",
+  "dev-catalog-runtime.sqlite",
+);
+
+const isJestRuntime = () => hasNonEmptyString(process.env.JEST_WORKER_ID);
 
 const normalizeCatalogRuntimeState = (state: CatalogRuntimeState): CatalogRuntimeState => {
   const occupiedPublicPaths = new Set<string>();
@@ -132,6 +141,10 @@ const createCatalogStatePersistence = (databasePath: string, cleanupDirectory: s
 export const resolveCatalogDatabasePersistence = (databasePath: string | undefined): CatalogStatePersistence => {
   if (databasePath !== undefined) {
     return createCatalogStatePersistence(databasePath, null);
+  }
+
+  if (!isJestRuntime()) {
+    return createCatalogStatePersistence(defaultCatalogRuntimeDatabasePath, null);
   }
 
   const temporaryDirectory = mkdtempSync(join(tmpdir(), "khujandi-catalog-runtime-"));

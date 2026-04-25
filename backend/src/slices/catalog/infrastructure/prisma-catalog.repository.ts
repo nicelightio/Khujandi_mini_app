@@ -1,4 +1,3 @@
-import type { PrismaProvider } from "../../../shared/db/prisma-client";
 import type {
   AdminProvisionedShopSummary,
   CatalogMenuPage,
@@ -29,7 +28,10 @@ import { CatalogAdminReader } from "./prisma/catalog-admin.reader";
 import { CatalogPublicReader } from "./prisma/catalog-public.reader";
 import { CatalogSellerReader } from "./prisma/catalog-seller.reader";
 import { CatalogSellerWriter } from "./prisma/catalog-seller.writer";
-import type { CatalogPrismaTransactionalClientLike } from "./prisma/catalog-prisma.types";
+import type {
+  CatalogPrismaProvider,
+  CatalogPrismaTransactionalClientLike,
+} from "./prisma/catalog-prisma.types";
 
 export class PrismaCatalogRepository implements CatalogRepository {
   private readonly publicReader: CatalogPublicReader;
@@ -38,7 +40,7 @@ export class PrismaCatalogRepository implements CatalogRepository {
   private readonly sellerWriter: CatalogSellerWriter;
   private readonly provisioningWriter: CatalogProvisioningWriter;
 
-  constructor(private readonly prisma: PrismaProvider) {
+  constructor(private readonly prisma: CatalogPrismaProvider) {
     this.publicReader = new CatalogPublicReader(this.prisma.client);
     this.adminReader = new CatalogAdminReader(this.prisma.client);
     this.sellerReader = new CatalogSellerReader(this.prisma.client);

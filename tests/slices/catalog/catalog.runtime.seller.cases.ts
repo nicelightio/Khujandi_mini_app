@@ -537,6 +537,108 @@ export const registerCatalogRuntimeSellerCases = () => {
     }
   });
 
+  it("keeps canonical seller endpoints fail-closed even when debug mode is enabled", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      isDebugEnabled: true,
+    });
+
+    try {
+      const adminClient = runtime.createClient();
+      await loginAdmin(adminClient);
+
+      const ownerProvisionResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-debug-owner",
+          telegramId: "301",
+          name: "Debug Owner Shop",
+        },
+      });
+      const foreignProvisionResponse = await adminClient.request({
+        path: "/api/v1/admin/catalog/shops/provision",
+        origin: adminOrigin,
+        body: {
+          sellerId: "seller-debug-foreign",
+          telegramId: "302",
+          name: "Debug Foreign Shop",
+        },
+      });
+
+      expect(ownerProvisionResponse.status).toBe(201);
+      expect(foreignProvisionResponse.status).toBe(201);
+
+      const ownerShopId = (ownerProvisionResponse.body as { shop: { id: string } }).shop.id;
+
+      const anonymousReadResponse = await runtime.createClient().request({
+        path: `/api/v1/seller/shops/${ownerShopId}`,
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(anonymousReadResponse.status).toBe(401);
+      expect(anonymousReadResponse.body).toEqual({
+        error: {
+          code: "AUTH_REQUIRED",
+          message: "Seller access requires an authenticated Telegram session",
+          details: undefined,
+        },
+        trace_id: "trace-catalog-runtime",
+      });
+
+      const foreignSellerClient = runtime.createClient();
+      await loginSeller(foreignSellerClient, "302");
+
+      const foreignReadResponse = await foreignSellerClient.request({
+        path: `/api/v1/seller/shops/${ownerShopId}`,
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(foreignReadResponse.status).toBe(403);
+      expect(foreignReadResponse.body).toEqual({
+        error: {
+          code: "FORBIDDEN",
+          message: "Seller cannot access this shop",
+          details: {
+            shopId: ownerShopId,
+          },
+        },
+        trace_id: "trace-catalog-runtime",
+      });
+
+      const foreignWriteResponse = await foreignSellerClient.request({
+        path: `/api/v1/seller/shops/${ownerShopId}`,
+        method: "PUT",
+        origin: adminOrigin,
+        body: {
+          name: "Hijacked In Debug",
+        },
+      });
+
+      expect(foreignWriteResponse.status).toBe(403);
+      expect(foreignWriteResponse.body).toEqual({
+        error: {
+          code: "FORBIDDEN",
+          message: "Seller cannot access this shop",
+          details: {
+            shopId: ownerShopId,
+          },
+        },
+        trace_id: "trace-catalog-runtime",
+      });
+
+      await expect(runtime.catalogModule.repository.findShopById(ownerShopId)).resolves.toMatchObject({
+        id: ownerShopId,
+        name: "Debug Owner Shop",
+      });
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("returns a controlled 409 when a seller rename collides with another owned shop", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",

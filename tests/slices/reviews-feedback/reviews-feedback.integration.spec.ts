@@ -438,7 +438,7 @@ describe("reviews-feedback module integration", () => {
     const module = createReviewsFeedbackModule(prisma);
     const sendMessage = jest.fn().mockResolvedValue(undefined);
     const flow = new TelegramBotReviewsFeedbackFlow(
-      module.controller,
+      module.service,
       new TelegramBotReviewsFeedbackHarness({ sendMessage }),
       {
         client_to_courier: ["ON_TIME", "RUDE"],
@@ -759,7 +759,7 @@ describe("reviews-feedback module integration", () => {
     });
     const sendMessage = jest.fn().mockResolvedValue(undefined);
     const flow = new TelegramBotReviewsFeedbackFlow(
-      module.controller,
+      module.service,
       new TelegramBotReviewsFeedbackHarness({ sendMessage }),
       {
         client_to_courier: ["ON_TIME", "RUDE"],
@@ -933,7 +933,7 @@ describe("reviews-feedback module integration", () => {
     const module = createReviewsFeedbackModule(prisma);
     const sendMessage = jest.fn().mockResolvedValue(undefined);
     const flow = new TelegramBotReviewsFeedbackFlow(
-      module.controller,
+      module.service,
       new TelegramBotReviewsFeedbackHarness({ sendMessage }),
       {
         client_to_courier: ["ON_TIME", "RUDE"],

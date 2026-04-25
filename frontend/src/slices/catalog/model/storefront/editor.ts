@@ -1,5 +1,4 @@
-import type { CatalogStorefrontEditor, CatalogStorefrontEditorTarget } from "../../components/catalog-page";
-import type { CatalogStorefrontData } from "./types";
+import type { CatalogStorefrontData, CatalogStorefrontEditor, CatalogStorefrontEditorTarget } from "./types";
 
 export const findStorefrontProduct = (
   data: CatalogStorefrontData,

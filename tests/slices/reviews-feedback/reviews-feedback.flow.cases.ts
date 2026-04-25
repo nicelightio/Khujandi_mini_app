@@ -4,27 +4,18 @@ import {
   TelegramBotReviewsFeedbackHarness,
 } from "../../../backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.harness";
 import {
-  createFlowController,
+  createFlowService,
   reviewReasons,
 } from "./reviews-feedback.unit.test-helpers";
 
 export const registerReviewsFeedbackFlowCases = () => {
   it("drives the client review flow from rating to optional comment submission", async () => {
     const sendMessage = jest.fn().mockResolvedValue(undefined);
-    const getOrderById = jest.fn().mockResolvedValue({
-      id: "order-1",
-      clientId: "client-1",
-      courierId: "courier-1",
-      status: "COMPLETED",
-      updatedAt: new Date("2026-04-05T09:00:00.000Z"),
-      isDeleted: false,
-    });
-    const getUserById = jest.fn().mockResolvedValue({
-      id: "client-1",
-      telegramId: "70001",
-      role: "client",
-      isActive: true,
-      name: "Client One",
+    const resolveReviewFlowContext = jest.fn().mockResolvedValue({
+      actorTelegramId: "70001",
+      direction: "client_to_courier",
+      targetUserId: "courier-1",
+      targetRole: "courier",
     });
     const submitReview = jest.fn().mockResolvedValue({
       reviewId: "11",
@@ -38,13 +29,12 @@ export const registerReviewsFeedbackFlowCases = () => {
       revision: "12",
       createdAt: new Date("2026-04-05T09:01:00.000Z"),
     });
-    const controller = createFlowController({
-      getOrderById,
-      getUserById,
+    const service = createFlowService({
+      resolveReviewFlowContext,
       submitReview,
     });
     const flow = new TelegramBotReviewsFeedbackFlow(
-      controller,
+      service,
       new TelegramBotReviewsFeedbackHarness({ sendMessage }),
       reviewReasons,
     );
@@ -190,20 +180,11 @@ export const registerReviewsFeedbackFlowCases = () => {
 
   it("drives the courier review flow and short-circuits duplicate final callbacks", async () => {
     const sendMessage = jest.fn().mockResolvedValue(undefined);
-    const getOrderById = jest.fn().mockResolvedValue({
-      id: "order-1",
-      clientId: "client-1",
-      courierId: "courier-1",
-      status: "COMPLETED",
-      updatedAt: new Date("2026-04-05T09:00:00.000Z"),
-      isDeleted: false,
-    });
-    const getUserById = jest.fn().mockResolvedValue({
-      id: "courier-1",
-      telegramId: "70002",
-      role: "courier",
-      isActive: true,
-      name: "Courier One",
+    const resolveReviewFlowContext = jest.fn().mockResolvedValue({
+      actorTelegramId: "70002",
+      direction: "courier_to_client",
+      targetUserId: "client-1",
+      targetRole: "client",
     });
     const submitReview = jest.fn().mockResolvedValue({
       reviewId: "21",
@@ -217,13 +198,12 @@ export const registerReviewsFeedbackFlowCases = () => {
       revision: "22",
       createdAt: new Date("2026-04-05T09:02:00.000Z"),
     });
-    const controller = createFlowController({
-      getOrderById,
-      getUserById,
+    const service = createFlowService({
+      resolveReviewFlowContext,
       submitReview,
     });
     const flow = new TelegramBotReviewsFeedbackFlow(
-      controller,
+      service,
       new TelegramBotReviewsFeedbackHarness({ sendMessage }),
       reviewReasons,
     );
@@ -335,29 +315,19 @@ export const registerReviewsFeedbackFlowCases = () => {
 
   it("ignores stale rating and reason-code callbacks after newer prompts are active", async () => {
     const sendMessage = jest.fn().mockResolvedValue(undefined);
-    const getOrderById = jest.fn().mockResolvedValue({
-      id: "order-1",
-      clientId: "client-1",
-      courierId: "courier-1",
-      status: "COMPLETED",
-      updatedAt: new Date("2026-04-05T09:00:00.000Z"),
-      isDeleted: false,
-    });
-    const getUserById = jest.fn().mockResolvedValue({
-      id: "client-1",
-      telegramId: "70001",
-      role: "client",
-      isActive: true,
-      name: "Client One",
+    const resolveReviewFlowContext = jest.fn().mockResolvedValue({
+      actorTelegramId: "70001",
+      direction: "client_to_courier",
+      targetUserId: "courier-1",
+      targetRole: "courier",
     });
     const submitReview = jest.fn();
-    const controller = createFlowController({
-      getOrderById,
-      getUserById,
+    const service = createFlowService({
+      resolveReviewFlowContext,
       submitReview,
     });
     const flow = new TelegramBotReviewsFeedbackFlow(
-      controller,
+      service,
       new TelegramBotReviewsFeedbackHarness({ sendMessage }),
       reviewReasons,
     );

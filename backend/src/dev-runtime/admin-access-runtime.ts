@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { AppError } from "../shared/errors/app-error";
 import { resolveProtectedAdminRouteSession } from "../slices/admin-access/presentation/admin-auth-http";
+import type { AdminAccessController } from "../slices/admin-access/presentation/admin-access.controller";
 import type { AdminAccessPrismaProvider } from "../slices/admin-access/infrastructure/prisma-admin-access.repository";
 
 type AdminAccountRecord = {
@@ -323,13 +324,13 @@ export const createAdminAccessRuntimePrisma = (
 export const resolveAdminProvisioningSession = async (
   request: IncomingMessage,
   dependencies: {
-    prisma: AdminAccessPrismaProvider;
+    controller: AdminAccessController;
     allowedOrigins: string[];
     now?: () => Date;
   },
 ): Promise<void> => {
   const session = await resolveProtectedAdminRouteSession(request, {
-    prisma: dependencies.prisma,
+    controller: dependencies.controller,
     allowedOrigins: dependencies.allowedOrigins,
     authRequiredMessage: "Provisioning requires an authenticated admin",
     now: dependencies.now,

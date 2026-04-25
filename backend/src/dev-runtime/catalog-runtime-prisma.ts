@@ -6,6 +6,10 @@ import type {
   SellerCatalogShop,
   SellerShopBinding,
 } from "../slices/catalog/domain/catalog.types";
+import type {
+  CatalogPrismaProvider,
+  CatalogPrismaTransactionalClientLike,
+} from "../slices/catalog/infrastructure/prisma/catalog-prisma.types";
 import { cloneCatalogState, type CatalogRuntimeState } from "./catalog-runtime-state";
 
 export const createInMemoryCatalogPrisma = (
@@ -13,7 +17,7 @@ export const createInMemoryCatalogPrisma = (
   options: {
     persist?: (state: CatalogRuntimeState) => void;
   } = {},
-) => {
+): CatalogPrismaProvider => {
   const persistCommittedState = (target: CatalogRuntimeState) => {
     if (target === state) {
       options.persist?.(state);
@@ -538,5 +542,5 @@ export const createInMemoryCatalogPrisma = (
     return result;
   };
 
-  return createPrismaProvider(client as never);
+  return createPrismaProvider(client as CatalogPrismaTransactionalClientLike);
 };

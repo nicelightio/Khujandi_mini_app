@@ -9,7 +9,11 @@ export {
 export type {
   CatalogStorefrontData,
   CatalogStorefrontEdit,
+  CatalogStorefrontEditor,
+  CatalogStorefrontEditorField,
+  CatalogStorefrontEditorTarget,
   CatalogStorefrontState,
+  CatalogStorefrontViewModel,
   LoadCatalogStorefrontData,
   PersistCatalogStorefrontEdit,
 } from "./types";

@@ -1,12 +1,15 @@
 import type {
+  ReviewsFeedbackActor,
   ReviewsFeedbackCommandResult,
   ReviewsFeedbackDirection,
+  ReviewsFeedbackFlowContext,
   ReviewsFeedbackReviewDraftRecord,
   ReviewsFeedbackNotifier,
   ReviewsFeedbackOrderRecord,
   ReviewsFeedbackOrderId,
   ReviewsFeedbackRepository,
   ReviewsFeedbackReviewRecord,
+  ReviewsFeedbackUserRecord,
   SubmitReviewInput,
   UpsertReviewDraftInput,
   ReviewsFeedbackUserId,
@@ -44,6 +47,9 @@ const resolveDirection = (
   });
 };
 
+const resolveDirectionForActor = (actor: ReviewsFeedbackActor): ReviewsFeedbackDirection =>
+  actor.role === "client" ? "client_to_courier" : "courier_to_client";
+
 const toCommandResult = (
   review: ReviewsFeedbackReviewRecord,
   revision: string,
@@ -74,6 +80,57 @@ export class ReviewsFeedbackService {
     return this.repository.findUserById(userId);
   }
 
+  async resolveReviewFlowContext(
+    orderId: ReviewsFeedbackOrderId,
+    actor: ReviewsFeedbackActor,
+  ): Promise<ReviewsFeedbackFlowContext> {
+    const order = await this.repository.findOrderById(orderId);
+
+    this.assertReviewableOrder(order, orderId, "Review flow is available only for completed orders");
+
+    const actorUser = await this.repository.findUserById(actor.userId);
+
+    this.assertReviewFlowActor(actorUser, actor.userId);
+
+    if (actor.role === "client") {
+      if (order.clientId !== actor.userId) {
+        throw new AppError("FORBIDDEN", "Client cannot open a review flow for another customer's order", 403, {
+          orderId,
+          actorUserId: actor.userId,
+          clientId: order.clientId,
+        });
+      }
+
+      if (order.courierId === null) {
+        throw new AppError("FORBIDDEN", "Client review flow requires an assigned courier target", 403, {
+          orderId,
+        });
+      }
+
+      return {
+        actorTelegramId: actorUser.telegramId,
+        direction: resolveDirectionForActor(actor),
+        targetUserId: order.courierId,
+        targetRole: "courier",
+      };
+    }
+
+    if (order.courierId !== actor.userId) {
+      throw new AppError("FORBIDDEN", "Courier cannot open a review flow for another courier's order", 403, {
+        orderId,
+        actorUserId: actor.userId,
+        courierId: order.courierId,
+      });
+    }
+
+    return {
+      actorTelegramId: actorUser.telegramId,
+      direction: resolveDirectionForActor(actor),
+      targetUserId: order.clientId,
+      targetRole: "client",
+    };
+  }
+
   listReviewsByOrderId(orderId: ReviewsFeedbackOrderId) {
     return this.repository.listReviewsByOrderId(orderId);
   }
@@ -101,7 +158,7 @@ export class ReviewsFeedbackService {
     const direction = resolveDirection(actor.role, input.targetRole);
     const order = await this.repository.findOrderById(input.orderId);
 
-    this.assertReviewableOrder(order, input.orderId);
+    this.assertReviewableOrder(order, input.orderId, "Review submission is available only for completed orders");
 
     const rating = Number.isInteger(input.rating) ? input.rating : Number.NaN;
 
@@ -171,6 +228,7 @@ export class ReviewsFeedbackService {
   private assertReviewableOrder(
     order: ReviewsFeedbackOrderRecord | null,
     orderId: ReviewsFeedbackOrderId,
+    unavailableMessage: string,
   ): asserts order is ReviewsFeedbackOrderRecord {
     if (order === null || order.isDeleted) {
       throw new AppError("ORDER_NOT_FOUND", "Order was not found", 404, {
@@ -179,10 +237,21 @@ export class ReviewsFeedbackService {
     }
 
     if (order.status !== COMPLETED_ORDER_STATUS) {
-      throw new AppError("CONFLICT", "Review submission is available only for completed orders", 409, {
+      throw new AppError("CONFLICT", unavailableMessage, 409, {
         orderId,
         currentStatus: order.status,
         expectedStatus: COMPLETED_ORDER_STATUS,
+      });
+    }
+  }
+
+  private assertReviewFlowActor(
+    actorUser: ReviewsFeedbackUserRecord | null,
+    actorUserId: ReviewsFeedbackUserId,
+  ): asserts actorUser is ReviewsFeedbackUserRecord {
+    if (actorUser === null || !actorUser.isActive || actorUser.telegramId.length === 0) {
+      throw new AppError("FORBIDDEN", "Review flow actor is unavailable for Telegram delivery", 403, {
+        actorUserId,
       });
     }
   }

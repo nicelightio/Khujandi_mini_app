@@ -5,11 +5,12 @@
 ## Prime before work
 1. Read `.memory-bank/mbb/index.md` (rules)
 2. Read `.memory-bank/spec-index.md` if it exists; treat the specifications listed there as the project source of truth
-3. Read `.memory-bank/index.md` (table of contents)
-4. Read the core spec layer:
+3. Read `doc/ARCHITECTURE.md` as the canonical architecture source for slices, layers, contours and shared-boundary rules
+4. Read `.memory-bank/index.md` (table of contents)
+5. Read the core spec layer:
    - `.memory-bank/product.md`
    - `.memory-bank/requirements.md`
-5. Read the smallest sufficient task-scoped spec subset for the current task:
+6. Read the smallest sufficient task-scoped spec subset for the current task:
    - relevant `.memory-bank/epics/EP-*.md`
    - relevant `.memory-bank/features/FT-*.md`
    - relevant `.memory-bank/architecture/*.md`
@@ -19,17 +20,20 @@
    - relevant `.memory-bank/states/*`
    - relevant `.memory-bank/adrs/*`
    - relevant `.memory-bank/runbooks/*`
-6. Only after spec priming inspect code, `.tasks/`, and implementation details
+7. Before writing code, explicitly identify: owning capability slice, owning contour, touched layers, and whether any `shared` extraction is truly justified
+8. Only after spec priming inspect code, `.tasks/`, and implementation details
 
 Fallback rule:
 - if `.memory-bank/spec-index.md` does not exist yet, use `.memory-bank/index.md` plus the core/task-scoped spec layers above.
 
 ## Spec Driven Context Policy
 - Спецификации из `.memory-bank/spec-index.md` являются источником истины проекта.
+- `doc/ARCHITECTURE.md` — главный архитектурный источник истины для slice/layer/contour boundaries и правил использования `shared`.
 - `PRD.md` не является рабочей спецификацией для реализации; это входной артефакт для генерации и обновления спецификаций.
 - Сначала искать ответ в spec-driven документах, потом в коде и только потом делать выводы.
 - Код — источник implementation truth, но не product/behavior intent truth.
 - Если код расходится со спецификациями, не выбирать молча одну из сторон: явно фиксировать drift.
+- Если `doc/ARCHITECTURE.md` и текущая реализация расходятся, не копировать существующий drift молча: сначала зафиксировать его и выбрать решение, согласованное со spec layer.
 - Если для задачи не хватает спецификаций, сначала дополни/уточни `.memory-bank/`, потом переходи к реализации.
 - Для feature-задач обязательно грузить `product.md`, `requirements.md`, соответствующие `EP-*` и `FT-*`.
 - Для API/runtime задач обязательно дополнительно грузить `architecture/*`, `contracts/*`, `states/*`, `adrs/*`.
@@ -63,7 +67,7 @@ Before meaningful implementation work:
 - Sequencing: independent tasks may run in parallel clean sessions; dependent/shared-file tasks must run sequentially.
 
 Codex (fresh session):
-- `codex exec --ephemeral --full-auto -m gpt-5.2-high 'TASK_ID=TASK-123. Read AGENTS.md + .memory-bank/mbb/index.md + .memory-bank/spec-index.md (if exists) + relevant spec files + .protocols/TASK-123/{context,plan,progress}.md. Keep context.md updated. Implement. Update progress. Report → .tasks/TASK-123/…'`
+- `codex exec --ephemeral --full-auto -m gpt-5.2-high 'TASK_ID=TASK-123. Read AGENTS.md + doc/ARCHITECTURE.md + .memory-bank/mbb/index.md + .memory-bank/spec-index.md (if exists) + relevant spec files + .protocols/TASK-123/{context,plan,progress}.md. In context.md record owning slice, contour, touched layers, and any shared justification. Keep context.md updated. Implement. Update progress. Report → .tasks/TASK-123/…'`
 
 
 ## Two modes (interactive vs autonomous)
@@ -89,8 +93,10 @@ Naming:
 
 ## Разработка архитектуры проекта
 - по умолчанию выбирать modular monolith, если нет явной причины для микросервисов;
+- канонические capability slices MVP: `catalog`, `checkout-payment`, `delivery-assignment`, `delivery-tracking`, `order-cancellation`, `reviews-feedback`, `admin-access`;
 - каждая крупная capability оформляется как вертикальный модуль;
 - внутри модуля структура слоистая: ui/app -> application -> domain -> infra;
+- сначала определить, в каком contour лежит изменение: `mini-app`, `seller-web`, `admin-web` или `telegram-bot`; contour не должен менять owning slice;
 - shared code разрешён только для реально общих primitives, а не для “удобного склада функций”;
 - feature/task должны быть спроектированы так, чтобы агент мог реализовать их в узком scope;
 - boundaries модулей выражаются через contracts/interfaces/schemas;
@@ -98,6 +104,7 @@ Naming:
 - AI-first default: сначала проектировать узкие vertical slices и их boundary contracts, затем implementation;
 - не создавать широкие shared abstractions заранее; shared слой добавлять только при явном и повторяемом доказательстве общности;
 - каждая TASK по умолчанию должна укладываться в один slice и 1-2 слоя; более широкие изменения сначала дробить на boundary/contract-first -> implementation -> integration шаги.
+- перед любым non-trivial edit сделать micro-check: `Какой это slice? Какой contour? Какие 1-2 слоя реально затрагиваются? Почему это не должно жить в shared?`
 
 
 ## Communication 

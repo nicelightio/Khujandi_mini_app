@@ -9,6 +9,7 @@ import type {
   LogoutAdminAccessInput,
   RefreshAdminAccessInput,
   RecordAdminAuditBaselineInput,
+  ResolveProtectedAdminSessionInput,
   VerifyAdminCredentialsInput,
 } from "../domain/admin-access.types";
 
@@ -67,5 +68,14 @@ export class AdminAccessController {
     },
   ) {
     return this.service.logout(input, dependencies);
+  }
+
+  resolveProtectedSession(
+    input: ResolveProtectedAdminSessionInput,
+    dependencies: {
+      tokenHasher: AdminAccessTokenHasher;
+    },
+  ) {
+    return this.service.resolveProtectedSession(input, dependencies);
   }
 }

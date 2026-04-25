@@ -21,6 +21,7 @@ status: active
 Открой минимум:
 - `.memory-bank/tasks/backlog.md` (строка с `TASK-<ID>`)
 - соответствующие спеки (например `.memory-bank/features/FT-*` / `.memory-bank/requirements.md`)
+- `doc/ARCHITECTURE.md` как главный источник истины для slice/layer/contour boundaries
 
 Приоритет чтения:
 1. explicit task-card / IMPL-plan поля, если они есть:
@@ -55,8 +56,18 @@ status: active
 В `plan.md` и `context.md` явно зафиксируй:
 - какие richer inputs были найдены
 - какой fallback использован, если richer inputs отсутствуют
+- owning capability slice
+- owning contour (`mini-app` / `seller-web` / `admin-web` / `telegram-bot`)
+- какие 1-2 слоя реально затрагиваются
+- почему изменение не должно жить в `shared` или, если должно, чем это архитектурно оправдано
 
 ## 3) Реализация (fan-out опционально)
+Перед non-trivial edit сделай boundary-check:
+- это один owning slice или здесь уже smell на cross-slice drift;
+- contour не подменяет owning slice;
+- бизнес-правила не утекают в shared/presentation/transport;
+- если текущий код противоречит `doc/ARCHITECTURE.md`, не копируй drift молча.
+
 ### 3.1 Изоляция (без конфликтов)
 - Разведи зоны по файлам (чтобы сабагенты не трогали одно и то же).
 - Если пересечения неизбежны: worktree/branch per agent.
@@ -76,7 +87,7 @@ status: active
 
 ```bash
 codex exec --ephemeral --full-auto -m gpt-5.2-high \
-  'TASK_ID=TASK-<ID>. Read AGENTS.md and .protocols/TASK-<ID>/{context,plan,progress}.md. Keep context.md updated (loaded docs + commands). Implement only scoped changes. Write report to .tasks/TASK-<ID>/TASK-<ID>-S-IMPL-final-report-code-01.md. Update progress.md.'
+  'TASK_ID=TASK-<ID>. Read AGENTS.md, doc/ARCHITECTURE.md and .protocols/TASK-<ID>/{context,plan,progress}.md. In context.md record owning slice, contour, touched layers, and any shared justification. Keep context.md updated (loaded docs + commands). Implement only scoped changes. Write report to .tasks/TASK-<ID>/TASK-<ID>-S-IMPL-final-report-code-01.md. Update progress.md.'
 ```
 
 ### 3.2.2 Fresh Claude session per TASK (required when working in Claude Code)
@@ -86,7 +97,7 @@ codex exec --ephemeral --full-auto -m gpt-5.2-high \
 
 ```bash
 claude -p --no-session-persistence --permission-mode acceptEdits --model opus \
-  'TASK_ID=TASK-<ID>. Read AGENTS.md, .protocols/TASK-<ID>/{context,plan,progress}.md, and acceptance criteria docs. Keep context.md updated (loaded docs + commands). Implement only scoped changes. Update progress.md. Write report to .tasks/TASK-<ID>/TASK-<ID>-S-IMPL-final-report-code-01.md.'
+  'TASK_ID=TASK-<ID>. Read AGENTS.md, doc/ARCHITECTURE.md, .protocols/TASK-<ID>/{context,plan,progress}.md, and acceptance criteria docs. In context.md record owning slice, contour, touched layers, and any shared justification. Keep context.md updated (loaded docs + commands). Implement only scoped changes. Update progress.md. Write report to .tasks/TASK-<ID>/TASK-<ID>-S-IMPL-final-report-code-01.md.'
 ```
 
 3) Для верификации — отдельная свежая сессия:

@@ -1,4 +1,5 @@
 import type { SupportedLanguage } from "../../../shared/i18n/languages";
+import { useOptionalUiShell } from "../../../shared/state/ui-shell-context";
 import type { CatalogApi } from "../api/catalog-api";
 import { CatalogPage } from "../components/catalog-page";
 import { useCatalogStorefront } from "../hooks/use-catalog-storefront";
@@ -19,10 +20,12 @@ export const CatalogStorefrontRoute = ({
   loadStorefrontData,
   persistStorefrontEdit,
 }: CatalogStorefrontRouteProps) => {
+  const shell = useOptionalUiShell();
   const storefront = useCatalogStorefront({
     shopId,
     api,
     language,
+    telegramBridge: shell?.telegramBridge,
     loadStorefrontData,
     persistStorefrontEdit,
   });

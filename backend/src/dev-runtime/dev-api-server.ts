@@ -1,7 +1,10 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createAdminAccessModule } from "../slices/admin-access/presentation/admin-access.module";
-import { createAdminAuthHttpHandler } from "../slices/admin-access/presentation/admin-auth-http";
+import {
+  createAdminAuthHttpHandler,
+  resolveProtectedAdminRouteSession,
+} from "../slices/admin-access/presentation/admin-auth-http";
 import { createCheckoutPaymentModule } from "../slices/checkout-payment/presentation/checkout-payment.module";
 import { createCatalogModule } from "../slices/catalog/presentation/catalog.module";
 import { AppError } from "../shared/errors/app-error";
@@ -19,6 +22,10 @@ import {
   createInMemoryCheckoutPaymentPrisma,
   resolveMiniAppAuthenticatedUser,
 } from "./checkout-payment-runtime";
+import {
+  createOperationalRuntimeModules,
+  ensureOperationalRuntimeBaseline,
+} from "./order-ops-runtime";
 import {
   createRuntimeCookieSessionClient,
   json,
@@ -90,6 +97,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   });
   const catalogModule = createCatalogModule(catalogPrisma);
   const checkoutPaymentState = checkoutPaymentPrisma.state;
+  ensureOperationalRuntimeBaseline(checkoutPaymentState);
   const isDebugEnabled = options.isDebugEnabled === true;
   const checkoutPaymentModule = createCheckoutPaymentModule(checkoutPaymentPrisma, {
     botToken: options.telegramBotToken ?? "test-bot-token",
@@ -107,6 +115,17 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
     traceIdFactory: () => "trace-admin-runtime",
     now: options.now,
   });
+  const operationalModules = createOperationalRuntimeModules(checkoutPaymentState, {
+    now: options.now,
+  });
+
+  const resolveProtectedAdminSession = (request: IncomingMessage, authRequiredMessage: string) =>
+    resolveProtectedAdminRouteSession(request, {
+      controller: adminAccessModule.controller,
+      allowedOrigins,
+      authRequiredMessage,
+      now: options.now,
+    });
 
   const resolveDebugStorefrontAccess = async (request: IncomingMessage, shopRef: string) => {
     try {
@@ -203,6 +222,9 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
       const sellerShopMatch = url.pathname.match(/^\/api\/v1\/seller\/shops\/([^/]+)$/u);
       const sellerMenuPageMatch = url.pathname.match(/^\/api\/v1\/seller\/menu-pages\/([^/]+)$/u);
       const sellerProductMatch = url.pathname.match(/^\/api\/v1\/seller\/products\/([^/]+)$/u);
+      const adminAssignmentMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/assignment$/u);
+      const adminCancellationMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/cancellation$/u);
+      const adminRefundMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/refund$/u);
 
       if (method === "GET" && storefrontMatch !== null) {
         try {
@@ -490,10 +512,130 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
             );
           }
         }
+      } else if (method === "POST" && adminAssignmentMatch !== null) {
+        try {
+          const session = await resolveProtectedAdminSession(request, "Assignment requires an authenticated admin");
+          const body = await readJsonBody(request);
+          const orderId = decodeURIComponent(adminAssignmentMatch[1]);
+          result = json(
+            200,
+            await operationalModules.deliveryAssignmentModule.controller.assignCourier({
+              orderId,
+              courierId: String(body.courierId ?? ""),
+              actor: {
+                userId: session.adminAccountId,
+                role: session.role,
+              },
+            }),
+            "POST,OPTIONS",
+          );
+        } catch (error) {
+          if (error instanceof AppError) {
+            result = json(error.statusCode, error.toPayload("trace-delivery-assignment-runtime"), "POST,OPTIONS");
+          } else if (error instanceof SyntaxError) {
+            result = json(
+              400,
+              new AppError("VALIDATION_ERROR", "Request body must be valid JSON", 400).toPayload(
+                "trace-delivery-assignment-runtime",
+              ),
+              "POST,OPTIONS",
+            );
+          } else {
+            result = json(
+              500,
+              new AppError("INTERNAL_ERROR", "Assignment runtime is temporarily unavailable", 500).toPayload(
+                "trace-delivery-assignment-runtime",
+              ),
+              "POST,OPTIONS",
+            );
+          }
+        }
+      } else if (method === "POST" && adminCancellationMatch !== null) {
+        try {
+          const session = await resolveProtectedAdminSession(request, "Cancellation requires an authenticated operator");
+          const body = await readJsonBody(request);
+          const orderId = decodeURIComponent(adminCancellationMatch[1]);
+          result = json(
+            200,
+            await operationalModules.orderCancellationModule.controller.cancelOrder({
+              orderId,
+              reasonCode: String(body.reasonCode ?? ""),
+              actor: {
+                userId: session.adminAccountId,
+                role: session.role,
+              },
+            }),
+            "POST,OPTIONS",
+          );
+        } catch (error) {
+          if (error instanceof AppError) {
+            result = json(error.statusCode, error.toPayload("trace-order-cancellation-runtime"), "POST,OPTIONS");
+          } else if (error instanceof SyntaxError) {
+            result = json(
+              400,
+              new AppError("VALIDATION_ERROR", "Request body must be valid JSON", 400).toPayload(
+                "trace-order-cancellation-runtime",
+              ),
+              "POST,OPTIONS",
+            );
+          } else {
+            result = json(
+              500,
+              new AppError("INTERNAL_ERROR", "Cancellation runtime is temporarily unavailable", 500).toPayload(
+                "trace-order-cancellation-runtime",
+              ),
+              "POST,OPTIONS",
+            );
+          }
+        }
+      } else if (method === "POST" && adminRefundMatch !== null) {
+        try {
+          const session = await resolveProtectedAdminSession(request, "Refund tracking requires an authenticated operator");
+          const body = await readJsonBody(request);
+          const orderId = decodeURIComponent(adminRefundMatch[1]);
+          if (body.refundStatus !== "DONE" && body.refundStatus !== "REJECTED") {
+            throw new AppError("VALIDATION_ERROR", "Refund status must be DONE or REJECTED", 400, {
+              field: "refundStatus",
+            });
+          }
+          result = json(
+            200,
+            await operationalModules.orderCancellationModule.controller.recordRefundUpdate({
+              orderId,
+              refundStatus: body.refundStatus,
+              refundNote: String(body.refundNote ?? ""),
+              actor: {
+                userId: session.adminAccountId,
+                role: session.role,
+              },
+            }),
+            "POST,OPTIONS",
+          );
+        } catch (error) {
+          if (error instanceof AppError) {
+            result = json(error.statusCode, error.toPayload("trace-order-cancellation-runtime"), "POST,OPTIONS");
+          } else if (error instanceof SyntaxError) {
+            result = json(
+              400,
+              new AppError("VALIDATION_ERROR", "Request body must be valid JSON", 400).toPayload(
+                "trace-order-cancellation-runtime",
+              ),
+              "POST,OPTIONS",
+            );
+          } else {
+            result = json(
+              500,
+              new AppError("INTERNAL_ERROR", "Refund runtime is temporarily unavailable", 500).toPayload(
+                "trace-order-cancellation-runtime",
+              ),
+              "POST,OPTIONS",
+            );
+          }
+        }
       } else if (method === "GET" && url.pathname === "/api/v1/admin/catalog/shops") {
         try {
           await resolveAdminProvisioningSession(request, {
-            prisma,
+            controller: adminAccessModule.controller,
             allowedOrigins,
             now: options.now,
           });
@@ -512,7 +654,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
       } else if (method === "POST" && url.pathname === "/api/v1/admin/catalog/shops/provision") {
         try {
           await resolveAdminProvisioningSession(request, {
-            prisma,
+            controller: adminAccessModule.controller,
             allowedOrigins,
             now: options.now,
           });

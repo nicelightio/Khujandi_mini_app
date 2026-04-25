@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import type { SupportedLanguage } from "../../../shared/i18n/languages";
-import { createTelegramWebAppBridge } from "../../../shared/telegram/webapp";
+import type { TelegramWebAppBridge } from "../../../shared/telegram/webapp";
 import type { CatalogApi } from "../api/catalog-api";
-import type { CatalogStorefrontEditorTarget, CatalogStorefrontViewModel } from "../components/catalog-page";
 import {
   buildStorefrontCatalogViewModel,
   buildStorefrontViewModel,
@@ -15,7 +14,9 @@ import {
   defaultPersistStorefrontEdit,
   storefrontUnavailableMessage,
   type CatalogStorefrontEdit,
+  type CatalogStorefrontEditorTarget,
   type CatalogStorefrontState,
+  type CatalogStorefrontViewModel,
   type LoadCatalogStorefrontData,
   type PersistCatalogStorefrontEdit,
 } from "../model/storefront";
@@ -25,6 +26,7 @@ type UseCatalogStorefrontOptions = {
   shopId: string;
   api: CatalogApi;
   language: SupportedLanguage;
+  telegramBridge?: TelegramWebAppBridge;
   loadStorefrontData?: LoadCatalogStorefrontData;
   persistStorefrontEdit?: PersistCatalogStorefrontEdit;
 };
@@ -53,8 +55,16 @@ const summarizeStringValue = (value: string | null | undefined): string => {
   return `len=${value.length} prefix=${value.slice(0, 48)}`;
 };
 
-const ensureTelegramStorefrontSession = async (): Promise<{ telegramId: string | null; authDebugLabel: string | null }> => {
-  const bridge = createTelegramWebAppBridge();
+const ensureTelegramStorefrontSession = async (
+  bridge?: TelegramWebAppBridge,
+): Promise<{ telegramId: string | null; authDebugLabel: string | null }> => {
+  if (bridge === undefined) {
+    return {
+      telegramId: null,
+      authDebugLabel: "Telegram bridge unavailable on storefront route.",
+    };
+  }
+
   const initData = bridge.getInitData()?.trim() ?? "";
 
   if (!bridge.isAvailable()) {
@@ -103,6 +113,7 @@ export const useCatalogStorefront = ({
   shopId,
   api,
   language,
+  telegramBridge,
   loadStorefrontData = defaultLoadStorefrontData,
   persistStorefrontEdit = defaultPersistStorefrontEdit,
 }: UseCatalogStorefrontOptions): UseCatalogStorefrontResult => {
@@ -116,7 +127,7 @@ export const useCatalogStorefront = ({
     let authenticatedTelegramId: string | null = null;
     let authDebugLabel: string | null = null;
 
-    void ensureTelegramStorefrontSession()
+    void ensureTelegramStorefrontSession(telegramBridge)
       .then((result) => {
         authenticatedTelegramId = result.telegramId;
         authDebugLabel = result.authDebugLabel;
@@ -154,7 +165,7 @@ export const useCatalogStorefront = ({
     return () => {
       isActive = false;
     };
-  }, [api, loadStorefrontData, shopId]);
+  }, [api, loadStorefrontData, shopId, telegramBridge]);
 
   const handleActivateEditor = (target: CatalogStorefrontEditorTarget) => {
     setStorefrontState((currentState) => {

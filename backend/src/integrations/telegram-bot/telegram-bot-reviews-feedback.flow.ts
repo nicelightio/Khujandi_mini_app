@@ -1,5 +1,4 @@
-import { AppError } from "../../shared/errors/app-error";
-import { ReviewsFeedbackController } from "../../slices/reviews-feedback/presentation/reviews-feedback.controller";
+import { ReviewsFeedbackService } from "../../slices/reviews-feedback/application/reviews-feedback.service";
 import type {
   ReviewsFeedbackActor,
   ReviewsFeedbackCommandResult,
@@ -8,7 +7,6 @@ import type {
   ReviewsFeedbackOrderId,
   ReviewsFeedbackTargetRole,
   ReviewsFeedbackUserId,
-  ReviewsFeedbackUserRecord,
 } from "../../slices/reviews-feedback/domain/reviews-feedback.types";
 import {
   TelegramBotReviewsFeedbackHarness,
@@ -78,7 +76,6 @@ type PendingReviewDraft = {
   expiresAt: Date;
 };
 
-const COMPLETED_ORDER_STATUS = "COMPLETED";
 const REVIEW_DRAFT_TTL_MS = 60 * 60 * 1000;
 
 const resolveDirectionForActor = (actor: ReviewsFeedbackActor): ReviewsFeedbackDirection =>
@@ -91,7 +88,7 @@ const buildCommentPromptRevision = (rating: number, reasonCode: string): string 
 
 export class TelegramBotReviewsFeedbackFlow {
   constructor(
-    private readonly controller: ReviewsFeedbackController,
+    private readonly service: ReviewsFeedbackService,
     private readonly harness: TelegramBotReviewsFeedbackHarness,
     private readonly reasonCodes: TelegramBotReviewReasonCodes,
   ) {}
@@ -103,7 +100,7 @@ export class TelegramBotReviewsFeedbackFlow {
       orderId: input.orderId,
       actorUserId: input.actor.userId,
       actorRole: input.actor.role,
-      actorTelegramId: context.actorUser.telegramId,
+      actorTelegramId: context.actorTelegramId,
       direction: context.direction,
       targetUserId: context.targetUserId,
       targetRole: context.targetRole,
@@ -119,7 +116,7 @@ export class TelegramBotReviewsFeedbackFlow {
     });
 
     await this.harness.notifyRatingStep({
-      chatId: context.actorUser.telegramId,
+      chatId: context.actorTelegramId,
       orderId: input.orderId,
       direction: context.direction,
       revision: input.revision,
@@ -186,7 +183,7 @@ export class TelegramBotReviewsFeedbackFlow {
         orderId: payload.orderId,
         actorUserId: input.actor.userId,
         actorRole: input.actor.role,
-        actorTelegramId: context.actorUser.telegramId,
+        actorTelegramId: context.actorTelegramId,
         direction: payload.direction,
         targetUserId: context.targetUserId,
         targetRole: context.targetRole,
@@ -202,7 +199,7 @@ export class TelegramBotReviewsFeedbackFlow {
       });
 
       await this.harness.notifyReasonCodeStep({
-        chatId: context.actorUser.telegramId,
+        chatId: context.actorTelegramId,
         orderId: payload.orderId,
         direction: payload.direction,
         rating,
@@ -285,7 +282,7 @@ export class TelegramBotReviewsFeedbackFlow {
       };
     }
 
-    const result = await this.controller.submitReview({
+    const result = await this.service.submitReview({
       orderId: draft.orderId,
       actor: {
         userId: draft.actorUserId,
@@ -343,7 +340,7 @@ export class TelegramBotReviewsFeedbackFlow {
       };
     }
 
-    const result = await this.controller.submitReview({
+    const result = await this.service.submitReview({
       orderId: draft.orderId,
       actor: {
         userId: draft.actorUserId,
@@ -370,79 +367,8 @@ export class TelegramBotReviewsFeedbackFlow {
     };
   }
 
-  private async resolveContext(orderId: ReviewsFeedbackOrderId, actor: ReviewsFeedbackActor) {
-    const order = await this.controller.getOrderById(orderId);
-
-    if (order === null || order.isDeleted) {
-      throw new AppError("ORDER_NOT_FOUND", "Order was not found", 404, {
-        orderId,
-      });
-    }
-
-    if (order.status !== COMPLETED_ORDER_STATUS) {
-      throw new AppError("CONFLICT", "Review flow is available only for completed orders", 409, {
-        orderId,
-        currentStatus: order.status,
-        expectedStatus: COMPLETED_ORDER_STATUS,
-      });
-    }
-
-    const actorUser = await this.controller.getUserById(actor.userId);
-
-    this.assertReviewActor(actorUser, actor.userId);
-
-    if (actor.role === "client") {
-      if (order.clientId !== actor.userId) {
-        throw new AppError("FORBIDDEN", "Client cannot open a review flow for another customer's order", 403, {
-          orderId,
-          actorUserId: actor.userId,
-          clientId: order.clientId,
-        });
-      }
-
-      if (order.courierId === null) {
-        throw new AppError("FORBIDDEN", "Client review flow requires an assigned courier target", 403, {
-          orderId,
-        });
-      }
-
-      const direction = "client_to_courier" as const;
-
-      return {
-        actorUser,
-        direction,
-        targetUserId: order.courierId,
-        targetRole: "courier" as const,
-      };
-    }
-
-    if (order.courierId !== actor.userId) {
-      throw new AppError("FORBIDDEN", "Courier cannot open a review flow for another courier's order", 403, {
-        orderId,
-        actorUserId: actor.userId,
-        courierId: order.courierId,
-      });
-    }
-
-    const direction = "courier_to_client" as const;
-
-    return {
-      actorUser,
-      direction,
-      targetUserId: order.clientId,
-      targetRole: "client" as const,
-    };
-  }
-
-  private assertReviewActor(
-    actorUser: ReviewsFeedbackUserRecord | null,
-    actorUserId: ReviewsFeedbackUserId,
-  ): asserts actorUser is ReviewsFeedbackUserRecord {
-    if (actorUser === null || !actorUser.isActive || actorUser.telegramId.length === 0) {
-      throw new AppError("FORBIDDEN", "Review flow actor is unavailable for Telegram delivery", 403, {
-        actorUserId,
-      });
-    }
+  private resolveContext(orderId: ReviewsFeedbackOrderId, actor: ReviewsFeedbackActor) {
+    return this.service.resolveReviewFlowContext(orderId, actor);
   }
 
   private matchesExpectedStep(
@@ -460,7 +386,7 @@ export class TelegramBotReviewsFeedbackFlow {
     actorUserId: ReviewsFeedbackUserId,
     direction: ReviewsFeedbackDirection,
   ): Promise<PendingReviewDraft | undefined> {
-    const draft = await this.controller.getActiveReviewDraft(orderId, actorUserId, direction, new Date());
+    const draft = await this.service.findActiveReviewDraft(orderId, actorUserId, direction, new Date());
 
     return draft === null
       ? undefined
@@ -485,7 +411,7 @@ export class TelegramBotReviewsFeedbackFlow {
   }
 
   private persistDraft(draft: PendingReviewDraft) {
-    return this.controller.upsertReviewDraft({
+    return this.service.upsertReviewDraft({
       orderId: draft.orderId,
       actorUserId: draft.actorUserId,
       direction: draft.direction,

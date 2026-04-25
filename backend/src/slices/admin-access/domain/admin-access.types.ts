@@ -103,6 +103,17 @@ export type LogoutAdminAccessResult = {
   loggedOut: boolean;
 };
 
+export type ResolveProtectedAdminSessionInput = {
+  accessToken: string;
+  refreshToken: string;
+  now?: Date;
+};
+
+export type ResolveProtectedAdminSessionResult = {
+  adminAccountId: AdminAccessAccountId;
+  role: AdminAccessRole;
+};
+
 export type AdminAccessCredentialVerificationResult =
   | {
       ok: true;

@@ -1,5 +1,6 @@
-import type { ReviewsFeedbackController } from "../../../backend/src/slices/reviews-feedback/presentation/reviews-feedback.controller";
+import type { ReviewsFeedbackService } from "../../../backend/src/slices/reviews-feedback/application/reviews-feedback.service";
 import type {
+  ReviewsFeedbackFlowContext,
   ReviewsFeedbackRepository,
   ReviewsFeedbackReviewDraftRecord,
   UpsertReviewDraftInput,
@@ -73,11 +74,10 @@ export const createRepository = (): ReviewsFeedbackRepository => ({
   }),
 });
 
-export const createFlowController = (input: {
-  getOrderById: jest.Mock;
-  getUserById: jest.Mock;
+export const createFlowService = (input: {
+  resolveReviewFlowContext: jest.Mock<Promise<ReviewsFeedbackFlowContext>, [string, { userId: string; role: "client" | "courier" }]>;
   submitReview: jest.Mock;
-}): ReviewsFeedbackController => {
+}): ReviewsFeedbackService => {
   const drafts = new Map<string, ReviewsFeedbackReviewDraftRecord>();
   const submittedReviews = new Map<string, Awaited<ReturnType<typeof input.submitReview>>>();
   const buildKey = (orderId: string, actorUserId: string, direction: string): string =>
@@ -107,10 +107,9 @@ export const createFlowController = (input: {
   });
 
   return {
-    getOrderById: input.getOrderById,
-    getUserById: input.getUserById,
-    getReviewsByOrderId,
-    getActiveReviewDraft: jest.fn(async (orderId, actorUserId, direction, now) => {
+    resolveReviewFlowContext: input.resolveReviewFlowContext,
+    listReviewsByOrderId: getReviewsByOrderId,
+    findActiveReviewDraft: jest.fn(async (orderId, actorUserId, direction, now) => {
       const draft = drafts.get(buildKey(orderId, actorUserId, direction)) ?? null;
 
       if (draft === null || draft.expiresAt.getTime() <= now.getTime()) {
@@ -130,5 +129,5 @@ export const createFlowController = (input: {
       return nextDraft;
     }),
     submitReview,
-  } as unknown as ReviewsFeedbackController;
+  } as unknown as ReviewsFeedbackService;
 };

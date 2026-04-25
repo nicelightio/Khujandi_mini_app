@@ -107,6 +107,39 @@ const dispatchBubblingClick = (instance: ReactTestInstance) => {
   }
 };
 
+const dispatchBubblingContextMenu = (instance: ReactTestInstance) => {
+  let propagationStopped = false;
+  let defaultPrevented = false;
+  let current: ReactTestInstance | null = instance;
+
+  const event: {
+    preventDefault: () => void;
+    stopPropagation: () => void;
+  } = {
+    preventDefault: () => {
+      defaultPrevented = true;
+    },
+    stopPropagation: () => {
+      propagationStopped = true;
+    },
+  };
+
+  while (current !== null) {
+    const onContextMenu = current.props.onContextMenu as
+      | ((event: { preventDefault: () => void; stopPropagation: () => void }) => void)
+      | undefined;
+    onContextMenu?.(event);
+
+    if (propagationStopped) {
+      break;
+    }
+
+    current = current.parent;
+  }
+
+  expect(defaultPrevented).toBe(true);
+};
+
 describe("catalog page", () => {
   it("renders browse-safe shops and products for the public catalog", () => {
     let renderer!: ReactTestRenderer;
@@ -277,5 +310,57 @@ describe("catalog page", () => {
       [{ type: "new-product", menuPageId: "page-1" }],
       [{ type: "product", menuPageId: "page-1", productId: "product-1" }],
     ]);
+  });
+
+  it("opens the shop editor only once when the hero surface bubbles to the storefront article", () => {
+    const onActivateEditor = jest.fn();
+    let renderer!: ReactTestRenderer;
+
+    act(() => {
+      renderer = renderWithLanguage(
+        createElement(CatalogPage, {
+          viewModel: createCatalogViewModel([], "en"),
+          storefront: {
+            shop: {
+              id: "shop-1",
+              publicPath: "khujand-bakery",
+              name: "Khujand Bakery",
+              description: null,
+              headerImageUrl: null,
+              backgroundImageUrl: null,
+              renameReviewNote: null,
+            },
+            access: {
+              canEdit: true,
+              statusLabel: "Seller edit mode is active on the shared storefront tree.",
+              activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
+            },
+            menuPages: [],
+            unpagedProducts: [],
+            emptyMenuPagesLabel: "No menu pages yet.",
+            emptyProductsLabel: "No products yet.",
+            addMenuPageLabel: "Add menu page",
+            addProductLabel: "Add product",
+            successMessage: null,
+            errorMessage: null,
+            isSaving: false,
+            editor: null,
+          },
+          onActivateEditor,
+        }),
+      );
+    });
+
+    const hero = renderer.root.findByProps({ "data-storefront-hero": "image" });
+
+    act(() => {
+      dispatchBubblingClick(hero);
+    });
+
+    act(() => {
+      dispatchBubblingContextMenu(hero);
+    });
+
+    expect(onActivateEditor.mock.calls).toEqual([[{ type: "shop" }], [{ type: "shop" }]]);
   });
 });

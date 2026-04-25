@@ -15,6 +15,8 @@ import type {
   RefreshAdminAccessInput,
   RefreshAdminAccessResult,
   RecordAdminAuditBaselineInput,
+  ResolveProtectedAdminSessionInput,
+  ResolveProtectedAdminSessionResult,
   VerifyAdminCredentialsInput,
 } from "../domain/admin-access.types";
 import {
@@ -404,5 +406,43 @@ export class AdminAccessService {
     });
 
     return { loggedOut: true };
+  }
+
+  async resolveProtectedSession(
+    input: ResolveProtectedAdminSessionInput,
+    dependencies: {
+      tokenHasher: AdminAccessTokenHasher;
+    },
+  ): Promise<ResolveProtectedAdminSessionResult> {
+    if (input.accessToken.length === 0 || input.refreshToken.length === 0) {
+      throw new AppError("AUTH_REQUIRED", "Protected admin route requires an authenticated admin", 401);
+    }
+
+    const now = input.now ?? new Date();
+    const accessTokenHash = await dependencies.tokenHasher.hash(input.accessToken);
+    const refreshTokenHash = await dependencies.tokenHasher.hash(input.refreshToken);
+    const session = await this.repository.findSessionByRefreshTokenHash(refreshTokenHash);
+
+    if (
+      session === null ||
+      session.accessTokenHash !== accessTokenHash ||
+      session.revokedAt !== null ||
+      session.accessTokenExpiresAt.getTime() <= now.getTime() ||
+      session.refreshTokenExpiresAt.getTime() <= now.getTime() ||
+      session.idleExpiresAt.getTime() <= now.getTime()
+    ) {
+      throw new AppError("AUTH_REQUIRED", "Protected admin route requires an authenticated admin", 401);
+    }
+
+    const account = await this.repository.findAccountById(session.adminAccountId);
+
+    if (account === null || !account.isActive) {
+      throw new AppError("AUTH_REQUIRED", "Protected admin route requires an authenticated admin", 401);
+    }
+
+    return {
+      adminAccountId: account.id,
+      role: account.role,
+    };
   }
 }

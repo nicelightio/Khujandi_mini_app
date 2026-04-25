@@ -67,6 +67,13 @@ export type ReviewsFeedbackActor = {
   role: Extract<ReviewsFeedbackUserRole, "client" | "courier">;
 };
 
+export type ReviewsFeedbackFlowContext = {
+  actorTelegramId: string;
+  direction: ReviewsFeedbackDirection;
+  targetUserId: ReviewsFeedbackUserId;
+  targetRole: ReviewsFeedbackTargetRole;
+};
+
 export type SubmitReviewInput = {
   orderId: ReviewsFeedbackOrderId;
   actor: ReviewsFeedbackActor | null;
