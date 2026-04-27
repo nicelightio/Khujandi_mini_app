@@ -16,3 +16,13 @@ export const isRouteFamilyPathname = (pathname: string, familyPrefix: string): b
   pathname === familyPrefix || pathname.startsWith(`${familyPrefix}/`);
 
 export const buildStorefrontPath = (publicPath: string): string => `/shops/${encodeURIComponent(publicPath)}`;
+
+export const buildOrderTrackingPath = (orderId: string, cursor?: string): string => {
+  const params = new URLSearchParams({ orderId });
+
+  if (cursor !== undefined && cursor.length > 0) {
+    params.set("cursor", cursor);
+  }
+
+  return `${routes.orderTracking}?${params.toString()}`;
+};

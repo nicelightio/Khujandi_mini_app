@@ -18,3 +18,6 @@ status: active
 - [.memory-bank/tasks/plans/IMPL-FT-009.md](IMPL-FT-009.md): План реализации Mini App shell/runtime и WebView UX baseline.
 - [.memory-bank/tasks/plans/IMPL-FT-010.md](IMPL-FT-010.md): План реализации shared seller storefront edit mode, skeleton provisioning и узкой `seller-web` админки магазина.
 - [.memory-bank/tasks/plans/IMPL-FT-011.md](IMPL-FT-011.md): План реализации DB-backed `catalog` runtime baseline, durable provisioning и restart-safe storefront resolution.
+- [.memory-bank/tasks/plans/IMPL-FT-012.md](IMPL-FT-012.md): План реализации customer product selection и single-shop cart/order composition перед checkout.
+- [.memory-bank/tasks/plans/IMPL-FT-013.md](IMPL-FT-013.md): План реализации customer checkout handoff и mounted paid order creation flow.
+- [.memory-bank/tasks/plans/IMPL-FT-014.md](IMPL-FT-014.md): План реализации customer-facing order status visibility поверх `FT-005` polling/event contract.

@@ -78,6 +78,7 @@ status: active
 - Current hardening status: repo-local policy semantics are now reconciled so degraded Telegram runtime keeps a conservative shell-owned `keyboard-safe` bottom CTA path; substantive closure still requires fresh real Android Telegram notes confirming keyboard-open reachability on that corrected path.
 - `FT-002` сохраняет ownership над Telegram auth/session transport, trusted payment confirmation, and transport/source verification.
 - `FT-003` сохраняет ownership над first-run language overlay, explicit language persistence, fallback-to-`ru`, and post-auth profile sync.
+- `FT-013` and `FT-014` may use shell-owned bottom actions, lifecycle and polling-resume affordances, but they do not move checkout/payment or delivery-tracking domain logic into the shell.
 
 ## Test strategy pointers
 

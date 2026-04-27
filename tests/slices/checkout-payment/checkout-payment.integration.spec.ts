@@ -713,6 +713,11 @@ describe("checkout-payment module integration", () => {
       "Payment confirmation timed out",
       "payment_timeout",
     ],
+    [
+      "AMBIGUOUS",
+      "Payment confirmation is ambiguous",
+      "payment_ambiguous",
+    ],
   ] as const)(
     "returns a retry-safe controlled error for %s checkout outcomes without persisting orders",
     async (status, message, failureCategory) => {

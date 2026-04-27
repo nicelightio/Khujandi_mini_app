@@ -1,7 +1,9 @@
 import { createDeliveryAssignmentModule } from "../slices/delivery-assignment/presentation/delivery-assignment.module";
+import { createDeliveryTrackingModule } from "../slices/delivery-tracking/presentation/delivery-tracking.module";
 import { createOrderCancellationModule } from "../slices/order-cancellation/presentation/order-cancellation.module";
 import type { CheckoutPaymentOrderRecord, CheckoutPaymentUserRecord } from "../slices/checkout-payment/domain/checkout-payment.types";
 import type { DeliveryAssignmentPrismaProvider } from "../slices/delivery-assignment/infrastructure/prisma-delivery-assignment.repository";
+import type { DeliveryTrackingPrismaProvider } from "../slices/delivery-tracking/infrastructure/prisma-delivery-tracking.repository";
 import type { OrderCancellationPrismaProvider } from "../slices/order-cancellation/infrastructure/prisma-order-cancellation.repository";
 import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 
@@ -14,10 +16,20 @@ type RuntimeOrderMetadata = {
 
 type OperationalRuntimeState = {
   orderMetadata: Map<string, RuntimeOrderMetadata>;
+  events: RuntimeEventRecord[];
   nextStatusHistoryId: bigint;
   nextAssignmentAuditId: bigint;
   nextCancellationAuditId: bigint;
   nextEventId: bigint;
+};
+
+type RuntimeEventRecord = {
+  id: bigint;
+  type: string;
+  entity: string;
+  entityId: string;
+  payload: Record<string, unknown>;
+  createdAt: Date;
 };
 
 const DEFAULT_OPERATIONAL_USERS: CheckoutPaymentUserRecord[] = [
@@ -212,6 +224,7 @@ const createOperationalRuntimeState = (
 ): OperationalRuntimeState => {
   const runtimeState: OperationalRuntimeState = {
     orderMetadata: new Map(),
+    events: [],
     nextStatusHistoryId: 1n,
     nextAssignmentAuditId: 1n,
     nextCancellationAuditId: 1n,
@@ -223,6 +236,21 @@ const createOperationalRuntimeState = (
   }
 
   return runtimeState;
+};
+
+const createRuntimeEvent = (
+  runtimeState: OperationalRuntimeState,
+  nowFactory: () => Date,
+  data: Omit<RuntimeEventRecord, "id" | "createdAt">,
+): RuntimeEventRecord => {
+  const event = {
+    id: runtimeState.nextEventId++,
+    ...data,
+    createdAt: nowFactory(),
+  };
+
+  runtimeState.events.push(event);
+  return event;
 };
 
 export const ensureOperationalRuntimeBaseline = (state: CheckoutPaymentRuntimeState) => {
@@ -289,11 +317,7 @@ export const createOperationalRuntimeModules = (
       }),
     },
     event: {
-      create: async ({ data }) => ({
-        id: runtimeState.nextEventId++,
-        ...data,
-        createdAt: nowFactory(),
-      }),
+      create: async ({ data }) => createRuntimeEvent(runtimeState, nowFactory, data),
     },
     $transaction: async (callback) => callback(deliveryAssignmentClient),
   };
@@ -349,21 +373,56 @@ export const createOperationalRuntimeModules = (
       }),
     },
     event: {
-      create: async ({ data }) => ({
-        id: runtimeState.nextEventId++,
-        ...data,
-        createdAt: nowFactory(),
-      }),
+      create: async ({ data }) => createRuntimeEvent(runtimeState, nowFactory, data),
     },
     $transaction: async (callback) => callback(orderCancellationClient),
+  };
+
+  const deliveryTrackingClient: DeliveryTrackingPrismaProvider["client"] = {
+    order: {
+      findUnique: async ({ where }) => toAssignmentOrderRecord(state, runtimeState, where.id, nowFactory),
+      update: async ({ where, data }) => {
+        const resolved = findOrder(state, runtimeState, where.id, nowFactory);
+
+        if (resolved === null) {
+          throw new Error(`Unknown order ${where.id}`);
+        }
+
+        resolved.order.status = data.status;
+        resolved.metadata.updatedAt = nowFactory();
+        return toAssignmentOrderRecord(state, runtimeState, where.id, nowFactory)!;
+      },
+    },
+    orderStatusHistory: {
+      create: async ({ data }) => ({
+        id: runtimeState.nextStatusHistoryId++,
+        ...data,
+      }),
+    },
+    event: {
+      create: async ({ data }) => createRuntimeEvent(runtimeState, nowFactory, data),
+      findMany: async ({ where }) => runtimeState.events.filter((event) => event.id > where.id.gt) as never,
+    },
+    user: {
+      findUnique: async ({ where }) => {
+        const user = state.users.find((candidate) => candidate.id === where.id);
+
+        return user === undefined ? null : { telegramId: user.telegramId };
+      },
+    },
+    $transaction: async (callback) => callback(deliveryTrackingClient),
   };
 
   return {
     deliveryAssignmentModule: createDeliveryAssignmentModule({
       client: deliveryAssignmentClient,
     }),
+    deliveryTrackingModule: createDeliveryTrackingModule({
+      client: deliveryTrackingClient,
+    }),
     orderCancellationModule: createOrderCancellationModule({
       client: orderCancellationClient,
     }),
+    getCurrentEventCursor: () => (runtimeState.nextEventId - 1n).toString(),
   };
 };

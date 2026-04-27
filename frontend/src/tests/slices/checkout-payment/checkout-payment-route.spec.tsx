@@ -1,6 +1,7 @@
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { LocalizationBoundary } from "../../../app/localization-boundary";
 import { CheckoutPaymentApiError } from "../../../slices/checkout-payment/api/checkout-payment-api";
+import type { CheckoutCompositionHandoff } from "../../../slices/checkout-payment/model/composition-handoff";
 import { CheckoutPaymentRoute } from "../../../slices/checkout-payment/routes/checkout-payment-route";
 import type { SupportedLanguage } from "../../../shared/i18n/languages";
 import type { LanguageController } from "../../../shared/state/language";
@@ -36,6 +37,27 @@ const reactActEnvironment = globalThis as typeof globalThis & {
 reactActEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
 
 let consoleErrorSpy: jest.SpyInstance;
+
+const composition = {
+  shop_public_path: "khujand-bakery",
+  shop_id: "shop-1",
+  items: [
+    {
+      product_id: "product-1",
+      quantity: 2,
+      display_snapshot: {
+        product_name: "Somsa",
+        unit_price_minor: 1500,
+        currency: "TJS" as const,
+      },
+    },
+  ],
+  preview_total: {
+    amount_minor: 3000,
+    currency: "TJS" as const,
+  },
+  created_at: "2026-04-25T00:00:00.000Z",
+};
 
 beforeEach(() => {
   consoleErrorSpy = jest.spyOn(console, "error").mockImplementation((message: unknown) => {
@@ -131,13 +153,14 @@ describe("checkout-payment route", () => {
   const renderRoute = async (
     props?: Parameters<typeof CheckoutPaymentRoute>[0],
     languageController: LanguageController = createLanguageController(),
+    handoff: CheckoutCompositionHandoff | null = composition,
   ): Promise<ReactTestRenderer> => {
     let renderer!: ReactTestRenderer;
 
     await act(async () => {
       renderer = create(
         <LocalizationBoundary controller={languageController}>
-          <CheckoutPaymentRoute {...props} />
+          <CheckoutPaymentRoute {...props} compositionHandoff={handoff} />
         </LocalizationBoundary>,
       );
       await flushPromises();
@@ -155,6 +178,10 @@ describe("checkout-payment route", () => {
 
     expect(text).toContain("Checkout");
     expect(text).toContain("Secure checkout is ready.");
+    expect(text).toContain("Order composition confirmation");
+    expect(text).toContain("Shop: khujand-bakery");
+    expect(text).toContain("Somsa × 2 · 15.00 TJS");
+    expect(text).toContain("Preview total 30.00 TJS");
     expect(text).toContain("Continue to payment");
     expect(actionZone.findByType("button").children).toEqual(["Continue to payment"]);
     expect(bridge.ready).not.toHaveBeenCalled();
@@ -168,6 +195,31 @@ describe("checkout-payment route", () => {
     expect(text).toContain("Оформление заказа");
     expect(text).toContain("Безопасное оформление заказа готово.");
     expect(text).toContain("Перейти к оплате");
+  });
+
+  it("recovers direct checkout access without a composition draft", async () => {
+    const api = {
+      loadCheckoutBootstrap: async () => ({
+        headline: "Checkout",
+        statusLabel: "Secure checkout is ready.",
+        supportingNotes: ["Order creation stays server-side only."],
+        primaryActionLabel: "Continue to payment",
+      }),
+      authenticateTelegram: jest.fn(),
+      syncLanguagePreference: jest.fn(),
+      submitCheckout: jest.fn(),
+    };
+
+    const renderer = await renderRoute({ api, bridge: createBridge("query_id=raw") }, createLanguageController("en"), null);
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Build your cart in the catalog first.");
+    expect(text).toContain(
+      "Checkout opens only from a non-empty cart. Return to the catalog and choose products before payment.",
+    );
+    expect(text).toContain("Return to catalog");
+    expect(api.authenticateTelegram).not.toHaveBeenCalled();
+    expect(api.submitCheckout).not.toHaveBeenCalled();
   });
 
   it("completes checkout through Telegram auth and backend checkout calls", async () => {
@@ -187,6 +239,8 @@ describe("checkout-payment route", () => {
       submitCheckout: jest.fn().mockResolvedValue({
         orderId: "order-1",
         paymentStatus: "PAID",
+        updatedAt: "2026-04-26T00:00:00.000Z",
+        revision: "101",
         confirmationLabel: "Order created after trusted payment confirmation.",
       }),
     };
@@ -202,11 +256,17 @@ describe("checkout-payment route", () => {
     const text = collectText(renderer.toJSON()).join(" ");
     expect(text).toContain("Пардохт анҷом ёфт.");
     expect(text).toContain("Order created after trusted payment confirmation.");
+    expect(text).toContain("Ҳолати фармоишро пайгирӣ кунед");
+    expect(text).toContain("Фармоиш order-1 аз revision 101 барои пайгирӣ омода аст.");
+    expect(
+      renderer.root.findAllByType("a").some((link) => link.props.href === "/tracking?orderId=order-1&cursor=101"),
+    ).toBe(true);
     expect(api.authenticateTelegram).toHaveBeenCalledWith("query_id=raw");
     expect(api.syncLanguagePreference).toHaveBeenCalledWith({
       telegramId: "42",
       language: "tj",
     });
+    expect(api.submitCheckout).toHaveBeenCalledWith(composition);
     expect(api.submitCheckout).toHaveBeenCalledTimes(1);
   });
 
@@ -248,6 +308,45 @@ describe("checkout-payment route", () => {
     expect(text).toContain("Payment confirmation timed out.");
     expect(text).toContain("Payment was not completed. You can try again.");
     expect(text).toContain("Try payment again");
+  });
+
+  it("returns to composition recovery when backend reports stale composition repair", async () => {
+    const api = {
+      loadCheckoutBootstrap: async () => ({
+        headline: "Checkout",
+        statusLabel: "Secure checkout is ready.",
+        supportingNotes: ["Order creation stays server-side only."],
+        primaryActionLabel: "Continue to payment",
+      }),
+      authenticateTelegram: jest.fn().mockResolvedValue({
+        transport: "httpOnlyCookie",
+        requiresOriginCheck: true,
+        telegramId: "42",
+      }),
+      syncLanguagePreference: jest.fn().mockResolvedValue(undefined),
+      submitCheckout: jest
+        .fn()
+        .mockRejectedValue(
+          new CheckoutPaymentApiError(
+            "COMPOSITION_REPAIR_REQUIRED",
+            "Checkout composition is invalid.",
+            false,
+            null,
+            "repair_composition",
+          ),
+        ),
+    };
+    const bridge = createBridge("query_id=raw");
+    const renderer = await renderRoute({ api, bridge });
+
+    await act(async () => {
+      renderer.root.findByType("button").props.onClick();
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Build your cart in the catalog first.");
+    expect(text).toContain("Return to catalog");
   });
 
   it("blocks checkout outside Telegram and avoids backend auth/payment calls", async () => {

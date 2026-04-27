@@ -64,7 +64,19 @@ export type CreateDeliveryTrackingEventInput = {
   };
 };
 
-export type DeliveryTrackingEventRecord = CreateDeliveryTrackingEventInput & {
+export type DeliveryTrackingEventRecord = {
+  type: "order.assigned" | "order.status_changed";
+  entity: "order";
+  entityId: DeliveryTrackingOrderId;
+  payload: {
+    orderId: DeliveryTrackingOrderId;
+    previousStatus?: DeliveryTrackingOrderStatus;
+    status: DeliveryTrackingOrderStatus;
+    changedByUserId?: DeliveryTrackingUserId;
+    courierId?: DeliveryTrackingUserId;
+    assignedByUserId?: DeliveryTrackingUserId;
+    updatedAt: string;
+  };
   revision: DeliveryTrackingRevision;
   createdAt: string;
 };

@@ -15,6 +15,98 @@ status: active
 
 ## Recent entries
 
+## [2026-04-27] TASK-FT014-07 events runtime repair
+- Mounted the checked-in customer `GET /api/v1/events?since=<cursor>` route in `dev-api-server`, backed it with the operational runtime event stream, and filtered returned events to orders owned by the current Mini App session so unrelated order events stay hidden.
+- Checkout success now returns the current event-stream cursor as string `revision` instead of `order.id`, and focused coverage proves opaque cursor tolerance, empty-window stability, customer/order scoping, checkout runtime compatibility, `npm run lint`, and `npm run build:frontend`. `REQ-033` remains `planned`; no Android Telegram evidence closure was attempted.
+
+## [2026-04-27] TASK-MB-REVIEW blockers recorded
+- Synced review findings into Memory Bank without product code changes: `FT-013` remains blocked on external real `Android Telegram` checkout evidence, and `FT-014` now explicitly tracks the repo-local missing mounted `/api/v1/events` plus checkout/status cursor compatibility blocker.
+- Added active bug `BUG-2026-04-27-ft014-events-runtime-and-cursor-drift` and ready task `TASK-FT014-07`; `REQ-032` and `REQ-033` remain `planned`, with final `TASK-FT014-06` depending on both repo-local repair and upstream evidence.
+
+## [2026-04-26] TASK-FT014-05 resume and terminal hardening
+- Hardened the existing `order-tracking` customer polling consumer for Telegram lifecycle resume: it continues to rely on shell-owned lifecycle state, clears stale in-flight polling on deactivation, and restarts polling without raw Telegram subscriptions or lifecycle write side effects.
+- Duplicate/out-of-order event windows now preserve opaque cursor progress without double-rendering lifecycle regressions, and terminal `COMPLETED`/`CANCELLED_*` customer states stay closed against stale progress events. Focused order-tracking Jest, `npm run lint`, and `npm run build:frontend` pass; final paid-order-to-status e2e closure remains with `TASK-FT014-06`.
+
+## [2026-04-26] TASK-FT014-04 customer-safe lifecycle rendering
+- Added customer-facing lifecycle rendering to the existing `order-tracking` mini-app surface: `CREATED` now shows explicit paid/waiting-for-assignment copy, assignment and courier progress states stay read-only, and terminal cancellation copy avoids audit/refund internals.
+- Focused route coverage now proves `CREATED`, `ASSIGNED`, `IN_PROGRESS`, `DELIVERED`, `COMPLETED`, and `CANCELLED_BY_ADMIN` customer copy plus absence of courier buttons/internal details; `npm run test:order-tracking:frontend -- frontend/src/tests/slices/order-tracking/order-tracking-route.spec.tsx frontend/src/tests/slices/order-tracking/order-tracking-view-model.spec.ts`, `npm run lint`, and `npm run build:frontend` pass. `TASK-FT014-05` is ready.
+
+## [2026-04-26] TASK-FT014-03 opaque-cursor customer polling
+- Wired the customer status polling consumer to `GET /api/v1/events?since=<cursor>` from the existing `order-tracking` frontend surface, normalizing `next_cursor`/`nextCursor`, `entity_id`/`entityId`, and `created_at`/`createdAt` while preserving opaque string cursor/revision values without numeric parsing.
+- Added focused frontend coverage for empty polling windows, ordered response application, duplicate revision suppression, snake-case event payload parsing, non-string cursor rejection, and encoded `since` requests; `npm run test:order-tracking:frontend -- frontend/src/tests/slices/order-tracking/order-tracking-view-model.spec.ts`, `npm run lint`, and `npm run build:frontend` pass. `TASK-FT014-04` is ready.
+
+## [2026-04-26] TASK-FT014-02 paid-order status entry
+- Added the first customer-facing `FT-014` status entry: checkout success now exposes a real paid-order tracking link from `orderId` plus string `revision`, and `/tracking?orderId=...&cursor=...` opens a read-only customer status surface at `CREATED` without courier/admin controls.
+- Missing/lost tracking identity now recovers to catalog instead of rendering route-local fake data; focused checkout/order-tracking frontend Jest, `npm run lint`, and `npm run build:frontend` pass. `TASK-FT014-03` is ready for opaque-cursor customer polling wiring.
+
+## [2026-04-26] TASK-FT013-07 repo-local pass, Android evidence blocker
+- Ran the final repo-local checkout-payment gates for `FT-013`: focused backend/runtime/frontend Jest passed (`8` suites / `73` tests) and `npm run lint` passed, covering composition-backed checkout, mounted Mini App auth/payment runtime, paid `CREATED` order metadata, retry-safe no-order failures, stale repair and duplicate trusted payment idempotency.
+- Formal closure remains `FAIL` because no fresh real `Android Telegram` evidence is recorded for the post-`FT-013` customer checkout flow; `REQ-032` stays `planned`, `TASK-FT013-08` and `BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md` now track evidence collection, and dependent `TASK-FT014-06` is blocked.
+
+## [2026-04-26] TASK-FT013-06 checkout retry and idempotency hardening
+- Hardened mounted customer checkout failure paths: failed, canceled, timeout and ambiguous provider outcomes now return controlled retry metadata with `orderCreated: false`, while malformed/stale composition responses return repair metadata instead of runtime 500s.
+- Duplicate trusted payment confirmation now reuses the existing paid order before stale revalidation, and frontend checkout maps `repair_composition` into catalog recovery; focused backend/runtime checkout tests, frontend checkout tests, and `npm run lint` pass.
+
+## [2026-04-26] TASK-FT013-05 paid CREATED order persistence
+- Mounted paid order creation on repo-local `/api/v1/orders/checkout`: authenticated Mini App checkout now consumes the `FT-012` composition payload, revalidates against current catalog state through the `checkout-payment` boundary, performs server-side local provider `PAID` confirmation, and persists one `CREATED` order with `paymentStatus = PAID`.
+- The checkout response now returns `orderId`, `updated_at` and string `revision` metadata for downstream `FT-014`; focused runtime coverage, full checkout-payment Jest, and `npm run lint` pass.
+
+## [2026-04-26] TASK-FT013-04 mounted Mini App checkout runtime
+- Rewired the checked-in checkout frontend API away from local stub success responses to mounted `/api/v1/auth/telegram`, `/api/v1/auth/telegram/language` and `/api/v1/orders/checkout` runtime calls with cookie credentials.
+- Added dev-runtime checkout auth enforcement so checkout submit requires the real Mini App HttpOnly session and returns controlled `PAYMENT_CONFIRMATION_REQUIRED` with `orderCreated: false` until `TASK-FT013-05` owns paid `CREATED` persistence; focused checkout-payment Jest, `npm run lint`, and `npm run build:frontend` pass.
+
+## [2026-04-25] TASK-FT013-03 server-side composition revalidation
+- Added a backend `checkout-payment` revalidation seam for the `FT-012` composition draft: the service can call an explicit catalog read boundary, then validates current shop visibility, product availability, positive quantities, price facts, currency facts and authoritative totals before order persistence.
+- Stale or invalid drafts now fail with controlled `COMPOSITION_REPAIR_REQUIRED` repair metadata and no order creation; focused checkout-payment Jest and `npm run lint` pass.
+
+## [2026-04-25] TASK-FT013-02 composition-backed checkout entry
+- Changed the `checkout-payment` mini-app route so checkout starts from the `FT-012` handoff draft stored as non-sensitive composition data, validates the contract-shaped payload, and renders selected shop, line items, quantities, display snapshots and preview total before payment.
+- Added controlled recovery for direct or invalid `/checkout` access instead of fake route-local order data, while keeping payment/order creation out of frontend preview data; focused checkout Jest, catalog handoff Jest, `npm run lint`, and `npm run build:frontend` pass.
+
+## [2026-04-25] TASK-FT013-01 checkout handoff boundary freeze
+- Completed the docs-first execution boundary for `FT-013`: `catalog` remains the `FT-012` composition producer, `checkout-payment` consumes and revalidates the draft, and payment/auth/order trust stays on the existing `FT-002` boundary.
+- Tightened the composition, payment and implementation-plan wording so future checkout route work starts only from a valid handoff draft or controlled recovery, avoids a shared cart/payment business module, and returns customer-safe order identity/revision metadata for downstream `FT-014` only after commit.
+
+## [2026-04-25] TASK-FT012-06 final FT-012 verification
+- Closed the remaining `catalog` mini-app unavailable-state repair: if a selected product disappears from the current public storefront, checkout handoff is disabled, the stale line is marked for customer repair, and removal returns the draft to a valid/empty state.
+- Advanced `REQ-031` to `verified` with focused frontend/contract evidence covering visible single-shop composition, replace/clear behavior, checkout payload readiness, blocked invalid/unavailable handoff and no order/payment/stock/event side effects.
+
+## [2026-04-25] TASK-FT012-05 checkout handoff payload
+- Added a `catalog`-owned checkout CTA/handoff path that emits the normalized `customer-order-composition-contract.md` payload with `shop_public_path`, internal product identities, quantities, display snapshots, preview total and draft timestamp.
+- Kept the handoff side-effect free: empty/invalid drafts are blocked, default route handoff persists only non-sensitive composition data in session storage, and no order/payment/stock/event behavior was added; focused Jest, `npm run test:catalog`, `npm run lint`, and `npm run build:frontend` pass.
+
+## [2026-04-25] TASK-FT012-04 single-shop replace or clear behavior
+- Changed the `catalog` mini-app storefront cart UI so cross-shop add attempts no longer silently clear or mix cart contents: the existing draft stays intact until the customer explicitly chooses `Replace cart` or `Clear cart`.
+- Added focused frontend coverage for replace and clear flows, while keeping the work local to `catalog` presentation/composition state with no checkout/payment/order/stock/event side effects; `npm run test:catalog`, `npm run lint`, and `npm run build:frontend` pass.
+
+## [2026-04-25] TASK-FT012-03 storefront cart UI wiring
+- Wired public storefront product cards to the existing `catalog` composition model for customer add, quantity update and remove flows, and added a customer-visible order draft summary with selected shop, line items, display snapshots, preview totals and checkout readiness.
+- Preserved the shared storefront seller/customer tree by hiding cart controls in seller edit mode, kept the work side-effect free, and verified with focused catalog page coverage plus `npm run test:catalog`, `npm run lint`, and `npm run build:frontend`.
+
+## [2026-04-25] TASK-FT012-02 slice-local customer composition state
+- Added `catalog`-local customer composition state and mapper in `frontend/src/slices/catalog/model/composition.ts`, covering empty state, add, deterministic duplicate merge, quantity update, remove, same-shop guard and `customer-order-composition-contract.md` payload output.
+- Kept the change side-effect free and local to `catalog`: no shared cart business module, no backend order/payment writes, and technical `shop.id` is carried only as internal payload data while `shop_public_path` remains the customer-facing routing identity.
+
+## [2026-04-25] TASK-FT012-01 customer composition boundary freeze
+- Completed the docs-first execution boundary for `FT-012`: `catalog` is the composition producer, `checkout-payment` remains the revalidation/payment/order creation consumer, and `customer-order-composition-contract.md` is the only cross-slice artifact.
+- Tightened storage/resume and verification wording so future `TASK-FT012-02` implementation stays slice-local, single-shop, side-effect free and avoids a shared cart business module.
+
+## [2026-04-25] FT-014 customer status visibility backlog decomposition
+- Added `.protocols/FT-014/{plan,decision-log}.md`, `.memory-bank/tasks/plans/IMPL-FT-014.md`, and active backlog cards `TASK-FT014-01` through `TASK-FT014-06` for boundary freeze, paid-order status entry, opaque-cursor polling, customer-safe lifecycle UI, resume/duplicate hardening and final verification.
+- Kept `FT-014` scoped to read-only `delivery-tracking` visibility in the `mini-app` contour; `FT-005` remains owner of event/state semantics, `FT-013` remains owner of paid-order creation metadata, and operational commands stay outside customer UI.
+
+## [2026-04-25] FT-013 checkout handoff backlog decomposition
+- Added `.protocols/FT-013/{plan,decision-log}.md`, `.memory-bank/tasks/plans/IMPL-FT-013.md`, and active backlog cards `TASK-FT013-01` through `TASK-FT013-07` for boundary freeze, composition-backed checkout entry, server-side catalog revalidation, mounted Mini App auth/payment runtime, paid `CREATED` order persistence, retry/idempotency hardening and final verification.
+- Kept `FT-013` scoped to the `checkout-payment` slice and `mini-app` contour; `catalog` remains the producer of the composition payload, while payment trust and order creation semantics stay on the existing `FT-002` boundary.
+
+## [2026-04-25] FT-012 customer composition backlog decomposition
+- Added `.protocols/FT-012/{plan,decision-log}.md`, `.memory-bank/tasks/plans/IMPL-FT-012.md`, and active backlog cards `TASK-FT012-01` through `TASK-FT012-06` for docs freeze, slice-local composition state, storefront cart UI, single-shop replace/clear behavior, checkout handoff payload production, and final verification.
+- Kept `FT-012` scoped to the `catalog` slice and `mini-app` contour; downstream checkout revalidation, payment, and order creation remain with `FT-013`/`FT-002`.
+
+## [2026-04-25] EP-001 customer workflow split into cart, checkout handoff and status visibility features
+- Added `FT-012`, `FT-013`, and `FT-014` to cover the real customer Mini App flow from product selection and single-shop cart/order composition through checkout handoff, trusted payment/order creation, and customer-facing status visibility.
+- Added `REQ-031/032/033` plus `.memory-bank/contracts/customer-order-composition-contract.md`, keeping `FT-002` as the owner of auth/payment/order-creation semantics and `FT-005` as the owner of delivery tracking state/event semantics.
+
 ## [2026-04-22] Shared storefront DEBUG mode now exposes diagnostics and a backend bypass on the same catalog path
 - Added an explicit `REQ-030` / `FT-010` debug-runtime policy: when `DEBUG=TRUE`, the shared storefront may show copyable diagnostics and the mounted `/api/v1/seller/*` runtime may temporarily bypass owner-only shop access through the same canonical `catalog` boundary instead of a second debug API family.
 - `scripts/dev-api.ts` now passes the debug flag into the runtime, seller storefront reads/writes emit structured debug logs for media/save/reload traces, and the storefront UI records copyable `load -> edit -> save -> reload` diagnostics to help debug embedded Telegram flows without browser devtools.

@@ -79,6 +79,27 @@ const createLanguageContextValue = (language: SupportedLanguage = "en"): Languag
   selectLanguage: async () => undefined,
 });
 
+const composition = {
+  shop_public_path: "khujand-bakery",
+  shop_id: "shop-1",
+  items: [
+    {
+      product_id: "product-1",
+      quantity: 2,
+      display_snapshot: {
+        product_name: "Somsa",
+        unit_price_minor: 1500,
+        currency: "TJS" as const,
+      },
+    },
+  ],
+  preview_total: {
+    amount_minor: 3000,
+    currency: "TJS" as const,
+  },
+  created_at: "2026-04-25T00:00:00.000Z",
+};
+
 const renderWithLanguage = (
   element: ReturnType<typeof createElement>,
   language: SupportedLanguage = "en",
@@ -103,12 +124,15 @@ describe("checkout-payment page", () => {
       );
       readyRenderer = renderWithLanguage(
         createElement(CheckoutPaymentPage, {
-          viewModel: createReadyCheckoutPaymentViewModel({
-            headline: "Checkout",
-            statusLabel: "Secure checkout is ready.",
-            supportingNotes: ["Telegram auth is requested only when you start checkout."],
-            primaryActionLabel: "Continue to payment",
-          }),
+          viewModel: createReadyCheckoutPaymentViewModel(
+            {
+              headline: "Checkout",
+              statusLabel: "Secure checkout is ready.",
+              supportingNotes: ["Telegram auth is requested only when you start checkout."],
+              primaryActionLabel: "Continue to payment",
+            },
+            composition,
+          ),
           onPrimaryAction: () => undefined,
         }),
         "en",
@@ -134,6 +158,9 @@ describe("checkout-payment page", () => {
 
     expect(collectText(loadingRenderer.toJSON()).join(" ")).toContain("Preparing checkout session...");
     expect(collectText(readyRenderer.toJSON()).join(" ")).toContain("Secure checkout is ready.");
+    expect(collectText(readyRenderer.toJSON()).join(" ")).toContain("Order composition confirmation");
+    expect(collectText(readyRenderer.toJSON()).join(" ")).toContain("Somsa × 2 · 15.00 TJS");
+    expect(collectText(readyRenderer.toJSON()).join(" ")).toContain("Preview total 30.00 TJS");
     expect(collectText(errorRenderer.toJSON()).join(" ")).toContain("Backend unavailable.");
     expect(collectText(errorRenderer.toJSON()).join(" ")).toContain(
       "Payment was not completed. You can try again.",
@@ -166,7 +193,13 @@ describe("checkout-payment page", () => {
               supportingNotes: ["Telegram auth is requested only when you start checkout."],
               primaryActionLabel: "Continue to payment",
             },
-            "Order created after trusted payment confirmation.",
+            {
+              orderId: "order-1",
+              paymentStatus: "PAID",
+              updatedAt: "2026-04-26T00:00:00.000Z",
+              revision: "101",
+              confirmationLabel: "Order created after trusted payment confirmation.",
+            },
             "en",
           ),
           onPrimaryAction: () => undefined,
@@ -181,6 +214,10 @@ describe("checkout-payment page", () => {
     expect(collectText(successRenderer.toJSON()).join(" ")).toContain("Checkout completed.");
     expect(collectText(successRenderer.toJSON()).join(" ")).toContain(
       "Order created after trusted payment confirmation.",
+    );
+    expect(collectText(successRenderer.toJSON()).join(" ")).toContain("Track order status");
+    expect(collectText(successRenderer.toJSON()).join(" ")).toContain(
+      "Order order-1 is ready for tracking from revision 101.",
     );
   });
 
@@ -236,7 +273,13 @@ describe("checkout-payment page", () => {
                   supportingNotes: ["Telegram auth is requested only when you start checkout."],
                   primaryActionLabel: "Continue to payment",
                 },
-                "Order created after trusted payment confirmation.",
+                {
+                  orderId: "order-1",
+                  paymentStatus: "PAID",
+                  updatedAt: "2026-04-26T00:00:00.000Z",
+                  revision: "101",
+                  confirmationLabel: "Order created after trusted payment confirmation.",
+                },
                 "en",
               )}
               onPrimaryAction={() => undefined}
@@ -278,12 +321,15 @@ describe("checkout-payment page", () => {
         >
           <LanguageContextProvider value={createLanguageContextValue("en")}>
             <CheckoutPaymentPage
-              viewModel={createReadyCheckoutPaymentViewModel({
-                headline: "Checkout",
-                statusLabel: "Secure checkout is ready.",
-                supportingNotes: ["Telegram auth is requested only when you start checkout."],
-                primaryActionLabel: "Continue to payment",
-              })}
+              viewModel={createReadyCheckoutPaymentViewModel(
+                {
+                  headline: "Checkout",
+                  statusLabel: "Secure checkout is ready.",
+                  supportingNotes: ["Telegram auth is requested only when you start checkout."],
+                  primaryActionLabel: "Continue to payment",
+                },
+                composition,
+              )}
               onPrimaryAction={() => undefined}
             />
           </LanguageContextProvider>

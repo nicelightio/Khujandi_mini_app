@@ -60,6 +60,7 @@ export type CatalogStorefrontViewModel = {
       name: string;
       description: string | null;
       imageUrl: string | null;
+      priceMinor: number;
       priceLabel: string;
     }>;
   }>;
@@ -68,6 +69,7 @@ export type CatalogStorefrontViewModel = {
     name: string;
     description: string | null;
     imageUrl: string | null;
+    priceMinor: number;
     priceLabel: string;
     menuPageId: string | null;
   }>;

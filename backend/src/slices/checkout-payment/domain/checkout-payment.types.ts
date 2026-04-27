@@ -28,7 +28,7 @@ export type CheckoutPaymentOrderStatus =
   | "CANCELLED_BY_ADMIN"
   | "CANCELLED_BY_COURIER_UNAVAILABLE";
 
-export type CheckoutPaymentStatus = "PAID" | "FAILED" | "CANCELED" | "PENDING";
+export type CheckoutPaymentStatus = "PAID" | "FAILED" | "CANCELED" | "PENDING" | "AMBIGUOUS";
 export type CheckoutPaymentConfirmationSource =
   | "provider_callback"
   | "provider_status"
@@ -150,8 +150,53 @@ export type CheckoutPaymentOrderDraftInput = {
   totalAmountMinor: number;
 };
 
+export type CheckoutPaymentCompositionDraft = {
+  composition_id?: string;
+  shop_public_path: string;
+  shop_id?: CheckoutPaymentShopId;
+  items: Array<{
+    product_id: string;
+    quantity: number;
+    display_snapshot: {
+      product_name: string;
+      unit_price_minor: number;
+      currency: string;
+    };
+  }>;
+  preview_total: {
+    amount_minor: number;
+    currency: string;
+  };
+  created_at?: string;
+};
+
+export type CheckoutPaymentCatalogCompositionSnapshot = {
+  shop: {
+    id: CheckoutPaymentShopId;
+    sellerId: CheckoutPaymentSellerId;
+    name: string;
+    status: "WORKING" | "NOT_WORKING";
+    isDeleted: boolean;
+  };
+  products: Array<{
+    id: string;
+    shopId: CheckoutPaymentShopId;
+    name: string;
+    priceMinor: number;
+    currency?: string;
+    isDeleted?: boolean;
+  }>;
+};
+
+export interface CheckoutPaymentCatalogCompositionReader {
+  getCheckoutCompositionSnapshot(
+    shopPublicPath: string,
+  ): Promise<CheckoutPaymentCatalogCompositionSnapshot | null>;
+}
+
 export type FinalizeCheckoutPaymentInput = {
   order: CheckoutPaymentOrderDraftInput;
+  composition?: CheckoutPaymentCompositionDraft;
   payment: {
     provider: string;
     paymentProviderTxId: CheckoutPaymentProviderTxId;

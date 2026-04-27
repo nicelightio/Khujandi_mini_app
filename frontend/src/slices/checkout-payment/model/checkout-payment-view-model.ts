@@ -1,6 +1,19 @@
 import { getCopy } from "../../../shared/i18n/copy";
 import { defaultLanguage, type SupportedLanguage } from "../../../shared/i18n/languages";
-import type { CheckoutPaymentBootstrap } from "../api/checkout-payment-api";
+import { buildOrderTrackingPath } from "../../../shared/lib/routes";
+import type { CheckoutPaymentBootstrap, CheckoutPaymentOrderResult } from "../api/checkout-payment-api";
+import type { CheckoutCompositionHandoff } from "./composition-handoff";
+
+export type CheckoutPaymentCompositionSummary = {
+  shopPublicPath: string;
+  items: Array<{
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPriceLabel: string;
+  }>;
+  previewTotalLabel: string;
+};
 
 export type CheckoutPaymentViewModel = {
   headline: string;
@@ -13,7 +26,29 @@ export type CheckoutPaymentViewModel = {
   errorMessage: string | null;
   retryMessage: string | null;
   successMessage: string | null;
+  recoveryMessage: string | null;
+  compositionSummary: CheckoutPaymentCompositionSummary | null;
+  statusEntry: {
+    href: string;
+    label: string;
+    metadataLabel: string;
+  } | null;
 };
+
+const formatTjsMinor = (amountMinor: number): string => `${(amountMinor / 100).toFixed(2)} TJS`;
+
+export const createCheckoutPaymentCompositionSummary = (
+  composition: CheckoutCompositionHandoff,
+): CheckoutPaymentCompositionSummary => ({
+  shopPublicPath: composition.shop_public_path,
+  items: composition.items.map((item) => ({
+    productId: item.product_id,
+    productName: item.display_snapshot.product_name,
+    quantity: item.quantity,
+    unitPriceLabel: formatTjsMinor(item.display_snapshot.unit_price_minor),
+  })),
+  previewTotalLabel: formatTjsMinor(composition.preview_total.amount_minor),
+});
 
 export const createLoadingCheckoutPaymentViewModel = (
   language: SupportedLanguage = defaultLanguage,
@@ -28,6 +63,28 @@ export const createLoadingCheckoutPaymentViewModel = (
   errorMessage: null,
   retryMessage: null,
   successMessage: null,
+  recoveryMessage: null,
+  compositionSummary: null,
+  statusEntry: null,
+});
+
+export const createRecoveryCheckoutPaymentViewModel = (
+  bootstrap: CheckoutPaymentBootstrap,
+  language: SupportedLanguage = defaultLanguage,
+): CheckoutPaymentViewModel => ({
+  headline: bootstrap.headline,
+  statusLabel: getCopy(language).checkout.missingCompositionStatus,
+  supportingNotes: bootstrap.supportingNotes,
+  primaryActionLabel: getCopy(language).checkout.missingCompositionAction,
+  isLoading: false,
+  isSubmitting: false,
+  isActionDisabled: false,
+  errorMessage: null,
+  retryMessage: null,
+  successMessage: null,
+  recoveryMessage: getCopy(language).checkout.missingCompositionMessage,
+  compositionSummary: null,
+  statusEntry: null,
 });
 
 export const createErrorCheckoutPaymentViewModel = (
@@ -47,10 +104,14 @@ export const createErrorCheckoutPaymentViewModel = (
   errorMessage: message,
   retryMessage,
   successMessage: null,
+  recoveryMessage: null,
+  compositionSummary: null,
+  statusEntry: null,
 });
 
 export const createReadyCheckoutPaymentViewModel = (
   bootstrap: CheckoutPaymentBootstrap,
+  composition: CheckoutCompositionHandoff,
 ): CheckoutPaymentViewModel => ({
   headline: bootstrap.headline,
   statusLabel: bootstrap.statusLabel,
@@ -62,6 +123,9 @@ export const createReadyCheckoutPaymentViewModel = (
   errorMessage: null,
   retryMessage: null,
   successMessage: null,
+  recoveryMessage: null,
+  compositionSummary: createCheckoutPaymentCompositionSummary(composition),
+  statusEntry: null,
 });
 
 export const createSubmittingCheckoutPaymentViewModel = (
@@ -78,11 +142,14 @@ export const createSubmittingCheckoutPaymentViewModel = (
   errorMessage: null,
   retryMessage: null,
   successMessage: null,
+  recoveryMessage: null,
+  compositionSummary: null,
+  statusEntry: null,
 });
 
 export const createSuccessCheckoutPaymentViewModel = (
   bootstrap: CheckoutPaymentBootstrap,
-  confirmationLabel: string,
+  result: CheckoutPaymentOrderResult,
   language: SupportedLanguage = defaultLanguage,
 ): CheckoutPaymentViewModel => ({
   headline: bootstrap.headline,
@@ -94,5 +161,12 @@ export const createSuccessCheckoutPaymentViewModel = (
   isActionDisabled: true,
   errorMessage: null,
   retryMessage: null,
-  successMessage: confirmationLabel,
+  successMessage: result.confirmationLabel,
+  recoveryMessage: null,
+  compositionSummary: null,
+  statusEntry: {
+    href: buildOrderTrackingPath(result.orderId, result.revision),
+    label: getCopy(language).checkout.statusEntryLabel,
+    metadataLabel: getCopy(language).checkout.statusEntryMetadata(result.orderId, result.revision),
+  },
 });

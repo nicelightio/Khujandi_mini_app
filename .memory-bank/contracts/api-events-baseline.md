@@ -32,6 +32,7 @@ status: active
 - Write-flow, который меняет lifecycle заказа, обязан публиковать доменное событие только после успешного persistence commit.
 - Для `FT-004` событие `order.assigned` остается canonical publish point для перехода `CREATED -> ASSIGNED`; `revision` в event/response сериализуется строкой.
 - Для `FT-005` успешный status-change command также возвращает `updated_at` и string `revision`, а невалидный lifecycle transition обязан завершаться `409 CONFLICT` без history/event side effects.
+- Для customer checkout flow successful paid order creation публикует customer-observable order creation/update metadata only after persistence commit, so downstream status visibility can enter the polling flow without inventing a second tracking source.
 
 ## Error shape
 

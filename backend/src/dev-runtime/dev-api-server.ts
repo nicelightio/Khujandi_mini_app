@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createAdminAccessModule } from "../slices/admin-access/presentation/admin-access.module";
@@ -22,6 +23,10 @@ import {
   createInMemoryCheckoutPaymentPrisma,
   resolveMiniAppAuthenticatedUser,
 } from "./checkout-payment-runtime";
+import type {
+  CheckoutPaymentCompositionDraft,
+  CheckoutPaymentStatus,
+} from "../slices/checkout-payment/domain/checkout-payment.types";
 import {
   createOperationalRuntimeModules,
   ensureOperationalRuntimeBaseline,
@@ -50,7 +55,14 @@ type RuntimeServerOptions = {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
   };
   now?: () => Date;
+  checkoutPaymentProviderStatusResolver?: (context: {
+    userId: string;
+    composition: CheckoutPaymentCompositionDraft;
+  }) => CheckoutPaymentStatus;
 };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const summarizeMediaValue = (value: string | null | undefined) => {
   if (value === undefined) {
@@ -76,6 +88,70 @@ const logStorefrontDebug = (isDebugEnabled: boolean, event: string, details: Rec
   console.info(`[debug-storefront] ${event}`, details);
 };
 
+const toCheckoutPaymentCompositionDraft = (value: unknown): CheckoutPaymentCompositionDraft => {
+  if (!isRecord(value)) {
+    throw new AppError("COMPOSITION_REPAIR_REQUIRED", "Checkout composition is required", 409, {
+      reason: "composition_missing",
+      repairAction: "repair_composition",
+      orderCreated: false,
+    });
+  }
+
+  const items = value.items;
+  const previewTotal = value.preview_total;
+
+  if (
+    typeof value.shop_public_path !== "string" ||
+    value.shop_public_path.trim().length === 0 ||
+    !Array.isArray(items) ||
+    items.length === 0 ||
+    !isRecord(previewTotal) ||
+    typeof previewTotal.amount_minor !== "number" ||
+    typeof previewTotal.currency !== "string"
+  ) {
+    throw new AppError("COMPOSITION_REPAIR_REQUIRED", "Checkout composition is invalid", 409, {
+      reason: "composition_invalid",
+      repairAction: "repair_composition",
+      orderCreated: false,
+    });
+  }
+
+  for (const item of items) {
+    if (
+      !isRecord(item) ||
+      typeof item.product_id !== "string" ||
+      item.product_id.trim().length === 0 ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity <= 0 ||
+      !isRecord(item.display_snapshot) ||
+      typeof item.display_snapshot.product_name !== "string" ||
+      typeof item.display_snapshot.unit_price_minor !== "number" ||
+      typeof item.display_snapshot.currency !== "string"
+    ) {
+      throw new AppError("COMPOSITION_REPAIR_REQUIRED", "Checkout composition is invalid", 409, {
+        reason: "composition_invalid",
+        repairAction: "repair_composition",
+        orderCreated: false,
+      });
+    }
+  }
+
+  return value as CheckoutPaymentCompositionDraft;
+};
+
+const buildRuntimePaymentProviderTxId = (userId: string, composition: CheckoutPaymentCompositionDraft): string => {
+  const source = JSON.stringify({
+    userId,
+    compositionId: composition.composition_id ?? null,
+    shopPublicPath: composition.shop_public_path,
+    items: composition.items,
+    previewTotal: composition.preview_total,
+  });
+  const digest = createHash("sha256").update(source).digest("hex").slice(0, 24);
+
+  return `local-runtime-checkout-${digest}`;
+};
+
 export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 3001;
@@ -99,12 +175,51 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   const checkoutPaymentState = checkoutPaymentPrisma.state;
   ensureOperationalRuntimeBaseline(checkoutPaymentState);
   const isDebugEnabled = options.isDebugEnabled === true;
-  const checkoutPaymentModule = createCheckoutPaymentModule(checkoutPaymentPrisma, {
-    botToken: options.telegramBotToken ?? "test-bot-token",
-    allowedOrigins,
-    secureCookies: false,
-    now: options.now,
-  });
+  const checkoutPaymentProviderName = "local-runtime-provider";
+  const checkoutPaymentProviderSecret = "local-runtime-provider-secret";
+  const checkoutPaymentModule = createCheckoutPaymentModule(
+    checkoutPaymentPrisma,
+    {
+      botToken: options.telegramBotToken ?? "test-bot-token",
+      allowedOrigins,
+      secureCookies: false,
+      paymentProviderName: checkoutPaymentProviderName,
+      paymentSecretToken: checkoutPaymentProviderSecret,
+      now: options.now,
+    },
+    {
+      getCheckoutCompositionSnapshot: async (shopPublicPath) => {
+        const shop = catalogState.shops.find(
+          (candidate) =>
+            candidate.primaryPublicPath === shopPublicPath || candidate.secondaryPublicPath === shopPublicPath,
+        );
+
+        if (shop === undefined) {
+          return null;
+        }
+
+        return {
+          shop: {
+            id: shop.id,
+            sellerId: shop.sellerId,
+            name: shop.name,
+            status: shop.status,
+            isDeleted: shop.isDeleted,
+          },
+          products: catalogState.products
+            .filter((product) => product.shopId === shop.id)
+            .map((product) => ({
+              id: product.id,
+              shopId: product.shopId,
+              name: product.name,
+              priceMinor: product.priceMinor,
+              currency: "TJS",
+              isDeleted: product.isDeleted,
+            })),
+        };
+      },
+    },
+  );
   const adminAuthHandler = createAdminAuthHttpHandler({
     controller: adminAccessModule.controller,
     passwordHasher:
@@ -128,36 +243,17 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
     });
 
   const resolveDebugStorefrontAccess = async (request: IncomingMessage, shopRef: string) => {
-    try {
-      const user = await resolveMiniAppAuthenticatedUser(request, {
-        state: checkoutPaymentState,
-        now: options.now,
-      });
-      const ownedShop = await catalogModule.controller.getSellerShop(user.telegramId, shopRef);
+    const user = await resolveMiniAppAuthenticatedUser(request, {
+      state: checkoutPaymentState,
+      now: options.now,
+    });
+    const ownedShop = await catalogModule.controller.getSellerShop(user.telegramId, shopRef);
 
-      return {
-        shop: ownedShop,
-        actorLabel: user.telegramId,
-        bypassApplied: false,
-      };
-    } catch (error) {
-      if (!isDebugEnabled) {
-        throw error;
-      }
-
-      const debugShop =
-        (await catalogModule.repository.findShopById(shopRef)) ?? (await catalogModule.repository.findShopByPublicPath(shopRef));
-
-      if (debugShop === null) {
-        throw error;
-      }
-
-      return {
-        shop: debugShop,
-        actorLabel: "debug-bypass",
-        bypassApplied: true,
-      };
-    }
+    return {
+      shop: ownedShop,
+      actorLabel: user.telegramId,
+      bypassApplied: false,
+    };
   };
 
   const server: Server = createServer(async (request, response) => {
@@ -211,6 +307,160 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
             500,
             new AppError("INTERNAL_ERROR", "Mini App auth runtime is temporarily unavailable", 500).toPayload("trace-mini-app-auth-runtime"),
             "POST,OPTIONS",
+          );
+        }
+      }
+    } else if (method === "POST" && url.pathname === "/api/v1/auth/telegram/language") {
+      try {
+        const user = await resolveMiniAppAuthenticatedUser(request, {
+          state: checkoutPaymentState,
+          now: options.now,
+        });
+        const body = await readJsonBody(request);
+        const language = String(body.language ?? "");
+
+        result = json(
+          200,
+          {
+            user: await checkoutPaymentModule.controller.syncLanguagePreference({
+              telegramId: user.telegramId,
+              language: language as "ru" | "en" | "tj",
+            }),
+          },
+          "POST,OPTIONS",
+        );
+      } catch (error) {
+        if (error instanceof AppError) {
+          result = json(error.statusCode, error.toPayload("trace-mini-app-auth-runtime"), "POST,OPTIONS");
+        } else if (error instanceof SyntaxError) {
+          result = json(
+            400,
+            new AppError("VALIDATION_ERROR", "Request body must be valid JSON", 400).toPayload("trace-mini-app-auth-runtime"),
+            "POST,OPTIONS",
+          );
+        } else {
+          result = json(
+            500,
+            new AppError("INTERNAL_ERROR", "Mini App auth runtime is temporarily unavailable", 500).toPayload("trace-mini-app-auth-runtime"),
+            "POST,OPTIONS",
+          );
+        }
+      }
+    } else if (method === "POST" && url.pathname === "/api/v1/orders/checkout") {
+      try {
+        const user = await resolveMiniAppAuthenticatedUser(request, {
+          state: checkoutPaymentState,
+          now: options.now,
+        });
+        const body = await readJsonBody(request);
+
+        const composition = toCheckoutPaymentCompositionDraft(body.composition);
+        const shop = catalogState.shops.find(
+          (candidate) =>
+            candidate.primaryPublicPath === composition.shop_public_path ||
+            candidate.secondaryPublicPath === composition.shop_public_path,
+        );
+
+        if (shop === undefined) {
+          throw new AppError("COMPOSITION_REPAIR_REQUIRED", "Shop is not available for checkout", 409, {
+            reason: "shop_unavailable",
+            repairAction: "repair_composition",
+            orderCreated: false,
+          });
+        }
+
+        const productsById = new Map(catalogState.products.map((product) => [product.id, product]));
+        const itemsTotalMinor = composition.items.reduce((total, item) => {
+          const product = productsById.get(item.product_id);
+
+          return total + (product?.shopId === shop.id && product.isDeleted !== true ? product.priceMinor * item.quantity : 0);
+        }, 0);
+        const deliveryFeeMinor = 0;
+        const order = await checkoutPaymentModule.controller.checkoutOrder({
+          order: {
+            shopId: shop.id,
+            shopNameSnapshot: shop.name,
+            sellerId: shop.sellerId,
+            clientId: user.id,
+            courierId: null,
+            itemsTotalMinor,
+            deliveryFeeMinor,
+            totalAmountMinor: itemsTotalMinor + deliveryFeeMinor,
+          },
+          composition,
+          payment: {
+            provider: checkoutPaymentProviderName,
+            paymentProviderTxId: buildRuntimePaymentProviderTxId(user.id, composition),
+            telegramPaymentChargeId: null,
+            providerPaymentChargeId: null,
+            status: options.checkoutPaymentProviderStatusResolver?.({
+              userId: user.id,
+              composition,
+            }) ?? "PAID",
+            source: "provider_status",
+            verificationToken: checkoutPaymentProviderSecret,
+          },
+        });
+        const updatedAt = options.now?.() ?? new Date();
+
+        result = json(200, {
+          orderId: order.id,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          updated_at: updatedAt.toISOString(),
+          revision: operationalModules.getCurrentEventCursor(),
+          confirmationLabel: "Order paid and created.",
+        });
+      } catch (error) {
+        if (error instanceof AppError) {
+          result = json(error.statusCode, error.toPayload("trace-checkout-payment-runtime"), "POST,OPTIONS");
+        } else if (error instanceof SyntaxError) {
+          result = json(
+            400,
+            new AppError("VALIDATION_ERROR", "Request body must be valid JSON", 400).toPayload("trace-checkout-payment-runtime"),
+            "POST,OPTIONS",
+          );
+        } else {
+          result = json(
+            500,
+            new AppError("INTERNAL_ERROR", "Checkout runtime is temporarily unavailable", 500).toPayload("trace-checkout-payment-runtime"),
+            "POST,OPTIONS",
+          );
+        }
+      }
+    } else if (method === "GET" && url.pathname === "/api/v1/events") {
+      try {
+        const user = await resolveMiniAppAuthenticatedUser(request, {
+          state: checkoutPaymentState,
+          now: options.now,
+        });
+        const customerOrderIds = new Set(
+          checkoutPaymentState.orders
+            .filter((order) => order.clientId === user.id && order.isDeleted !== true)
+            .map((order) => order.id),
+        );
+        const eventStream = await operationalModules.deliveryTrackingModule.controller.getEventsSince(
+          url.searchParams.get("since") ?? undefined,
+        );
+
+        result = json(
+          200,
+          {
+            events: eventStream.events.filter((event) => customerOrderIds.has(event.entityId)),
+            next_cursor: eventStream.nextCursor,
+          },
+          "GET,OPTIONS",
+        );
+      } catch (error) {
+        if (error instanceof AppError) {
+          result = json(error.statusCode, error.toPayload("trace-delivery-tracking-runtime"), "GET,OPTIONS");
+        } else {
+          result = json(
+            500,
+            new AppError("INTERNAL_ERROR", "Events runtime is temporarily unavailable", 500).toPayload(
+              "trace-delivery-tracking-runtime",
+            ),
+            "GET,OPTIONS",
           );
         }
       }

@@ -15,6 +15,7 @@ status: active
 - Public read access to storefront shops, menu pages, and products.
 - Customer-facing browse works without authorization.
 - Contract covers public visibility and browse-safe fields, not seller edit semantics or checkout behavior.
+- Customer order composition may consume browse-safe catalog data, but checkout/payment trust and order creation remain outside this contract.
 
 ## Contract rules
 - Public catalog reads MUST be available without JWT or seller session.
@@ -54,6 +55,8 @@ status: active
 - [.memory-bank/features/FT-001-catalog-browse-and-seller-management.md](../features/FT-001-catalog-browse-and-seller-management.md): public catalog baseline.
 - [.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md](../features/FT-010-seller-storefront-editing-and-store-admin.md): shared storefront editing and visibility expansion.
 - [.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md](../features/FT-011-db-backed-catalog-runtime-baseline.md): durable runtime baseline for catalog reads and provisioning.
+- [.memory-bank/features/FT-012-customer-product-selection-and-cart-composition.md](../features/FT-012-customer-product-selection-and-cart-composition.md): customer product selection and cart/order composition over public catalog data.
+- [.memory-bank/contracts/customer-order-composition-contract.md](customer-order-composition-contract.md): composition payload for checkout handoff.
 - [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](catalog-seller-provisioning-and-visibility.md): shop visibility and seller binding rules.
 - [.memory-bank/architecture/data-boundaries-and-persistence.md](../architecture/data-boundaries-and-persistence.md): status, media and snapshot boundaries.
 - [.memory-bank/testing/index.md](../testing/index.md): verification basis for public browse coverage.

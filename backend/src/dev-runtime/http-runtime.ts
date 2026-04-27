@@ -43,7 +43,8 @@ export const json = (
   body: JSON.stringify(payload),
 });
 
-export const notFound = () => json(404, { error: { code: "NOT_FOUND", message: "Route not found." } });
+export const notFound = (traceId = "trace-dev-runtime") =>
+  json(404, new AppError("NOT_FOUND", "Route not found.", 404).toPayload(traceId));
 
 export const readSingleHeader = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value;

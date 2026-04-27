@@ -79,9 +79,11 @@ type DeliveryTrackingEventFindManyArgs = {
 
 type DeliveryTrackingEventPayloadRecord = {
   orderId: string;
-  previousStatus: string;
+  previousStatus?: string;
   status: string;
-  changedByUserId: string;
+  changedByUserId?: string;
+  courierId?: string;
+  assignedByUserId?: string;
   updatedAt: string;
 };
 
@@ -126,6 +128,10 @@ const normalizeCursor = (cursor?: string): bigint => {
     return 0n;
   }
 
+  if (!/^\d+$/u.test(cursor)) {
+    return 0n;
+  }
+
   return BigInt(cursor);
 };
 
@@ -135,9 +141,12 @@ const mapEventRecord = (event: DeliveryTrackingPersistedEventRecord): DeliveryTr
   entityId: event.entityId,
   payload: {
     orderId: event.payload.orderId,
-    previousStatus: mapOrderStatus(event.payload.previousStatus),
+    previousStatus:
+      event.payload.previousStatus === undefined ? undefined : mapOrderStatus(event.payload.previousStatus),
     status: mapOrderStatus(event.payload.status),
     changedByUserId: event.payload.changedByUserId,
+    courierId: event.payload.courierId,
+    assignedByUserId: event.payload.assignedByUserId,
     updatedAt: event.payload.updatedAt,
   },
   revision: event.id.toString(),

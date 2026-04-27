@@ -34,7 +34,33 @@ export const CheckoutPaymentPage = ({ viewModel, onPrimaryAction }: CheckoutPaym
         {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
         {viewModel.retryMessage !== null ? <p>{viewModel.retryMessage}</p> : null}
         {viewModel.successMessage !== null ? <p>{viewModel.successMessage}</p> : null}
+        {viewModel.statusEntry !== null ? (
+          <p>
+            <a href={viewModel.statusEntry.href}>{viewModel.statusEntry.label}</a>
+          </p>
+        ) : null}
+        {viewModel.statusEntry !== null ? <p>{viewModel.statusEntry.metadataLabel}</p> : null}
+        {viewModel.recoveryMessage !== null ? <p>{viewModel.recoveryMessage}</p> : null}
       </section>
+
+      {viewModel.compositionSummary === null ? null : (
+        <section aria-label={copy.checkout.compositionSummaryTitle}>
+          <h2>{copy.checkout.compositionSummaryTitle}</h2>
+          <p>{copy.checkout.compositionShopLabel(viewModel.compositionSummary.shopPublicPath)}</p>
+          <ul>
+            {viewModel.compositionSummary.items.map((item) => (
+              <li key={item.productId}>
+                {copy.checkout.compositionLineLabel(
+                  item.productName,
+                  item.quantity,
+                  item.unitPriceLabel,
+                )}
+              </li>
+            ))}
+          </ul>
+          <p>{copy.checkout.compositionPreviewTotalLabel(viewModel.compositionSummary.previewTotalLabel)}</p>
+        </section>
+      )}
 
       {viewModel.isLoading ? null : (
         <section>

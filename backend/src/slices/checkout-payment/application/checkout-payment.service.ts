@@ -6,6 +6,8 @@ import type {
   CheckoutPaymentOrderRecord,
   CheckoutPaymentProviderTxId,
   CheckoutPaymentRepository,
+  CheckoutPaymentCatalogCompositionReader,
+  CheckoutPaymentCompositionDraft,
   CreateCheckoutPaymentOrderInput,
 } from "../domain/checkout-payment.types";
 import {
@@ -51,6 +53,7 @@ export class CheckoutPaymentService {
   constructor(
     private readonly repository: CheckoutPaymentRepository,
     private readonly authConfig: CheckoutPaymentRuntimeConfig,
+    private readonly catalogCompositionReader?: CheckoutPaymentCatalogCompositionReader,
   ) {
     this.allowedOrigins = authConfig.allowedOrigins ?? [];
     this.initDataTtlMs = authConfig.initDataTtlMs ?? TELEGRAM_INIT_DATA_TTL_MS;
@@ -83,6 +86,8 @@ export class CheckoutPaymentService {
     if (existingOrder !== null) {
       return existingOrder;
     }
+
+    await this.assertCompositionIsCurrent(input);
 
     return this.repository.createPaidOrderIdempotently({
       shopId: input.order.shopId,
@@ -244,6 +249,123 @@ export class CheckoutPaymentService {
     }
   }
 
+  private async assertCompositionIsCurrent(input: FinalizeCheckoutPaymentInput): Promise<void> {
+    if (this.catalogCompositionReader === undefined) {
+      return;
+    }
+
+    const composition = input.composition;
+
+    if (composition === undefined) {
+      throw this.buildCompositionRepairError("composition_missing", "Checkout composition is required");
+    }
+
+    this.assertCompositionShape(composition);
+
+    const snapshot = await this.catalogCompositionReader.getCheckoutCompositionSnapshot(
+      composition.shop_public_path,
+    );
+
+    if (snapshot === null || snapshot.shop.isDeleted || snapshot.shop.status !== "WORKING") {
+      throw this.buildCompositionRepairError("shop_unavailable", "Shop is not available for checkout");
+    }
+
+    if (composition.shop_id !== undefined && composition.shop_id !== snapshot.shop.id) {
+      throw this.buildCompositionRepairError("shop_mismatch", "Checkout composition shop changed");
+    }
+
+    if (input.order.shopId !== snapshot.shop.id || input.order.sellerId !== snapshot.shop.sellerId) {
+      throw this.buildCompositionRepairError("shop_mismatch", "Checkout order shop facts changed");
+    }
+
+    const productsById = new Map(snapshot.products.map((product) => [product.id, product]));
+    let authoritativeItemsTotalMinor = 0;
+    let expectedCurrency: string | null = null;
+
+    for (const item of composition.items) {
+      const product = productsById.get(item.product_id);
+
+      if (product === undefined || product.isDeleted === true || product.shopId !== snapshot.shop.id) {
+        throw this.buildCompositionRepairError("product_unavailable", "Product is not available for checkout", {
+          productId: item.product_id,
+        });
+      }
+
+      const currentCurrency = product.currency ?? "TJS";
+
+      if (expectedCurrency === null) {
+        expectedCurrency = currentCurrency;
+      }
+
+      if (currentCurrency !== item.display_snapshot.currency || currentCurrency !== expectedCurrency) {
+        throw this.buildCompositionRepairError("currency_changed", "Checkout currency changed", {
+          productId: item.product_id,
+        });
+      }
+
+      if (product.priceMinor !== item.display_snapshot.unit_price_minor) {
+        throw this.buildCompositionRepairError("price_changed", "Checkout price changed", {
+          productId: item.product_id,
+        });
+      }
+
+      authoritativeItemsTotalMinor += product.priceMinor * item.quantity;
+    }
+
+    const authoritativeCurrency = expectedCurrency ?? composition.preview_total.currency;
+
+    if (composition.preview_total.currency !== authoritativeCurrency) {
+      throw this.buildCompositionRepairError("currency_changed", "Checkout currency changed");
+    }
+
+    if (composition.preview_total.amount_minor !== authoritativeItemsTotalMinor) {
+      throw this.buildCompositionRepairError("preview_total_changed", "Checkout preview total changed");
+    }
+
+    if (input.order.itemsTotalMinor !== authoritativeItemsTotalMinor) {
+      throw this.buildCompositionRepairError("amount_changed", "Checkout amount changed");
+    }
+
+    if (input.order.totalAmountMinor !== input.order.itemsTotalMinor + input.order.deliveryFeeMinor) {
+      throw this.buildCompositionRepairError("amount_changed", "Checkout total amount is invalid");
+    }
+  }
+
+  private assertCompositionShape(composition: CheckoutPaymentCompositionDraft): void {
+    if (composition.shop_public_path.trim().length === 0) {
+      throw this.buildCompositionRepairError("composition_invalid", "Checkout composition shop is required");
+    }
+
+    if (composition.items.length === 0) {
+      throw this.buildCompositionRepairError("composition_empty", "Checkout composition is empty");
+    }
+
+    for (const item of composition.items) {
+      if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+        throw this.buildCompositionRepairError("invalid_quantity", "Checkout item quantity is invalid", {
+          productId: item.product_id,
+        });
+      }
+
+      if (item.product_id.trim().length === 0) {
+        throw this.buildCompositionRepairError("composition_invalid", "Checkout product id is required");
+      }
+    }
+  }
+
+  private buildCompositionRepairError(
+    reason: string,
+    message: string,
+    details: Record<string, string> = {},
+  ): AppError {
+    return new AppError("COMPOSITION_REPAIR_REQUIRED", message, 409, {
+      reason,
+      repairAction: "repair_composition",
+      orderCreated: false,
+      ...details,
+    });
+  }
+
   private buildPaymentFailureError(
     paymentStatus: FinalizeCheckoutPaymentInput["payment"]["status"],
   ): AppError {
@@ -268,6 +390,14 @@ export class CheckoutPaymentService {
         return new AppError("CONFLICT", "Payment confirmation timed out", 409, {
           paymentStatus,
           failureCategory: "payment_timeout",
+          retryable: true,
+          retryAction: "retry_checkout",
+          orderCreated: false,
+        });
+      case "AMBIGUOUS":
+        return new AppError("CONFLICT", "Payment confirmation is ambiguous", 409, {
+          paymentStatus,
+          failureCategory: "payment_ambiguous",
           retryable: true,
           retryAction: "retry_checkout",
           orderCreated: false,

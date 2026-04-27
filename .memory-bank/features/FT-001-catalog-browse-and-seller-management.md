@@ -21,6 +21,7 @@ status: active
 - `TASK-FT001-08` completed the final verification/docs sync for `REQ-001`, `REQ-002`, and `REQ-020`, including route/page smoke coverage and RTM updates.
 - Advanced seller surfaces are now split into `FT-010`: shared storefront edit mode, admin-provisioned skeleton shops, media-rich catalog editing, explicit `WORKING/NOT_WORKING` visibility, and narrow store-admin controls.
 - Durable DB-backed catalog runtime baseline for provisioning and canonical storefront resolution is now tracked in `FT-011`.
+- Customer product selection and cart/order composition on top of public storefront data are tracked in `FT-012`; `FT-001` remains the public browse baseline and does not own checkout payload orchestration.
 - Checked-in repo code still contains legacy soft-delete fields/filters from the older catalog baseline; that is now explicit implementation drift relative to the normative no-delete catalog direction.
 
 ## Use cases
@@ -53,6 +54,7 @@ status: active
 - [.memory-bank/contracts/catalog-public-api.md](../contracts/catalog-public-api.md): public browse boundary and storefront visibility baseline.
 - [.memory-bank/contracts/seller-catalog-write-policy.md](../contracts/seller-catalog-write-policy.md): seller ownership and rename policy boundary.
 - [.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md](FT-010-seller-storefront-editing-and-store-admin.md): расширение seller contour поверх baseline ownership.
+- [.memory-bank/features/FT-012-customer-product-selection-and-cart-composition.md](FT-012-customer-product-selection-and-cart-composition.md): customer-facing selection/cart state on top of public browse data.
 - [.memory-bank/testing/index.md](../testing/index.md): verification basis для public catalog, seller ownership и rename policy.
 
 ## Test strategy pointers

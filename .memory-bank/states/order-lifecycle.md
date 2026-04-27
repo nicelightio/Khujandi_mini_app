@@ -8,6 +8,8 @@ status: active
 
 `CREATED -> ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`
 
+`CREATED` появляется только после successful paid order creation в `checkout-payment`; это customer-visible starting status, но не delivery operation transition.
+
 ## Cancellation states
 
 - `CANCELLED_BY_ADMIN`
@@ -51,6 +53,7 @@ status: active
 - Terminal statuses `COMPLETED` и `CANCELLED_*` не имеют исходящих переходов.
 - Изменение `refund_status` после отмены не reopen-ит order lifecycle: cancelled order остается terminal по `order.status`, пока manual refund workflow меняет только refund metadata.
 - Для MVP нет специфицированных переходов отмены из `DELIVERED`; такие сценарии считаются out of current state contract, пока не появится отдельное уточнение.
+- Customer-facing status visibility may display this lifecycle, but customer UI remains read-only and does not own any transition command.
 
 ## Source artifacts
 

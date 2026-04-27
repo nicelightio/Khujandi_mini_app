@@ -26,3 +26,19 @@ export {
   getStorefrontPublicPath,
 } from "./mappers";
 export { buildStorefrontCatalogViewModel, buildStorefrontViewModel } from "./view-model";
+export {
+  addCatalogCompositionItem,
+  buildCustomerOrderCompositionPayload,
+  clearCatalogComposition,
+  createEmptyCatalogCompositionState,
+  removeCatalogCompositionItem,
+  updateCatalogCompositionItemQuantity,
+} from "../composition";
+export type {
+  AddCatalogCompositionItemResult,
+  CatalogCompositionLineItem,
+  CatalogCompositionProduct,
+  CatalogCompositionShop,
+  CatalogCompositionState,
+  CustomerOrderCompositionPayload,
+} from "../composition";

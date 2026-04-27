@@ -15,7 +15,10 @@ import {
   type OrderTrackingViewModel,
 } from "../model/order-tracking-view-model";
 import type { SupportedLanguage } from "../../../shared/i18n/languages";
+import { getCopy } from "../../../shared/i18n/copy";
+import { routes } from "../../../shared/lib/routes";
 import { useOptionalUiShell } from "../../../shared/state/ui-shell-context";
+import type { OrderTrackingSession } from "../api/order-tracking-api";
 
 export type OrderTrackingRouteModel = {
   viewModel: OrderTrackingViewModel;
@@ -27,6 +30,7 @@ const pollingIntervalMs = 5000;
 export const useOrderTrackingViewModel = (
   language: SupportedLanguage,
   api?: OrderTrackingApi,
+  initialSession?: OrderTrackingSession | null,
 ): OrderTrackingRouteModel => {
   const shell = useOptionalUiShell();
   const trackingApi = useMemo(() => api ?? createOrderTrackingApi(), [api]);
@@ -43,6 +47,31 @@ export const useOrderTrackingViewModel = (
 
   useEffect(() => {
     let active = true;
+
+    if (initialSession === null) {
+      setConsumerState(null);
+      setIsLoading(false);
+      setIsSubmitting(false);
+      setErrorMessage(getCopy(language).orderTracking.missingOrderMessage);
+      consumerStateRef.current = null;
+
+      return () => {
+        active = false;
+      };
+    }
+
+    if (initialSession !== undefined) {
+      const baseState = createOrderTrackingConsumerState(initialSession);
+      consumerStateRef.current = baseState;
+      setConsumerState(baseState);
+      setIsLoading(false);
+      setIsSubmitting(false);
+      setErrorMessage(null);
+
+      return () => {
+        active = false;
+      };
+    }
 
     setConsumerState(null);
     setIsLoading(true);
@@ -75,7 +104,7 @@ export const useOrderTrackingViewModel = (
     return () => {
       active = false;
     };
-  }, [language, trackingApi]);
+  }, [initialSession, language, trackingApi]);
 
   const isPollingActive = shell?.state.lifecycle !== "inactive";
 
@@ -132,6 +161,7 @@ export const useOrderTrackingViewModel = (
 
     return () => {
       active = false;
+      pollingInFlightRef.current = false;
       globalThis.clearInterval(intervalId);
     };
   }, [consumerState?.orderId, isPollingActive, language, trackingApi]);
@@ -139,7 +169,7 @@ export const useOrderTrackingViewModel = (
   const submitCourierAction = async (nextStatus: OrderTrackingActionStatus) => {
     const currentState = consumerStateRef.current;
 
-    if (currentState === null || isSubmitting) {
+    if (currentState === null || currentState.isReadOnly || isSubmitting) {
       return;
     }
 
@@ -175,7 +205,7 @@ export const useOrderTrackingViewModel = (
     }
 
     if (consumerState === null) {
-      return createErrorOrderTrackingViewModel(errorMessage ?? undefined, language);
+      return createErrorOrderTrackingViewModel(errorMessage ?? undefined, language, routes.catalog);
     }
 
     return createReadyOrderTrackingViewModel({

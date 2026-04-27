@@ -12,6 +12,7 @@ status: active
 
 - Курьер подтверждает заказ и ведет доставку через статусы.
 - Клиент и админка видят обновления через polling.
+- Customer-facing status visibility after paid order creation is specified in `FT-014`; this feature remains the owner of lifecycle/event semantics.
 
 ## Acceptance criteria
 
@@ -41,6 +42,7 @@ status: active
 
 - `FT-005` владеет post-assignment lifecycle: `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
 - Переход `CREATED -> ASSIGNED` и событие назначения курьера принадлежат `FT-004`.
+- `FT-014` may consume `FT-005` polling/events for customer UI, but MUST NOT define new delivery transition ownership or customer mutation commands.
 
 ## Normative inputs
 
@@ -48,6 +50,7 @@ status: active
 - [.memory-bank/states/order-lifecycle.md](../states/order-lifecycle.md): order lifecycle, transition ownership и terminal states.
 - [.memory-bank/architecture/events-polling-and-bot-runtime.md](../architecture/events-polling-and-bot-runtime.md): duplicate-safe runtime/polling baseline и ownership split.
 - [.memory-bank/testing/index.md](../testing/index.md): quality gates и SLA-sensitive verification.
+- [.memory-bank/features/FT-014-customer-order-status-visibility-and-delivery-tracking-integration.md](FT-014-customer-order-status-visibility-and-delivery-tracking-integration.md): customer-facing read-only status visibility over this tracking contract.
 
 ## Verification targets
 

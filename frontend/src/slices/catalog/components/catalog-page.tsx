@@ -4,8 +4,19 @@ import { isDebugEnabled } from "../../../shared/config/debug";
 import { getCopy } from "../../../shared/i18n/copy";
 import { useMagneticElements } from "../../../shared/ui/use-magnetic-elements";
 import { PageShell } from "../../../shared/ui/page-shell";
-import { buildStorefrontPath } from "../../../shared/lib/routes";
+import { buildStorefrontPath, routes } from "../../../shared/lib/routes";
 import type { CatalogViewModel } from "../model/catalog-view-model";
+import {
+  addCatalogCompositionItem,
+  buildCustomerOrderCompositionPayload,
+  createEmptyCatalogCompositionState,
+  persistCustomerOrderCompositionHandoff,
+  removeCatalogCompositionItem,
+  updateCatalogCompositionItemQuantity,
+  type CatalogCompositionProduct,
+  type CatalogCompositionShop,
+  type CustomerOrderCompositionPayload,
+} from "../model/composition";
 import { StorefrontEditorModal } from "./storefront-editor-modal";
 import {
   createStorefrontVisualStyle,
@@ -31,6 +42,12 @@ type CatalogPageProps = {
   onEditorFieldChange?: (name: string, value: string) => void;
   onCancelEditor?: () => void;
   onSubmitEditor?: () => void;
+  onCheckoutComposition?: (payload: CustomerOrderCompositionPayload) => void;
+};
+
+type PendingCartReplacement = {
+  shop: CatalogCompositionShop;
+  product: CatalogCompositionProduct;
 };
 
 export const CatalogPage = ({
@@ -40,13 +57,17 @@ export const CatalogPage = ({
   onEditorFieldChange,
   onCancelEditor,
   onSubmitEditor,
+  onCheckoutComposition,
 }: CatalogPageProps) => {
   const { state } = useLanguageContext();
   const copy = getCopy(state.language).catalog;
   const actionLabel = storefront?.isSaving === true ? "Saving storefront changes..." : undefined;
   const [visualTuning, setVisualTuning] = useState<StorefrontVisualTuning>(defaultStorefrontVisualTuning);
   const [isVisualPanelOpen, setIsVisualPanelOpen] = useState(false);
+  const [composition, setComposition] = useState(createEmptyCatalogCompositionState);
+  const [pendingCartReplacement, setPendingCartReplacement] = useState<PendingCartReplacement | null>(null);
   const shopRef = useRef<HTMLElement | null>(null);
+  const storefrontShopId = storefront?.shop.id;
   const heroImageUrl = storefront?.shop.headerImageUrl ?? defaultShopHeaderImage;
   const contentImageUrl = storefront?.shop.backgroundImageUrl ?? defaultStorefrontBackgroundImage;
   const visualStyle = useMemo(() => createStorefrontVisualStyle(visualTuning), [visualTuning]);
@@ -76,6 +97,46 @@ export const CatalogPage = ({
   }, [storefront]);
   const [activeTabId, setActiveTabId] = useState<string | null>(storefrontTabs[0]?.id ?? null);
   const resolvedActiveTabId = activeTabId ?? storefrontTabs[0]?.id ?? null;
+  const storefrontProductIds = useMemo(() => {
+    if (storefront === undefined) {
+      return new Set<string>();
+    }
+
+    return new Set([
+      ...storefront.menuPages.flatMap((menuPage) => menuPage.products.map((product) => product.id)),
+      ...storefront.unpagedProducts.map((product) => product.id),
+    ]);
+  }, [storefront]);
+  const unavailableCompositionProductIds = useMemo(() => {
+    if (storefront === undefined || composition.shop?.id !== storefront.shop.id) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      composition.items
+        .filter((item) => !storefrontProductIds.has(item.productId))
+        .map((item) => item.productId),
+    );
+  }, [composition.items, composition.shop?.id, storefront, storefrontProductIds]);
+  const hasUnavailableCompositionItems = unavailableCompositionProductIds.size > 0;
+  const compositionPayload = hasUnavailableCompositionItems ? null : buildCustomerOrderCompositionPayload(composition);
+  const compositionPreviewTotalMinor = composition.items.reduce(
+    (total, item) => total + item.displaySnapshot.unitPriceMinor * item.quantity,
+    0,
+  );
+  const previewTotalLabel = `${(compositionPreviewTotalMinor / 100).toFixed(2)} TJS`;
+  const compositionItemsByProductId = useMemo(
+    () => new Map(composition.items.map((item) => [item.productId, item])),
+    [composition.items],
+  );
+
+  useEffect(() => {
+    if (pendingCartReplacement === null || pendingCartReplacement.shop.id === storefrontShopId) {
+      return;
+    }
+
+    setPendingCartReplacement(null);
+  }, [pendingCartReplacement, storefrontShopId]);
 
   useEffect(() => {
     const hasActiveTab = resolvedActiveTabId !== null && storefrontTabs.some((tab) => tab.id === resolvedActiveTabId);
@@ -90,7 +151,7 @@ export const CatalogPage = ({
   useMagneticElements(shopRef);
 
   useEffect(() => {
-    if (storefront === undefined || typeof window === "undefined") {
+    if (storefrontShopId === undefined || typeof window === "undefined") {
       return;
     }
 
@@ -133,7 +194,7 @@ export const CatalogPage = ({
       window.removeEventListener("scroll", scheduleParallax);
       window.removeEventListener("resize", scheduleParallax);
     };
-  }, [storefront?.shop.id]);
+  }, [storefrontShopId]);
 
   const activateEditor = (target: CatalogStorefrontEditorTarget) => {
     if (storefront?.access.canEdit !== true || onActivateEditor === undefined) {
@@ -163,6 +224,84 @@ export const CatalogPage = ({
     event.preventDefault();
     event.stopPropagation();
     activateEditor(target);
+  };
+
+  const addCartItem = (product: { id: string; name: string; priceMinor: number }) => {
+    if (storefront === undefined || storefront.access.canEdit) {
+      return;
+    }
+
+    const shop: CatalogCompositionShop = {
+      id: storefront.shop.id,
+      publicPath: storefront.shop.publicPath,
+      name: storefront.shop.name,
+    };
+    const compositionProduct: CatalogCompositionProduct = {
+      id: product.id,
+      shopId: storefront.shop.id,
+      name: product.name,
+      priceMinor: product.priceMinor,
+    };
+
+    setComposition((current) => {
+      const result = addCatalogCompositionItem(current, {
+        shop,
+        product: compositionProduct,
+      });
+
+      if (result.status === "different-shop-blocked") {
+        setPendingCartReplacement({ shop, product: compositionProduct });
+
+        return current;
+      }
+
+      setPendingCartReplacement(null);
+
+      return result.state;
+    });
+  };
+
+  const replaceCartWithPendingItem = () => {
+    if (pendingCartReplacement === null) {
+      return;
+    }
+
+    const result = addCatalogCompositionItem(createEmptyCatalogCompositionState(), pendingCartReplacement);
+
+    setComposition(result.state);
+    setPendingCartReplacement(null);
+  };
+
+  const clearCart = () => {
+    setComposition(createEmptyCatalogCompositionState());
+    setPendingCartReplacement(null);
+  };
+
+  const updateCartItemQuantity = (productId: string, quantity: number) => {
+    setComposition((current) => updateCatalogCompositionItemQuantity(current, productId, quantity));
+  };
+
+  const removeCartItem = (productId: string) => {
+    setComposition((current) => removeCatalogCompositionItem(current, productId));
+  };
+
+  const startCheckoutHandoff = () => {
+    if (compositionPayload === null) {
+      return;
+    }
+
+    if (onCheckoutComposition !== undefined) {
+      onCheckoutComposition(compositionPayload);
+
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    persistCustomerOrderCompositionHandoff(compositionPayload, window.sessionStorage);
+    window.location.assign(routes.checkoutPayment);
   };
 
   return (
@@ -217,7 +356,122 @@ export const CatalogPage = ({
               onActivateEditor={activateEditor}
               onActivateNestedEditor={activateNestedEditor}
               onActivateNestedEditorFromContextMenu={activateNestedEditorFromContextMenu}
+              getCartQuantity={(productId) => compositionItemsByProductId.get(productId)?.quantity ?? 0}
+              onAddCartItem={addCartItem}
+              onUpdateCartItemQuantity={updateCartItemQuantity}
             >
+              {!storefront.access.canEdit ? (
+                <section data-storefront-cart="summary" aria-label="Cart summary">
+                  <div data-storefront-cart="summary-heading">
+                    <div>
+                      <p data-storefront-section-label>Order draft</p>
+                      <h2>{composition.shop?.name ?? storefront.shop.name}</h2>
+                    </div>
+                    <span data-storefront-cart-ready={compositionPayload === null ? "false" : "true"}>
+                      {compositionPayload === null ? "Add items to unlock checkout" : "Checkout ready"}
+                    </span>
+                  </div>
+
+                  {composition.items.length === 0 ? (
+                    <p>Your cart is empty. Add products from this public storefront before checkout.</p>
+                  ) : (
+                    <ul data-storefront-cart="items">
+                      {composition.items.map((item) => (
+                        <li key={item.productId} data-storefront-cart="item" data-product-id={item.productId}>
+                          <div>
+                            <strong>{item.displaySnapshot.productName}</strong>
+                            <span>{`${(item.displaySnapshot.unitPriceMinor / 100).toFixed(2)} ${item.displaySnapshot.currency}`}</span>
+                            {unavailableCompositionProductIds.has(item.productId) ? (
+                              <span data-storefront-cart="item-unavailable">Unavailable now</span>
+                            ) : null}
+                          </div>
+                          <div data-storefront-cart="quantity-controls" aria-label={`${item.displaySnapshot.productName} cart quantity`}>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                updateCartItemQuantity(item.productId, item.quantity - 1);
+                              }}
+                            >
+                              -
+                            </button>
+                            <span>{item.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                updateCartItemQuantity(item.productId, item.quantity + 1);
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            data-storefront-cart="remove"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              removeCartItem(item.productId);
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {hasUnavailableCompositionItems ? (
+                    <p data-storefront-cart="repair" role="alert">
+                      Some cart items are no longer available on this public storefront. Remove them before checkout.
+                    </p>
+                  ) : null}
+
+                  <div data-storefront-cart="total">
+                    <span>Preview total</span>
+                    <strong>{previewTotalLabel}</strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    data-storefront-cart="checkout"
+                    disabled={compositionPayload === null}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      startCheckoutHandoff();
+                    }}
+                  >
+                    Continue to checkout
+                  </button>
+
+                  {pendingCartReplacement !== null ? (
+                    <div data-storefront-cart="replace-prompt" role="status">
+                      <p>{`Your cart has items from ${composition.shop?.name ?? "another shop"}. Replace it with ${pendingCartReplacement.shop.name} to keep checkout single-shop.`}</p>
+                      <div data-storefront-cart="replace-actions">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            replaceCartWithPendingItem();
+                          }}
+                        >
+                          Replace cart
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            clearCart();
+                          }}
+                        >
+                          Clear cart
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+
               <StorefrontEffectsDock
                 tuning={visualTuning}
                 isOpen={isVisualPanelOpen}

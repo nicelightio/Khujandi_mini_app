@@ -21,12 +21,15 @@ export type OrderTrackingConsumerState = {
   lastAppliedRevision: string | null;
   seenRevisions: string[];
   availableActions: OrderTrackingActionStatus[];
+  isReadOnly: boolean;
 };
 
 export type OrderTrackingViewModel = {
   headline: string;
   orderId: string | null;
   statusLabel: string;
+  customerLifecycleTitle: string;
+  customerLifecycleBody: string;
   updatesLabel: string;
   cursorLabel: string;
   latestRevisionLabel: string;
@@ -36,6 +39,8 @@ export type OrderTrackingViewModel = {
   isLoading: boolean;
   isSubmitting: boolean;
   errorMessage: string | null;
+  recoveryHref: string | null;
+  recoveryLabel: string | null;
 };
 
 export const getAvailableActionsForOrderTrackingStatus = (
@@ -53,6 +58,34 @@ export const getAvailableActionsForOrderTrackingStatus = (
   }
 };
 
+const orderTrackingStatusRank: Record<OrderTrackingStatus, number> = {
+  CREATED: 0,
+  ASSIGNED: 1,
+  IN_PROGRESS: 2,
+  DELIVERED: 3,
+  COMPLETED: 4,
+  CANCELLED_BY_ADMIN: 4,
+  CANCELLED_BY_COURIER_UNAVAILABLE: 4,
+};
+
+const isTerminalOrderTrackingStatus = (status: OrderTrackingStatus): boolean =>
+  status === "COMPLETED" || status === "CANCELLED_BY_ADMIN" || status === "CANCELLED_BY_COURIER_UNAVAILABLE";
+
+const canApplyPolledStatus = (
+  currentStatus: OrderTrackingStatus,
+  nextStatus: OrderTrackingStatus,
+): boolean => {
+  if (isTerminalOrderTrackingStatus(currentStatus)) {
+    return false;
+  }
+
+  if (isTerminalOrderTrackingStatus(nextStatus)) {
+    return true;
+  }
+
+  return orderTrackingStatusRank[nextStatus] >= orderTrackingStatusRank[currentStatus];
+};
+
 const getActionLabel = (
   status: OrderTrackingActionStatus,
   language: SupportedLanguage,
@@ -67,7 +100,8 @@ export const createOrderTrackingConsumerState = (
   appliedEventCount: 0,
   lastAppliedRevision: null,
   seenRevisions: [],
-  availableActions: session.availableActions,
+  availableActions: session.isReadOnly === true ? [] : session.availableActions,
+  isReadOnly: session.isReadOnly === true,
 });
 
 export const applyOrderTrackingPollResult = (
@@ -77,12 +111,20 @@ export const applyOrderTrackingPollResult = (
   const seenRevisions = new Set(currentState.seenRevisions);
   const nextEvents: OrderTrackingEvent[] = [];
 
+  let currentStatus = currentState.currentStatus;
+
   for (const event of result.events) {
     if (event.entityId !== currentState.orderId || seenRevisions.has(event.revision)) {
       continue;
     }
 
     seenRevisions.add(event.revision);
+
+    if (!canApplyPolledStatus(currentStatus, event.payload.status)) {
+      continue;
+    }
+
+    currentStatus = event.payload.status;
     nextEvents.push(event);
   }
 
@@ -96,7 +138,9 @@ export const applyOrderTrackingPollResult = (
     lastAppliedRevision: lastEvent?.revision ?? currentState.lastAppliedRevision,
     seenRevisions: Array.from(seenRevisions),
     availableActions:
-      lastEvent === undefined
+      currentState.isReadOnly
+        ? []
+        : lastEvent === undefined
         ? currentState.availableActions
         : getAvailableActionsForOrderTrackingStatus(lastEvent.payload.status),
   };
@@ -111,7 +155,7 @@ export const applyOrderTrackingActionResult = (
     availableActions: OrderTrackingActionStatus[];
   },
 ): OrderTrackingConsumerState => {
-  if (result.orderId !== currentState.orderId) {
+  if (currentState.isReadOnly || result.orderId !== currentState.orderId) {
     return currentState;
   }
 
@@ -140,6 +184,8 @@ export const createLoadingOrderTrackingViewModel = (
     headline: copy.headline,
     orderId: null,
     statusLabel: copy.loadingStatus,
+    customerLifecycleTitle: copy.loadingStatus,
+    customerLifecycleBody: copy.loadingBody,
     updatesLabel: copy.updatesApplied(0),
     cursorLabel: copy.cursorLabel("0"),
     latestRevisionLabel: copy.latestRevision(null),
@@ -149,12 +195,15 @@ export const createLoadingOrderTrackingViewModel = (
     isLoading: true,
     isSubmitting: false,
     errorMessage: null,
+    recoveryHref: null,
+    recoveryLabel: null,
   };
 };
 
 export const createErrorOrderTrackingViewModel = (
   message = getCopy(defaultLanguage).orderTracking.unavailableMessage,
   language: SupportedLanguage = defaultLanguage,
+  recoveryHref: string | null = null,
 ): OrderTrackingViewModel => {
   const copy = getCopy(language).orderTracking;
 
@@ -162,6 +211,8 @@ export const createErrorOrderTrackingViewModel = (
     headline: copy.headline,
     orderId: null,
     statusLabel: copy.unavailableStatus,
+    customerLifecycleTitle: copy.unavailableStatus,
+    customerLifecycleBody: message,
     updatesLabel: copy.updatesApplied(0),
     cursorLabel: copy.cursorLabel("0"),
     latestRevisionLabel: copy.latestRevision(null),
@@ -171,6 +222,8 @@ export const createErrorOrderTrackingViewModel = (
     isLoading: false,
     isSubmitting: false,
     errorMessage: message,
+    recoveryHref,
+    recoveryLabel: recoveryHref === null ? null : copy.recoveryAction,
   };
 };
 
@@ -193,6 +246,8 @@ export const createReadyOrderTrackingViewModel = ({
     headline: copy.headline,
     orderId: state.orderId,
     statusLabel: isSubmitting ? copy.pendingAction : copy.currentStatus(state.currentStatus),
+    customerLifecycleTitle: copy.customerLifecycleTitle[state.currentStatus],
+    customerLifecycleBody: copy.customerLifecycleBody[state.currentStatus],
     updatesLabel: copy.updatesApplied(state.appliedEventCount),
     cursorLabel: copy.cursorLabel(state.cursor),
     latestRevisionLabel: copy.latestRevision(state.lastAppliedRevision),
@@ -205,5 +260,7 @@ export const createReadyOrderTrackingViewModel = ({
     isLoading: false,
     isSubmitting,
     errorMessage,
+    recoveryHref: null,
+    recoveryLabel: null,
   };
 };

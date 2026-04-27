@@ -3,6 +3,33 @@ import { InMemoryCatalogRepository, createCatalogRuntimeState } from "../../../b
 import { adminOrigin, createTelegramInitData } from "./catalog.runtime.test-helpers";
 
 export const registerCatalogRuntimeMiscCases = () => {
+  it("returns the canonical error contract for missing dev-api routes", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      const client = runtime.createClient();
+      const response = await client.request({
+        path: "/api/v1/unknown-route",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        error: {
+          code: "NOT_FOUND",
+          message: "Route not found.",
+        },
+        trace_id: "trace-dev-runtime",
+      });
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("issues Mini App session cookies from the shared auth boundary instead of the old route-local token convention", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",

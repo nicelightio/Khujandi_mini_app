@@ -2,6 +2,8 @@ import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { LocalizationBoundary } from "../../../app/localization-boundary";
 import { OrderTrackingRoute } from "../../../slices/order-tracking/routes/order-tracking-route";
 import type { LanguageController } from "../../../shared/state/language";
+import { createUiShellState } from "../../../shared/state/ui-shell";
+import { UiShellProvider } from "../../../shared/state/ui-shell-context";
 
 const reactActEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
@@ -90,6 +92,146 @@ describe("order-tracking route", () => {
 
     return renderer;
   };
+
+  const renderRouteWithProps = async (props: Parameters<typeof OrderTrackingRoute>[0]): Promise<ReactTestRenderer> => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <LocalizationBoundary controller={createLanguageController()}>
+          <OrderTrackingRoute {...props} />
+        </LocalizationBoundary>,
+      );
+      await flushPromises();
+    });
+
+    return renderer;
+  };
+
+  const renderRouteWithShell = async (
+    props: Parameters<typeof OrderTrackingRoute>[0],
+    lifecycle: "active" | "inactive",
+  ): Promise<ReactTestRenderer> => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <LocalizationBoundary controller={createLanguageController()}>
+          <UiShellProvider state={createUiShellState({ lifecycle })}>
+            <OrderTrackingRoute {...props} />
+          </UiShellProvider>
+        </LocalizationBoundary>,
+      );
+      await flushPromises();
+    });
+
+    return renderer;
+  };
+
+  it("opens customer status from paid-order metadata without courier controls", async () => {
+    const pollEvents = jest.fn().mockResolvedValue({
+      events: [],
+      nextCursor: "101",
+    });
+    const submitCourierAction = jest.fn();
+    const renderer = await renderRouteWithProps({
+      api: {
+        loadTrackingSession: jest.fn(),
+        pollEvents,
+        submitCourierAction,
+      },
+      initialSession: {
+        orderId: "order-1",
+        currentStatus: "CREATED",
+        initialCursor: "101",
+        availableActions: [],
+        isReadOnly: true,
+      },
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Order tracking");
+    expect(text).toContain("Order: order-1");
+    expect(text).toContain("Current status: CREATED.");
+    expect(text).toContain("Order paid and waiting for courier assignment");
+    expect(text).toContain("Payment is confirmed.");
+    expect(text).toContain("Cursor: 101");
+    expect(text).not.toContain("Courier actions");
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    expect(submitCourierAction).not.toHaveBeenCalled();
+  });
+
+  it("renders customer-safe lifecycle copy without courier controls", async () => {
+    const statuses = [
+      ["CREATED", "Order paid and waiting for courier assignment", "Payment is confirmed."],
+      ["ASSIGNED", "Courier assigned", "after the courier starts"],
+      ["IN_PROGRESS", "Courier is on the way", "updates automatically through polling"],
+      ["DELIVERED", "Order delivered", "waiting for final completion"],
+      ["COMPLETED", "Order completed", "Thank you for your order"],
+    ] as const;
+
+    for (const [currentStatus, title, body] of statuses) {
+      const renderer = await renderRouteWithProps({
+        api: {
+          loadTrackingSession: jest.fn(),
+          pollEvents: jest.fn().mockResolvedValue({ events: [], nextCursor: "101" }),
+          submitCourierAction: jest.fn(),
+        },
+        initialSession: {
+          orderId: "order-1",
+          currentStatus,
+          initialCursor: "101",
+          availableActions: [],
+          isReadOnly: true,
+        },
+      });
+
+      const text = collectText(renderer.toJSON()).join(" ");
+      expect(text).toContain(title);
+      expect(text).toContain(body);
+      expect(text).not.toContain("Courier actions");
+      expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    }
+  });
+
+  it("renders cancellation terminal states without audit or refund internals", async () => {
+    const renderer = await renderRouteWithProps({
+      api: {
+        loadTrackingSession: jest.fn(),
+        pollEvents: jest.fn().mockResolvedValue({ events: [], nextCursor: "201" }),
+        submitCourierAction: jest.fn(),
+      },
+      initialSession: {
+        orderId: "order-1",
+        currentStatus: "CANCELLED_BY_ADMIN",
+        initialCursor: "201",
+        availableActions: [],
+        isReadOnly: true,
+      },
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Current status: CANCELLED_BY_ADMIN.");
+    expect(text).toContain("Order cancelled by operations");
+    expect(text).toContain("Refund handling details stay outside the customer status screen.");
+    expect(text).not.toContain("Courier actions");
+    expect(text).not.toContain("audit");
+    expect(text).not.toContain("refund_status");
+    expect(text).not.toContain("PENDING_MANUAL");
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+  });
+
+  it("recovers safely when customer tracking opens without a paid order identity", async () => {
+    const renderer = await renderRouteWithProps({ initialSession: null });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain(
+      "We could not find the created order to track. Return to the catalog or complete checkout again.",
+    );
+    expect(text).toContain("Return to catalog");
+    expect(text).not.toContain("Order: order-scaffold-1");
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+  });
 
   it("applies ordered polling updates and ignores duplicate revisions after interval retries", async () => {
     const pollEvents = jest
@@ -379,5 +521,83 @@ describe("order-tracking route", () => {
     expect(pollEvents).toHaveBeenNthCalledWith(2, "11");
     expect(pollEvents).toHaveBeenNthCalledWith(3, "12");
     expect(pollEvents).toHaveBeenNthCalledWith(4, "13");
+  });
+
+  it("pauses on shell deactivation and resumes polling duplicate-safely from the latest cursor", async () => {
+    const pollEvents = jest
+      .fn()
+      .mockResolvedValueOnce({
+        events: [],
+        nextCursor: "10",
+      })
+      .mockResolvedValueOnce({
+        events: [
+          {
+            type: "order.status_changed",
+            entity: "order",
+            entityId: "order-1",
+            payload: {
+              orderId: "order-1",
+              previousStatus: "ASSIGNED",
+              status: "IN_PROGRESS",
+              changedByUserId: "courier-1",
+              updatedAt: "2026-04-03T12:00:00.000Z",
+            },
+            revision: "11",
+            createdAt: "2026-04-03T12:00:00.000Z",
+          },
+        ],
+        nextCursor: "11",
+      });
+    const props = {
+      api: {
+        loadTrackingSession: async () => ({
+          orderId: "order-1",
+          currentStatus: "ASSIGNED" as const,
+          initialCursor: "10",
+          availableActions: [],
+          isReadOnly: true,
+        }),
+        pollEvents,
+        submitCourierAction: jest.fn(),
+      },
+    };
+    const renderer = await renderRouteWithShell(props, "active");
+
+    await act(async () => {
+      renderer.update(
+        <LocalizationBoundary controller={createLanguageController()}>
+          <UiShellProvider state={createUiShellState({ lifecycle: "inactive" })}>
+            <OrderTrackingRoute {...props} />
+          </UiShellProvider>
+        </LocalizationBoundary>,
+      );
+      await flushPromises();
+    });
+    const callsAfterDeactivation = pollEvents.mock.calls.length;
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+      await flushPromises();
+    });
+    expect(pollEvents).toHaveBeenCalledTimes(callsAfterDeactivation);
+
+    await act(async () => {
+      renderer.update(
+        <LocalizationBoundary controller={createLanguageController()}>
+          <UiShellProvider state={createUiShellState({ lifecycle: "active" })}>
+            <OrderTrackingRoute {...props} />
+          </UiShellProvider>
+        </LocalizationBoundary>,
+      );
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Current status: IN_PROGRESS.");
+    expect(text).toContain("Updates applied: 1.");
+    expect(pollEvents).toHaveBeenNthCalledWith(1, "10");
+    expect(pollEvents).toHaveBeenLastCalledWith("10");
+    expect(props.api.submitCourierAction).not.toHaveBeenCalled();
   });
 });

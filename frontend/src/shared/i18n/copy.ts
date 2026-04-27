@@ -37,6 +37,15 @@ type CopyDictionary = {
     backendBoundaryNote: string;
     openInTelegramMessage: string;
     successConfirmation: string;
+    missingCompositionStatus: string;
+    missingCompositionMessage: string;
+    missingCompositionAction: string;
+    compositionSummaryTitle: string;
+    compositionShopLabel: (shopPublicPath: string) => string;
+    compositionLineLabel: (productName: string, quantity: number, unitPriceLabel: string) => string;
+    compositionPreviewTotalLabel: (previewTotalLabel: string) => string;
+    statusEntryLabel: string;
+    statusEntryMetadata: (orderId: string, revision: string) => string;
   };
   orderTracking: {
     headline: string;
@@ -44,7 +53,29 @@ type CopyDictionary = {
     loadingBody: string;
     unavailableStatus: string;
     unavailableMessage: string;
+    missingOrderMessage: string;
+    recoveryAction: string;
     currentStatus: (status: string) => string;
+    customerLifecycleTitle: Record<
+      | "CREATED"
+      | "ASSIGNED"
+      | "IN_PROGRESS"
+      | "DELIVERED"
+      | "COMPLETED"
+      | "CANCELLED_BY_ADMIN"
+      | "CANCELLED_BY_COURIER_UNAVAILABLE",
+      string
+    >;
+    customerLifecycleBody: Record<
+      | "CREATED"
+      | "ASSIGNED"
+      | "IN_PROGRESS"
+      | "DELIVERED"
+      | "COMPLETED"
+      | "CANCELLED_BY_ADMIN"
+      | "CANCELLED_BY_COURIER_UNAVAILABLE",
+      string
+    >;
     updatesApplied: (count: number) => string;
     cursorLabel: (cursor: string) => string;
     latestRevision: (revision: string | null) => string;
@@ -102,6 +133,17 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
         "Авторизация Telegram и подтверждение оплаты остаются на стороне backend.",
       openInTelegramMessage: "Откройте оформление заказа из Telegram, чтобы безопасно продолжить.",
       successConfirmation: "Заказ создан после доверенного подтверждения оплаты.",
+      missingCompositionStatus: "Сначала соберите корзину в каталоге.",
+      missingCompositionMessage:
+        "Оформление заказа открывается только из непустой корзины. Вернитесь в каталог и выберите товары.",
+      missingCompositionAction: "Вернуться в каталог",
+      compositionSummaryTitle: "Подтверждение состава заказа",
+      compositionShopLabel: (shopPublicPath) => `Магазин: ${shopPublicPath}`,
+      compositionLineLabel: (productName, quantity, unitPriceLabel) =>
+        `${productName} × ${quantity} · ${unitPriceLabel}`,
+      compositionPreviewTotalLabel: (previewTotalLabel) => `Предварительный итог ${previewTotalLabel}`,
+      statusEntryLabel: "Следить за статусом заказа",
+      statusEntryMetadata: (orderId, revision) => `Заказ ${orderId} готов к отслеживанию с revision ${revision}.`,
     },
     orderTracking: {
       headline: "Отслеживание заказа",
@@ -109,7 +151,28 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       loadingBody: "Загружаем scaffold отслеживания заказа...",
       unavailableStatus: "Не удалось подготовить отслеживание заказа.",
       unavailableMessage: "Отслеживание заказа временно недоступно.",
+      missingOrderMessage:
+        "Не нашли созданный заказ для отслеживания. Вернитесь в каталог или завершите оплату заново.",
+      recoveryAction: "Вернуться в каталог",
       currentStatus: (status) => `Текущий статус: ${status}.`,
+      customerLifecycleTitle: {
+        CREATED: "Заказ оплачен и ожидает назначения курьера",
+        ASSIGNED: "Курьер назначен",
+        IN_PROGRESS: "Курьер в пути",
+        DELIVERED: "Заказ доставлен",
+        COMPLETED: "Заказ завершен",
+        CANCELLED_BY_ADMIN: "Заказ отменен оператором",
+        CANCELLED_BY_COURIER_UNAVAILABLE: "Заказ отменен: курьер недоступен",
+      },
+      customerLifecycleBody: {
+        CREATED: "Мы подтвердили оплату. Операционная команда назначит курьера, когда заказ будет готов к доставке.",
+        ASSIGNED: "Курьер уже назначен. Мы покажем прогресс, когда курьер начнет доставку.",
+        IN_PROGRESS: "Курьер выполняет доставку. Статус обновится автоматически через polling.",
+        DELIVERED: "Заказ отмечен доставленным. Ждем финальное завершение доставки.",
+        COMPLETED: "Доставка завершена. Спасибо за заказ.",
+        CANCELLED_BY_ADMIN: "Заказ отменен операционной командой. Подробности по возврату обрабатываются вне клиентского экрана.",
+        CANCELLED_BY_COURIER_UNAVAILABLE: "Заказ отменен из-за недоступности курьера. Операционная команда обработает дальнейшие шаги.",
+      },
       updatesApplied: (count) => `Применено обновлений: ${count}.`,
       cursorLabel: (cursor) => `Cursor: ${cursor}`,
       latestRevision: (revision) =>
@@ -163,6 +226,17 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       backendBoundaryNote: "Telegram auth and payment confirmation stay on the backend boundary.",
       openInTelegramMessage: "Open this checkout from Telegram to continue securely.",
       successConfirmation: "Order created after trusted payment confirmation.",
+      missingCompositionStatus: "Build your cart in the catalog first.",
+      missingCompositionMessage:
+        "Checkout opens only from a non-empty cart. Return to the catalog and choose products before payment.",
+      missingCompositionAction: "Return to catalog",
+      compositionSummaryTitle: "Order composition confirmation",
+      compositionShopLabel: (shopPublicPath) => `Shop: ${shopPublicPath}`,
+      compositionLineLabel: (productName, quantity, unitPriceLabel) =>
+        `${productName} × ${quantity} · ${unitPriceLabel}`,
+      compositionPreviewTotalLabel: (previewTotalLabel) => `Preview total ${previewTotalLabel}`,
+      statusEntryLabel: "Track order status",
+      statusEntryMetadata: (orderId, revision) => `Order ${orderId} is ready for tracking from revision ${revision}.`,
     },
     orderTracking: {
       headline: "Order tracking",
@@ -170,7 +244,28 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       loadingBody: "Loading the order-tracking scaffold...",
       unavailableStatus: "We could not prepare order tracking right now.",
       unavailableMessage: "Order tracking is temporarily unavailable.",
+      missingOrderMessage:
+        "We could not find the created order to track. Return to the catalog or complete checkout again.",
+      recoveryAction: "Return to catalog",
       currentStatus: (status) => `Current status: ${status}.`,
+      customerLifecycleTitle: {
+        CREATED: "Order paid and waiting for courier assignment",
+        ASSIGNED: "Courier assigned",
+        IN_PROGRESS: "Courier is on the way",
+        DELIVERED: "Order delivered",
+        COMPLETED: "Order completed",
+        CANCELLED_BY_ADMIN: "Order cancelled by operations",
+        CANCELLED_BY_COURIER_UNAVAILABLE: "Order cancelled: courier unavailable",
+      },
+      customerLifecycleBody: {
+        CREATED: "Payment is confirmed. The operations team will assign a courier when the order is ready for delivery.",
+        ASSIGNED: "A courier is assigned. We will show delivery progress after the courier starts the trip.",
+        IN_PROGRESS: "The courier is handling your delivery. This screen updates automatically through polling.",
+        DELIVERED: "The order is marked as delivered. We are waiting for final completion.",
+        COMPLETED: "Delivery is complete. Thank you for your order.",
+        CANCELLED_BY_ADMIN: "The operations team cancelled this order. Refund handling details stay outside the customer status screen.",
+        CANCELLED_BY_COURIER_UNAVAILABLE: "The order was cancelled because the courier became unavailable. The operations team will handle next steps.",
+      },
       updatesApplied: (count) => `Updates applied: ${count}.`,
       cursorLabel: (cursor) => `Cursor: ${cursor}`,
       latestRevision: (revision) =>
@@ -225,6 +320,17 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
         "Иҷозати Telegram ва тасдиқи пардохт дар ҳудуди backend мемонад.",
       openInTelegramMessage: "Барои идомаи бехатар пардохтро аз дохили Telegram кушоед.",
       successConfirmation: "Фармоиш баъд аз тасдиқи боэътимоди пардохт сохта шуд.",
+      missingCompositionStatus: "Аввал сабадро дар феҳрист ҷамъ кунед.",
+      missingCompositionMessage:
+        "Пардохт танҳо аз сабади холӣ набуда кушода мешавад. Ба феҳрист баргардед ва молҳоро интихоб кунед.",
+      missingCompositionAction: "Ба феҳрист баргардед",
+      compositionSummaryTitle: "Тасдиқи таркиби фармоиш",
+      compositionShopLabel: (shopPublicPath) => `Мағоза: ${shopPublicPath}`,
+      compositionLineLabel: (productName, quantity, unitPriceLabel) =>
+        `${productName} × ${quantity} · ${unitPriceLabel}`,
+      compositionPreviewTotalLabel: (previewTotalLabel) => `Ҷамъи пешакӣ ${previewTotalLabel}`,
+      statusEntryLabel: "Ҳолати фармоишро пайгирӣ кунед",
+      statusEntryMetadata: (orderId, revision) => `Фармоиш ${orderId} аз revision ${revision} барои пайгирӣ омода аст.`,
     },
     orderTracking: {
       headline: "Пайгирии фармоиш",
@@ -232,7 +338,28 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       loadingBody: "Scaffold-и пайгирии фармоишро бор карда истодаем...",
       unavailableStatus: "Ҳоло пайгирии фармоишро омода кардан нашуд.",
       unavailableMessage: "Пайгирии фармоиш муваққатан дастнорас аст.",
+      missingOrderMessage:
+        "Фармоиши сохташударо барои пайгирӣ наёфтем. Ба феҳрист баргардед ё пардохтро аз нав анҷом диҳед.",
+      recoveryAction: "Ба феҳрист баргардед",
       currentStatus: (status) => `Ҳолати ҷорӣ: ${status}.`,
+      customerLifecycleTitle: {
+        CREATED: "Фармоиш пардохт шуд ва таъини курьерро интизор аст",
+        ASSIGNED: "Курьер таъин шуд",
+        IN_PROGRESS: "Курьер дар роҳ аст",
+        DELIVERED: "Фармоиш расонида шуд",
+        COMPLETED: "Фармоиш анҷом ёфт",
+        CANCELLED_BY_ADMIN: "Фармоиш аз ҷониби оператор бекор шуд",
+        CANCELLED_BY_COURIER_UNAVAILABLE: "Фармоиш бекор шуд: курьер дастнорас аст",
+      },
+      customerLifecycleBody: {
+        CREATED: "Пардохт тасдиқ шуд. Гурӯҳи амалиётӣ ҳангоми омода шудани фармоиш курьер таъин мекунад.",
+        ASSIGNED: "Курьер таъин шудааст. Пас аз оғози расониш пешрафтро нишон медиҳем.",
+        IN_PROGRESS: "Курьер фармоишро мерасонад. Ин экран бо polling худкор нав мешавад.",
+        DELIVERED: "Фармоиш ҳамчун расонидашуда қайд шуд. Анҷоми ниҳоиро интизорем.",
+        COMPLETED: "Расониш анҷом ёфт. Ташаккур барои фармоиш.",
+        CANCELLED_BY_ADMIN: "Гурӯҳи амалиётӣ ин фармоишро бекор кард. Ҷузъиёти баргардонидани маблағ дар экрани муштарӣ нишон дода намешавад.",
+        CANCELLED_BY_COURIER_UNAVAILABLE: "Фармоиш аз сабаби дастнорас шудани курьер бекор шуд. Гурӯҳи амалиётӣ қадамҳои минбаъдаро иҷро мекунад.",
+      },
       updatesApplied: (count) => `Навсозиҳои татбиқшуда: ${count}.`,
       cursorLabel: (cursor) => `Cursor: ${cursor}`,
       latestRevision: (revision) =>
