@@ -1,4 +1,5 @@
 import { ReviewsFeedbackService } from "../../slices/reviews-feedback/application/reviews-feedback.service";
+import { AppError } from "../../shared/errors/app-error";
 import type {
   ReviewsFeedbackActor,
   ReviewsFeedbackCommandResult,
@@ -61,6 +62,7 @@ type PendingReviewDraft = {
   orderId: ReviewsFeedbackOrderId;
   actorUserId: ReviewsFeedbackUserId;
   actorRole: ReviewsFeedbackActor["role"];
+  currentExpectedRevision?: string;
   actorTelegramId: string;
   direction: ReviewsFeedbackDirection;
   targetUserId: ReviewsFeedbackUserId;
@@ -74,6 +76,11 @@ type PendingReviewDraft = {
   submittedComment: string | null;
   submittedCreatedAt: Date | null;
   expiresAt: Date;
+};
+
+type SubmittableReviewDraft = PendingReviewDraft & {
+  rating: number;
+  reasonCode: string;
 };
 
 const REVIEW_DRAFT_TTL_MS = 60 * 60 * 1000;
@@ -183,6 +190,7 @@ export class TelegramBotReviewsFeedbackFlow {
         orderId: payload.orderId,
         actorUserId: input.actor.userId,
         actorRole: input.actor.role,
+        currentExpectedRevision: draft.expectedRevision,
         actorTelegramId: context.actorTelegramId,
         direction: payload.direction,
         targetUserId: context.targetUserId,
@@ -239,6 +247,8 @@ export class TelegramBotReviewsFeedbackFlow {
         };
       }
 
+      const currentExpectedRevision = draft.expectedRevision;
+
       draft.reasonCode = payload.value;
       draft.expectedStage = "comment";
       draft.expectedRevision = buildCommentPromptRevision(draft.rating, payload.value);
@@ -248,7 +258,7 @@ export class TelegramBotReviewsFeedbackFlow {
       draft.submittedCreatedAt = null;
       draft.expiresAt = this.buildDraftExpiry();
 
-      await this.persistDraft(draft);
+      await this.persistDraft(draft, currentExpectedRevision);
 
       await this.harness.notifyCommentStep({
         chatId: draft.actorTelegramId,
@@ -266,45 +276,19 @@ export class TelegramBotReviewsFeedbackFlow {
       };
     }
 
-    if (draft.reasonCode === null) {
+    const rating = draft.rating;
+    const reasonCode = draft.reasonCode;
+
+    if (rating === null || reasonCode === null) {
       return {
         type: "ignored",
         reason: "missing_draft",
       };
     }
 
-    const existingSubmittedResult = await this.getSubmittedResult(draft);
-
-    if (existingSubmittedResult !== null) {
-      return {
-        type: "submitted",
-        result: existingSubmittedResult,
-      };
-    }
-
-    const result = await this.service.submitReview({
-      orderId: draft.orderId,
-      actor: {
-        userId: draft.actorUserId,
-        role: draft.actorRole,
-      },
-      targetUserId: draft.targetUserId,
-      targetRole: draft.targetRole,
-      rating: draft.rating,
-      reasonCode: draft.reasonCode,
-      source: "telegram_bot",
-    });
-
-    draft.submittedReviewId = result.reviewId;
-    draft.submittedRevision = result.revision;
-    draft.submittedComment = result.comment;
-    draft.submittedCreatedAt = result.createdAt;
-    draft.expiresAt = this.buildDraftExpiry();
-    await this.persistDraft(draft);
-
     return {
       type: "submitted",
-      result,
+      result: await this.submitDraft({ ...draft, rating, reasonCode }),
     };
   }
 
@@ -324,46 +308,26 @@ export class TelegramBotReviewsFeedbackFlow {
 
     const draft = await this.getDraft(input.orderId, input.actor.userId, input.direction);
 
-    if (draft === undefined || draft.rating === null || draft.reasonCode === null) {
+    if (draft === undefined) {
       return {
         type: "ignored",
         reason: "missing_draft",
       };
     }
 
-    const existingSubmittedResult = await this.getSubmittedResult(draft);
+    const rating = draft.rating;
+    const reasonCode = draft.reasonCode;
 
-    if (existingSubmittedResult !== null) {
+    if (rating === null || reasonCode === null) {
       return {
-        type: "submitted",
-        result: existingSubmittedResult,
+        type: "ignored",
+        reason: "missing_draft",
       };
     }
 
-    const result = await this.service.submitReview({
-      orderId: draft.orderId,
-      actor: {
-        userId: draft.actorUserId,
-        role: draft.actorRole,
-      },
-      targetUserId: draft.targetUserId,
-      targetRole: draft.targetRole,
-      rating: draft.rating,
-      reasonCode: draft.reasonCode,
-      comment: input.comment,
-      source: "telegram_bot",
-    });
-
-    draft.submittedReviewId = result.reviewId;
-    draft.submittedRevision = result.revision;
-    draft.submittedComment = result.comment;
-    draft.submittedCreatedAt = result.createdAt;
-    draft.expiresAt = this.buildDraftExpiry();
-    await this.persistDraft(draft);
-
     return {
       type: "submitted",
-      result,
+      result: await this.submitDraft({ ...draft, rating, reasonCode }, { comment: input.comment }),
     };
   }
 
@@ -410,11 +374,12 @@ export class TelegramBotReviewsFeedbackFlow {
         };
   }
 
-  private persistDraft(draft: PendingReviewDraft) {
+  private persistDraft(draft: PendingReviewDraft, currentExpectedRevision = draft.currentExpectedRevision) {
     return this.service.upsertReviewDraft({
       orderId: draft.orderId,
       actorUserId: draft.actorUserId,
       direction: draft.direction,
+      ...(currentExpectedRevision === undefined ? {} : { currentExpectedRevision }),
       actorTelegramId: draft.actorTelegramId,
       targetUserId: draft.targetUserId,
       targetRole: draft.targetRole,
@@ -447,6 +412,77 @@ export class TelegramBotReviewsFeedbackFlow {
       revision: draft.submittedRevision,
       createdAt: draft.submittedCreatedAt,
     };
+  }
+
+  private async submitDraft(
+    draft: SubmittableReviewDraft,
+    commentInput?: { comment?: string },
+  ): Promise<ReviewsFeedbackCommandResult> {
+    const existingSubmittedResult = await this.getSubmittedResult(draft);
+
+    if (existingSubmittedResult !== null) {
+      return existingSubmittedResult;
+    }
+
+    const result = await this.service.submitReview({
+      orderId: draft.orderId,
+      actor: {
+        userId: draft.actorUserId,
+        role: draft.actorRole,
+      },
+      targetUserId: draft.targetUserId,
+      targetRole: draft.targetRole,
+      rating: draft.rating,
+      reasonCode: draft.reasonCode,
+      ...(commentInput ?? {}),
+      source: "telegram_bot",
+    });
+
+    draft.submittedReviewId = result.reviewId;
+    draft.submittedRevision = result.revision;
+    draft.submittedComment = result.comment;
+    draft.submittedCreatedAt = result.createdAt;
+    draft.expiresAt = this.buildDraftExpiry();
+    try {
+      await this.persistDraft(draft, draft.expectedRevision);
+    } catch (error) {
+      if (!this.isCasConflict(error)) {
+        throw error;
+      }
+
+      const submittedDraft = await this.getDraft(draft.orderId, draft.actorUserId, draft.direction);
+      const submittedResult = submittedDraft === undefined ? null : await this.getSubmittedResult(submittedDraft);
+
+      if (submittedResult !== null && this.isEquivalentSubmittedResult(submittedResult, result)) {
+        return submittedResult;
+      }
+
+      throw error;
+    }
+
+    return result;
+  }
+
+  private isCasConflict(error: unknown): boolean {
+    return error instanceof AppError && error.code === "CONFLICT" && error.statusCode === 409;
+  }
+
+  private isEquivalentSubmittedResult(
+    persisted: ReviewsFeedbackCommandResult,
+    expected: ReviewsFeedbackCommandResult,
+  ): boolean {
+    return (
+      persisted.reviewId === expected.reviewId &&
+      persisted.orderId === expected.orderId &&
+      persisted.authorId === expected.authorId &&
+      persisted.targetUserId === expected.targetUserId &&
+      persisted.targetRole === expected.targetRole &&
+      persisted.rating === expected.rating &&
+      persisted.reasonCode === expected.reasonCode &&
+      persisted.comment === expected.comment &&
+      persisted.revision === expected.revision &&
+      persisted.createdAt.getTime() === expected.createdAt.getTime()
+    );
   }
 
   private buildDraftExpiry(): Date {

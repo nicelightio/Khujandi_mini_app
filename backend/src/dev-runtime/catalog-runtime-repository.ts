@@ -34,6 +34,33 @@ const createCatalogWriteEvent = (input: Omit<CatalogWriteEvent, "createdAt">): C
   createdAt: new Date().toISOString(),
 });
 
+const createUniqueConstraintError = (): Error & { code: string } => {
+  const error = new Error("Unique constraint failed") as Error & { code: string };
+  error.code = "P2002";
+  return error;
+};
+
+const hasSellerShopNameConflict = (
+  shops: SellerCatalogShop[],
+  input: { sellerId: string; name: string; exceptShopId?: ShopId },
+): boolean =>
+  shops.some(
+    (shop) =>
+      shop.id !== input.exceptShopId && shop.sellerId === input.sellerId && shop.name === input.name,
+  );
+
+const hasPublicPathConflict = (
+  shops: SellerCatalogShop[],
+  input: Pick<CreateProvisionedShopInput, "primaryPublicPath" | "secondaryPublicPath">,
+): boolean =>
+  shops.some(
+    (shop) =>
+      shop.primaryPublicPath === input.primaryPublicPath ||
+      shop.secondaryPublicPath === input.primaryPublicPath ||
+      shop.primaryPublicPath === input.secondaryPublicPath ||
+      shop.secondaryPublicPath === input.secondaryPublicPath,
+  );
+
 export class InMemoryCatalogRepository implements CatalogRepository {
   constructor(private readonly state: CatalogRuntimeState) {}
 
@@ -136,24 +163,12 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   }
 
   async createShop(input: CreateProvisionedShopInput) {
-    if (this.state.shops.some((shop) => shop.sellerId === input.sellerId && shop.name === input.name)) {
-      const error = new Error("Unique constraint failed");
-      (error as Error & { code: string }).code = "P2002";
-      throw error;
+    if (hasSellerShopNameConflict(this.state.shops, input)) {
+      throw createUniqueConstraintError();
     }
 
-    if (
-      this.state.shops.some(
-        (shop) =>
-          shop.primaryPublicPath === input.primaryPublicPath ||
-          shop.secondaryPublicPath === input.primaryPublicPath ||
-          shop.primaryPublicPath === input.secondaryPublicPath ||
-          shop.secondaryPublicPath === input.secondaryPublicPath,
-      )
-    ) {
-      const error = new Error("Unique constraint failed");
-      (error as Error & { code: string }).code = "P2002";
-      throw error;
+    if (hasPublicPathConflict(this.state.shops, input)) {
+      throw createUniqueConstraintError();
     }
 
     const shop: SellerCatalogShop = {
@@ -185,14 +200,13 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     }
 
     if (
-      this.state.shops.some(
-        (candidate) =>
-          candidate.id !== shopId && candidate.sellerId === shop.sellerId && candidate.name === input.name,
-      )
+      hasSellerShopNameConflict(this.state.shops, {
+        sellerId: shop.sellerId,
+        name: input.name,
+        exceptShopId: shopId,
+      })
     ) {
-      const error = new Error("Unique constraint failed");
-      (error as Error & { code: string }).code = "P2002";
-      throw error;
+      throw createUniqueConstraintError();
     }
 
     shop.name = input.name;
@@ -341,9 +355,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   }
 
   async provisionSellerShop(input: ProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint }): Promise<ProvisionedSellerShop> {
-    const duplicateShop = this.state.shops.some(
-      (shop) => shop.sellerId === input.sellerId && shop.name === input.name,
-    );
+    const duplicateShop = hasSellerShopNameConflict(this.state.shops, input);
 
     if (duplicateShop) {
       throw new AppError(

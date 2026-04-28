@@ -72,12 +72,23 @@ type OrderCancellationOrderUpdateArgs = {
 type OrderCancellationOrderUpdateManyArgs = {
   where: {
     id: string;
-    refundStatus: "PENDING_MANUAL";
+    status?: OrderCancellationOrderStatus;
+    refundStatus?: "PENDING_MANUAL";
+    isDeleted?: false;
   };
-  data: {
-    refundStatus: "DONE" | "REJECTED" | "NOT_REQUIRED";
-    refundNote: string | null;
-  };
+  data:
+    | {
+        status: "CANCELLED_BY_ADMIN" | "CANCELLED_BY_COURIER_UNAVAILABLE";
+        cancelledByUserId: string;
+        cancellationReasonCode: string;
+        cancelledAt: Date;
+        refundStatus: OrderCancellationRefundStatus;
+        refundNote: string | null;
+      }
+    | {
+        refundStatus: "DONE" | "REJECTED" | "NOT_REQUIRED";
+        refundNote: string | null;
+      };
 };
 
 type OrderCancellationStatusHistoryCreateArgs = {
@@ -205,9 +216,11 @@ export class PrismaOrderCancellationRepository implements OrderCancellationRepos
         });
       }
 
-      const order = await transactionClient.order.update({
+      const updateResult = await transactionClient.order.updateMany({
         where: {
           id: input.orderId,
+          status: input.oldStatus,
+          isDeleted: false,
         },
         data: {
           status: input.newStatus,
@@ -216,6 +229,45 @@ export class PrismaOrderCancellationRepository implements OrderCancellationRepos
           cancelledAt: input.cancelledAt,
           refundStatus: input.refundStatus,
           refundNote: input.refundNote,
+        },
+      });
+
+      if (updateResult.count !== 1) {
+        const staleOrder = await transactionClient.order.findUnique({
+          where: {
+            id: input.orderId,
+          },
+          select: {
+            id: true,
+            courierId: true,
+            status: true,
+            paymentStatus: true,
+            refundStatus: true,
+            refundNote: true,
+            cancelledByUserId: true,
+            cancellationReasonCode: true,
+            cancelledAt: true,
+            updatedAt: true,
+            isDeleted: true,
+          },
+        });
+
+        if (staleOrder === null || staleOrder.isDeleted) {
+          throw new AppError("ORDER_NOT_FOUND", "Order was not found", 404, {
+            orderId: input.orderId,
+          });
+        }
+
+        throw new AppError("CONFLICT", "Order cancellation baseline requires a matching current state", 409, {
+          orderId: input.orderId,
+          currentStatus: mapOrderStatus(staleOrder.status),
+          expectedStatus: input.oldStatus,
+        });
+      }
+
+      const order = await transactionClient.order.findUnique({
+        where: {
+          id: input.orderId,
         },
         select: {
           id: true,
@@ -231,6 +283,12 @@ export class PrismaOrderCancellationRepository implements OrderCancellationRepos
           isDeleted: true,
         },
       });
+
+      if (order === null || order.isDeleted) {
+        throw new AppError("ORDER_NOT_FOUND", "Order was not found", 404, {
+          orderId: input.orderId,
+        });
+      }
 
       const statusHistory = await transactionClient.orderStatusHistory.create({
         data: {

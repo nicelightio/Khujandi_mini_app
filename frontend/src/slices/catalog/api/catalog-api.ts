@@ -154,6 +154,20 @@ const ensureObject = (value: unknown): Record<string, unknown> | null => {
   return value as Record<string, unknown>;
 };
 
+const mapValidArray = <T>(value: unknown, mapper: (entry: unknown) => T | null): T[] | null => {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const items = value.map((entry) => mapper(entry));
+
+  if (items.some((entry) => entry === null)) {
+    return null;
+  }
+
+  return items as T[];
+};
+
 const toCatalogShop = (value: unknown): CatalogShop | null => {
   const record = ensureObject(value);
 
@@ -336,9 +350,9 @@ const toSellerStorefrontMenuPage = (value: unknown): SellerStorefrontMenuPage | 
     return null;
   }
 
-  const products = record.products.map((entry) => toSellerStorefrontProduct(entry));
+  const products = mapValidArray(record.products, toSellerStorefrontProduct);
 
-  if (products.some((entry) => entry === null)) {
+  if (products === null) {
     return null;
   }
 
@@ -347,7 +361,7 @@ const toSellerStorefrontMenuPage = (value: unknown): SellerStorefrontMenuPage | 
     shopId: record.shopId,
     name: record.name,
     position: record.position,
-    products: products as SellerStorefrontProduct[],
+    products,
   };
 };
 
@@ -365,9 +379,9 @@ const toPublicStorefrontMenuPage = (value: unknown): PublicStorefrontMenuPage | 
     return null;
   }
 
-  const products = record.products.map((entry) => toPublicStorefrontProduct(entry));
+  const products = mapValidArray(record.products, toPublicStorefrontProduct);
 
-  if (products.some((entry) => entry === null)) {
+  if (products === null) {
     return null;
   }
 
@@ -376,64 +390,24 @@ const toPublicStorefrontMenuPage = (value: unknown): PublicStorefrontMenuPage | 
     shopId: record.shopId,
     name: record.name,
     position: record.position,
-    products: products as PublicStorefrontProduct[],
+    products,
   };
 };
 
 const toSellerStorefrontMenuPages = (value: unknown): SellerStorefrontMenuPage[] | null => {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const menuPages = value.map((entry) => toSellerStorefrontMenuPage(entry));
-
-  if (menuPages.some((entry) => entry === null)) {
-    return null;
-  }
-
-  return menuPages as SellerStorefrontMenuPage[];
+  return mapValidArray(value, toSellerStorefrontMenuPage);
 };
 
 const toSellerStorefrontProducts = (value: unknown): SellerStorefrontProduct[] | null => {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const products = value.map((entry) => toSellerStorefrontProduct(entry));
-
-  if (products.some((entry) => entry === null)) {
-    return null;
-  }
-
-  return products as SellerStorefrontProduct[];
+  return mapValidArray(value, toSellerStorefrontProduct);
 };
 
 const toPublicStorefrontMenuPages = (value: unknown): PublicStorefrontMenuPage[] | null => {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const menuPages = value.map((entry) => toPublicStorefrontMenuPage(entry));
-
-  if (menuPages.some((entry) => entry === null)) {
-    return null;
-  }
-
-  return menuPages as PublicStorefrontMenuPage[];
+  return mapValidArray(value, toPublicStorefrontMenuPage);
 };
 
 const toPublicStorefrontProducts = (value: unknown): PublicStorefrontProduct[] | null => {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const products = value.map((entry) => toPublicStorefrontProduct(entry));
-
-  if (products.some((entry) => entry === null)) {
-    return null;
-  }
-
-  return products as PublicStorefrontProduct[];
+  return mapValidArray(value, toPublicStorefrontProduct);
 };
 
 const toCatalogShops = (value: unknown): CatalogShop[] => {

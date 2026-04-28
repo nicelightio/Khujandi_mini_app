@@ -1,4 +1,6 @@
 import { TelegramBotReviewsFeedbackFlow } from "../../../backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow";
+import { AppError } from "../../../backend/src/shared/errors/app-error";
+import type { ReviewsFeedbackService } from "../../../backend/src/slices/reviews-feedback/application/reviews-feedback.service";
 import {
   buildReviewStepperCallbackData,
   TelegramBotReviewsFeedbackHarness,
@@ -311,6 +313,83 @@ export const registerReviewsFeedbackFlowCases = () => {
       reasonCode: "LATE_RESPONSE",
       source: "telegram_bot",
     });
+  });
+
+  it("treats submitted-draft CAS conflict as idempotent when another callback already persisted the same result", async () => {
+    const sendMessage = jest.fn().mockResolvedValue(undefined);
+    const submittedResult = {
+      reviewId: "21",
+      orderId: "order-1",
+      authorId: "courier-1",
+      targetUserId: "client-1",
+      targetRole: "client" as const,
+      rating: 2,
+      reasonCode: "LATE_RESPONSE",
+      comment: null,
+      revision: "23",
+      createdAt: new Date("2026-04-05T09:02:00.000Z"),
+    };
+    const activeDraft = {
+      orderId: "order-1",
+      actorUserId: "courier-1",
+      direction: "courier_to_client" as const,
+      actorTelegramId: "70002",
+      targetUserId: "client-1",
+      targetRole: "client" as const,
+      expectedStage: "comment" as const,
+      expectedRevision: "rating:2:reason:LATE_RESPONSE",
+      rating: 2,
+      reasonCode: "LATE_RESPONSE",
+      submittedReviewId: null,
+      submittedRevision: null,
+      submittedComment: null,
+      submittedCreatedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      updatedAt: new Date("2026-04-06T10:00:00.000Z"),
+    };
+    const submittedDraft = {
+      ...activeDraft,
+      submittedReviewId: submittedResult.reviewId,
+      submittedRevision: submittedResult.revision,
+      submittedComment: submittedResult.comment,
+      submittedCreatedAt: submittedResult.createdAt,
+    };
+    const service = {
+      resolveReviewFlowContext: jest.fn().mockResolvedValue({
+        actorTelegramId: "70002",
+        direction: "courier_to_client",
+        targetUserId: "client-1",
+        targetRole: "client",
+      }),
+      findActiveReviewDraft: jest.fn().mockResolvedValueOnce(activeDraft).mockResolvedValueOnce(submittedDraft),
+      upsertReviewDraft: jest.fn().mockRejectedValue(
+        new AppError("CONFLICT", "Review draft moved to another stage or revision", 409),
+      ),
+      submitReview: jest.fn().mockResolvedValue(submittedResult),
+    };
+    const flow = new TelegramBotReviewsFeedbackFlow(
+      service as unknown as ReviewsFeedbackService,
+      new TelegramBotReviewsFeedbackHarness({ sendMessage }),
+      reviewReasons,
+    );
+
+    await expect(
+      flow.handleCallback({
+        actor: {
+          userId: "courier-1",
+          role: "courier",
+        },
+        callbackData:
+          "reviews-feedback:order-1:courier_to_client:skip_comment:rating%3A2%3Areason%3ALATE_RESPONSE:SKIP",
+      }),
+    ).resolves.toEqual({
+      type: "submitted",
+      result: submittedResult,
+    });
+
+    expect(service.submitReview).toHaveBeenCalledTimes(1);
+    expect(service.upsertReviewDraft).toHaveBeenCalledTimes(1);
+    expect(service.findActiveReviewDraft).toHaveBeenCalledTimes(2);
   });
 
   it("ignores stale rating and reason-code callbacks after newer prompts are active", async () => {

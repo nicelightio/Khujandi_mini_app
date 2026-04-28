@@ -1,13 +1,13 @@
 ---
-description: Active quality-gate bug for TASK-FT009-09 because formal closure still lacks fresh real Android Telegram evidence for keyboard-open CTA reachability and degradation fallback behavior.
+description: Advisory pre-release risk for TASK-FT009-09 because formal Android Telegram evidence for keyboard-open CTA reachability and degradation fallback behavior is incomplete.
 status: active
 ---
 # BUG-2026-04-20 TASK-FT009-09 Missing Android Keyboard Evidence
 
 ## Summary
 
-- `TASK-FT009-09` closed the repo-local shell/degradation subset technically, but formal `/verify` still fails because the task explicitly requires fresh real `Android Telegram` evidence for keyboard-open bottom CTA reachability and degraded fallback behavior.
-- The current workspace contains only repo-local lint/Jest evidence plus a placeholder `.tasks/TASK-FT009-09/android-notes.md`, so the hardening wave cannot be marked `PASS` yet.
+- `TASK-FT009-09` closed the repo-local shell/degradation subset technically. The project decision on 2026-04-27 downgraded fresh real `Android Telegram` evidence from blocking gate to advisory pre-release risk check.
+- The current workspace contains repo-local lint/Jest evidence plus incomplete `.tasks/TASK-FT009-09/android-notes.md`; this no longer blocks repo-local closure, but it remains an explicit release risk.
 
 ## Detection
 
@@ -22,7 +22,7 @@ status: active
 
 ## Expected behavior
 
-- Final closure for this `FT-009` hardening wave should include operator-confirmed real `Android Telegram` notes proving:
+- Advisory pre-release smoke for this `FT-009` hardening wave should include operator-confirmed real `Android Telegram` notes proving:
   - keyboard-open keeps the checkout bottom CTA reachable;
   - the degraded runtime path preserves the intended conservative shell-owned CTA behavior;
   - no new shell regression appears on the hardened customer-facing checkout path.
@@ -31,7 +31,7 @@ status: active
 
 - Repo-local deterministic gates pass, but `.tasks/TASK-FT009-09/android-notes.md` still contains only pending placeholder content.
 - No fresh operator-confirmed Android Telegram evidence exists for the newly changed bottom-action/degradation semantics.
-- Formal `/verify TASK-FT009-09` therefore returns `FAIL`.
+- Under the previous policy formal `/verify TASK-FT009-09` returned `FAIL`; under the updated policy this is an advisory pre-release risk, not a repo-local blocker.
 
 ## Evidence
 
@@ -42,15 +42,15 @@ status: active
 
 ## Impact
 
-- `TASK-FT009-09` cannot be marked `done`.
-- The current `FT-009` hardening subset is not formally risk-closed even though repo-local code/tests are in place.
-- `/autopilot` must halt on a quality-gate blocker rather than pretend the real-device verify requirement is satisfied.
+- `TASK-FT009-09` can be marked `done` for repo-local closure.
+- The current `FT-009` hardening subset still carries pre-release WebView risk until Android smoke is recorded.
+- Execution should not halt repo-local closure on this missing evidence, but release notes/checklist must keep the risk visible.
 
 ## Suggested fix
 
-- Run the hardened checkout shell on real `Android Telegram` and record operator-confirmed notes for keyboard-open CTA reachability plus degraded fallback behavior.
-- Store the evidence under `.tasks/TASK-FT009-10/` or the linked Android notes artifact.
-- Re-run formal verify for the follow-up evidence-closure task before promoting the hardening wave to `done`.
+- Before release, run the hardened checkout shell on real `Android Telegram` and record operator-confirmed notes for keyboard-open CTA reachability plus degraded fallback behavior.
+- Store the evidence under `.tasks/TASK-ANDROID-ADVISORY-PRE-RELEASE/` or the linked Android notes artifact.
+- Do not block repo-local task closure solely on missing fresh Android notes.
 
 ## Follow-up artifacts
 

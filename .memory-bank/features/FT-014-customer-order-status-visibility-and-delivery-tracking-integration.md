@@ -26,7 +26,7 @@ status: active
 - Implemented repo-local capability: `TASK-FT014-05` hardens polling resume and stale event handling. The customer consumer uses existing shell lifecycle state for pause/resume, clears stale in-flight polling on deactivation, keeps duplicate/out-of-order revisions from double-rendering lifecycle regressions, and leaves terminal `COMPLETED`/`CANCELLED_*` states closed against later progress events.
 - Implemented repo-local capability: `TASK-FT014-07` mounts authenticated customer `GET /api/v1/events?since=<cursor>` in the checked-in dev runtime, filters customer-visible events to orders owned by the current Mini App session, preserves read-only status visibility, keeps empty polling windows stable, and accepts opaque non-numeric cursor strings without leaking unrelated events or causing a runtime parse failure.
 - Implemented repo-local capability: `TASK-FT014-07` aligns checkout success status handoff with the current event-stream cursor instead of `order.id`, so the first customer status polling request uses string event cursor metadata compatible with the `FT-005` polling path.
-- External blocker: final customer workflow closure also remains blocked by `TASK-FT013-08` fresh real `Android Telegram` checkout evidence; `REQ-033` remains `planned` until both repo-local repair and external evidence are complete.
+- Repo-local closure: final customer workflow closure is no longer blocked by fresh real `Android Telegram` checkout evidence. `TASK-FT014-07` provides the mounted event endpoint, customer scoping and cursor-compatibility evidence needed for repo-local `REQ-033` verification; Android Telegram checkout/status smoke remains advisory pre-release risk evidence.
 
 ## Use cases
 
@@ -78,4 +78,4 @@ status: active
 - integration/frontend: duplicate and empty polling windows keep stable UI and cursor behavior.
 - integration: customer UI does not expose courier/admin status mutation controls.
 - verify: polling latency for visible customer status relies on the `FT-005` SLA evidence and only needs customer-consumer coverage here.
-- repo-local repair evidence: `TASK-FT014-07` covers mounted `/api/v1/events`, customer/order scoping, checkout/status cursor compatibility, and opaque cursor handling; final closure remains with `TASK-FT014-06` after upstream Android checkout evidence.
+- repo-local repair evidence: `TASK-FT014-07` covers mounted `/api/v1/events`, customer/order scoping, checkout/status cursor compatibility, and opaque cursor handling; `REQ-033` repo-local closure can proceed from these gates without fresh Android evidence, while Android checkout/status smoke remains recommended before release.

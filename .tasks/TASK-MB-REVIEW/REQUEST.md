@@ -2,26 +2,28 @@
 
 ## Scope
 
-- Review target: current repository and Memory Bank state after `TASK-FT014-07`.
-- Mode: fresh independent scoped `/review`.
-- Focus: confirm whether prior repo-local P0/P1 findings are fixed: mounted `/api/v1/events`, checkout cursor/revision alignment, customer scoping/read-only tracking, backlog/Memory Bank truth; identify remaining closure blockers, especially Android Telegram evidence.
+- Review target: Memory Bank consistency only after stale wording fixes around the Android evidence advisory gate, `FT-013` / `FT-014` status, resolved `TASK-FT014-07` events/cursor blocker, backlog and RTM.
+- Mode: final quick scoped `/review`.
+- Focus: verify `REQ-032` / `REQ-033` consistency, advisory Android risk treatment, backlog/RTM closure routing, and prior repo-local blockers for `/events` and cursor compatibility as documented in Memory Bank.
 
-## Blocking concerns
+## Blocking concerns checked
 
-- Verify that `TASK-FT014-07` actually mounts authenticated customer `GET /api/v1/events` in the checked-in runtime.
-- Verify that checkout success no longer hands off `order.id` as the polling cursor/revision.
-- Verify that customer event reads are scoped to the current Mini App customer and remain read-only.
-- Verify that Memory Bank/backlog no longer overstate `REQ-032` or `REQ-033` closure.
-- Verify remaining real `Android Telegram` evidence blockers for `FT-009`, `FT-013`, and downstream `FT-014`.
+- `REQ-032` and `REQ-033` must be verified from repo-local gates, not from missing Android evidence.
+- Android Telegram evidence must remain visible as advisory pre-release risk, not a blocking repo-local closure gate.
+- Backlog must not incorrectly block `FT-013` / `FT-014` closure on Android smoke or old `/events` blockers.
+- Checked-in runtime must mount authenticated customer `GET /api/v1/events?since=<cursor>`.
+- Checkout success must hand off an event-stream-compatible cursor/revision, not `order.id`.
+- Customer events must be scoped to the current Mini App customer's orders.
 
 ## Result summary
 
-- Overall verdict: `REJECT` for terminal closure, `APPROVE` for repo-local `TASK-FT014-07` repair acceptance.
-- Current blocking issue count: `1` external evidence chain.
-- Fixed prior repo-local findings: mounted authenticated `/api/v1/events`, checkout cursor/revision alignment, customer/order scoping with read-only tracking, and Memory Bank/backlog truth for `REQ-032`/`REQ-033` non-closure.
-- Remaining blocker: no fresh real `Android Telegram` evidence for the hardened shell CTA path and post-`FT-013` checkout flow; therefore `TASK-FT013-08` and `TASK-FT014-06` remain blocked.
+- Overall verdict: `APPROVE`.
+- Blocking issue count: `0`.
+- Repo-local evidence status: Memory Bank records `TASK-FT013-07` and `TASK-FT014-07` as supporting `REQ-032` / `REQ-033` repo-local verification.
+- Android evidence status: advisory pre-release risk only.
+- Remaining findings: `0`; prior stale wording findings are resolved in the reviewed Memory Bank docs.
 
 ## Review artifact update
 
-- Updated `.tasks/TASK-MB-REVIEW/TASK-MB-REVIEW-S-06-final-report-docs-01.md` with the post-`TASK-FT014-07` scoped review result.
+- Updated standard reports `S-01` through `S-06` under `.tasks/TASK-MB-REVIEW/`.
 - No Memory Bank/product-code changes were made by this review.

@@ -35,6 +35,44 @@ export const createRepository = (): ReviewsFeedbackRepository => ({
     expiresAt: input.expiresAt,
     updatedAt: new Date("2026-04-06T10:00:00.000Z"),
   }),
+  findReviewCreatedEvent: async (review) => ({
+    id: review.id + 1n,
+    type: "review.created",
+    entity: "review",
+    entityId: review.id.toString(),
+    payload: {
+      reviewId: review.id.toString(),
+      orderId: review.orderId,
+      authorId: review.authorId,
+      targetUserId: review.targetUserId,
+      targetRole: review.targetRole,
+      rating: review.rating,
+      reasonCode: review.reasonCode,
+      comment: review.comment,
+      source: review.source,
+      createdAt: review.createdAt.toISOString(),
+    },
+    createdAt: review.createdAt,
+  }),
+  findReviewNegativeEvent: async (review) => ({
+    id: review.id + 2n,
+    type: "review.negative",
+    entity: "review",
+    entityId: review.id.toString(),
+    payload: {
+      reviewId: review.id.toString(),
+      orderId: review.orderId,
+      authorId: review.authorId,
+      targetUserId: review.targetUserId,
+      targetRole: review.targetRole,
+      rating: review.rating,
+      reasonCode: review.reasonCode,
+      comment: review.comment,
+      source: review.source,
+      createdAt: review.createdAt.toISOString(),
+    },
+    createdAt: review.createdAt,
+  }),
   findReviewByUniquePair: async () => null,
   persistReview: async () => ({
     review: {
@@ -71,6 +109,7 @@ export const createRepository = (): ReviewsFeedbackRepository => ({
       },
     ],
     revision: "12",
+    createdReview: true,
   }),
 });
 

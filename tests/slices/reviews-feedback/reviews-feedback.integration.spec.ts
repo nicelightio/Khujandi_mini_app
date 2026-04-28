@@ -47,6 +47,34 @@ const createPrismaProvider = (
 
           return nextDraft;
         }),
+        updateMany: jest.fn(async (args) => {
+          const key = [args.where.orderId, args.where.actorUserId, args.where.direction].join(":");
+          const existing = drafts.get(key);
+
+          if (existing === undefined) {
+            return { count: 0 };
+          }
+
+          const matches = Object.entries(args.where).every(([field, value]) => {
+            if (["orderId", "actorUserId", "direction"].includes(field)) {
+              return true;
+            }
+
+            return existing[field as keyof typeof existing] === value;
+          });
+
+          if (!matches) {
+            return { count: 0 };
+          }
+
+          drafts.set(key, {
+            ...existing,
+            ...args.data,
+            updatedAt: new Date("2026-04-06T10:00:00.000Z"),
+          });
+
+          return { count: 1 };
+        }),
       };
     const prismaClient = {
       ...client,
@@ -95,6 +123,14 @@ describe("reviews-feedback module integration", () => {
     const userFindMany = jest.fn().mockResolvedValue([]);
     const reviewCreate = jest.fn();
     const eventCreate = jest.fn();
+    const eventFindFirst = jest.fn().mockResolvedValue({
+      id: 12n,
+      type: "review.created",
+      entity: "review",
+      entityId: "11",
+      payload: {},
+      createdAt: new Date("2026-04-05T09:01:01.000Z"),
+    });
     const prisma = createPrismaProvider({
       order: {
         findUnique: orderFindUnique,
@@ -110,6 +146,7 @@ describe("reviews-feedback module integration", () => {
       },
       event: {
         create: eventCreate,
+        findFirst: eventFindFirst,
       },
     });
     const context = createTestContext(prisma.client);
@@ -324,6 +361,14 @@ describe("reviews-feedback module integration", () => {
     });
     const reviewCreate = jest.fn();
     const eventCreate = jest.fn();
+    const eventFindFirst = jest.fn().mockResolvedValue({
+      id: 12n,
+      type: "review.created",
+      entity: "review",
+      entityId: "11",
+      payload: {},
+      createdAt: new Date("2026-04-05T09:01:01.000Z"),
+    });
     const userFindMany = jest.fn().mockResolvedValue([]);
     const notifyNegativeReview = jest.fn().mockResolvedValue(undefined);
     const prisma = createPrismaProvider({
@@ -341,6 +386,7 @@ describe("reviews-feedback module integration", () => {
       },
       event: {
         create: eventCreate,
+        findFirst: eventFindFirst,
       },
     });
     const module = createReviewsFeedbackModule(prisma, {
@@ -369,14 +415,417 @@ describe("reviews-feedback module integration", () => {
       rating: 4,
       reasonCode: "ON_TIME",
       comment: null,
-      revision: "11",
+      revision: "12",
       createdAt: new Date("2026-04-05T09:01:00.000Z"),
     });
 
     expect(reviewCreate).not.toHaveBeenCalled();
     expect(eventCreate).not.toHaveBeenCalled();
+    expect(eventFindFirst).toHaveBeenCalledTimes(1);
     expect(userFindMany).not.toHaveBeenCalled();
     expect(notifyNegativeReview).not.toHaveBeenCalled();
+  });
+
+  it("returns the existing review.created cursor after a unique-race duplicate review", async () => {
+    const orderFindUnique = jest.fn().mockResolvedValue({
+      id: "order-1",
+      clientId: "client-1",
+      courierId: "courier-1",
+      status: "COMPLETED",
+      updatedAt: new Date("2026-04-05T09:00:00.000Z"),
+      isDeleted: false,
+    });
+    const existingReview = {
+      id: 11n,
+      orderId: "order-1",
+      authorId: "client-1",
+      targetUserId: "courier-1",
+      targetRole: "COURIER",
+      rating: 4,
+      reasonCode: "ON_TIME",
+      comment: null,
+      source: "TELEGRAM_BOT",
+      createdAt: new Date("2026-04-05T09:01:00.000Z"),
+    };
+    const reviewFindUnique = jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(existingReview);
+    const reviewCreate = jest.fn().mockRejectedValue({ code: "P2002" });
+    const eventCreate = jest.fn();
+    const eventFindFirst = jest.fn().mockResolvedValue({
+      id: 12n,
+      type: "review.created",
+      entity: "review",
+      entityId: "11",
+      payload: {},
+      createdAt: new Date("2026-04-05T09:01:01.000Z"),
+    });
+    const userFindMany = jest.fn().mockResolvedValue([]);
+    const prisma = createPrismaProvider({
+      order: {
+        findUnique: orderFindUnique,
+      },
+      user: {
+        findUnique: jest.fn(),
+        findMany: userFindMany,
+      },
+      review: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: reviewFindUnique,
+        create: reviewCreate,
+      },
+      event: {
+        create: eventCreate,
+        findFirst: eventFindFirst,
+      },
+    });
+    const module = createReviewsFeedbackModule(prisma);
+
+    await expect(
+      module.controller.submitReview({
+        orderId: "order-1",
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        targetUserId: "courier-1",
+        targetRole: "courier",
+        rating: 4,
+        reasonCode: "ON_TIME",
+        source: "telegram_bot",
+      }),
+    ).resolves.toEqual({
+      reviewId: "11",
+      orderId: "order-1",
+      authorId: "client-1",
+      targetUserId: "courier-1",
+      targetRole: "courier",
+      rating: 4,
+      reasonCode: "ON_TIME",
+      comment: null,
+      revision: "12",
+      createdAt: new Date("2026-04-05T09:01:00.000Z"),
+    });
+
+    expect(eventFindFirst).toHaveBeenCalledWith({
+      where: {
+        type: "review.created",
+        entity: "review",
+        entityId: "11",
+      },
+      orderBy: {
+        id: "asc",
+      },
+      select: {
+        id: true,
+        type: true,
+        entity: true,
+        entityId: true,
+        payload: true,
+        createdAt: true,
+      },
+    });
+    expect(eventCreate).not.toHaveBeenCalled();
+    expect(eventFindFirst).toHaveBeenCalledTimes(1);
+    expect(userFindMany).not.toHaveBeenCalled();
+  });
+
+  it("returns the persisted review.negative cursor after a unique-race duplicate with non-negative losing input", async () => {
+    const orderFindUnique = jest.fn().mockResolvedValue({
+      id: "order-1",
+      clientId: "client-1",
+      courierId: "courier-1",
+      status: "COMPLETED",
+      updatedAt: new Date("2026-04-05T09:00:00.000Z"),
+      isDeleted: false,
+    });
+    const existingReview = {
+      id: 21n,
+      orderId: "order-1",
+      authorId: "client-1",
+      targetUserId: "courier-1",
+      targetRole: "COURIER",
+      rating: 2,
+      reasonCode: "RUDE",
+      comment: null,
+      source: "TELEGRAM_BOT",
+      createdAt: new Date("2026-04-05T09:01:00.000Z"),
+    };
+    const reviewFindUnique = jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(existingReview);
+    const reviewCreate = jest.fn().mockRejectedValue({ code: "P2002" });
+    const eventCreate = jest.fn();
+    const eventFindFirst = jest
+      .fn()
+      .mockResolvedValueOnce({
+        id: 22n,
+        type: "review.created",
+        entity: "review",
+        entityId: "21",
+        payload: {},
+        createdAt: new Date("2026-04-05T09:01:01.000Z"),
+      })
+      .mockResolvedValueOnce({
+        id: 23n,
+        type: "review.negative",
+        entity: "review",
+        entityId: "21",
+        payload: {},
+        createdAt: new Date("2026-04-05T09:01:02.000Z"),
+      });
+    const userFindMany = jest.fn().mockResolvedValue([]);
+    const prisma = createPrismaProvider({
+      order: {
+        findUnique: orderFindUnique,
+      },
+      user: {
+        findUnique: jest.fn(),
+        findMany: userFindMany,
+      },
+      review: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: reviewFindUnique,
+        create: reviewCreate,
+      },
+      event: {
+        create: eventCreate,
+        findFirst: eventFindFirst,
+      },
+    });
+    const module = createReviewsFeedbackModule(prisma);
+
+    await expect(
+      module.controller.submitReview({
+        orderId: "order-1",
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        targetUserId: "courier-1",
+        targetRole: "courier",
+        rating: 5,
+        reasonCode: "ON_TIME",
+        source: "telegram_bot",
+      }),
+    ).resolves.toEqual({
+      reviewId: "21",
+      orderId: "order-1",
+      authorId: "client-1",
+      targetUserId: "courier-1",
+      targetRole: "courier",
+      rating: 2,
+      reasonCode: "RUDE",
+      comment: null,
+      revision: "23",
+      createdAt: new Date("2026-04-05T09:01:00.000Z"),
+    });
+
+    expect(eventFindFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        type: "review.negative",
+        entity: "review",
+        entityId: "21",
+      },
+      orderBy: {
+        id: "asc",
+      },
+      select: {
+        id: true,
+        type: true,
+        entity: true,
+        entityId: true,
+        payload: true,
+        createdAt: true,
+      },
+    });
+    expect(eventCreate).not.toHaveBeenCalled();
+    expect(eventFindFirst).toHaveBeenCalledTimes(2);
+    expect(userFindMany).not.toHaveBeenCalled();
+  });
+
+  it("returns the existing review.negative cursor for duplicate low-rating review submissions", async () => {
+    const orderFindUnique = jest.fn().mockResolvedValue({
+      id: "order-1",
+      clientId: "client-1",
+      courierId: "courier-1",
+      status: "COMPLETED",
+      updatedAt: new Date("2026-04-05T09:00:00.000Z"),
+      isDeleted: false,
+    });
+    const reviewFindUnique = jest.fn().mockResolvedValue({
+      id: 21n,
+      orderId: "order-1",
+      authorId: "client-1",
+      targetUserId: "courier-1",
+      targetRole: "COURIER",
+      rating: 2,
+      reasonCode: "RUDE",
+      comment: null,
+      source: "TELEGRAM_BOT",
+      createdAt: new Date("2026-04-05T09:01:00.000Z"),
+    });
+    const reviewCreate = jest.fn();
+    const eventCreate = jest.fn();
+    const eventFindFirst = jest
+      .fn()
+      .mockResolvedValueOnce({
+        id: 22n,
+        type: "review.created",
+        entity: "review",
+        entityId: "21",
+        payload: {},
+        createdAt: new Date("2026-04-05T09:01:01.000Z"),
+      })
+      .mockResolvedValueOnce({
+        id: 23n,
+        type: "review.negative",
+        entity: "review",
+        entityId: "21",
+        payload: {},
+        createdAt: new Date("2026-04-05T09:01:02.000Z"),
+      });
+    const userFindMany = jest.fn().mockResolvedValue([]);
+    const notifyNegativeReview = jest.fn().mockResolvedValue(undefined);
+    const prisma = createPrismaProvider({
+      order: {
+        findUnique: orderFindUnique,
+      },
+      user: {
+        findUnique: jest.fn(),
+        findMany: userFindMany,
+      },
+      review: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: reviewFindUnique,
+        create: reviewCreate,
+      },
+      event: {
+        create: eventCreate,
+        findFirst: eventFindFirst,
+      },
+    });
+    const module = createReviewsFeedbackModule(prisma, {
+      notifyNegativeReview,
+    });
+
+    await expect(
+      module.controller.submitReview({
+        orderId: "order-1",
+        actor: {
+          userId: "client-1",
+          role: "client",
+        },
+        targetUserId: "courier-1",
+        targetRole: "courier",
+        rating: 2,
+        reasonCode: "RUDE",
+        source: "telegram_bot",
+      }),
+    ).resolves.toEqual({
+      reviewId: "21",
+      orderId: "order-1",
+      authorId: "client-1",
+      targetUserId: "courier-1",
+      targetRole: "courier",
+      rating: 2,
+      reasonCode: "RUDE",
+      comment: null,
+      revision: "23",
+      createdAt: new Date("2026-04-05T09:01:00.000Z"),
+    });
+
+    expect(eventFindFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        type: "review.negative",
+        entity: "review",
+        entityId: "21",
+      },
+      orderBy: {
+        id: "asc",
+      },
+      select: {
+        id: true,
+        type: true,
+        entity: true,
+        entityId: true,
+        payload: true,
+        createdAt: true,
+      },
+    });
+    expect(reviewCreate).not.toHaveBeenCalled();
+    expect(eventCreate).not.toHaveBeenCalled();
+    expect(userFindMany).not.toHaveBeenCalled();
+    expect(notifyNegativeReview).not.toHaveBeenCalled();
+  });
+
+  it("rejects stale persisted review draft updates with controlled conflict semantics", async () => {
+    const prisma = createPrismaProvider({
+      order: {
+        findUnique: jest.fn(),
+      },
+      user: {
+        findUnique: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      review: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
+      event: {
+        create: jest.fn(),
+      },
+    });
+    const module = createReviewsFeedbackModule(prisma);
+    const baseDraft = {
+      orderId: "order-1",
+      actorUserId: "client-1",
+      direction: "client_to_courier" as const,
+      actorTelegramId: "70001",
+      targetUserId: "courier-1",
+      targetRole: "courier" as const,
+      submittedReviewId: null,
+      submittedRevision: null,
+      submittedComment: null,
+      submittedCreatedAt: null,
+      expiresAt: new Date("2026-04-06T11:00:00.000Z"),
+    };
+
+    await module.controller.upsertReviewDraft({
+      ...baseDraft,
+      expectedStage: "rating",
+      expectedRevision: "new-rating-prompt",
+      rating: null,
+      reasonCode: null,
+    });
+
+    await expect(
+      module.controller.upsertReviewDraft({
+        ...baseDraft,
+        currentExpectedRevision: "stale-rating-prompt",
+        expectedStage: "reason_code",
+        expectedRevision: "rating:1",
+        rating: 1,
+        reasonCode: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      statusCode: 409,
+    });
+    expect(prisma.client.reviewDraft.updateMany).toHaveBeenCalledWith({
+      where: {
+        orderId: "order-1",
+        actorUserId: "client-1",
+        direction: "client_to_courier",
+        expectedStage: "rating",
+        expectedRevision: "stale-rating-prompt",
+        rating: null,
+        reasonCode: null,
+        submittedReviewId: null,
+      },
+      data: expect.objectContaining({
+        expectedStage: "reason_code",
+        expectedRevision: "rating:1",
+        rating: 1,
+      }),
+    });
   });
 
   it("runs the bot-guided client review flow through the owning submit path", async () => {

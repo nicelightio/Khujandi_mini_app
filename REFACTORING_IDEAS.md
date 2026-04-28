@@ -1,290 +1,293 @@
 # Refactoring Ideas
 
-## Prompt
+Дата анализа: 2026-04-28.
 
-```text
-Сформируй заново `REFACTORING_IDEAS.md` для этого проекта.
+Scope: только production/source code. Исключены `tests/`, `frontend/src/tests/`, `*.test.*`, `*.spec.*`, `.tasks/`, `.protocols/`, `node_modules`, build/dist/coverage artifacts.
 
-Правила:
-- Сначала выполни project priming по `AGENTS.md`: прочитай `.memory-bank/mbb/index.md`, `.memory-bank/spec-index.md` если есть, `.memory-bank/index.md`, `.memory-bank/product.md`, `.memory-bank/requirements.md`, затем минимально нужные architecture/contracts/testing docs.
-- Анализируй только production/source code. Исключи `tests/`, `frontend/src/tests/`, `*.test.*`, `.tasks/`, `.protocols/`, `node_modules`, build/dist/coverage artifacts.
-- Найди 10 самых больших code-файлов проекта при условии, что каждый больше 300 строк.
-- Для каждого из 10 файлов запусти отдельного read-only subagent. Subagent ничего не должен менять в коде.
-- Каждый subagent должен оценить файл на рефакторинг согласно архитектуре проекта: modular/layered monolith, vertical slices, boundaries через contracts/interfaces/schemas, без широкого `shared` до доказанной повторяемости.
-- Каждый subagent должен искать неадекватные, кривые, накостыленные, duplicated, overgrown, brittle, security/data/performance-risky решения, которые можно оптимизировать.
-- По каждому файлу нужен короткий conclusion: имеет ли смысл рефакторить, почему, и какое минимальное направление рефакторинга лучше.
-- Отдельно найди `.memory-bank/**/*.md` больше 300 строк и выведи их только списком без анализа.
-- Итог запиши в `REFACTORING_IDEAS.md`: top-10 code files с line counts, executive verdict, file-by-file conclusions, suggested refactor order, spec-layer files over 300 lines, implementation constraints.
-- Не меняй production code, tests и Memory Bank. Менять можно только `REFACTORING_IDEAS.md`.
-- После записи проверь UTF-8 без BOM, отсутствие trailing whitespace и `git diff --check`.
-```
+Метод: выполнен project priming по `AGENTS.md`, затем найдено 10 крупнейших production/source code-файлов больше 300 строк в текущем worktree. Для каждого файла был запущен отдельный read-only subagent. Код, tests и Memory Bank не менялись; перезаписан только этот отчет.
 
-Дата анализа: 2026-04-22.
+Архитектурная рамка: layered modular monolith, vertical slices, явные boundaries через contracts/interfaces/schemas, business/domain rules внутри owning slice, `shared` только для доказанных технических primitives без преждевременного выноса бизнес-логики.
 
-Scope: только production/source code проекта. Исключены `tests/`, `frontend/src/tests/`, `*.spec.*`, `*.test.*`, `.memory-bank/`, `.tasks/`, `.protocols/`, `node_modules`, build/dist/coverage artifacts.
-
-Метод: по каждому из 10 крупнейших code-файлов больше 300 строк был использован read-only subagent. Код не менялся. Рекомендации ниже держатся в рамках архитектуры проекта: modular/layered monolith, vertical slices, локальные contracts/interfaces/schemas, без широкого `shared` до доказанной повторяемости.
-
-## Top 10 Code Files
+## Top-10 Code Files
 
 | # | Lines | File |
 |---|---:|---|
-| 1 | 751 | `frontend/src/admin/styles/admin-theme.css` |
-| 2 | 696 | `backend/src/slices/reviews-feedback/infrastructure/prisma-reviews-feedback.repository.ts` |
-| 3 | 671 | `frontend/src/slices/catalog/components/catalog-page.tsx` |
-| 4 | 575 | `backend/src/dev-runtime/dev-api-server.ts` |
-| 5 | 540 | `backend/src/dev-runtime/catalog-runtime-prisma.ts` |
-| 6 | 529 | `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts` |
-| 7 | 502 | `frontend/src/slices/catalog/styles/catalog-storefront.css` |
-| 8 | 489 | `backend/src/dev-runtime/catalog-runtime-repository.ts` |
-| 9 | 489 | `backend/src/slices/admin-access/presentation/admin-auth-http.ts` |
-| 10 | 452 | `frontend/src/slices/catalog/api/catalog-api.ts` |
+| 1 | 875 | `frontend/src/slices/catalog/styles/catalog-storefront.css` |
+| 2 | 839 | `frontend/src/admin/styles/admin-theme.css` |
+| 3 | 656 | `backend/src/slices/reviews-feedback/infrastructure/prisma-reviews-feedback.repository.ts` |
+| 4 | 602 | `frontend/src/slices/catalog/api/catalog-api.ts` |
+| 5 | 550 | `backend/src/slices/catalog/infrastructure/prisma/catalog-runtime-prisma.fixture.ts` |
+| 6 | 534 | `frontend/src/slices/catalog/components/catalog-page.tsx` |
+| 7 | 503 | `backend/src/dev-runtime/catalog-runtime-repository.ts` |
+| 8 | 499 | `backend/src/slices/admin-access/presentation/admin-auth-http.ts` |
+| 9 | 450 | `backend/src/slices/order-cancellation/infrastructure/prisma-order-cancellation.repository.ts` |
+| 10 | 448 | `backend/src/slices/admin-access/application/admin-access.service.ts` |
 
 ## Executive Verdict
 
-Рефакторинг имеет смысл для всех 10 code-файлов. В отличие от test-only cleanup, здесь есть несколько production semantic risks:
+Текущий top-10 изменился после недавнего split `backend/src/dev-runtime/dev-api-server.ts`: он больше не является одним из крупнейших файлов. Основные риски теперь лежат не в размере одного composition root, а в трех типах долгов:
 
-- `dev-runtime` catalog doubles частично расходятся с durable catalog semantics `REQ-027/028`.
-- `telegram-bot` review flow держит state-machine/domain rules вне owning slice.
-- `catalog-api.ts` содержит fallback `publicPath -> id`, конфликтующий с `REQ-029`.
-- `admin-auth-http.ts` дублирует session validation в presentation и имеет security-hardening gaps.
-- Frontend storefront/admin CSS и `catalog-page.tsx` смешивают baseline UI, seller edit mode и debug controls.
+- Security/session correctness: `admin-access.service.ts` и `admin-auth-http.ts` требуют аккуратного hardening-refactor вокруг session activity, refresh rotation, body/cookie/trace handling.
+- Data correctness/concurrency: `reviews-feedback.repository.ts` и `order-cancellation.repository.ts` имеют риски cursor/revision consistency, draft concurrency и atomic state updates.
+- Frontend/WebView maintainability: крупные CSS и `catalog-page.tsx` все еще смешивают presentation modes, decorative effects, cart/editor orchestration и brittle selectors.
 
-Общее правило: не строить общий framework. Резать локально внутри owning slice/contour: `catalog`, `admin-access`, `reviews-feedback`, `dev-runtime`. Shared abstractions добавлять только после повторяемого доказательства общности.
+Большой rewrite не нужен. Лучшее направление: короткие behavior-preserving passes с targeted tests, затем отдельные semantic hardening tasks для P1 concurrency/security issues. Не создавать широкий `shared`; максимум локальные helpers внутри owning slice/contour, кроме уже доказанных технических primitives вроде generic magnetic CSS.
 
 ## File Conclusions
 
-### 1. `frontend/src/admin/styles/admin-theme.css`
+### 1. `frontend/src/slices/catalog/styles/catalog-storefront.css`
 
-Вердикт: рефакторить стоит как локальный cleanup `admin-web` presentation layer.
+Owning area: `catalog`, `mini-app/storefront` contour, presentation CSS.
 
-Проблема не в CSS как таковом, а в смешении shell/theme, page layout primitives, page-specific login styles и dev scene controls в одном файле.
+Вердикт: рефакторить стоит. Файл смешивает customer storefront, seller edit mode, debug panel, cropper, cart и decorative effects; это хрупко для Telegram WebView.
 
-Что хрупко:
+Основные риски:
 
-- Layout завязан на порядок детей через `:first-child`, `:nth-child(2)`, `last-child`, `form:first-of-type`.
-- Широкие селекторы вроде `[data-admin-page="shell"] button` будут случайно стилизовать будущие кнопки.
-- Fixed pseudo-elements с gradients/blur/animations всегда активны; `prefers-reduced-motion` отключает animation, но не удешевляет слои.
-- `data-admin-scene="controls"` выглядит как dev tooling, а `AdminSceneControls` монтируется в production shell.
-- Много повторяющихся `rgba(...)` literals.
-
-Минимальное направление:
-
-- Разделить внутри `frontend/src/admin`: `tokens/base`, `shell`, `page-primitives`, `debug/scene-controls`.
-- Заменить order-dependent layout на explicit slots: `data-admin-panel="context|workspace|full-width|hero"`.
-- Сузить button styling до `data-admin-ui="button"`.
-- Env/debug-gate-ить scene controls или вынести их из production shell.
-
-### 2. `backend/src/slices/reviews-feedback/infrastructure/prisma-reviews-feedback.repository.ts`
-
-Вердикт: рефакторить стоит, это production-level refactor внутри `reviews-feedback/infrastructure`.
-
-Файл перегружен hand-written Prisma-like types/select-shapes, мапперами, event payload construction и draft persistence logic. Есть semantic risks вокруг replay/stale callback и cursor semantics.
-
-Что хрупко:
-
-- Hand-written Prisma-like типы/select-shapes местами выглядят как domain-типы для raw Prisma enum/string данных.
-- Mappers в основном делают `as` без validation, особенно для `ReviewDraft.direction/expectedStage`.
-- Дублируется event payload construction для `review.created` и `review.negative`.
-- `upsertReviewDraft` слепо перезаписывает draft state; для revision-aware stale callback лучше conditional update/CAS по `expectedStage + expectedRevision + expiresAt`.
-- Duplicate path возвращает `revision = existingReview.id`, тогда как обычный path берет revision из `event.id`.
+- Один CSS-файл на 875 строк связывает hero, tabs, products, cart, editor, debug и cropper через глобальные `data-*` selectors.
+- `[data-magnetic="true"]` пересекается с admin theme и shared hook, но живет локально в catalog.
+- Always-on effects: fixed beam, pulse, multiple `backdrop-filter`, large shadows, filter/crossfade layers.
+- Seller-controlled media URL используется через CSS variable `background-image: var(...)`; нужна отдельная проверка URL construction/sanitization.
+- `!important`, DOM-coupled selectors и fixed/sticky zones усложняют safe-area/keyboard behavior.
 
 Минимальное направление:
 
-- Выделить slice-local raw Prisma record/select constants.
-- Добавить строгие mappers с runtime validation для string-backed domain values.
-- Вынести `buildReviewEventPayload` / `createReviewEvent`.
-- Добавить hardened draft persistence helper с conditional/CAS semantics.
-- Не переносить admin/bot ownership и не вводить shared repository abstraction.
+- Split внутри `catalog/styles`: `storefront-shell`, `storefront-products-cart`, `storefront-editor`, `storefront-motion`.
+- Рассмотреть единственный shared-кандидат: минимальный CSS для proven technical primitive `[data-magnetic="true"]`.
+- Сделать decorative motion opt-in/degradable для weak Android Telegram WebView.
+- Заменить DOM-coupled selectors на явные `data-*`, убрать `!important` точечными selectors.
+- Проверить media URL сборку рядом с компонентом.
 
-### 3. `frontend/src/slices/catalog/components/catalog-page.tsx`
+Priority: P1 medium-high для WebView/performance и boundary drift.
 
-Вердикт: рефакторинг имеет смысл.
+### 2. `frontend/src/admin/styles/admin-theme.css`
 
-Файл смешивает public browse, shared storefront, seller edit UI, debug/visual tooling и часть view-model contracts. Это production UI файл, а не просто большой компонент.
+Owning area: `admin-web` contour, presentation CSS for admin surfaces.
 
-Что хрупко:
+Вердикт: рефакторить стоит локально. Это не security blocker, но текущая глобальность и order-dependent layout повышают риск admin UI regressions.
 
-- `CatalogStorefront*` типы экспортируются из component-layer; model/hooks начинают зависеть от component-типа. Это неправильное направление зависимости.
-- `StorefrontVisualControls` рендерятся всегда, а не только при `DEBUG=TRUE`; это dev tooling в customer/seller path и WebView performance risk.
-- Product card rendering дублируется для обычных и legacy/unpaged products.
-- Большие области кликабельны для edit mode; в Telegram WebView случайный tap/scroll может открыть editor, а `contextmenu` как long-press ненадежен.
-- Есть hardcoded English copy при обязательной локализации.
-- Image URL напрямую вставляется в CSS `url(...)`; нужен локальный quote/sanitize/fallback helper.
+Основные риски:
 
-Минимальное направление:
-
-- Разделить на `CatalogBrowseList`, `StorefrontPage`, `StorefrontHero`, `StorefrontTabs`, `StorefrontMenuPanel`, `StorefrontProductCard`, `StorefrontEditorPanel`, `StorefrontDebugTools`.
-- Перенести VM/editor типы в `model/storefront`.
-- Debug/visual controls включать только через `DEBUG=TRUE`.
-- Добавить явный edit activation helper/affordances вместо больших скрытых click zones.
-
-### 4. `backend/src/dev-runtime/dev-api-server.ts`
-
-Вердикт: рефакторинг имеет смысл.
-
-`startDevApiServer` уже не просто composition root: он одновременно монтирует runtime, роутит HTTP, парсит DTO, решает auth/debug access, мапит ошибки и частично ходит в repository напрямую.
-
-Что хрупко:
-
-- Mini App auth/session runtime остается in-memory; для seller access это критично, потому что catalog уже durable, а session/replay state теряется при restart.
-- Fallback на `"test-bot-token"` и `secureCookies: false` опасны, если runtime используется production-like deploy path.
-- `resolveDebugStorefrontAccess` ловит любой error и в `DEBUG` пытается bypass; debug mode может маскировать реальные runtime ошибки.
-- Runtime handlers ходят в `catalogModule.repository` напрямую, обходя controller/application boundary.
-- Много silent coercion через `String(...)` / `Number(...)`; пустые строки, `NaN`, `null` могут пройти глубже.
-- Public catalog routes без `try/catch`, в отличие от seller/admin routes.
-- Error mapping повторяется в route blocks.
+- `:root` tokens и app-wide import могут протекать за пределы `admin-web`.
+- Global `[data-magnetic="true"]` не scoped к admin contour.
+- Layout rules завязаны на `:first-child`, `+ form`, `last-child`.
+- В одном файле смешаны tokens, shell, auth chrome, layout primitives, login, scene controls, responsive и keyframes.
+- Fixed pseudo-elements, multiple gradients, blur/filter и infinite pulse повышают motion/performance debt.
 
 Минимальное направление:
 
-- Оставить `startDevApiServer` composition root.
-- Вынести внутри `backend/src/dev-runtime` route modules: `mini-app-auth-routes`, `catalog-public-routes`, `seller-catalog-routes`, `admin-catalog-routes`.
-- Добавить маленький `runtimeRoute` helper для `try/catch`, `traceId`, JSON errors и DTO parsing.
-- Изолировать debug access policy.
-- Убрать repository-direct calls через новые catalog controller/application methods.
+- Scope tokens/global reset к `body[data-root-contour="admin-web"]` или `[data-admin-shell="root"]`.
+- Scope magnetic CSS или заменить на contour-specific data attribute.
+- Заменить order-dependent layout на explicit zones: `data-admin-panel="context|workspace|full"`.
+- Split на admin-local CSS files: `tokens-shell`, `page-layout`, `ui-primitives`, `scene-controls-motion`.
+- Сделать status pulse/scene motion opt-in или reduced по low-power/reduced-motion profile.
 
-### 5. `backend/src/dev-runtime/catalog-runtime-prisma.ts`
+Priority: P2.
 
-Вердикт: рефакторинг имеет смысл.
+### 3. `backend/src/slices/reviews-feedback/infrastructure/prisma-reviews-feedback.repository.ts`
 
-Это source-level dev-runtime adapter, но сейчас он стал 540-строчным Prisma-like runtime double, где смешаны table adapters, select mapping, uniqueness rules, event creation, transaction emulation и persistence commits. Это высокий drift-risk относительно `catalog` vertical slice и `FT-011` durable runtime semantics.
+Owning area: `reviews-feedback` infrastructure repository; bot flow is a presentation consumer.
 
-Что рискованно:
+Вердикт: рефакторить нужно точечно. Файл лежит в правильном slice/layer, но имеет P1 correctness risks вокруг revision/cursor и durable drafts.
 
-- Транзакция через `cloneCatalogState -> callback -> Object.assign` не сериализует concurrent writes; duplicate provisioning может пройти optimistic last-writer-wins.
-- Ручная Prisma-форма заканчивается `as never`, обходя типобезопасность boundary.
-- Дублируется filtering/projection logic, которая может разойтись с catalog infra readers/selects.
-- Product write позволяет записать `menuPageId` без проверки существования и принадлежности тому же shop.
-- Binding create проверяет duplicate `shopId`, но не проверяет существование shop и соответствие `sellerId` shop owner.
-- Event creation принимает arbitrary `entity` и кастит к `CatalogWriteEvent["entity"]` без validation.
+Основные риски:
 
-Минимальное направление:
-
-- Разделить внутри `backend/src/dev-runtime/catalog-runtime-prisma/` на локальные table adapters: `shop`, `menu-page`, `product`, `binding`, `event`, `transaction`.
-- Добавить helpers `createP2002`, `findShopOrThrow`, `project*`.
-- Типизировать итоговый client через `satisfies PrismaClientLike` вместо `as never`.
-- Усилить transaction commit: serialized queue/mutex или commit-time unique validation against live state.
-
-### 6. `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts`
-
-Вердикт: рефакторинг имеет смысл.
-
-Файл стал не просто bot integration adapter: он держит часть `reviews-feedback` application/domain semantics: completed-gate, ownership resolution, draft transitions, reason-code validation, replay handling и submit orchestration.
-
-Что хрупко:
-
-- Дублирует slice rules из `ReviewsFeedbackService`: `COMPLETED` gate, actor ownership, target role resolution.
-- `Number.parseInt` пропускает payload вроде `"5abc"` как rating `5`; нужен строгий parse на `1..5`.
-- `getDraft -> matchesExpectedStep -> persistDraft` без atomic CAS; concurrent callbacks могут оба пройти проверку на старом draft.
-- `reasonCode` валидируется в integration contour, а slice service принимает любой non-empty `reasonCode`.
-- Финальный submit + mark-submitted logic дублируется.
-- Поврежденный submitted draft маскируется через `rating ?? 0` и `reasonCode ?? ""`.
-- Локальный `PendingReviewDraft` почти копирует slice record и добавляет computed `actorRole`.
+- Duplicate `P2002` fallback возвращает `revision = existingReview.id`, тогда как нормальный path возвращает event cursor.
+- `upsertReviewDraft()` перезаписывает draft без DB-level compare-and-set по stage/revision.
+- `listActiveAdminUsers()` содержит alert-recipient policy в infrastructure.
+- Persisted enum/string values приводятся unchecked casts без runtime validation.
+- Повторяются `select` shapes и Prisma arg types; `P2002` guard не проверяет `meta.target`.
+- Event payload содержит полный `comment` и user ids; нужна explicit privacy/contract проверка для shared events visibility.
 
 Минимальное направление:
 
-- Перенести stateful review-stepper semantics в `reviews-feedback/application`: например `ReviewsFeedbackBotFlowService` или `ReviewDraftStepper`.
-- В `telegram-bot` оставить transport glue: parse callback, call slice workflow, send prompts/alerts.
-- Ввести строгий parser payload, reason-code policy в owning slice и draft CAS.
+- Исправить duplicate fallback: возвращать existing review вместе с persisted event cursor или стабильным revision contract.
+- Добавить revision-aware draft update/CAS boundary.
+- Вынести repeated `select` constants/mappers локально внутри файла.
+- Сузить `P2002` handling по expected target.
+- Явно вынести admin-target policy в application или переименовать repository method как policy-bound read model.
 
-### 7. `frontend/src/slices/catalog/styles/catalog-storefront.css`
+Priority: P1 для revision consistency и draft CAS; P2 для policy/validation cleanup.
 
-Вердикт: рефакторинг имеет смысл, локально внутри `frontend/src/slices/catalog`.
+### 4. `frontend/src/slices/catalog/api/catalog-api.ts`
 
-Файл смешивает storefront layout/theme, sticky menu/product cards, seller editor modal, image cropper и debug/visual tuning controls.
+Owning area: `catalog` frontend API adapter for public storefront and seller-protected catalog surfaces.
 
-Что хрупко:
+Вердикт: рефакторить стоит без выноса в `shared`. Файл в целом fail-closed, но остается identity/error boundary debt.
 
-- Много `backdrop-filter`/blur/glass surfaces; риск для weak Android Telegram WebView.
-- Используется `!important`, что указывает на specificity smell.
-- Fixed modal/backdrop layers живут рядом с обычным storefront CSS.
-- Visual/debug controls выглядят как tooling/debug surface, но находятся в baseline CSS.
-- Hero/content backgrounds перегружены layered gradients, glow и pattern overlay.
+Основные риски:
 
-Минимальное направление:
-
-- Split by responsibility внутри `catalog/styles`: `storefront-layout.css`, `storefront-products.css`, `storefront-editor.css`, `storefront-debug.css`.
-- Добавить локальные CSS variables для colors/elevation/blur и cheap fallback через `@supports`/shell capability class.
-- Убрать `!important` через более точный selector scope.
-- Debug/editor CSS держать отдельно от customer storefront baseline.
-
-### 8. `backend/src/dev-runtime/catalog-runtime-repository.ts`
-
-Вердикт: рефакторить стоит, но сначала проверить, нужен ли файл вообще.
-
-Файл выглядит как устаревший параллельный in-memory `CatalogRepository`: он дублирует catalog infrastructure boundary, хотя текущий mounted runtime уже идет через `createInMemoryCatalogPrisma -> createCatalogModule -> PrismaCatalogRepository`.
-
-Что хрупко:
-
-- Один класс смешивает public/admin/seller reads, seller writes, provisioning и event construction.
-- `page.shopStatus` используется как денормализованный фильтр public menu pages; смена `shop.status` не обновляет menu pages.
-- Pseudo-transaction через full state clone и `Object.assign` не моделирует DB uniqueness/concurrency.
-- Дублируются event payload builders и ручная установка `createdAt`.
-- Provisioning переиспользует seller `createProduct`, создавая adapter drift по starter events.
-- При переносе product/menuPage между shop не пересчитываются связанные `sellerId/shopStatus`.
+- `getSellerStorefrontAccess(shopId)` фактически использует public path; это смешивает `shop.id` и public routing identity.
+- Seller/public mappers частично дублируются.
+- Project error contract `{ error, trace_id }` теряется в generic `Catalog request failed with status X`.
+- Numeric parsing допускает `NaN`/`Infinity`; `response.json()` не защищен от пустого/invalid body.
+- Один adapter смешивает legacy browse, canonical storefront read и protected seller writes.
+- 401/403/404 seller access схлопываются в `null`, что fail-closed, но может скрывать session regressions.
 
 Минимальное направление:
 
-- Проверить, можно ли удалить `InMemoryCatalogRepository` из runtime barrel.
-- Если нельзя, явно обозначить как non-normative dev adapter и привести к parity с Prisma boundary.
-- Разложить локально по boundary-зонам: public reader, admin reader, seller reader, seller writer, provisioning transaction, event builders.
+- Переименовать `shopId` parameter в `publicPath` и закрепить public-path vs technical-id split.
+- Добавить slice-local `CatalogApiError` с `code`, `traceId`, `details`.
+- Объединить repeated mapper primitives внутри файла/folder.
+- Ужесточить finite/integer parsing money fields.
+- Разделить файл на local modules: public reads, seller reads/writes, mappers/errors.
 
-### 9. `backend/src/slices/admin-access/presentation/admin-auth-http.ts`
+Priority: P1 medium-high перед расширением catalog API.
 
-Вердикт: рефакторинг имеет смысл, локально внутри `admin-access/presentation`.
+### 5. `backend/src/slices/catalog/infrastructure/prisma/catalog-runtime-prisma.fixture.ts`
 
-Главная boundary-проблема: `resolveProtectedAdminRouteSession` прямо создает `PrismaAdminAccessRepository` и сам валидирует session/account. Это дублирует application-level session semantics из `AdminAccessService` и протаскивает infrastructure dependency в presentation.
+Owning area: `catalog` infrastructure dev/test fixture.
 
-Что хрупко:
+Вердикт: рефакторить стоит только как containment. Нельзя превращать fixture в улучшенный второй source of truth.
 
-- `parseCookies` может бросить `URIError` на malformed percent-encoding и превратить плохой cookie в `500`.
-- Безусловное доверие `x-forwarded-for` spoofable без trusted-proxy policy.
-- Произвольный `x-trace-id` принимается без length/charset normalization.
-- `readBody` читает body без лимита; login endpoint нужен небольшой max body size.
-- `assertAllowedOrigin` смешан с handler и protected-session helper.
-- Handler вручную ветвится по login/refresh/logout и повторяет cookie/session response assembly.
+Основные риски:
 
-Минимальное направление:
-
-- Разделить на slice-local modules: `admin-auth-cookie-transport.ts`, `admin-auth-origin-policy.ts`, `admin-auth-http-handler.ts`, `protected-admin-session.ts`.
-- Protected-session validation перенести в application method/service.
-- Presentation оставить adapter-слоем: cookie/origin extraction и response mapping.
-
-### 10. `frontend/src/slices/catalog/api/catalog-api.ts`
-
-Вердикт: рефакторинг имеет смысл.
-
-Это production API-boundary файл, который смешивает public browse, seller protected reads/writes, DTO-типы, ручную runtime-валидацию и error mapping.
-
-Что хрупко:
-
-- Fallback `publicPath -> id` конфликтует с `REQ-029`: `shop.id` не должен становиться customer-facing route identity.
-- Один `CatalogApi` объединяет public read и seller write protected surface.
-- `listCatalog()` делает N+1 запросы `/shops` + `/shops/:publicPath/products`, что рискованно для Telegram WebView latency.
-- Structured error contract `{ error, trace_id }` теряется; UI получает только `status`.
-- `401/403/404` схлопываются в `null`, размывая `auth missing`, `foreign shop`, `not found`.
-- Ручные validators разрослись и используют repeated `as`.
+- Fake Prisma shape частично дублирует `catalog-prisma.types.ts` и реальные reader/writer expectations.
+- Constraint parity неполная: вручную эмулируются только часть unique/FK cases.
+- `$transaction` через clone/assign не моделирует DB isolation/concurrency.
+- Event ids/payloads shallow clone и не доказывают production event semantics.
+- Fixture содержит domain-adjacent uniqueness/provisioning logic и может начать конкурировать с canonical DB-backed runtime.
 
 Минимальное направление:
 
-- Разрезать внутри `frontend/src/slices/catalog/api/`: `public-catalog-api.ts`, `seller-catalog-api.ts`, `catalog-api-errors.ts`, `catalog-api-mappers.ts`.
-- Сохранить внешний facade `createCatalogApi()` временно для совместимости.
-- Убрать fallback `publicPath=id` или fail-closed до runtime normalization.
-- Добавить typed error mapping и разделить protected seller semantics от public browse.
+- Явно держать файл как dev/test fixture shim, не production/runtime source of truth.
+- Уменьшить local type duplication через existing Prisma-like types, если это не усложняет код.
+- Вынести только fixture-local helpers: unique error builder, projection, relation lookup.
+- Confidence переносить в parity tests против DB-backed Prisma path, а не расширять fake.
+
+Priority: P2, P1 если fixture используется как acceptance proof для `REQ-027/REQ-028`.
+
+### 6. `frontend/src/slices/catalog/components/catalog-page.tsx`
+
+Owning area: `catalog` mini-app/storefront presentation plus seller edit mode.
+
+Вердикт: рефакторить стоит slice-local. Shared extraction не нужна; проблема в overgrown component и смешении UI/orchestration.
+
+Основные риски:
+
+- 534 строки смешивают browse list, storefront layout, seller edit activation, cart composition, checkout handoff, debug UI и parallax.
+- `setPendingCartReplacement()` вызывается внутри `setComposition()` updater.
+- `startCheckoutHandoff` напрямую пишет `sessionStorage` и делает `window.location.assign`.
+- Scroll/resize listener с `getBoundingClientRect()` и CSS var writes живет в feature component без shell capability/degradation signal.
+- Hardcoded English copy при наличии i18n layer.
+
+Минимальное направление:
+
+- Вынести cart composition orchestration в slice-local hook.
+- Вынести cart summary JSX в `CatalogCartSummary` внутри catalog components.
+- Изолировать parallax в `useStorefrontParallaxEffect` и подключить reduced/low-power shell signal.
+- Убрать nested state side-effect, заменить explicit transition.
+- Постепенно перенести hardcoded labels в existing copy layer.
+
+Priority: P1 для cart/handoff state simplification; P2 для WebView motion isolation.
+
+### 7. `backend/src/dev-runtime/catalog-runtime-repository.ts`
+
+Owning area: `catalog` dev-runtime compatibility adapter.
+
+Вердикт: рефакторить стоит в сторону удаления/сужения, а не улучшения. Файл выглядит legacy и может закреплять второй source of truth.
+
+Основные риски:
+
+- Дублирует canonical DB-backed `PrismaCatalogRepository` semantics: uniqueness, public path conflicts, provisioning transaction, event payloads.
+- Fake `P2002` без Prisma metadata и raw `Error` mixing могут расходиться с production error mapping.
+- Event builders дублируют catalog event semantics отдельно от slice-owned Prisma events.
+- Clone transaction не моделирует DB isolation/concurrency.
+- Реальное использование выглядит ограниченным; mounted runtime уже идет через Prisma-like module.
+
+Минимальное направление:
+
+- Перевести оставшиеся тесты/потребителей на canonical `PrismaCatalogRepository` через `createInMemoryCatalogPrisma` или SQLite-backed fixture.
+- После этого удалить файл или пометить как non-normative legacy adapter.
+- Не добавлять новые business rules/events в этот adapter.
+- Если оставить временно, добавить parity tests против canonical repository.
+
+Priority: P2, P1 перед новыми catalog runtime changes.
+
+### 8. `backend/src/slices/admin-access/presentation/admin-auth-http.ts`
+
+Owning area: `admin-access`, `admin-web` presentation HTTP adapter.
+
+Вердикт: рефакторить стоит как security hardening без изменения успешной семантики.
+
+Основные риски:
+
+- `readBody` без body size limit на auth endpoints.
+- `parseCookies` использует `decodeURIComponent` без защиты от malformed cookie.
+- `x-trace-id` принимается без normalization/length limit.
+- `OPTIONS` может вернуть `405`, если admin-web окажется cross-origin без proxy.
+- Cookies имеют `Path=/`, шире минимального admin auth/API scope.
+- Presentation файл смешивает routing, body/cookie/origin/trace/session response/protected helper.
+
+Минимальное направление:
+
+- Сохранить public exports: `createAdminAuthHttpHandler`, `resolveProtectedAdminRouteSession`.
+- Вынести local helpers внутри `admin-access/presentation`: cookies, origin, body, response.
+- Добавить behavior-compatible hardening: bounded body, safe cookie decode, trace id normalization.
+- Не выносить session/auth policy в `shared`.
+
+Priority: P1 для body/cookie/trace hardening; P2 для structural split.
+
+### 9. `backend/src/slices/order-cancellation/infrastructure/prisma-order-cancellation.repository.ts`
+
+Owning area: `order-cancellation` infrastructure repository.
+
+Вердикт: рефакторить нужно, потому что есть concurrency correctness risk вокруг cancellation.
+
+Основные риски:
+
+- `recordCancellation()` читает current order status, но update делает по `id` без conditional `status/isDeleted`; concurrent lifecycle update может привести к stale write и некорректному audit/event.
+- `recordRefundUpdate()` лучше защищен через `updateMany`, но type/data path допускает `NOT_REQUIRED` для manual refund update.
+- Raw enum casts без runtime validation.
+- Повторяется order select/map в нескольких paths.
+- Repository уже содержит infra-level consistency checks; нельзя расширять сюда role/state business policy.
+
+Минимальное направление:
+
+- Вынести local `orderSelect` и `mapOrderRecord`.
+- Перевести cancellation update на atomic conditional write: `id + oldStatus + isDeleted=false`, затем fetch updated order.
+- Сузить manual refund terminal input до `DONE | REJECTED`.
+- Добавить local enum parsers/asserts для persisted values.
+
+Priority: P1 для atomic cancellation update; P2 для refund type narrowing.
+
+### 10. `backend/src/slices/admin-access/application/admin-access.service.ts`
+
+Owning area: `admin-access` application layer, `admin-web` session/auth policy.
+
+Вердикт: рефакторить нужно, но не косметически. Главная ценность в security/session correctness и atomic boundaries.
+
+Основные риски:
+
+- `resolveProtectedSession` проверяет idle timeout, но не обновляет `lastActivityAt/idleExpiresAt`; если protected requests считаются активностью, session policy работает не так, как ожидается.
+- Refresh rotation не compare-and-set; parallel refresh может выпустить несколько token pairs и оставить один ответ stale.
+- Lockout flow не транзакционный: lock, revoke sessions, audit могут частично примениться.
+- Login success создает session до audit; при падении audit возможна session без audit trail.
+- Expired/idle sessions в protected resolve fail-closed, но не revocation/cleanup consistent с refresh/logout.
+- Дублируется session expiry logic.
+
+Минимальное направление:
+
+- Добавить private helper для единой валидации session state.
+- Уточнить idle activity policy и, если нужно, добавить repository method `touchSessionActivity`.
+- Добавить atomic repository operations: `rotateRefreshSessionIfCurrent`, `lockAccountAndRevokeSessionsWithAudit`, возможно `createSessionWithAudit`.
+- Убрать повторный login account lookup после failed verification.
+
+Priority: P1 для idle activity semantics, atomic refresh rotation и lockout transaction.
 
 ## Suggested Refactor Order
 
-1. `backend/src/dev-runtime/catalog-runtime-prisma.ts`: высокий drift-risk с `REQ-027/028`, transaction/concurrency и fake Prisma boundary.
-2. `frontend/src/slices/catalog/api/catalog-api.ts`: прямой конфликт с `REQ-029` через `publicPath -> id`, потеря error contract.
-3. `backend/src/integrations/telegram-bot/telegram-bot-reviews-feedback.flow.ts`: domain state machine находится в integration contour.
-4. `backend/src/slices/admin-access/presentation/admin-auth-http.ts`: presentation держит infra dependency и security-hardening gaps.
-5. `backend/src/slices/reviews-feedback/infrastructure/prisma-reviews-feedback.repository.ts`: mappers/draft CAS/revision semantics.
-6. `backend/src/dev-runtime/dev-api-server.ts`: route modules, debug policy, repository-direct calls.
-7. `frontend/src/slices/catalog/components/catalog-page.tsx`: split storefront/editor/debug и убрать component-type dependency direction.
-8. `frontend/src/admin/styles/admin-theme.css` и `frontend/src/slices/catalog/styles/catalog-storefront.css`: CSS split, cheap WebView fallback, debug gating.
-9. `backend/src/dev-runtime/catalog-runtime-repository.ts`: удалить или явно понизить до non-normative dev adapter.
+1. `backend/src/slices/admin-access/application/admin-access.service.ts`: session correctness, atomic refresh rotation, lockout transaction boundaries.
+2. `backend/src/slices/order-cancellation/infrastructure/prisma-order-cancellation.repository.ts`: atomic cancellation update and refund terminal type narrowing.
+3. `backend/src/slices/reviews-feedback/infrastructure/prisma-reviews-feedback.repository.ts`: duplicate event revision consistency and draft CAS.
+4. `backend/src/slices/admin-access/presentation/admin-auth-http.ts`: body limit, safe cookie decode, trace normalization, then local helper split.
+5. `frontend/src/slices/catalog/api/catalog-api.ts`: publicPath/shopId identity cleanup and structured error contract preservation.
+6. `frontend/src/slices/catalog/components/catalog-page.tsx`: cart/handoff hook, cart summary extraction, WebView motion isolation.
+7. `backend/src/dev-runtime/catalog-runtime-repository.ts`: migrate consumers away and delete/scope as legacy adapter.
+8. `backend/src/slices/catalog/infrastructure/prisma/catalog-runtime-prisma.fixture.ts`: containment cleanup and parity tests against DB-backed path.
+9. `frontend/src/slices/catalog/styles/catalog-storefront.css`: local CSS split and WebView performance/motion degradation cleanup.
+10. `frontend/src/admin/styles/admin-theme.css`: admin-local CSS split, selector scoping, order-independent layout zones.
 
-## Spec Layer Files Over 300 Lines
+## Spec-Layer Files Over 300 Lines
 
 Без анализа, только список:
 
@@ -292,13 +295,17 @@ Scope: только production/source code проекта. Исключены `t
 |---:|---|
 | 1518 | `.memory-bank/tasks/archive/backlog-full-pre-compaction-2026-04-19.md` |
 | 694 | `.memory-bank/changelog/archive/changelog-full-pre-compaction-2026-04-19.md` |
+| 434 | `.memory-bank/tasks/backlog.md` |
 | 392 | `.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md` |
 | 309 | `.memory-bank/runbooks/telegram-mini-app-container-deploy.md` |
 
 ## Implementation Constraints
 
-- Не менять behavior в рамках refactor tasks без отдельного explicit scope.
-- Не делать global shared/framework layer из локальных helpers.
-- Для backend production refactor сначала добавить/сохранить focused regression coverage по owning slice.
-- Для frontend WebView/UI refactor проверять weak Android Telegram behavior, motion/blur fallback и отсутствие визуальной регрессии.
-- Для `dev-runtime` refactor отдельно проверять parity с durable DB-backed catalog runtime и admin/session boundaries.
+- Не менять production behavior внутри structural refactor tasks без отдельного explicit scope.
+- Security/concurrency fixes выделять отдельными tasks с targeted regression tests и evidence.
+- Не выносить slice-specific business rules, catalog provisioning semantics, review stepper policy, admin session policy или storefront presentation semantics в широкий `shared`.
+- Shared extraction допустим только для доказанных технических primitives: HTTP/error primitives, cookie utilities, UI primitives, shell/runtime adapters, generic magnetic interaction styling.
+- Для backend persistence refactor сохранять event/audit/error contracts and revision semantics; после изменений запускать slice-specific integration/runtime tests.
+- Для frontend WebView/UI refactor проверять weak Android Telegram assumptions, safe-area/keyboard bottom actions, reduced motion и отсутствие debug/customer leakage.
+- Для dev-runtime cleanup не усиливать in-memory/fake adapters как second source of truth; confidence переносить на DB-backed runtime tests.
+- После каждого meaningful refactor: `git diff --check`, UTF-8 без BOM/trailing whitespace, targeted tests; Memory Bank обновлять отдельной docs-first задачей, если меняется architecture/contract intent.

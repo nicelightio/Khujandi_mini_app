@@ -45,7 +45,7 @@ status: active
 4. Render customer-safe lifecycle steps for `CREATED`, waiting for assignment, assigned/courier progress, completed and cancelled terminal states.
 5. Harden duplicate/out-of-order event handling and polling resume after Telegram WebView lifecycle changes without lifecycle mutations.
 6. Repair checked-in repo-local runtime integration by mounting the customer `GET /api/v1/events?since=<cursor>` path and aligning checkout/status cursor semantics before final closure. Completed by `TASK-FT014-07`.
-7. Run final cross-slice e2e verification and sync RTM/docs only after repo-local polling repair and upstream Android checkout evidence exist.
+7. Run final cross-slice e2e verification and sync RTM/docs after repo-local polling repair; Android checkout/status smoke remains an advisory pre-release check, not a final-sync blocker.
 
 ## Expected Touched Files
 
@@ -97,5 +97,5 @@ status: active
 - Paid order success -> customer status screen.
 - Ordered customer polling through assignment and courier progress.
 - Read-only customer behavior across delayed assignment, duplicate polling, lifecycle resume and terminal states.
-- `REQ-033` RTM closure only after evidence proves customer status visibility consumes `FT-005` contract through the real paid-order flow.
-- `TASK-FT014-07` has passed for repo-local mounted `/api/v1/events` and compatible checkout cursor evidence; `TASK-FT014-06` remains blocked on upstream Android checkout evidence before final closure.
+- `REQ-033` RTM closure requires repo-local evidence that customer status visibility consumes `FT-005` contract through the real paid-order flow; fresh Android Telegram smoke is advisory pre-release evidence, not a blocking repo-local gate.
+- `TASK-FT014-07` has passed for repo-local mounted `/api/v1/events` and compatible checkout cursor evidence; `TASK-FT014-06` is unblocked for docs/evidence closure without upstream Android checkout evidence.

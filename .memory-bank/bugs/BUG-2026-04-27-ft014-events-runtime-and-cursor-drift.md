@@ -12,8 +12,8 @@ status: archived
 
 ## Impact
 
-- `REQ-033` remains `planned` rather than `verified` because final `TASK-FT014-06` still depends on upstream Android checkout evidence.
-- `TASK-FT014-06` no longer waits on repo-local polling repair, but still stays blocked by `TASK-FT013-08`.
+- `REQ-033` can be `verified` from repo-local gates plus advisory manual smoke note; upstream Android checkout/status evidence is now pre-release risk evidence rather than a blocker.
+- `TASK-FT014-06` no longer waits on repo-local polling repair or `TASK-FT013-08`.
 - Customer paid-order-to-status e2e evidence can now rely on checked-in mounted event endpoint, customer/order event scoping, and compatible cursor handoff evidence from `TASK-FT014-07`.
 
 ## Evidence
@@ -28,7 +28,7 @@ status: archived
 - Done in `TASK-FT014-07`: mount the checked-in `GET /api/v1/events?since=<cursor>` customer polling route used by the Mini App status surface.
 - Done in `TASK-FT014-07`: prove customer/order scoping with negative checks so customer sessions cannot read unrelated order events.
 - Done in `TASK-FT014-07`: align checkout success metadata with `FT-005` cursor semantics so `since`, `revision`, and `next_cursor` remain opaque string API values without causing numeric parser failures.
-- Re-run final `FT-014` e2e/docs closure only after `TASK-FT014-07` and upstream `TASK-FT013-08` evidence are complete.
+- Final `FT-014` repo-local docs/evidence closure may proceed after `TASK-FT014-07`; upstream Android smoke remains advisory pre-release evidence.
 
 ## Related
 

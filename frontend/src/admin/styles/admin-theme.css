@@ -1,3 +1,4 @@
+/* Admin theme tokens */
 :root {
   --admin-bg: #060816;
   --admin-surface: rgba(11, 16, 34, 0.82);
@@ -23,6 +24,7 @@
   --admin-scene-surface-lift: 0.01;
 }
 
+/* Admin contour baseline */
 body[data-root-contour="admin-web"] {
   margin: 0;
   background:
@@ -46,6 +48,7 @@ body[data-root-contour="admin-web"] textarea {
   font: inherit;
 }
 
+/* Scene shell */
 [data-admin-shell="root"] {
   position: relative;
   min-height: 100vh;
@@ -89,6 +92,7 @@ body[data-root-contour="admin-web"] textarea {
   animation: adminBeamDrift 18s ease-in-out infinite alternate;
 }
 
+/* Protected admin chrome */
 [data-admin-auth="protected"] {
   min-height: 100vh;
   padding: 28px;
@@ -276,6 +280,7 @@ body[data-root-contour="admin-web"] textarea {
   transform: none;
 }
 
+/* Page surface */
 [data-admin-page="shell"] {
   position: relative;
   display: grid;
@@ -491,6 +496,7 @@ body[data-root-contour="admin-web"] textarea {
   color: var(--admin-text);
 }
 
+/* Admin UI primitives */
 [data-admin-ui="micro-label"] {
   color: var(--admin-text-dim);
   font-size: 0.74rem;
@@ -564,6 +570,7 @@ body[data-root-contour="admin-web"] textarea {
   font-weight: 600;
 }
 
+/* Login composition */
 [data-admin-login="stage"] {
   gap: 18px;
 }
@@ -621,6 +628,7 @@ body[data-root-contour="admin-web"] textarea {
   opacity: 0.72;
 }
 
+/* Scene tuning controls */
 [data-admin-scene="controls"] {
   display: grid;
   gap: 18px;
@@ -693,6 +701,7 @@ body[data-root-contour="admin-web"] textarea {
   box-shadow: none;
 }
 
+/* Responsive layout */
 @media (max-width: 920px) {
   [data-admin-auth="protected"] {
     padding: 16px;
@@ -773,6 +782,7 @@ body[data-root-contour="admin-web"] textarea {
   }
 }
 
+/* Motion fallbacks */
 @media (prefers-reduced-motion: reduce) {
   [data-admin-shell="root"]::before,
   [data-admin-shell="root"]::after {

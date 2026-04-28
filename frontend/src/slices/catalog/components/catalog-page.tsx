@@ -50,6 +50,59 @@ type PendingCartReplacement = {
   product: CatalogCompositionProduct;
 };
 
+const buildStorefrontTabs = (storefront: CatalogStorefrontViewModel | undefined): StorefrontTab[] => {
+  if (storefront === undefined) {
+    return [];
+  }
+
+  const menuPageTabs = storefront.menuPages.map((menuPage) => ({
+    id: menuPage.id,
+    label: menuPage.name,
+    type: "menu-page" as const,
+  }));
+
+  if (storefront.unpagedProducts.length === 0) {
+    return menuPageTabs;
+  }
+
+  return [
+    ...menuPageTabs,
+    {
+      id: "legacy-unpaged-products",
+      label: "Legacy",
+      type: "legacy" as const,
+    },
+  ];
+};
+
+const collectStorefrontProductIds = (storefront: CatalogStorefrontViewModel | undefined): Set<string> => {
+  if (storefront === undefined) {
+    return new Set<string>();
+  }
+
+  return new Set([
+    ...storefront.menuPages.flatMap((menuPage) => menuPage.products.map((product) => product.id)),
+    ...storefront.unpagedProducts.map((product) => product.id),
+  ]);
+};
+
+const createCompositionInput = (
+  storefront: CatalogStorefrontViewModel,
+  product: { id: string; name: string; priceMinor: number },
+): PendingCartReplacement => ({
+  shop: {
+    id: storefront.shop.id,
+    publicPath: storefront.shop.publicPath,
+    name: storefront.shop.name,
+  },
+  product: {
+    id: product.id,
+    shopId: storefront.shop.id,
+    name: product.name,
+    priceMinor: product.priceMinor,
+  },
+});
+
 export const CatalogPage = ({
   viewModel,
   storefront,
@@ -71,42 +124,10 @@ export const CatalogPage = ({
   const heroImageUrl = storefront?.shop.headerImageUrl ?? defaultShopHeaderImage;
   const contentImageUrl = storefront?.shop.backgroundImageUrl ?? defaultStorefrontBackgroundImage;
   const visualStyle = useMemo(() => createStorefrontVisualStyle(visualTuning), [visualTuning]);
-  const storefrontTabs = useMemo(() => {
-    if (storefront === undefined) {
-      return [] as StorefrontTab[];
-    }
-
-    const menuPageTabs = storefront.menuPages.map((menuPage) => ({
-      id: menuPage.id,
-      label: menuPage.name,
-      type: "menu-page" as const,
-    }));
-
-    if (storefront.unpagedProducts.length === 0) {
-      return menuPageTabs;
-    }
-
-    return [
-      ...menuPageTabs,
-      {
-        id: "legacy-unpaged-products",
-        label: "Legacy",
-        type: "legacy" as const,
-      },
-    ];
-  }, [storefront]);
+  const storefrontTabs = useMemo(() => buildStorefrontTabs(storefront), [storefront]);
   const [activeTabId, setActiveTabId] = useState<string | null>(storefrontTabs[0]?.id ?? null);
   const resolvedActiveTabId = activeTabId ?? storefrontTabs[0]?.id ?? null;
-  const storefrontProductIds = useMemo(() => {
-    if (storefront === undefined) {
-      return new Set<string>();
-    }
-
-    return new Set([
-      ...storefront.menuPages.flatMap((menuPage) => menuPage.products.map((product) => product.id)),
-      ...storefront.unpagedProducts.map((product) => product.id),
-    ]);
-  }, [storefront]);
+  const storefrontProductIds = useMemo(() => collectStorefrontProductIds(storefront), [storefront]);
   const unavailableCompositionProductIds = useMemo(() => {
     if (storefront === undefined || composition.shop?.id !== storefront.shop.id) {
       return new Set<string>();
@@ -231,26 +252,13 @@ export const CatalogPage = ({
       return;
     }
 
-    const shop: CatalogCompositionShop = {
-      id: storefront.shop.id,
-      publicPath: storefront.shop.publicPath,
-      name: storefront.shop.name,
-    };
-    const compositionProduct: CatalogCompositionProduct = {
-      id: product.id,
-      shopId: storefront.shop.id,
-      name: product.name,
-      priceMinor: product.priceMinor,
-    };
+    const compositionInput = createCompositionInput(storefront, product);
 
     setComposition((current) => {
-      const result = addCatalogCompositionItem(current, {
-        shop,
-        product: compositionProduct,
-      });
+      const result = addCatalogCompositionItem(current, compositionInput);
 
       if (result.status === "different-shop-blocked") {
-        setPendingCartReplacement({ shop, product: compositionProduct });
+        setPendingCartReplacement(compositionInput);
 
         return current;
       }

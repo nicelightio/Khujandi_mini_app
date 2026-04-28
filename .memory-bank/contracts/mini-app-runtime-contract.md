@@ -63,7 +63,7 @@ status: active
 
 - Repo-local/runtime contract checks для auth/payment transport остаются в `FT-002`.
 - Repo-local/runtime contract checks для language fallback/persistence остаются в `FT-003`.
-- Real Telegram runtime evidence для customer-facing catalog/checkout UI, safe-area/theme/viewport/lifecycle и centralized swipe/back behavior закрывается в `FT-009`; обязательный blocking baseline сейчас ограничен `Android Telegram`, а `iOS/Desktop` остаются non-blocking hardening evidence.
+- Real Telegram runtime evidence для customer-facing catalog/checkout UI, safe-area/theme/viewport/lifecycle и centralized swipe/back behavior закрывается в `FT-009` как advisory pre-release risk check; `Android Telegram` operator notes are recommended but not blocking for repo-local closure, а `iOS/Desktop` остаются optional hardening evidence.
 
 ## UX policy baseline
 

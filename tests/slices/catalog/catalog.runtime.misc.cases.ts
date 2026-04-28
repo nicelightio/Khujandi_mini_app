@@ -59,6 +59,62 @@ export const registerCatalogRuntimeMiscCases = () => {
     }
   });
 
+  it("fails closed on malformed protected Mini App cookies instead of returning an uncontrolled 500", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      const response = await runtime.createClient().request({
+        path: "/api/v1/seller/shops",
+        method: "GET",
+        origin: adminOrigin,
+        headers: {
+          cookie: "khujandi_mini_app_session=%E0%A4%A",
+        },
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toMatchObject({
+        error: {
+          code: "AUTH_REQUIRED",
+        },
+      });
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("rejects oversized JSON bodies through the controlled error contract", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+    });
+
+    try {
+      const response = await runtime.createClient().request({
+        path: "/api/v1/auth/telegram",
+        origin: adminOrigin,
+        body: {
+          initData: "x".repeat(1024 * 1024),
+        },
+      });
+
+      expect(response.status).toBe(413);
+      expect(response.body).toMatchObject({
+        error: {
+          code: "VALIDATION_ERROR",
+          details: {
+            maxBytes: 1024 * 1024,
+          },
+        },
+      });
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("keeps seller write observability explicit in the in-memory catalog adapter", async () => {
     const state = createCatalogRuntimeState();
     const repository = new InMemoryCatalogRepository(state);

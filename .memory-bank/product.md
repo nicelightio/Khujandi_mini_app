@@ -14,7 +14,7 @@ Khujandi Mini App (`Худжанди`) — Telegram-first продукт для 
 - отдельную `admin-web` веб-админку для операционного управления и provisioning;
 - Telegram-бота как обязательный канал уведомлений и review-сценариев.
 
-Checked-in runtime сегодня монтирует customer-facing `mini-app` browse/shell, repo-local checkout/auth/order creation path, authenticated customer `GET /api/v1/events` status polling, `admin-web`, и часть seller/admin catalog surfaces. Formal checkout/status closure все еще заблокирован fresh real `Android Telegram` checkout evidence; repo-local `FT-014` events mount and checkout cursor compatibility repair are complete.
+Checked-in runtime сегодня монтирует customer-facing `mini-app` browse/shell, repo-local checkout/auth/order creation path, authenticated customer `GET /api/v1/events` status polling, `admin-web`, и часть seller/admin catalog surfaces. Repo-local checkout/status closure больше не блокируется fresh real `Android Telegram` evidence; Android Telegram smoke остается advisory pre-release risk check, а repo-local `FT-014` events mount and checkout cursor compatibility repair are complete.
 
 ## Core value
 

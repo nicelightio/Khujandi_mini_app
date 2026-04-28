@@ -101,6 +101,126 @@ describe("admin auth HTTP runtime", () => {
     }
   });
 
+  it("rejects a bad Origin even when Referer belongs to the allowed admin boundary", async () => {
+    const runtime = await startAdminAuthRuntimeServer();
+
+    try {
+      const client = runtime.createClient();
+      const response = await client.request({
+        path: "/api/v1/admin/auth/login",
+        origin: "https://evil.example",
+        referer: "https://admin.example/admin/login",
+        body: {
+          login: "boss@example.com",
+          password: "super-secret-01",
+        },
+      });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        error: {
+          code: "FORBIDDEN",
+          message: "Origin or Referer is not allowed",
+          details: undefined,
+        },
+        trace_id: "trace-admin-runtime",
+      });
+      expect(runtime.prisma.state.sessions).toHaveLength(0);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("returns a controlled validation error for over-limit login bodies", async () => {
+    const runtime = await startAdminAuthRuntimeServer();
+
+    try {
+      const response = await fetch(`${runtime.baseUrl}/api/v1/admin/auth/login`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://admin.example",
+          "x-trace-id": "trace-body-limit",
+        },
+        body: JSON.stringify({
+          login: "boss@example.com",
+          password: "super-secret-01",
+          padding: "x".repeat(70 * 1024),
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Request body is too large",
+          details: undefined,
+        },
+        trace_id: "trace-body-limit",
+      });
+      expect(runtime.prisma.state.sessions).toHaveLength(0);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("does not throw on malformed percent-encoded auth cookies", async () => {
+    const runtime = await startAdminAuthRuntimeServer();
+
+    try {
+      const response = await fetch(`${runtime.baseUrl}/api/v1/admin/auth/refresh`, {
+        method: "POST",
+        headers: {
+          cookie: "khujandi_admin_refresh_token=%E0%A4%A",
+          origin: "https://admin.example",
+          "x-trace-id": "trace-bad-cookie",
+        },
+      });
+
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "INVALID_SESSION",
+          message: "Admin session is invalid or revoked",
+        },
+        trace_id: "trace-bad-cookie",
+      });
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("falls back to a bounded safe trace id for unsafe request trace headers", async () => {
+    const runtime = await startAdminAuthRuntimeServer();
+
+    try {
+      const response = await fetch(`${runtime.baseUrl}/api/v1/admin/auth/login`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://evil.example",
+          "x-trace-id": `${"x".repeat(256)}<unsafe>`,
+        },
+        body: JSON.stringify({
+          login: "boss@example.com",
+          password: "super-secret-01",
+        }),
+      });
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "FORBIDDEN",
+          message: "Origin or Referer is not allowed",
+          details: undefined,
+        },
+        trace_id: "trace-admin-runtime",
+      });
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("keeps the admin session valid after runtime restart on the same persisted DB path", async () => {
     const adminDatabasePath = join(
       tmpdir(),

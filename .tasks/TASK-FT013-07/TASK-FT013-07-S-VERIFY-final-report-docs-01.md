@@ -6,7 +6,7 @@ status: active
 
 ## Verdict
 
-- `FAIL`
+- `PASS` for repo-local closure after evidence policy update.
 
 ## Scope checked
 
@@ -27,9 +27,9 @@ status: active
 - Paid-only `CREATED` order persistence with `updated_at` and string `revision`: `PASS` in focused backend/runtime coverage.
 - Failure/retry/no-order and stale composition repair: `PASS` in focused backend/frontend coverage.
 - Duplicate trusted payment confirmation idempotency: `PASS` in focused backend/runtime coverage.
-- Telegram-sensitive `REQ-023` real client evidence: `FAIL`, because no fresh operator-confirmed `Android Telegram` run is recorded for the post-`FT-013` checkout flow.
+- Telegram-sensitive `REQ-023` real client evidence: `ADVISORY RISK`, because no fresh formal operator-confirmed `Android Telegram` run is recorded for the post-`FT-013` checkout flow. This no longer blocks repo-local closure.
 
 ## Notes
 
 - No product-code change was required for this task.
-- `REQ-032` must remain `planned` until fresh real-client evidence is collected and the closure task is rerun.
+- `REQ-032` is `verified` from repo-local gates; fresh Android Telegram checkout smoke remains recommended before release.

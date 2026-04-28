@@ -8,6 +8,8 @@ type RuntimeJsonResponse = {
   text: string;
 };
 
+const maxJsonBodyBytes = 1024 * 1024;
+
 export type RuntimeCookieSessionClient = {
   request: (input: {
     path: string;
@@ -61,7 +63,12 @@ export const parseCookies = (cookieHeader: string | undefined): Record<string, s
       return accumulator;
     }
 
-    accumulator[rawName] = decodeURIComponent(rawValueParts.join("="));
+    try {
+      accumulator[rawName] = decodeURIComponent(rawValueParts.join("="));
+    } catch {
+      // Malformed percent-encoding is treated as an absent cookie so protected routes fail closed.
+    }
+
     return accumulator;
   }, {});
 };
@@ -90,9 +97,19 @@ export const serializeCookie = (input: {
 
 export const readJsonBody = async (request: IncomingMessage): Promise<Record<string, unknown>> => {
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
 
   for await (const chunk of request) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    const buffer = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+    totalBytes += buffer.byteLength;
+
+    if (totalBytes > maxJsonBodyBytes) {
+      throw new AppError("VALIDATION_ERROR", "Request body is too large", 413, {
+        maxBytes: maxJsonBodyBytes,
+      });
+    }
+
+    chunks.push(buffer);
   }
 
   const rawBody = Buffer.concat(chunks).toString("utf8").trim();

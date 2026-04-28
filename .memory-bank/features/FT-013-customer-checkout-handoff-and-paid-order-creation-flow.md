@@ -35,8 +35,8 @@ status: active
 - Implemented repo-local capability: `TASK-FT013-05` mounts paid `CREATED` order persistence on `/api/v1/orders/checkout`: the runtime reuses the existing `checkout-payment` trusted payment boundary, revalidates composition against current catalog state, persists one `CREATED` paid order and returns customer-safe `orderId`, `updated_at` and string `revision` metadata after commit.
 - Implemented repo-local capability: `TASK-FT013-06` hardens failed, canceled, timeout and ambiguous provider outcomes with retry-safe no-order responses, keeps stale/malformed composition repair explicit, and reuses existing paid orders for duplicate trusted confirmations before stale revalidation.
 - Repo-local final gates passed in `TASK-FT013-07`: focused backend/runtime/frontend checkout-payment suites cover composition-backed checkout, mounted Mini App auth/payment runtime, paid-only `CREATED` order metadata, retry-safe no-order failures, stale repair and duplicate trusted payment idempotency.
-- Missing for formal feature closure: fresh real `Android Telegram` evidence for the post-`FT-013` customer checkout flow remains with `TASK-FT013-08`; `TASK-FT013-07` is failed as a quality-gate closure until that evidence exists.
-- Downstream status repair complete: `TASK-FT014-07` changed the checked-in checkout success handoff to return the current event-stream cursor instead of `order.id`, so `FT-014` can seed `GET /api/v1/events?since=<cursor>` without cursor/parser drift. `REQ-032` remains `planned` until external Android evidence is collected.
+- Repo-local feature closure: `TASK-FT013-07` repo-local gates are sufficient for `REQ-032` verification after the evidence policy decision to downgrade fresh real `Android Telegram` evidence to advisory.
+- Downstream status repair complete: `TASK-FT014-07` changed the checked-in checkout success handoff to return the current event-stream cursor instead of `order.id`, so `FT-014` can seed `GET /api/v1/events?since=<cursor>` without cursor/parser drift. `REQ-032` is verified for repo-local closure; Android Telegram checkout smoke remains an advisory pre-release risk check.
 
 ## Use cases
 
@@ -93,6 +93,6 @@ status: active
 - e2e: direct checkout without composition returns controlled recovery to catalog/cart.
 - integration: stale composition, hidden shop, price drift and unavailable product block order creation.
 - integration: duplicate payment callbacks/submits create at most one order.
-- verify: Telegram-sensitive checkout runtime evidence follows `REQ-023` and `FT-009` shell verification policy.
-- current blocker: `.memory-bank/bugs/BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md` tracks the missing Android Telegram checkout evidence.
-- downstream blocker: `.memory-bank/bugs/BUG-2026-04-27-ft014-events-runtime-and-cursor-drift.md` tracks the mounted `/api/v1/events` and checkout/status cursor drift for `FT-014`.
+- verify: Telegram-sensitive checkout runtime evidence follows `REQ-023` and `FT-009` shell verification policy; fresh Android Telegram checkout smoke is advisory pre-release evidence, not a repo-local blocking gate.
+- advisory risk: `.memory-bank/bugs/BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md` now tracks residual pre-release Android checkout smoke risk rather than a blocking closure defect.
+- resolved downstream repair: `.memory-bank/bugs/BUG-2026-04-27-ft014-events-runtime-and-cursor-drift.md` is resolved by `TASK-FT014-07`, which mounted `/api/v1/events` and repaired checkout/status cursor compatibility for `FT-014`.

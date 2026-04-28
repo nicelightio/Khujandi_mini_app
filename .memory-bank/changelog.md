@@ -15,13 +15,22 @@ status: active
 
 ## Recent entries
 
+## [2026-04-29] MB garden synced refactor hardening wave
+- Ran `/mb-garden`: quick check found no active `TODO/TBD/Known gaps` entries outside command examples, and no `scripts/mb-lint.mjs` is configured.
+- Synced the recent refactor/security hardening wave into Memory Bank: `dev-runtime` and `reviews-feedback` repository splits are recorded in the root index, while remaining review findings are tracked as ready follow-ups for Mini App/seller Origin enforcement, refund CAS hardening, and refreshing `REFACTORING_IDEAS.md` after the changed line counts.
+- RTM lifecycle was left unchanged because the wave was behavior-preserving/hardening work with targeted tests, not a new feature closure.
+
+## [2026-04-27] Android Telegram evidence gate downgraded to advisory
+- Updated Memory Bank/task policy so fresh real `Android Telegram` evidence is no longer a blocking gate for repo-local closure. `REQ-032` and `REQ-033` are verified from repo-local checkout/status gates plus an advisory manual smoke note; missing formal Android notes remain explicit pre-release risk.
+- Reclassified `TASK-FT009-10` and `TASK-FT013-08` as non-blocking advisory smoke tasks, closed `TASK-FT014-06` for repo-local docs/evidence scope, and updated bug records/index to stop treating missing Android checkout/keyboard notes as blockers.
+
 ## [2026-04-27] TASK-FT014-07 events runtime repair
 - Mounted the checked-in customer `GET /api/v1/events?since=<cursor>` route in `dev-api-server`, backed it with the operational runtime event stream, and filtered returned events to orders owned by the current Mini App session so unrelated order events stay hidden.
-- Checkout success now returns the current event-stream cursor as string `revision` instead of `order.id`, and focused coverage proves opaque cursor tolerance, empty-window stability, customer/order scoping, checkout runtime compatibility, `npm run lint`, and `npm run build:frontend`. `REQ-033` remains `planned`; no Android Telegram evidence closure was attempted.
+- Checkout success now returns the current event-stream cursor as string `revision` instead of `order.id`, and focused coverage proves opaque cursor tolerance, empty-window stability, customer/order scoping, checkout runtime compatibility, `npm run lint`, and `npm run build:frontend`. After the evidence policy update, this supports `REQ-033` repo-local verification; no Android Telegram evidence closure was attempted.
 
 ## [2026-04-27] TASK-MB-REVIEW blockers recorded
-- Synced review findings into Memory Bank without product code changes: `FT-013` remains blocked on external real `Android Telegram` checkout evidence, and `FT-014` now explicitly tracks the repo-local missing mounted `/api/v1/events` plus checkout/status cursor compatibility blocker.
-- Added active bug `BUG-2026-04-27-ft014-events-runtime-and-cursor-drift` and ready task `TASK-FT014-07`; `REQ-032` and `REQ-033` remain `planned`, with final `TASK-FT014-06` depending on both repo-local repair and upstream evidence.
+- Synced review findings into Memory Bank without product code changes: at that time `FT-013` was blocked on external real `Android Telegram` checkout evidence, and `FT-014` tracked the repo-local missing mounted `/api/v1/events` plus checkout/status cursor compatibility blocker. These blockers were later resolved or downgraded by the 2026-04-27 evidence policy update.
+- Added active bug `BUG-2026-04-27-ft014-events-runtime-and-cursor-drift` and ready task `TASK-FT014-07`; later `TASK-FT014-07` repaired the repo-local blocker and Android evidence was downgraded to advisory risk.
 
 ## [2026-04-26] TASK-FT014-05 resume and terminal hardening
 - Hardened the existing `order-tracking` customer polling consumer for Telegram lifecycle resume: it continues to rely on shell-owned lifecycle state, clears stale in-flight polling on deactivation, and restarts polling without raw Telegram subscriptions or lifecycle write side effects.
@@ -41,7 +50,7 @@ status: active
 
 ## [2026-04-26] TASK-FT013-07 repo-local pass, Android evidence blocker
 - Ran the final repo-local checkout-payment gates for `FT-013`: focused backend/runtime/frontend Jest passed (`8` suites / `73` tests) and `npm run lint` passed, covering composition-backed checkout, mounted Mini App auth/payment runtime, paid `CREATED` order metadata, retry-safe no-order failures, stale repair and duplicate trusted payment idempotency.
-- Formal closure remains `FAIL` because no fresh real `Android Telegram` evidence is recorded for the post-`FT-013` customer checkout flow; `REQ-032` stays `planned`, `TASK-FT013-08` and `BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md` now track evidence collection, and dependent `TASK-FT014-06` is blocked.
+- Under the earlier policy formal closure remained `FAIL` because no fresh real `Android Telegram` evidence was recorded for the post-`FT-013` customer checkout flow; the 2026-04-27 evidence policy update reclassified this as advisory pre-release risk and allowed `REQ-032` repo-local verification.
 
 ## [2026-04-26] TASK-FT013-06 checkout retry and idempotency hardening
 - Hardened mounted customer checkout failure paths: failed, canceled, timeout and ambiguous provider outcomes now return controlled retry metadata with `orderCreated: false`, while malformed/stale composition responses return repair metadata instead of runtime 500s.
@@ -149,7 +158,7 @@ status: active
 
 ## [2026-04-20] TASK-FT009-09 verify halted on missing Android Telegram closure evidence
 - Repo-local hardening changes for the shell-owned bottom-action and degradation-policy subset now pass lint plus focused Jest coverage, but formal `/verify TASK-FT009-09` still fails because fresh real `Android Telegram` notes for keyboard-open CTA reachability and degraded fallback behavior are not yet recorded.
-- Opened active bug `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence` and blocked follow-up `TASK-FT009-10` so the current `/autopilot` run halts on an explicit quality-gate blocker instead of overstating closure.
+- Opened active bug `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence` and blocked follow-up `TASK-FT009-10` under the earlier policy; the 2026-04-27 evidence policy update reclassified this as advisory pre-release risk.
 
 ## [2026-04-20] Catalog Prisma repository split into spec-aligned infrastructure modules
 - Refactored `backend/src/slices/catalog/infrastructure/prisma-catalog.repository.ts` into a thin facade over focused Prisma modules for public browse reads, seller reads, seller writes, provisioning, and shared Prisma mapping/event glue.

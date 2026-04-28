@@ -2,6 +2,7 @@
   margin: 0 -16px calc(-16px - var(--tg-content-safe-area-inset-bottom, 0px));
 }
 
+/* Storefront shell and hero layers. */
 [data-catalog-storefront="shop"] {
   --storefront-hero-dim: 0.6;
   --storefront-hero-glow: 0.42;
@@ -152,6 +153,7 @@
   z-index: 1;
 }
 
+/* Content intro, status, and menu navigation. */
 [data-storefront-fx="viewport-beam"] {
   position: fixed;
   inset: 0;
@@ -300,6 +302,7 @@
   text-transform: uppercase;
 }
 
+/* Product cards and customer cart composition. */
 [data-storefront-products="list"] {
   display: grid;
   gap: 14px;
@@ -497,6 +500,7 @@
   font-size: 1rem;
 }
 
+/* Seller edit, diagnostics, and image crop controls. */
 [data-storefront-editor="backdrop"] {
   position: fixed;
   inset: 0;
@@ -741,6 +745,7 @@
   gap: 10px;
 }
 
+/* Interaction states, responsive rules, and motion fallbacks. */
 @media (hover: hover) and (pointer: fine) {
   [data-storefront-tabs="list"] button:hover,
   [data-storefront-tabs="list"] button:focus-visible,

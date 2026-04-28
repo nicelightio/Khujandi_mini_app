@@ -5,7 +5,7 @@ import { createPrismaProvider } from "./order-cancellation.integration.test-help
 
 export const registerOrderCancellationCases = () => {
   it("persists admin cancellation with history, audit, and canonical event writes", async () => {
-    const orderFindUnique = jest.fn().mockResolvedValue({
+    const existingOrder = {
       id: "order-1",
       courierId: "courier-1",
       status: "ASSIGNED",
@@ -17,8 +17,8 @@ export const registerOrderCancellationCases = () => {
       cancelledAt: null,
       updatedAt: new Date("2026-04-03T10:00:00.000Z"),
       isDeleted: false,
-    });
-    const orderUpdate = jest.fn().mockResolvedValue({
+    };
+    const cancelledOrder = {
       id: "order-1",
       courierId: "courier-1",
       status: "CANCELLED_BY_ADMIN",
@@ -30,7 +30,14 @@ export const registerOrderCancellationCases = () => {
       cancelledAt: new Date("2026-04-03T10:05:00.000Z"),
       updatedAt: new Date("2026-04-03T10:05:00.000Z"),
       isDeleted: false,
-    });
+    };
+    const orderFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce(existingOrder)
+      .mockResolvedValueOnce(existingOrder)
+      .mockResolvedValueOnce(cancelledOrder);
+    const orderUpdate = jest.fn();
+    const orderUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
     const statusHistoryCreate = jest.fn().mockResolvedValue({
       id: 101n,
       orderId: "order-1",
@@ -73,6 +80,7 @@ export const registerOrderCancellationCases = () => {
       order: {
         findUnique: orderFindUnique,
         update: orderUpdate,
+        updateMany: orderUpdateMany,
       },
       orderStatusHistory: {
         create: statusHistoryCreate,
@@ -104,9 +112,12 @@ export const registerOrderCancellationCases = () => {
       updatedAt: new Date("2026-04-03T10:05:00.000Z"),
       revision: "103",
     });
-    expect(orderUpdate).toHaveBeenCalledWith({
+    expect(orderUpdate).not.toHaveBeenCalled();
+    expect(orderUpdateMany).toHaveBeenCalledWith({
       where: {
         id: "order-1",
+        status: "ASSIGNED",
+        isDeleted: false,
       },
       data: {
         status: "CANCELLED_BY_ADMIN",
@@ -115,19 +126,6 @@ export const registerOrderCancellationCases = () => {
         cancelledAt: expect.any(Date),
         refundStatus: "PENDING_MANUAL",
         refundNote: null,
-      },
-      select: {
-        id: true,
-        courierId: true,
-        status: true,
-        paymentStatus: true,
-        refundStatus: true,
-        refundNote: true,
-        cancelledByUserId: true,
-        cancellationReasonCode: true,
-        cancelledAt: true,
-        updatedAt: true,
-        isDeleted: true,
       },
     });
     expect(statusHistoryCreate).toHaveBeenCalledWith({
@@ -170,7 +168,7 @@ export const registerOrderCancellationCases = () => {
   });
 
   it("persists courier unavailable-case cancellation only for the assigned courier", async () => {
-    const orderFindUnique = jest.fn().mockResolvedValue({
+    const existingOrder = {
       id: "order-2",
       courierId: "courier-1",
       status: "IN_PROGRESS",
@@ -182,8 +180,8 @@ export const registerOrderCancellationCases = () => {
       cancelledAt: null,
       updatedAt: new Date("2026-04-03T11:00:00.000Z"),
       isDeleted: false,
-    });
-    const orderUpdate = jest.fn().mockResolvedValue({
+    };
+    const cancelledOrder = {
       id: "order-2",
       courierId: "courier-1",
       status: "CANCELLED_BY_COURIER_UNAVAILABLE",
@@ -195,7 +193,14 @@ export const registerOrderCancellationCases = () => {
       cancelledAt: new Date("2026-04-03T11:05:00.000Z"),
       updatedAt: new Date("2026-04-03T11:05:00.000Z"),
       isDeleted: false,
-    });
+    };
+    const orderFindUnique = jest
+      .fn()
+      .mockResolvedValueOnce(existingOrder)
+      .mockResolvedValueOnce(existingOrder)
+      .mockResolvedValueOnce(cancelledOrder);
+    const orderUpdate = jest.fn();
+    const orderUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
     const statusHistoryCreate = jest.fn().mockResolvedValue({
       id: 201n,
       orderId: "order-2",
@@ -238,6 +243,7 @@ export const registerOrderCancellationCases = () => {
       order: {
         findUnique: orderFindUnique,
         update: orderUpdate,
+        updateMany: orderUpdateMany,
       },
       orderStatusHistory: {
         create: statusHistoryCreate,
@@ -267,16 +273,20 @@ export const registerOrderCancellationCases = () => {
       updatedAt: new Date("2026-04-03T11:05:00.000Z"),
       revision: "203",
     });
-    expect(orderUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          status: "CANCELLED_BY_COURIER_UNAVAILABLE",
-          cancelledByUserId: "courier-1",
-          cancellationReasonCode: "COURIER_UNAVAILABLE",
-          refundStatus: "NOT_REQUIRED",
-        }),
+    expect(orderUpdate).not.toHaveBeenCalled();
+    expect(orderUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: "order-2",
+        status: "IN_PROGRESS",
+        isDeleted: false,
+      },
+      data: expect.objectContaining({
+        status: "CANCELLED_BY_COURIER_UNAVAILABLE",
+        cancelledByUserId: "courier-1",
+        cancellationReasonCode: "COURIER_UNAVAILABLE",
+        refundStatus: "NOT_REQUIRED",
       }),
-    );
+    });
     expect(statusHistoryCreate).toHaveBeenCalled();
     expect(auditCreate).toHaveBeenCalled();
     expect(eventCreate).toHaveBeenCalled();

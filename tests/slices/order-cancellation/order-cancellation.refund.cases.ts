@@ -235,14 +235,25 @@ export const registerOrderCancellationRefundCases = () => {
       return { ...storedOrder };
     });
     const orderUpdateMany = jest.fn().mockImplementation(async ({ where, data }) => {
-      if (storedOrder.id !== where.id || storedOrder.refundStatus !== where.refundStatus) {
+      if (storedOrder.id !== where.id) {
+        return { count: 0 };
+      }
+
+      if (where.status !== undefined && storedOrder.status !== where.status) {
+        return { count: 0 };
+      }
+
+      if (where.refundStatus !== undefined && storedOrder.refundStatus !== where.refundStatus) {
         return { count: 0 };
       }
 
       storedOrder = {
         ...storedOrder,
         ...data,
-        updatedAt: new Date("2026-04-03T12:10:00.000Z"),
+        updatedAt:
+          data.refundStatus === "DONE"
+            ? new Date("2026-04-03T12:10:00.000Z")
+            : new Date("2026-04-03T12:05:00.000Z"),
       };
 
       return { count: 1 };
@@ -371,19 +382,25 @@ export const registerOrderCancellationRefundCases = () => {
       revision: "405",
     });
 
-    expect(orderFindUnique).toHaveBeenCalledTimes(5);
-    expect(orderUpdate).toHaveBeenNthCalledWith(
+    expect(orderFindUnique).toHaveBeenCalledTimes(6);
+    expect(orderUpdate).not.toHaveBeenCalled();
+    expect(orderUpdateMany).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({
+      {
+        where: {
+          id: "order-5",
+          status: "ASSIGNED",
+          isDeleted: false,
+        },
         data: expect.objectContaining({
           status: "CANCELLED_BY_ADMIN",
           cancelledByUserId: "admin-9",
           cancellationReasonCode: "SHOP_UNAVAILABLE",
           refundStatus: "PENDING_MANUAL",
         }),
-      }),
+      },
     );
-    expect(orderUpdateMany).toHaveBeenCalledWith({
+    expect(orderUpdateMany).toHaveBeenNthCalledWith(2, {
       where: {
         id: "order-5",
         refundStatus: "PENDING_MANUAL",

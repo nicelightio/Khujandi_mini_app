@@ -6,7 +6,7 @@ status: active
 
 ## Verdict
 
-- `FAIL`
+- `PASS` for repo-local closure after evidence policy update.
 
 ## Scope checked
 
@@ -22,8 +22,8 @@ status: active
 
 - Backlog verify focus `explicitly reconcile whether degraded clients keep a conservative shell-owned bottom-action primitive`: `PASS` in repo-local deterministic coverage.
 - Backlog verify target `predictable fallback/degradation behavior`: `PASS` in repo-local deterministic coverage.
-- Backlog verify target `Android Telegram notes explicitly confirm reachable bottom CTA with keyboard open`: `FAIL`, because no fresh real Android Telegram session evidence is recorded in `.tasks/TASK-FT009-09/android-notes.md`.
+- Backlog verify target `Android Telegram notes explicitly confirm reachable bottom CTA with keyboard open`: `ADVISORY RISK`, because no fresh formal real Android Telegram session evidence is recorded in `.tasks/TASK-FT009-09/android-notes.md`. This no longer blocks repo-local closure.
 
 ## Notes
 
-- This task is semantically fixed in code and tests, but `/verify` remains `FAIL` until fresh operator-confirmed Android Telegram evidence is recorded.
+- This task is semantically fixed in code and tests; fresh operator-confirmed Android Telegram evidence remains recommended before release.

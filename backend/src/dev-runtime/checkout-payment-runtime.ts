@@ -140,14 +140,17 @@ export const resolveMiniAppAuthenticatedUser = async (
   request: IncomingMessage,
   dependencies: {
     state: CheckoutPaymentRuntimeState;
+    authRequiredMessage?: string;
     now?: () => Date;
   },
 ): Promise<CheckoutPaymentUserRecord> => {
+  const authRequiredMessage =
+    dependencies.authRequiredMessage ?? "Mini App access requires an authenticated Telegram session";
   const cookies = parseCookies(readSingleHeader(request.headers.cookie));
   const sessionToken = cookies.khujandi_mini_app_session ?? "";
 
   if (sessionToken.length === 0) {
-    throw new AppError("AUTH_REQUIRED", "Mini App access requires an authenticated Telegram session", 401);
+    throw new AppError("AUTH_REQUIRED", authRequiredMessage, 401);
   }
 
   const now = dependencies.now?.() ?? new Date();
@@ -160,13 +163,13 @@ export const resolveMiniAppAuthenticatedUser = async (
   );
 
   if (session === undefined) {
-    throw new AppError("AUTH_REQUIRED", "Mini App access requires an authenticated Telegram session", 401);
+    throw new AppError("AUTH_REQUIRED", authRequiredMessage, 401);
   }
 
   const user = dependencies.state.users.find((candidate) => candidate.id === session.userId && candidate.isActive);
 
   if (user === undefined) {
-    throw new AppError("AUTH_REQUIRED", "Mini App access requires an authenticated Telegram session", 401);
+    throw new AppError("AUTH_REQUIRED", authRequiredMessage, 401);
   }
 
   session.lastUsedAt = now;

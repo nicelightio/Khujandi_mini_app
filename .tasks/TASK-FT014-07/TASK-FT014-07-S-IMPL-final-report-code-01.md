@@ -24,4 +24,4 @@ status: active
 ## Notes
 
 - No Android Telegram evidence was attempted or substituted.
-- `REQ-033` remains `planned` until final `TASK-FT014-06` after upstream Android checkout evidence.
+- `REQ-033` is verified by final repo-local docs/evidence sync in `TASK-FT014-06`; upstream Android checkout/status evidence remains advisory pre-release risk evidence.

@@ -142,6 +142,7 @@ export type ReviewsFeedbackArtifactsRecord = {
   review: ReviewsFeedbackReviewRecord;
   events: ReviewsFeedbackEventRecord[];
   revision: ReviewsFeedbackRevision;
+  createdReview: boolean;
 };
 
 export type ReviewsFeedbackCommandResult = {
@@ -180,6 +181,7 @@ export type UpsertReviewDraftInput = {
   orderId: ReviewsFeedbackOrderId;
   actorUserId: ReviewsFeedbackUserId;
   direction: ReviewsFeedbackDirection;
+  currentExpectedRevision?: string;
   actorTelegramId: string;
   targetUserId: ReviewsFeedbackUserId;
   targetRole: ReviewsFeedbackTargetRole;
@@ -224,5 +226,7 @@ export interface ReviewsFeedbackRepository {
     authorId: ReviewsFeedbackUserId,
     targetUserId: ReviewsFeedbackUserId,
   ): Promise<ReviewsFeedbackReviewRecord | null>;
+  findReviewCreatedEvent(review: ReviewsFeedbackReviewRecord): Promise<ReviewsFeedbackEventRecord | null>;
+  findReviewNegativeEvent(review: ReviewsFeedbackReviewRecord): Promise<ReviewsFeedbackEventRecord | null>;
   persistReview(input: PersistReviewInput): Promise<ReviewsFeedbackArtifactsRecord>;
 }

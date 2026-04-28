@@ -37,6 +37,16 @@ type AdminAuthJsonResponse = {
   cookies?: string[];
 };
 
+type AdminAuthSessionResult = {
+  adminAccountId: string;
+  role: string;
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresAt: Date;
+  refreshTokenExpiresAt: Date;
+  idleExpiresAt: Date;
+};
+
 type ProtectedAdminRouteSession = {
   adminAccountId: string;
   role: AdminAccessRole;
@@ -54,6 +64,9 @@ type ProtectedAdminRouteRuntimeConfig = {
 
 const DEFAULT_ACCESS_COOKIE_NAME = "khujandi_admin_access_token";
 const DEFAULT_REFRESH_COOKIE_NAME = "khujandi_admin_refresh_token";
+const MAX_AUTH_BODY_BYTES = 64 * 1024;
+const MAX_TRACE_ID_LENGTH = 128;
+const SAFE_TRACE_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
 
 const createDefaultTokenHasher = (): AdminAccessTokenHasher => ({
   hash: async (secret) => createHash("sha256").update(secret).digest("hex"),
@@ -100,11 +113,24 @@ const sendError = (response: ServerResponse, traceId: string, error: unknown): v
   });
 };
 
-const readBody = async (request: IncomingMessage): Promise<string> => {
+const readBody = async (request: IncomingMessage, maxBytes = MAX_AUTH_BODY_BYTES): Promise<string> => {
   const chunks: Buffer[] = [];
+  let byteLength = 0;
+
+  const contentLength = request.headers["content-length"];
+  if (typeof contentLength === "string" && Number.parseInt(contentLength, 10) > maxBytes) {
+    throw new AppError("VALIDATION_ERROR", "Request body is too large", 400);
+  }
 
   for await (const chunk of request) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    const buffer = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+    byteLength += buffer.byteLength;
+
+    if (byteLength > maxBytes) {
+      throw new AppError("VALIDATION_ERROR", "Request body is too large", 400);
+    }
+
+    chunks.push(buffer);
   }
 
   return Buffer.concat(chunks).toString("utf8");
@@ -180,7 +206,11 @@ const parseCookies = (cookieHeader: string | undefined): Record<string, string> 
     const value = chunk.slice(separatorIndex + 1).trim();
 
     if (name.length > 0) {
-      accumulator[name] = decodeURIComponent(value);
+      try {
+        accumulator[name] = decodeURIComponent(value);
+      } catch {
+        accumulator[name] = value;
+      }
     }
 
     return accumulator;
@@ -197,10 +227,20 @@ const resolveIpAddress = (request: IncomingMessage): string | null => {
   return request.socket.remoteAddress ?? null;
 };
 
+const isSafeTraceId = (candidate: string): boolean =>
+  candidate.length > 0 && candidate.length <= MAX_TRACE_ID_LENGTH && SAFE_TRACE_ID_PATTERN.test(candidate);
+
 const resolveTraceId = (request: IncomingMessage, traceIdFactory: () => string): string => {
   const traceHeader = request.headers["x-trace-id"];
+  const traceId = typeof traceHeader === "string" ? traceHeader.trim() : "";
 
-  return typeof traceHeader === "string" && traceHeader.trim().length > 0 ? traceHeader : traceIdFactory();
+  if (isSafeTraceId(traceId)) {
+    return traceId;
+  }
+
+  const fallbackTraceId = traceIdFactory().trim();
+
+  return isSafeTraceId(fallbackTraceId) ? fallbackTraceId : createDefaultTraceId();
 };
 
 const resolveRoute = (pathname: string): AdminAuthRoute | null => {
@@ -223,8 +263,12 @@ const assertAllowedOrigin = (request: IncomingMessage, allowedOrigins: string[])
   const matchesAllowedOrigin = (candidate: string | undefined): boolean =>
     typeof candidate === "string" && allowedOrigins.some((allowedOrigin) => allowedOrigin === candidate);
 
-  if (matchesAllowedOrigin(origin)) {
-    return;
+  if (typeof origin === "string" && origin.length > 0) {
+    if (matchesAllowedOrigin(origin)) {
+      return;
+    }
+
+    throw new AppError("FORBIDDEN", "Origin or Referer is not allowed", 403);
   }
 
   if (typeof referer === "string" && referer.length > 0) {
@@ -287,6 +331,34 @@ const buildSessionCookies = (
     secureCookies,
   ),
 ];
+
+const sendSessionJson = (
+  response: ServerResponse,
+  result: AdminAuthSessionResult,
+  now: Date,
+  names: {
+    accessCookieName: string;
+    refreshCookieName: string;
+  },
+  secureCookies: boolean,
+): void => {
+  sendJson(response, {
+    ok: true,
+    statusCode: 200,
+    payload: toSessionPayload(result),
+    cookies: buildSessionCookies(
+      {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        accessTokenExpiresAt: result.accessTokenExpiresAt,
+        refreshTokenExpiresAt: result.refreshTokenExpiresAt,
+      },
+      now,
+      names,
+      secureCookies,
+    ),
+  });
+};
 
 export const resolveProtectedAdminRouteSession = async (
   request: IncomingMessage,
@@ -384,25 +456,16 @@ export const createAdminAuthHttpHandler = (config: AdminAuthHttpRuntimeConfig) =
           },
         );
 
-        sendJson(response, {
-          ok: true,
-          statusCode: 200,
-          payload: toSessionPayload(result),
-          cookies: buildSessionCookies(
-            {
-              accessToken: result.accessToken,
-              refreshToken: result.refreshToken,
-              accessTokenExpiresAt: result.accessTokenExpiresAt,
-              refreshTokenExpiresAt: result.refreshTokenExpiresAt,
-            },
-            now,
-            {
-              accessCookieName,
-              refreshCookieName,
-            },
-            secureCookies,
-          ),
-        });
+        sendSessionJson(
+          response,
+          result,
+          now,
+          {
+            accessCookieName,
+            refreshCookieName,
+          },
+          secureCookies,
+        );
 
         return true;
       }
@@ -424,25 +487,16 @@ export const createAdminAuthHttpHandler = (config: AdminAuthHttpRuntimeConfig) =
           },
         );
 
-        sendJson(response, {
-          ok: true,
-          statusCode: 200,
-          payload: toSessionPayload(result),
-          cookies: buildSessionCookies(
-            {
-              accessToken: result.accessToken,
-              refreshToken: result.refreshToken,
-              accessTokenExpiresAt: result.accessTokenExpiresAt,
-              refreshTokenExpiresAt: result.refreshTokenExpiresAt,
-            },
-            now,
-            {
-              accessCookieName,
-              refreshCookieName,
-            },
-            secureCookies,
-          ),
-        });
+        sendSessionJson(
+          response,
+          result,
+          now,
+          {
+            accessCookieName,
+            refreshCookieName,
+          },
+          secureCookies,
+        );
 
         return true;
       }

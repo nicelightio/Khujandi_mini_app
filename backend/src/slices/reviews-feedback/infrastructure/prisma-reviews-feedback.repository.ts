@@ -1,359 +1,39 @@
 import type {
-  ReviewsFeedbackAdminUserRecord,
   PersistReviewInput,
+  ReviewsFeedbackAdminUserRecord,
   ReviewsFeedbackArtifactsRecord,
   ReviewsFeedbackDirection,
-  ReviewsFeedbackDraftStage,
   ReviewsFeedbackEventRecord,
   ReviewsFeedbackOrderRecord,
-  ReviewsFeedbackOrderStatus,
   ReviewsFeedbackRepository,
   ReviewsFeedbackReviewDraftRecord,
   ReviewsFeedbackReviewRecord,
   ReviewsFeedbackSource,
   ReviewsFeedbackTargetRole,
-  UpsertReviewDraftInput,
   ReviewsFeedbackUserRecord,
-  ReviewsFeedbackUserRole,
+  UpsertReviewDraftInput,
 } from "../domain/reviews-feedback.types";
+import { AppError } from "../../../shared/errors/app-error";
+import {
+  buildReviewDraftCasWhere,
+  buildReviewDraftKey,
+  buildReviewDraftWriteData,
+} from "./prisma-reviews-feedback.drafts";
+import { buildReviewEventPayload, mapReviewEventRecord } from "./prisma-reviews-feedback.events";
+import {
+  mapAdminUserRole,
+  mapOrderStatus,
+  mapReviewDraftRecord,
+  mapReviewRecord,
+  mapUserRole,
+} from "./prisma-reviews-feedback.mappers";
+import { reviewDraftSelect, reviewEventSelect, reviewSelect } from "./prisma-reviews-feedback.selects";
+import type { ReviewsFeedbackPrismaProvider } from "./prisma-reviews-feedback.types";
+import { isPrismaUniqueConstraintError } from "./prisma-reviews-feedback.types";
 
-type ReviewsFeedbackOrderFindUniqueArgs = {
-  where: {
-    id: string;
-  };
-  select: {
-    id: true;
-    clientId: true;
-    courierId: true;
-    status: true;
-    updatedAt: true;
-    isDeleted: true;
-  };
-};
+export type { ReviewsFeedbackPrismaProvider } from "./prisma-reviews-feedback.types";
 
-type ReviewsFeedbackUserFindUniqueArgs = {
-  where: {
-    id: string;
-  };
-  select: {
-    id: true;
-    telegramId: true;
-    role: true;
-    isActive: true;
-    name: true;
-  };
-};
-
-type ReviewsFeedbackAdminFindManyArgs = {
-  where: {
-    role: {
-      in: ["BOSS", "MANAGER", "ADMIN"];
-    };
-    isActive: true;
-  };
-  select: {
-    id: true;
-    telegramId: true;
-    role: true;
-    isActive: true;
-    name: true;
-  };
-};
-
-type ReviewsFeedbackReviewFindManyArgs = {
-  where: {
-    orderId: string;
-  };
-  orderBy: {
-    createdAt: "asc";
-  };
-  select: {
-    id: true;
-    orderId: true;
-    authorId: true;
-    targetUserId: true;
-    targetRole: true;
-    rating: true;
-    reasonCode: true;
-    comment: true;
-    source: true;
-    createdAt: true;
-  };
-};
-
-type ReviewsFeedbackReviewFindUniqueArgs = {
-  where: {
-    orderId_authorId_targetUserId: {
-      orderId: string;
-      authorId: string;
-      targetUserId: string;
-    };
-  };
-  select: {
-    id: true;
-    orderId: true;
-    authorId: true;
-    targetUserId: true;
-    targetRole: true;
-    rating: true;
-    reasonCode: true;
-    comment: true;
-    source: true;
-    createdAt: true;
-  };
-};
-
-type ReviewsFeedbackReviewDraftFindUniqueArgs = {
-  where: {
-    orderId_actorUserId_direction: {
-      orderId: string;
-      actorUserId: string;
-      direction: string;
-    };
-  };
-  select: {
-    orderId: true;
-    actorUserId: true;
-    direction: true;
-    actorTelegramId: true;
-    targetUserId: true;
-    targetRole: true;
-    expectedStage: true;
-    expectedRevision: true;
-    rating: true;
-    reasonCode: true;
-    submittedReviewId: true;
-    submittedRevision: true;
-    submittedComment: true;
-    submittedCreatedAt: true;
-    expiresAt: true;
-    updatedAt: true;
-  };
-};
-
-type ReviewsFeedbackReviewDraftUpsertArgs = {
-  where: {
-    orderId_actorUserId_direction: {
-      orderId: string;
-      actorUserId: string;
-      direction: string;
-    };
-  };
-  create: {
-    orderId: string;
-    actorUserId: string;
-    direction: string;
-    actorTelegramId: string;
-    targetUserId: string;
-    targetRole: Uppercase<ReviewsFeedbackTargetRole>;
-    expectedStage: string;
-    expectedRevision: string;
-    rating: number | null;
-    reasonCode: string | null;
-    submittedReviewId: string | null;
-    submittedRevision: string | null;
-    submittedComment: string | null;
-    submittedCreatedAt: Date | null;
-    expiresAt: Date;
-  };
-  update: {
-    actorTelegramId: string;
-    targetUserId: string;
-    targetRole: Uppercase<ReviewsFeedbackTargetRole>;
-    expectedStage: string;
-    expectedRevision: string;
-    rating: number | null;
-    reasonCode: string | null;
-    submittedReviewId: string | null;
-    submittedRevision: string | null;
-    submittedComment: string | null;
-    submittedCreatedAt: Date | null;
-    expiresAt: Date;
-  };
-  select: ReviewsFeedbackReviewDraftFindUniqueArgs["select"];
-};
-
-type ReviewsFeedbackPrismaReviewDraftRecord = {
-  orderId: string;
-  actorUserId: string;
-  direction: string;
-  actorTelegramId: string;
-  targetUserId: string;
-  targetRole: string;
-  expectedStage: string;
-  expectedRevision: string;
-  rating: number | null;
-  reasonCode: string | null;
-  submittedReviewId: string | null;
-  submittedRevision: string | null;
-  submittedComment: string | null;
-  submittedCreatedAt: Date | null;
-  expiresAt: Date;
-  updatedAt: Date;
-};
-
-type ReviewsFeedbackReviewCreateArgs = {
-  data: {
-    orderId: string;
-    authorId: string;
-    targetUserId: string;
-    targetRole: Uppercase<ReviewsFeedbackTargetRole>;
-    rating: number;
-    reasonCode: string;
-    comment: string | null;
-    source: Uppercase<ReviewsFeedbackSource>;
-    createdAt: Date;
-  };
-  select: {
-    id: true;
-    orderId: true;
-    authorId: true;
-    targetUserId: true;
-    targetRole: true;
-    rating: true;
-    reasonCode: true;
-    comment: true;
-    source: true;
-    createdAt: true;
-  };
-};
-
-type ReviewsFeedbackEventCreateArgs = {
-  data: {
-    type: string;
-    entity: string;
-    entityId: string;
-    payload: Record<string, unknown>;
-  };
-};
-
-type ReviewsFeedbackPrismaEventRecord = {
-  id: bigint;
-  type: string;
-  entity: string;
-  entityId: string;
-  payload: Record<string, unknown>;
-  createdAt: Date;
-};
-
-type ReviewsFeedbackPrismaClientLike = {
-  order: {
-    findUnique(args: ReviewsFeedbackOrderFindUniqueArgs): Promise<ReviewsFeedbackOrderRecord | null>;
-  };
-  user: {
-    findUnique(args: ReviewsFeedbackUserFindUniqueArgs): Promise<ReviewsFeedbackUserRecord | null>;
-    findMany(args: ReviewsFeedbackAdminFindManyArgs): Promise<ReviewsFeedbackAdminUserRecord[]>;
-  };
-  review: {
-    findMany(args: ReviewsFeedbackReviewFindManyArgs): Promise<ReviewsFeedbackReviewRecord[]>;
-    findUnique(args: ReviewsFeedbackReviewFindUniqueArgs): Promise<ReviewsFeedbackReviewRecord | null>;
-    create(args: ReviewsFeedbackReviewCreateArgs): Promise<ReviewsFeedbackReviewRecord>;
-  };
-  reviewDraft: {
-    findUnique(
-      args: ReviewsFeedbackReviewDraftFindUniqueArgs,
-    ): Promise<ReviewsFeedbackPrismaReviewDraftRecord | null>;
-    upsert(args: ReviewsFeedbackReviewDraftUpsertArgs): Promise<ReviewsFeedbackPrismaReviewDraftRecord>;
-  };
-  event: {
-    create(args: ReviewsFeedbackEventCreateArgs): Promise<ReviewsFeedbackPrismaEventRecord>;
-  };
-};
-
-type ReviewsFeedbackPrismaTransactionalClientLike = ReviewsFeedbackPrismaClientLike & {
-  $transaction<T>(callback: (client: ReviewsFeedbackPrismaClientLike) => Promise<T>): Promise<T>;
-};
-
-export type ReviewsFeedbackPrismaProvider = {
-  readonly client: ReviewsFeedbackPrismaTransactionalClientLike;
-};
-
-const isPrismaUniqueConstraintError = (error: unknown): error is { code: string } =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  typeof (error as { code?: unknown }).code === "string" &&
-  (error as { code: string }).code === "P2002";
-
-const mapOrderStatus = (status: string): ReviewsFeedbackOrderStatus =>
-  status as ReviewsFeedbackOrderStatus;
-
-const mapUserRole = (role: string): ReviewsFeedbackUserRole => role.toLowerCase() as ReviewsFeedbackUserRole;
-
-const mapAdminUserRole = (
-  role: string,
-): ReviewsFeedbackAdminUserRecord["role"] => role.toLowerCase() as ReviewsFeedbackAdminUserRecord["role"];
-
-const mapTargetRole = (role: string): ReviewsFeedbackTargetRole =>
-  role.toLowerCase() as ReviewsFeedbackTargetRole;
-
-const mapSource = (source: string): ReviewsFeedbackSource => source.toLowerCase() as ReviewsFeedbackSource;
-
-const mapDirection = (direction: string): ReviewsFeedbackDirection =>
-  direction as ReviewsFeedbackDirection;
-
-const mapDraftStage = (stage: string): ReviewsFeedbackDraftStage => stage as ReviewsFeedbackDraftStage;
-
-const mapReviewRecord = (review: ReviewsFeedbackReviewRecord): ReviewsFeedbackReviewRecord => ({
-  ...review,
-  targetRole: mapTargetRole(review.targetRole),
-  source: mapSource(review.source),
-});
-
-const mapReviewDraftRecord = (
-  draft: ReviewsFeedbackPrismaReviewDraftRecord,
-): ReviewsFeedbackReviewDraftRecord => ({
-  ...draft,
-  direction: mapDirection(draft.direction),
-  expectedStage: mapDraftStage(draft.expectedStage),
-  targetRole: mapTargetRole(draft.targetRole),
-});
-
-const mapReviewCreatedEventRecord = (
-  event: ReviewsFeedbackPrismaEventRecord,
-  review: ReviewsFeedbackReviewRecord,
-): ReviewsFeedbackEventRecord => ({
-  id: event.id,
-  type: "review.created",
-  entity: "review",
-  entityId: event.entityId,
-  payload: {
-    reviewId: review.id.toString(),
-    orderId: review.orderId,
-    authorId: review.authorId,
-    targetUserId: review.targetUserId,
-    targetRole: mapTargetRole(review.targetRole),
-    rating: review.rating,
-    reasonCode: review.reasonCode,
-    comment: review.comment,
-    source: mapSource(review.source),
-    createdAt: review.createdAt.toISOString(),
-  },
-  createdAt: event.createdAt,
-});
-
-const mapNegativeReviewEventRecord = (
-  event: ReviewsFeedbackPrismaEventRecord,
-  review: ReviewsFeedbackReviewRecord,
-): ReviewsFeedbackEventRecord => ({
-  id: event.id,
-  type: "review.negative",
-  entity: "review",
-  entityId: event.entityId,
-  payload: {
-    reviewId: review.id.toString(),
-    orderId: review.orderId,
-    authorId: review.authorId,
-    targetUserId: review.targetUserId,
-    targetRole: mapTargetRole(review.targetRole),
-    rating: review.rating,
-    reasonCode: review.reasonCode,
-    comment: review.comment,
-    source: mapSource(review.source),
-    createdAt: review.createdAt.toISOString(),
-  },
-  createdAt: event.createdAt,
-});
+const NEGATIVE_REVIEW_RATING_THRESHOLD = 2;
 
 export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepository {
   constructor(private readonly prisma: ReviewsFeedbackPrismaProvider) {}
@@ -438,18 +118,7 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
       orderBy: {
         createdAt: "asc",
       },
-      select: {
-        id: true,
-        orderId: true,
-        authorId: true,
-        targetUserId: true,
-        targetRole: true,
-        rating: true,
-        reasonCode: true,
-        comment: true,
-        source: true,
-        createdAt: true,
-      },
+      select: reviewSelect,
     });
 
     return reviews.map(mapReviewRecord);
@@ -470,22 +139,7 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
         },
       },
       select: {
-        orderId: true,
-        actorUserId: true,
-        direction: true,
-        actorTelegramId: true,
-        targetUserId: true,
-        targetRole: true,
-        expectedStage: true,
-        expectedRevision: true,
-        rating: true,
-        reasonCode: true,
-        submittedReviewId: true,
-        submittedRevision: true,
-        submittedComment: true,
-        submittedCreatedAt: true,
-        expiresAt: true,
-        updatedAt: true,
+        ...reviewDraftSelect,
       },
     });
 
@@ -497,63 +151,49 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
   }
 
   async upsertReviewDraft(input: UpsertReviewDraftInput): Promise<ReviewsFeedbackReviewDraftRecord> {
-    const draft = await this.prisma.client.reviewDraft.upsert({
-      where: {
-        orderId_actorUserId_direction: {
+    const data = buildReviewDraftWriteData(input);
+    const key = buildReviewDraftKey(input);
+    const casWhere = buildReviewDraftCasWhere(input);
+
+    if (casWhere !== null) {
+      const updateResult = await this.prisma.client.reviewDraft.updateMany({
+        where: casWhere,
+        data: data.update,
+      });
+
+      if (updateResult.count !== 1) {
+        throw new AppError("CONFLICT", "Review draft moved to another stage or revision", 409, {
           orderId: input.orderId,
           actorUserId: input.actorUserId,
           direction: input.direction,
+        });
+      }
+
+      const updatedDraft = await this.prisma.client.reviewDraft.findUnique({
+        where: {
+          orderId_actorUserId_direction: key,
         },
+        select: reviewDraftSelect,
+      });
+
+      if (updatedDraft === null) {
+        throw new AppError("CONFLICT", "Review draft moved to another stage or revision", 409, {
+          orderId: input.orderId,
+          actorUserId: input.actorUserId,
+          direction: input.direction,
+        });
+      }
+
+      return mapReviewDraftRecord(updatedDraft);
+    }
+
+    const draft = await this.prisma.client.reviewDraft.upsert({
+      where: {
+        orderId_actorUserId_direction: key,
       },
-      create: {
-        orderId: input.orderId,
-        actorUserId: input.actorUserId,
-        direction: input.direction,
-        actorTelegramId: input.actorTelegramId,
-        targetUserId: input.targetUserId,
-        targetRole: input.targetRole.toUpperCase() as Uppercase<ReviewsFeedbackTargetRole>,
-        expectedStage: input.expectedStage,
-        expectedRevision: input.expectedRevision,
-        rating: input.rating,
-        reasonCode: input.reasonCode,
-        submittedReviewId: input.submittedReviewId,
-        submittedRevision: input.submittedRevision,
-        submittedComment: input.submittedComment,
-        submittedCreatedAt: input.submittedCreatedAt,
-        expiresAt: input.expiresAt,
-      },
-      update: {
-        actorTelegramId: input.actorTelegramId,
-        targetUserId: input.targetUserId,
-        targetRole: input.targetRole.toUpperCase() as Uppercase<ReviewsFeedbackTargetRole>,
-        expectedStage: input.expectedStage,
-        expectedRevision: input.expectedRevision,
-        rating: input.rating,
-        reasonCode: input.reasonCode,
-        submittedReviewId: input.submittedReviewId,
-        submittedRevision: input.submittedRevision,
-        submittedComment: input.submittedComment,
-        submittedCreatedAt: input.submittedCreatedAt,
-        expiresAt: input.expiresAt,
-      },
-      select: {
-        orderId: true,
-        actorUserId: true,
-        direction: true,
-        actorTelegramId: true,
-        targetUserId: true,
-        targetRole: true,
-        expectedStage: true,
-        expectedRevision: true,
-        rating: true,
-        reasonCode: true,
-        submittedReviewId: true,
-        submittedRevision: true,
-        submittedComment: true,
-        submittedCreatedAt: true,
-        expiresAt: true,
-        updatedAt: true,
-      },
+      create: data.create,
+      update: data.update,
+      select: reviewDraftSelect,
     });
 
     return mapReviewDraftRecord(draft);
@@ -572,21 +212,47 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
           targetUserId,
         },
       },
-      select: {
-        id: true,
-        orderId: true,
-        authorId: true,
-        targetUserId: true,
-        targetRole: true,
-        rating: true,
-        reasonCode: true,
-        comment: true,
-        source: true,
-        createdAt: true,
-      },
+      select: reviewSelect,
     });
 
     return review === null ? null : mapReviewRecord(review);
+  }
+
+  async findReviewCreatedEvent(
+    review: ReviewsFeedbackReviewRecord,
+  ): Promise<ReviewsFeedbackEventRecord | null> {
+    return this.findReviewEventByType(review, "review.created");
+  }
+
+  async findReviewNegativeEvent(
+    review: ReviewsFeedbackReviewRecord,
+  ): Promise<ReviewsFeedbackEventRecord | null> {
+    return this.findReviewEventByType(review, "review.negative");
+  }
+
+  private async findReviewEventByType(
+    review: ReviewsFeedbackReviewRecord,
+    type: "review.created" | "review.negative",
+  ): Promise<ReviewsFeedbackEventRecord | null> {
+    const eventStore = this.prisma.client.event;
+
+    if (eventStore.findFirst === undefined) {
+      return null;
+    }
+
+    const event = await eventStore.findFirst({
+      where: {
+        type,
+        entity: "review",
+        entityId: review.id.toString(),
+      },
+      orderBy: {
+        id: "asc",
+      },
+      select: reviewEventSelect,
+    });
+
+    return event === null ? null : mapReviewEventRecord(event, review, type);
   }
 
   async persistReview(input: PersistReviewInput): Promise<ReviewsFeedbackArtifactsRecord> {
@@ -604,18 +270,7 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
             source: input.source.toUpperCase() as Uppercase<ReviewsFeedbackSource>,
             createdAt: input.createdAt,
           },
-          select: {
-            id: true,
-            orderId: true,
-            authorId: true,
-            targetUserId: true,
-            targetRole: true,
-            rating: true,
-            reasonCode: true,
-            comment: true,
-            source: true,
-            createdAt: true,
-          },
+          select: reviewSelect,
         });
 
         const event = await transactionClient.event.create({
@@ -623,21 +278,10 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
             type: "review.created",
             entity: "review",
             entityId: review.id.toString(),
-            payload: {
-              reviewId: review.id.toString(),
-              orderId: review.orderId,
-              authorId: review.authorId,
-              targetUserId: review.targetUserId,
-              targetRole: mapTargetRole(review.targetRole),
-              rating: review.rating,
-              reasonCode: review.reasonCode,
-              comment: review.comment,
-              source: mapSource(review.source),
-              createdAt: review.createdAt.toISOString(),
-            },
+            payload: buildReviewEventPayload(review),
           },
         });
-        const events = [mapReviewCreatedEventRecord(event, review)];
+        const events = [mapReviewEventRecord(event, review, "review.created")];
 
         if (input.publishNegativeEvent) {
           const negativeEvent = await transactionClient.event.create({
@@ -645,22 +289,11 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
               type: "review.negative",
               entity: "review",
               entityId: review.id.toString(),
-              payload: {
-                reviewId: review.id.toString(),
-                orderId: review.orderId,
-                authorId: review.authorId,
-                targetUserId: review.targetUserId,
-                targetRole: mapTargetRole(review.targetRole),
-                rating: review.rating,
-                reasonCode: review.reasonCode,
-                comment: review.comment,
-                source: mapSource(review.source),
-                createdAt: review.createdAt.toISOString(),
-              },
+              payload: buildReviewEventPayload(review),
             },
           });
 
-          events.push(mapNegativeReviewEventRecord(negativeEvent, review));
+          events.push(mapReviewEventRecord(negativeEvent, review, "review.negative"));
         }
 
         const latestEvent = events[events.length - 1] ?? event;
@@ -669,6 +302,7 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
           review: mapReviewRecord(review),
           events,
           revision: latestEvent.id.toString(),
+          createdReview: true,
         };
       });
     } catch (error) {
@@ -683,10 +317,20 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
       );
 
       if (existingReview !== null) {
+        const reviewCreatedEvent = await this.findReviewCreatedEvent(existingReview);
+        const reviewNegativeEvent = existingReview.rating <= NEGATIVE_REVIEW_RATING_THRESHOLD
+          ? await this.findReviewNegativeEvent(existingReview)
+          : null;
+        const events = [reviewCreatedEvent, reviewNegativeEvent].filter(
+          (event): event is ReviewsFeedbackEventRecord => event !== null,
+        );
+        const latestEvent = events[events.length - 1] ?? null;
+
         return {
           review: existingReview,
-          events: [],
-          revision: existingReview.id.toString(),
+          events,
+          revision: latestEvent === null ? "0" : latestEvent.id.toString(),
+          createdReview: false,
         };
       }
 

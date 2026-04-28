@@ -350,12 +350,34 @@ export const createOperationalRuntimeModules = (
       updateMany: async ({ where, data }) => {
         const resolved = findOrder(state, runtimeState, where.id, nowFactory);
 
-        if (resolved === null || resolved.order.refundStatus !== where.refundStatus) {
+        if (resolved === null) {
           return { count: 0 };
         }
 
-        resolved.order.refundStatus = data.refundStatus;
-        resolved.order.refundNote = data.refundNote;
+        if (where.refundStatus !== undefined && resolved.order.refundStatus !== where.refundStatus) {
+          return { count: 0 };
+        }
+
+        if (where.status !== undefined && resolved.order.status !== where.status) {
+          return { count: 0 };
+        }
+
+        if (where.isDeleted !== undefined && resolved.order.isDeleted !== where.isDeleted) {
+          return { count: 0 };
+        }
+
+        if ("status" in data) {
+          resolved.order.status = data.status;
+          resolved.order.refundStatus = data.refundStatus;
+          resolved.order.refundNote = data.refundNote;
+          resolved.metadata.cancelledByUserId = data.cancelledByUserId;
+          resolved.metadata.cancellationReasonCode = data.cancellationReasonCode;
+          resolved.metadata.cancelledAt = cloneDate(data.cancelledAt);
+        } else {
+          resolved.order.refundStatus = data.refundStatus;
+          resolved.order.refundNote = data.refundNote;
+        }
+
         resolved.metadata.updatedAt = nowFactory();
         return { count: 1 };
       },

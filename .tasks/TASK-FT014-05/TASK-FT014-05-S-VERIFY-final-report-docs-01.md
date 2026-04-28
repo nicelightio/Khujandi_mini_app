@@ -30,5 +30,5 @@ PASS
 
 ## Scope Notes
 - This verification is scoped to `TASK-FT014-05` only.
-- `REQ-033` remains `planned` because final paid-order success -> customer status -> ordered polling e2e closure belongs to `TASK-FT014-06`, which is blocked by missing upstream Android Telegram checkout evidence from `TASK-FT013-07`.
+- Superseded by the 2026-04-27 evidence policy update: final paid-order success -> customer status -> ordered polling repo-local closure belongs to `TASK-FT014-06` and is no longer blocked by missing upstream Android Telegram checkout evidence; Android smoke remains advisory pre-release risk evidence.
 - No new bug record is required for `TASK-FT014-05` because scoped gates and acceptance checks passed.

@@ -248,7 +248,7 @@ export const registerReviewsFeedbackServiceCases = () => {
       rating: 5,
       reasonCode: "ON_TIME",
       comment: null,
-      revision: "11",
+      revision: "12",
       createdAt: new Date("2026-04-05T09:00:00.000Z"),
     });
 
@@ -323,6 +323,7 @@ export const registerReviewsFeedbackServiceCases = () => {
         },
       ],
       revision: "23",
+      createdReview: true,
     });
     const listActiveAdminUsers = jest.fn().mockResolvedValue([
       {

@@ -19,7 +19,7 @@ status: active
 - `TASK-FT002-06` completed and verified retry-safe failed, canceled, and timeout payment handling without order side effects.
 - `TASK-FT002-07` completed the frontend checkout route shell and repo-local success/retry UX smoke; later `TASK-FT013-04` replaced its local stub API path with mounted Mini App auth/language/checkout runtime calls.
 - `TASK-FT002-08` completed repo-local verification/docs sync for `FT-002`; `TASK-FT013-04` now mounts the customer-facing auth/checkout HTTP path, while paid `CREATED` persistence from a revalidated composition remains with later `FT-013` tasks.
-- Current effective state: backend/domain auth/payment logic is implemented and the checked-in customer-facing runtime now reaches the real Mini App auth/session boundary plus repo-local paid `CREATED` order persistence through `FT-013`, but formal Telegram-sensitive customer-flow closure is still blocked on fresh Android Telegram evidence.
+- Current effective state: backend/domain auth/payment logic is implemented and the checked-in customer-facing runtime now reaches the real Mini App auth/session boundary plus repo-local paid `CREATED` order persistence through `FT-013`; fresh Android Telegram evidence is now advisory pre-release risk evidence rather than a repo-local closure blocker.
 - The real customer-facing catalog/cart -> checkout handoff and mounted paid order workflow are now tracked in `FT-013`, which extends the user flow around this feature without moving auth/payment/order creation ownership out of `FT-002`.
 
 ## Use cases
@@ -82,8 +82,8 @@ status: active
 ## Verification closure
 
 - `REQ-004` has repo-local backend unit/integration coverage for raw `initData` HMAC validation, 10 minute freshness, replay rejection, HttpOnly cookie transport metadata, and a mounted runtime path consumed by the checked-in checkout frontend API.
-- `REQ-005` has trusted paid checkout integration/unit coverage plus mounted `FT-013` runtime coverage for revalidated composition -> paid `CREATED` order persistence, but formal customer-facing closure still waits for fresh Android Telegram evidence.
-- `REQ-006` has backend controlled error-contract coverage for `FAILED`, `CANCELED`, `PENDING` and ambiguous payment outcomes plus mounted frontend retry/repair coverage, but formal customer-facing closure still waits for fresh Android Telegram evidence.
+- `REQ-005` has trusted paid checkout integration/unit coverage plus mounted `FT-013` runtime coverage for revalidated composition -> paid `CREATED` order persistence; fresh Android Telegram checkout smoke is advisory pre-release evidence.
+- `REQ-006` has backend controlled error-contract coverage for `FAILED`, `CANCELED`, `PENDING` and ambiguous payment outcomes plus mounted frontend retry/repair coverage; fresh Android Telegram retry/repair smoke is advisory pre-release evidence.
 - `REQ-021` has provider/source verification, duplicate trusted payment idempotency and mounted `FT-013` runtime coverage proving duplicate confirmation reuses the existing paid order.
 - Shared `REQ-022/023` closure is no longer treated as complete from `FT-002`; the feature currently contributes implemented backend/session policy and repo-local evidence only.
 - `FT-013` is the explicit follow-on feature for turning this implemented boundary into the real customer-facing checkout workflow from catalog/cart selection through paid order creation.

@@ -9,7 +9,7 @@ status: active
 ## Current state
 
 - Historical task cards вынесены из active backlog в archive layer, чтобы `backlog.md` оставался коротким canonical entrypoint для `/prd-to-tasks`, `/execute`, `/autopilot` и `/mb-sync`.
-- Active backlog содержит terminal state для `FT-012`, blocked evidence path для `FT-013`, и repo-local repair + blocked final closure path для `FT-014`; historical completed cards остаются в archive layer.
+- Active backlog содержит terminal state для `FT-012`, repo-local closure для `FT-013`/`FT-014`, и advisory pre-release Android smoke path; historical completed cards остаются в archive layer.
 - Existing implementation plans остаются в [.memory-bank/tasks/plans/index.md](plans/index.md): роутер по `IMPL-*` планам.
 
 ## Recommended feature order
@@ -31,10 +31,47 @@ status: active
 ## Active task queue
 
 - `FT-012` is terminal for repo-local scope: `TASK-FT012-06` is `done`, and `REQ-031` remains `verified`.
-- `FT-013` repo-local checkout gates passed through `TASK-FT013-07`, but formal closure is blocked on external real `Android Telegram` evidence in `TASK-FT013-08`; `REQ-032` remains `planned`.
-- `FT-014` frontend status/resume hardening and repo-local mounted events repair passed through `TASK-FT014-07`, but final closure still requires external Android checkout evidence before unblocking `TASK-FT014-06`; `REQ-033` remains `planned`.
-- `FT-009` evidence closure remains blocked on external real `Android Telegram` notes in `TASK-FT009-10`, which also blocks `TASK-FT013-08`.
+- `FT-013` repo-local checkout gates passed through `TASK-FT013-07`; Android Telegram checkout evidence was downgraded to advisory pre-release smoke, so `TASK-FT013-08` is replaced by a non-blocking advisory check and `REQ-032` is `verified`.
+- `FT-014` frontend status/resume hardening and repo-local mounted events repair passed through `TASK-FT014-07`; `TASK-FT014-06` is closed as a docs/evidence sync without fresh Android evidence, and `REQ-033` is `verified` for repo-local closure.
+- `FT-009` Android keyboard/shell notes remain recommended advisory pre-release risk evidence in `TASK-ANDROID-ADVISORY-PRE-RELEASE`, but they no longer block `FT-013` or `FT-014` repo-local closure.
 - Current scoped follow-up intentionally excludes the broader `high-churn runtime propagation` refactor; that concern remains in the open bug record but is not part of the execution-ready wave below.
+
+### Maintenance follow-ups from 2026-04-29 refactor review
+
+#### TASK-FT013-09 — Enforce Origin/Referer checks on Mini App protected runtime routes
+- TASK-ID: `TASK-FT013-09`
+- Status: `ready`
+- Wave: `hardening`
+- Feature: `FT-013`, `FT-010`
+- REQs: `REQ-022`, `REQ-032`, `REQ-025`
+- Depends on: current refactor hardening wave
+- Touched files: `backend/src/dev-runtime/http-runtime.ts`, `backend/src/dev-runtime/checkout-payment-runtime.ts`, `backend/src/dev-runtime/routes/mini-app.routes.ts`, `backend/src/dev-runtime/routes/catalog.routes.ts`, `tests/slices/catalog/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: mounted runtime coverage proving protected Mini App checkout/language/events and seller routes reject disallowed `Origin` when present, use `Referer` only as fallback, and keep public browse auth-free.
+- Verify: cookie-protected Mini App and seller runtime routes enforce the documented `SameSite + Origin/Referer` boundary without changing successful Telegram session behavior.
+- Docs: `tasks/backlog.md`, `changelog.md`; update contracts only if the runtime boundary behavior changes beyond the existing `REQ-022` baseline.
+
+#### TASK-FT006-09 — Bind manual refund update CAS to cancelled non-deleted orders
+- TASK-ID: `TASK-FT006-09`
+- Status: `ready`
+- Wave: `hardening`
+- Feature: `FT-006`
+- REQs: `REQ-012`, `REQ-018`
+- Depends on: current order-cancellation atomic cancellation fix
+- Touched files: `backend/src/slices/order-cancellation/**/*`, `backend/src/dev-runtime/order-ops-runtime.ts`, `tests/slices/order-cancellation/**/*`
+- Tests: stale refund regression where the order changes status or is deleted between precheck and `updateMany`, proving no refund audit/event side effects are written.
+- Verify: manual refund progression remains atomic for cancelled paid orders and cannot publish refund side effects from stale order assumptions.
+- Docs: `tasks/backlog.md`, `changelog.md` if implementation lands.
+
+#### TASK-MAINT-01 — Refresh refactoring report after hardening wave
+- TASK-ID: `TASK-MAINT-01`
+- Status: `ready`
+- Wave: `maintenance`
+- Feature: maintenance
+- REQs: none
+- Depends on: current refactor hardening wave
+- Touched files: `REFACTORING_IDEAS.md` only
+- Tests: line-count/top-10 recomputation plus UTF-8/no trailing whitespace/`git diff --check`.
+- Verify: report reflects the current worktree after repository splits and hardening fixes, and no production code/tests/Memory Bank files are changed by the report refresh.
 
 ### TASK-FT014-01 — Freeze customer status visibility boundary
 - TASK-ID: `TASK-FT014-01`
@@ -110,17 +147,17 @@ status: active
 
 ### TASK-FT014-06 — Close FT-014 e2e verification and docs sync
 - TASK-ID: `TASK-FT014-06`
-- Status: `blocked`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-014`
 - REQs: `REQ-033`, `REQ-008`, `REQ-009`, `REQ-010`
-- Depends on: `TASK-FT014-05`, `TASK-FT014-07`, `TASK-FT013-08`
+- Depends on: `TASK-FT014-05`, `TASK-FT014-07`
 - Touched files: `.tasks/TASK-FT014-06/**/*`, `.memory-bank/requirements.md`, `.memory-bank/features/FT-014-customer-order-status-visibility-and-delivery-tracking-integration.md`, `.memory-bank/testing/index.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`, optional `.memory-bank/runbooks/telegram-mini-app-verification.md`
 - Tests: final focused gates for paid order success -> status screen, ordered polling through assignment/courier progress, empty-window duplicate safety, customer-safe terminal/cancellation display, and no customer mutation controls
-- Verify: `REQ-033` can move from `planned` to `verified` only after evidence proves customer status visibility consumes the real mounted `FT-005` contract from the paid-order flow, checkout cursor/revision is compatible with polling, customer/order scoping prevents unrelated event visibility, and `FT-005` SLA evidence remains referenced rather than duplicated
+- Verify: `REQ-033` can move to `verified` after repo-local evidence proves customer status visibility consumes the real mounted `FT-005` contract from the paid-order flow, checkout cursor/revision is compatible with polling, customer/order scoping prevents unrelated event visibility, and `FT-005` SLA evidence remains referenced rather than duplicated. Fresh Android Telegram evidence is advisory pre-release risk evidence, not a blocking repo-local gate.
 - Docs: `requirements.md`, `features/FT-014`, `testing/index.md`, `tasks/backlog.md`, `changelog.md`, `index.md`
 - Verification Targets: paid order success -> customer status screen; customer polling through assignment and courier progress; read-only customer behavior across delayed assignment, duplicate polling and terminal states
-- Blocked by: `TASK-FT013-08` is blocked on fresh real `Android Telegram` checkout evidence. Repo-local `/api/v1/events` mount and cursor compatibility repair passed in `TASK-FT014-07`.
+- Verify outcome: repo-local closure accepted from `TASK-FT014-02` through `TASK-FT014-07`: paid-order status entry, customer-safe lifecycle UI, duplicate/resume handling, mounted authenticated `/api/v1/events`, customer/order scoping, opaque cursor compatibility, and checkout success cursor handoff all have focused repo-local evidence. Fresh Android Telegram checkout/status notes remain advisory pre-release risk evidence only.
 
 ### TASK-FT014-07 — Mount customer events polling runtime and align cursor handoff
 - TASK-ID: `TASK-FT014-07`
@@ -135,7 +172,7 @@ status: active
 - Docs: `tasks/backlog.md`, `features/FT-014`, `features/FT-013`, `tasks/plans/IMPL-FT-014.md`, `testing/index.md`, `bugs/BUG-2026-04-27-ft014-events-runtime-and-cursor-drift.md`, `changelog.md`, `index.md`
 - Source: `.tasks/TASK-MB-REVIEW/*` findings on missing mounted `/api/v1/events`, checkout cursor mismatch, and unverified customer event visibility boundary
 - Constraints: repo-local product-code repair task; do not close `REQ-033`; do not collect or substitute external Android Telegram evidence here; do not move delivery state-machine ownership out of `FT-005`
-- Verify outcome: checked-in `dev-api-server` now mounts authenticated customer `GET /api/v1/events?since=<cursor>`, filters events to the current Mini App customer's orders, keeps empty windows stable, accepts opaque non-numeric cursor strings without runtime parse failure, and checkout success now returns the current event-stream cursor instead of `order.id`. Focused delivery-tracking runtime/unit/integration, order-tracking frontend, checkout runtime, `npm run lint`, and `npm run build:frontend` pass. `REQ-033` remains `planned` pending final `TASK-FT014-06` and upstream Android checkout evidence.
+- Verify outcome: checked-in `dev-api-server` now mounts authenticated customer `GET /api/v1/events?since=<cursor>`, filters events to the current Mini App customer's orders, keeps empty windows stable, accepts opaque non-numeric cursor strings without runtime parse failure, and checkout success now returns the current event-stream cursor instead of `order.id`. Focused delivery-tracking runtime/unit/integration, order-tracking frontend, checkout runtime, `npm run lint`, and `npm run build:frontend` pass. This is sufficient for repo-local `REQ-033` closure; Android Telegram smoke remains advisory pre-release risk evidence.
 
 ### TASK-FT012-01 — Freeze customer composition execution boundary
 - TASK-ID: `TASK-FT012-01`
@@ -307,31 +344,31 @@ status: active
 
 ### TASK-FT013-07 — Close FT-013 e2e verification and docs sync
 - TASK-ID: `TASK-FT013-07`
-- Status: `failed`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-013`
 - REQs: `REQ-032`, `REQ-004`, `REQ-005`, `REQ-006`, `REQ-021`, `REQ-022`, `REQ-023`
 - Depends on: `TASK-FT013-06`
 - Touched files: `.tasks/TASK-FT013-07/**/*`, `.memory-bank/requirements.md`, `.memory-bank/features/FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md`, `.memory-bank/features/FT-002-checkout-payment-and-order-creation.md`, `.memory-bank/testing/index.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`, optional `.memory-bank/runbooks/telegram-mini-app-verification.md`
 - Tests: final focused gates for catalog/cart -> checkout -> successful payment -> order `CREATED`; direct checkout recovery; stale composition block; payment failure no-order; duplicate callback idempotency
-- Verify: `REQ-032` can move from `planned` to `verified` only after evidence proves mounted customer checkout uses real auth/payment/order creation and Telegram-sensitive runtime evidence follows `REQ-023`
+- Verify: `REQ-032` can move to `verified` after repo-local evidence proves mounted customer checkout uses real auth/payment/order creation and Telegram-sensitive runtime evidence follows `REQ-023`; fresh Android Telegram smoke is advisory pre-release risk evidence, not a blocking repo-local gate
 - Docs: `requirements.md`, `features/FT-013`, `features/FT-002`, `testing/index.md`, `tasks/backlog.md`, `changelog.md`, `index.md`
 - Verification Targets: catalog/cart handoff; mounted Mini App auth/payment runtime; paid-only order creation; retry-safe failure path; status-entry metadata for `FT-014`
-- Verify outcome: repo-local checkout-payment final gates passed (`8` suites / `73` tests) and `npm run lint` passed, but formal closure failed because fresh real `Android Telegram` evidence for the post-`FT-013` customer checkout flow is missing under `REQ-023`; `REQ-032` remains `planned`.
-- Source: `BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md`
+- Verify outcome: repo-local checkout-payment final gates passed (`8` suites / `73` tests) and `npm run lint` passed; after the confirmed policy decision to downgrade fresh real `Android Telegram` evidence to advisory, this closes repo-local `REQ-032` as `verified`. Residual Android checkout smoke risk is tracked as advisory pre-release evidence.
+- Source: `BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md` now reclassified as advisory pre-release risk
 
-### TASK-FT013-08 — Collect Android Telegram checkout closure evidence
+### TASK-FT013-08 — Advisory Android Telegram checkout pre-release smoke
 - TASK-ID: `TASK-FT013-08`
-- Status: `blocked`
+- Status: `planned`
 - Wave: `W4`
 - Feature: `FT-013`
 - REQs: `REQ-032`, `REQ-004`, `REQ-005`, `REQ-006`, `REQ-021`, `REQ-022`, `REQ-023`
-- Depends on: `TASK-FT013-07`, `TASK-FT009-10`
+- Depends on: `none`
 - Touched files: `.tasks/TASK-FT013-08/**/*`, optional `.tasks/TASK-FT013-07/android-notes.md`, `.memory-bank/requirements.md`, `.memory-bank/features/FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md`, `.memory-bank/features/FT-002-checkout-payment-and-order-creation.md`, `.memory-bank/testing/index.md`, `.memory-bank/tasks/backlog.md`, `.memory-bank/changelog.md`, `.memory-bank/index.md`
-- Tests: reuse the passing `TASK-FT013-07` repo-local checkout-payment gates unless product code changes; focus is fresh operator-confirmed Android Telegram evidence.
-- Verify: collect real `Android Telegram` notes for public storefront -> composition-backed checkout, successful paid order creation metadata, failed/canceled no-order retry and direct/stale checkout recovery, then rerun final docs/RTM closure.
+- Tests: no repo-local gates required unless product code changes; focus is advisory operator-confirmed Android Telegram smoke.
+- Verify: collect real `Android Telegram` notes for public storefront -> composition-backed checkout, successful paid order creation metadata, failed/canceled no-order retry and direct/stale checkout recovery. Missing formal notes must be documented as release risk, but must not block repo-local `REQ-032` closure.
 - Docs: `requirements.md`, `features/FT-013`, `features/FT-002`, `testing/index.md`, `tasks/backlog.md`, `changelog.md`, `index.md`
-- Source: `BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md`
+- Source: `BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md` reclassified from blocker to advisory pre-release risk
 
 ### TASK-FT011-09 — Allow multiple admin-provisioned shops per seller identity
 - TASK-ID: `TASK-FT011-09`
@@ -378,34 +415,34 @@ status: active
 
 ### TASK-FT009-09 — Verify shell bottom-action and degradation-policy closure
 - TASK-ID: `TASK-FT009-09`
-- Status: `failed`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-009`
 - REQs: `REQ-019`, `REQ-022`, `REQ-023`
 - Depends on: `TASK-FT009-08`
 - Touched files: `frontend/src/tests/app/**/*`, `frontend/src/tests/shared/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, optional `.tasks/TASK-FT009-09/**/*`, `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/testing/index.md`, `.memory-bank/changelog.md`, `.memory-bank/bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Tests: rerun focused shell, shared-runtime, and checkout/customer-facing smoke suites plus any new contract tests introduced by `TASK-FT009-07` and `TASK-FT009-08`
-- Verify: Android Telegram notes explicitly confirm reachable bottom CTA with keyboard open, predictable fallback/degradation behavior, and no obvious shell regression on the hardened customer-facing path
-- Verify focus: explicitly reconcile whether degraded clients keep a conservative shell-owned bottom-action primitive or intentionally fall back to `inline`, then validate that decision on real Android Telegram
-- Execution note: repo-local policy/test closure now keeps degraded Telegram runtime on the conservative shell-owned `keyboard-safe` CTA path; fresh Android Telegram operator notes are still pending before final task closure
-- Verify outcome: repo-local closure passed, but formal `/verify` failed because fresh real `Android Telegram` operator-confirmed notes are still missing
+- Verify: repo-local tests explicitly confirm the corrected shell-owned bottom CTA fallback semantics; Android Telegram notes for keyboard-open reachability, predictable fallback/degradation behavior, and no obvious shell regression are advisory pre-release evidence
+- Verify focus: explicitly reconcile whether degraded clients keep a conservative shell-owned bottom-action primitive or intentionally fall back to `inline`; real Android Telegram validation is recommended before release but not blocking for repo-local closure
+- Execution note: repo-local policy/test closure now keeps degraded Telegram runtime on the conservative shell-owned `keyboard-safe` CTA path; fresh Android Telegram operator notes remain advisory pre-release risk evidence
+- Verify outcome: repo-local closure passed; after the evidence policy decision, missing fresh real `Android Telegram` operator-confirmed notes are advisory pre-release risk evidence rather than a blocking task failure
 - Docs: `tasks/backlog.md`, `features/FT-009`, `testing/index.md`, `changelog.md`, `bugs/BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Source: `BUG-2026-04-19-ft009-shell-runtime-hardening-gap.md`
 - Scope note: this closure wave only covers the bottom-action and degradation-policy subset; the broader runtime-propagation refactor remains a separate follow-up concern until explicitly decomposed
 
-### TASK-FT009-10 — Collect Android Telegram closure evidence for the hardened shell CTA path
+### TASK-FT009-10 — Advisory Android Telegram shell CTA pre-release smoke
 - TASK-ID: `TASK-FT009-10`
-- Status: `blocked`
+- Status: `planned`
 - Wave: `W4`
 - Feature: `FT-009`
 - REQs: `REQ-019`, `REQ-022`, `REQ-023`
 - Depends on: `TASK-FT009-09`
 - Touched files: `.tasks/TASK-FT009-10/**/*`, optional `.tasks/TASK-FT009-09/android-notes.md`, `.memory-bank/testing/index.md`, `.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md`, `.memory-bank/bugs/BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md`, `.memory-bank/changelog.md`
-- Tests: no new repo-local gates required beyond reusing the passing `TASK-FT009-09` shell/customer-facing suite; focus is fresh operator-confirmed Android Telegram evidence
-- Verify: collect real `Android Telegram` notes confirming keyboard-open CTA reachability, conservative degraded fallback behavior, and no shell regression for the hardened checkout path; then rerun formal verify on the evidence-closure task
+- Tests: no new repo-local gates required beyond reusing the passing `TASK-FT009-09` shell/customer-facing suite; focus is advisory operator-confirmed Android Telegram smoke
+- Verify: collect real `Android Telegram` notes confirming keyboard-open CTA reachability, conservative degraded fallback behavior, and no shell regression for the hardened checkout path. Missing formal notes must be documented as release risk, but must not block repo-local closure.
 - Docs: `tasks/backlog.md`, `testing/index.md`, `features/FT-009`, `bugs/BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md`, `changelog.md`
 - Source: `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence.md`
-- Blocker: requires real `Android Telegram` operator run outside the current repo-local environment
+- Advisory risk: requires real `Android Telegram` operator run outside the current repo-local environment before release confidence is high
 
 ## Conventions
 Each task should include:

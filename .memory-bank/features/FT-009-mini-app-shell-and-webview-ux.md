@@ -46,7 +46,7 @@ status: active
 - Customer-facing shell должен оставаться отзывчивым на weak/mid Android Telegram WebView; тяжелые визуальные эффекты и зависимости допустимы только точечно, lazy и с graceful fallback.
 - `FT-009` владеет только shared shell/runtime частью `REQ-022`: safe-area/theme/viewport/lifecycle policy, centralized swipe/back behavior и non-sensitive shell persistence boundary без хранения session identifiers в JS-readable storage.
 - `FT-009` не переносит в shell auth/session transport из `FT-002` и language-choice domain behavior из `FT-003`; feature использует их как already-owned boundaries.
-- Telegram-specific real-client evidence для customer-facing Mini App flows, включая checkout UI, закрывается на уровне shell/runtime verification этой feature; обязательный blocking baseline для текущего MVP ограничен `Android Telegram` и operator-confirmed notes.
+- Telegram-specific real-client evidence для customer-facing Mini App flows, включая checkout UI, закрывается на уровне shell/runtime verification этой feature как advisory pre-release risk check; repo-local closure опирается на shell/runtime contract tests and focused UI gates, while `Android Telegram` operator-confirmed notes are recommended but not blocking.
 
 ## Edge cases & failure modes
 
@@ -75,7 +75,7 @@ status: active
 - `FT-009` владеет shell bootstrap, runtime adapter events, safe-area/theme/viewport/lifecycle behavior, centralized swipe/back policy, and real Telegram runtime evidence for customer-facing catalog/checkout UI.
 - `FT-009` также владеет shell-level capability/degradation policy, keyboard-safe bottom action primitives и runtime-to-UI propagation rules для customer-facing WebView UX.
 - Current checked-in capability policy intentionally stays minimal: it distinguishes only between an enhanced Telegram runtime path and a reduced fallback path based on centralized runtime capability derivation, without introducing a broader device-profiler subsystem.
-- Current hardening status: repo-local policy semantics are now reconciled so degraded Telegram runtime keeps a conservative shell-owned `keyboard-safe` bottom CTA path; substantive closure still requires fresh real Android Telegram notes confirming keyboard-open reachability on that corrected path.
+- Current hardening status: repo-local policy semantics are now reconciled so degraded Telegram runtime keeps a conservative shell-owned `keyboard-safe` bottom CTA path; fresh real Android Telegram notes confirming keyboard-open reachability are now advisory pre-release evidence rather than a blocking repo-local closure artifact.
 - `FT-002` сохраняет ownership над Telegram auth/session transport, trusted payment confirmation, and transport/source verification.
 - `FT-003` сохраняет ownership над first-run language overlay, explicit language persistence, fallback-to-`ru`, and post-auth profile sync.
 - `FT-013` and `FT-014` may use shell-owned bottom actions, lifecycle and polling-resume affordances, but they do not move checkout/payment or delivery-tracking domain logic into the shell.
@@ -86,5 +86,5 @@ status: active
 - unit: shell state helpers and theme/shared-persistence glue.
 - contract tests: runtime adapter for theme/viewport/safe-area/lifecycle events, shell capability/degradation policy and keyboard-safe bottom-action primitives.
 - repo-local closure: deterministic Jest coverage for shell state, adapter events, bottom action/page policy wiring, catalog shell markers, and checkout visual feedback before real-client verify.
-- verify: Telegram test environment/manual run в `Android Telegram` для shell/runtime behavior, включая customer-facing checkout UI после интеграции shell/runtime baseline; operator-confirmed notes are sufficient for closure, while `iOS/Desktop` evidence and screenshots/videos remain optional hardening artifacts. `FT-002` transport checks and `FT-003` language-domain assertions stay outside this scope. Keyboard-open flows должны отдельно подтвердить, что bottom action zone остается reachable.
+- verify: Telegram test environment/manual run в `Android Telegram` для shell/runtime behavior, включая customer-facing checkout UI после интеграции shell/runtime baseline, remains recommended as advisory pre-release evidence; operator-confirmed notes are sufficient when collected, while `iOS/Desktop` evidence and screenshots/videos remain optional hardening artifacts. `FT-002` transport checks and `FT-003` language-domain assertions stay outside this scope. Keyboard-open flows should still be smoke-checked before release because missing formal Android evidence leaves residual WebView risk.
 - verify: если change добавляет новые motion/effect-heavy UI paths или тяжелые runtime dependencies, operator notes должны отдельно подтвердить stable scroll, bottom action zones и отсутствие очевидного jank на weak Android Telegram.

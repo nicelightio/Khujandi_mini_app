@@ -1,41 +1,31 @@
 ---
-description: Security review for FT-012/FT-013/FT-014 closure readiness.
+description: Final quick security review for Memory Bank consistency after Android advisory wording fixes.
 status: active
 ---
 # TASK-MB-REVIEW S-04 Security Report
 
-## VERDICT
+## Verdict
 
-REJECT
+`APPROVE`
 
 ## Scope
 
-- Reviewed auth/payment/session/security evidence for `FT-013` checkout and downstream `FT-014` status visibility.
-- Checked for obvious client-side trusted-auth or sensitive-storage regressions in the reviewed surfaces.
+- Reviewed Memory Bank security-relevant closure wording for checkout/status after Android Telegram evidence became advisory.
+- Focused on documented auth boundary, customer event scoping, and whether missing Android evidence is still treated as blocking.
 
 ## Findings
 
-### P0 - Telegram-sensitive checkout security closure lacks required real-client evidence
+No findings.
 
-- Evidence: `.memory-bank/requirements.md:33-35` requires trusted payment/webhook replay protection and Telegram-specific verification for checkout-payment flows.
-- Evidence: `.memory-bank/runbooks/telegram-mini-app-verification.md:40-51` makes real `Android Telegram` operator notes the current blocking baseline.
-- Evidence: `.tasks/TASK-FT013-07/TASK-FT013-07-S-VERIFY-final-report-docs-01.md:30-35` explicitly fails closure because fresh Android Telegram evidence is missing.
-- Evidence: `.tasks/TASK-FT013-07/android-notes.md:3-24` leaves all required scenarios `PENDING`.
-- Security impact: repo-local tests are not enough to close Mini App auth/payment/session behavior under the project DoD; `FT-013` remains a security/evidence blocker.
+## Evidence
 
-### P1 - Status polling endpoint absence creates an unverified authorization boundary for customer order visibility
+- `.memory-bank/requirements.md:35`: real Android Telegram evidence is advisory pre-release risk, not a blocking repo-local closure gate.
+- `.memory-bank/requirements.md:95`: `REQ-033` is verified from mounted `/api/v1/events`, customer scoping, cursor compatibility and frontend polling gates.
+- `.memory-bank/bugs/BUG-2026-04-27-ft014-events-runtime-and-cursor-drift.md:11-17`: the Memory Bank records `TASK-FT014-07` as resolving customer events mount, customer scoping and cursor compatibility.
+- `.memory-bank/bugs/BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md:22-25`: missing formal Android checkout notes remain visible release risk and must not block repo-local closure.
 
-- Evidence: `frontend/src/slices/order-tracking/api/order-tracking-api.ts:175-186` polls a generic `/api/v1/events?since=<cursor>` endpoint.
-- Evidence: no corresponding route exists in `backend/src/dev-runtime/dev-api-server.ts`; therefore there is no checked-in mounted authorization/filtering behavior for customer-visible events.
-- Spec impact: `.memory-bank/features/FT-014-customer-order-status-visibility-and-delivery-tracking-integration.md:37-44` requires customer status to be tied to the created order identity and not expose another user's order or operational controls.
-- Security risk: when the endpoint is added, it must be order/customer scoped or otherwise prove that customer sessions cannot read unrelated order events. Current repo state has no mounted evidence for that boundary.
+## Assessment
 
-## Non-Blocking Observations
-
-- The reviewed frontend grep found `sessionStorage` usage for checkout composition handoff, not session tokens or raw `initData`; this matches `.memory-bank/contracts/customer-order-composition-contract.md:41-46` for non-sensitive draft persistence.
-- No direct `initDataUnsafe` trusted-auth usage was found in the reviewed frontend surfaces.
-
-## Recommendation
-
-- Do not close `FT-013` until Android Telegram evidence is recorded.
-- Treat the future `/api/v1/events` mount as security-sensitive: require customer/order scoping tests and negative checks for unrelated order visibility.
+- Prior unverified authorization-boundary concern for customer `/events` is documented as fixed by `TASK-FT014-07`.
+- No evidence was found that Android Telegram evidence is still required as a blocking security gate for `REQ-032` / `REQ-033`.
+- Advisory Android smoke should still be completed before release confidence is high, but this is a release-risk item rather than repo-local closure blocker.

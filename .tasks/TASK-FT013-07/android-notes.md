@@ -26,4 +26,5 @@
 ## Summary
 
 - Repo-local verification is complete.
-- Fresh operator-confirmed Android Telegram notes are still required for full `TASK-FT013-07`/`REQ-023` closure.
+- Fresh operator-confirmed Android Telegram notes are now advisory pre-release evidence rather than a blocking repo-local closure artifact.
+- User-confirmed manual smoke on 2026-04-27 reported the Android Telegram flow appears to work more or less, but no detailed formal evidence bundle is available.

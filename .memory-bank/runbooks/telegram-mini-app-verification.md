@@ -39,16 +39,16 @@ status: active
 
 ## Minimal real-client baseline
 
-- Обязательный blocking baseline для текущего MVP: `Android Telegram`.
-- `iOS Telegram` и `Telegram Desktop/macOS` сейчас считаются желательным hardening evidence, но не blocking quality gate для закрытия `FT-009`, если иное не запрошено явно.
+- Recommended advisory pre-release baseline для текущего MVP: `Android Telegram`.
+- `iOS Telegram` и `Telegram Desktop/macOS` сейчас считаются желательным hardening evidence, но не blocking quality gate для repo-local closure, если иное не запрошено явно.
 
 ## Evidence rules
 
-- Browser-only Playwright traces недостаточны для Telegram-sensitive acceptance.
-- Сохраняй operator notes в `.tasks/TASK-XXX/`; screenshots/videos/traces optional и не являются blocking artifact для текущего Android verify closure.
+- Browser-only Playwright traces недостаточны как единственный Telegram-sensitive acceptance layer; repo-local closure должна иметь mock/runtime contract coverage where applicable.
+- Сохраняй operator notes в `.tasks/TASK-XXX/`; screenshots/videos/traces optional и не являются blocking artifact для repo-local closure.
 - В Memory Bank фиксируй только summary + ссылки на evidence.
 - Для `FT-009` summary должен явно отделять shell/runtime evidence от уже закрытых `FT-002` auth/payment checks и `FT-003` localization checks.
-- Для текущего closure достаточно real Android Telegram run c operator-confirmed notes; дополнительные `iOS/Desktop` материалы и screenshots/videos можно добавлять как non-blocking appendix.
+- Для advisory pre-release smoke достаточно real Android Telegram run c operator-confirmed notes; дополнительные `iOS/Desktop` материалы и screenshots/videos можно добавлять как non-blocking appendix.
 
 ## Source artifacts
 

@@ -34,4 +34,4 @@
 ## Summary
 
 - Operator confirmed that the deployed Mini App works normally on Android Telegram.
-- For the current MVP verify baseline, these operator notes are the required blocking artifact; screenshots/videos remain optional.
+- Historical note: at the time of `TASK-FT009-06`, these operator notes were treated as the required blocking artifact. As of `2026-04-27`, fresh Android Telegram notes are advisory pre-release risk evidence for repo-local closure; screenshots/videos remain optional.

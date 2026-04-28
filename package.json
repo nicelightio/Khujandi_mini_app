@@ -24,7 +24,7 @@
     "test:reviews-feedback:integration": "jest --config jest.config.cjs tests/slices/reviews-feedback/reviews-feedback.integration.spec.ts",
     "test:admin-access": "jest --config jest.config.cjs tests/slices/admin-access",
     "test:admin-access:unit": "jest --config jest.config.cjs tests/slices/admin-access/admin-access.unit.spec.ts",
-    "test:admin-access:integration": "jest --config jest.config.cjs tests/slices/admin-access/admin-access.integration.spec.ts",
+    "test:admin-access:integration": "jest --config jest.config.cjs tests/slices/admin-access/admin-access.integration.spec.ts tests/slices/admin-access/admin-auth-http.integration.spec.ts",
     "test:order-cancellation": "jest --config jest.config.cjs tests/slices/order-cancellation",
     "test:order-cancellation:unit": "jest --config jest.config.cjs tests/slices/order-cancellation/order-cancellation.unit.spec.ts",
     "test:order-cancellation:integration": "jest --config jest.config.cjs tests/slices/order-cancellation/order-cancellation.integration.spec.ts",

@@ -23,6 +23,94 @@ export type CatalogRuntimePrismaFixtureState = {
   nextBindingId: number;
 };
 
+type RuntimeShopWhere = {
+  isDeleted?: boolean;
+  status?: "WORKING" | "NOT_WORKING";
+  sellerId?: string;
+  OR?: Array<{
+    primaryPublicPath?: string;
+    secondaryPublicPath?: string;
+  }>;
+};
+
+type RuntimeShopSelect = {
+  id?: boolean;
+  name?: boolean;
+  sellerId?: boolean;
+  status?: boolean;
+  primaryPublicPath?: boolean;
+  secondaryPublicPath?: boolean;
+  description?: boolean;
+  headerImageUrl?: boolean;
+  backgroundImageUrl?: boolean;
+  renameCount?: boolean;
+  requiresManualRenameReview?: boolean;
+  isDeleted?: boolean;
+  sellerBindings?: {
+    select: {
+      telegramId: boolean;
+    };
+  };
+};
+
+const createPrismaUniqueConstraintError = (message: string): Error => {
+  const error = new Error(message);
+  Object.assign(error, { code: "P2002" });
+  return error;
+};
+
+const findShopOrThrow = (
+  target: CatalogRuntimePrismaFixtureState,
+  shopId: string,
+): SellerCatalogShop => {
+  const shop = target.shops.find((candidate) => candidate.id === shopId);
+
+  if (shop === undefined) {
+    throw new Error("Unknown shop id");
+  }
+
+  return shop;
+};
+
+const matchesShopWhere = (shop: SellerCatalogShop, where: RuntimeShopWhere): boolean =>
+  (where.isDeleted === undefined || shop.isDeleted === where.isDeleted) &&
+  (where.status === undefined || shop.status === where.status) &&
+  (where.sellerId === undefined || shop.sellerId === where.sellerId) &&
+  (where.OR === undefined ||
+    where.OR.some(
+      (condition) =>
+        condition.primaryPublicPath === shop.primaryPublicPath ||
+        condition.secondaryPublicPath === shop.secondaryPublicPath,
+    ));
+
+const projectShop = (
+  target: CatalogRuntimePrismaFixtureState,
+  shop: SellerCatalogShop,
+  select?: RuntimeShopSelect,
+) => ({
+  ...(select?.id === true ? { id: shop.id } : {}),
+  ...(select?.name === true ? { name: shop.name } : {}),
+  ...(select?.sellerId === true ? { sellerId: shop.sellerId } : {}),
+  ...(select?.status === true ? { status: shop.status } : {}),
+  ...(select?.primaryPublicPath === true ? { primaryPublicPath: shop.primaryPublicPath } : {}),
+  ...(select?.secondaryPublicPath === true ? { secondaryPublicPath: shop.secondaryPublicPath } : {}),
+  ...(select?.description === true ? { description: shop.description } : {}),
+  ...(select?.headerImageUrl === true ? { headerImageUrl: shop.headerImageUrl } : {}),
+  ...(select?.backgroundImageUrl === true ? { backgroundImageUrl: shop.backgroundImageUrl } : {}),
+  ...(select?.renameCount === true ? { renameCount: shop.renameCount } : {}),
+  ...(select?.requiresManualRenameReview === true
+    ? { requiresManualRenameReview: shop.requiresManualRenameReview }
+    : {}),
+  ...(select?.isDeleted === true ? { isDeleted: shop.isDeleted } : {}),
+  ...(select?.sellerBindings !== undefined
+    ? {
+        sellerBindings: target.bindings
+          .filter((binding) => binding.shopId === shop.id)
+          .map((binding) => ({ telegramId: binding.telegramId })),
+      }
+    : {}),
+});
+
 const cloneCatalogFixtureState = (state: CatalogRuntimePrismaFixtureState): CatalogRuntimePrismaFixtureState => ({
   shops: state.shops.map((shop) => ({ ...shop })),
   menuPages: state.menuPages.map((page) => ({ ...page })),
@@ -83,97 +171,15 @@ export const createCatalogRuntimePrismaFixture = (
         where,
         select,
       }: {
-        where: {
-          isDeleted?: boolean;
-          status?: "WORKING" | "NOT_WORKING";
-          sellerId?: string;
-          OR?: Array<{
-            primaryPublicPath?: string;
-            secondaryPublicPath?: string;
-          }>;
-        };
-        select?: {
-          id?: boolean;
-          name?: boolean;
-          sellerId?: boolean;
-          status?: boolean;
-          primaryPublicPath?: boolean;
-          secondaryPublicPath?: boolean;
-          description?: boolean;
-          headerImageUrl?: boolean;
-          backgroundImageUrl?: boolean;
-          renameCount?: boolean;
-          requiresManualRenameReview?: boolean;
-          isDeleted?: boolean;
-          sellerBindings?: {
-            select: {
-              telegramId: boolean;
-            };
-          };
-        };
+        where: RuntimeShopWhere;
+        select?: RuntimeShopSelect;
       }) =>
         target.shops
-          .filter((shop) => where.isDeleted === undefined || shop.isDeleted === where.isDeleted)
-          .filter((shop) => where.status === undefined || shop.status === where.status)
-          .filter((shop) => where.sellerId === undefined || shop.sellerId === where.sellerId)
-          .filter(
-            (shop) =>
-              where.OR === undefined ||
-              where.OR.some(
-                (condition) =>
-                  condition.primaryPublicPath === shop.primaryPublicPath ||
-                  condition.secondaryPublicPath === shop.secondaryPublicPath,
-              ),
-          )
-          .map((shop) => {
-            return {
-              ...(select?.id === true ? { id: shop.id } : {}),
-              ...(select?.name === true ? { name: shop.name } : {}),
-              ...(select?.sellerId === true ? { sellerId: shop.sellerId } : {}),
-              ...(select?.status === true ? { status: shop.status } : {}),
-              ...(select?.primaryPublicPath === true ? { primaryPublicPath: shop.primaryPublicPath } : {}),
-              ...(select?.secondaryPublicPath === true ? { secondaryPublicPath: shop.secondaryPublicPath } : {}),
-              ...(select?.description === true ? { description: shop.description } : {}),
-              ...(select?.headerImageUrl === true ? { headerImageUrl: shop.headerImageUrl } : {}),
-              ...(select?.backgroundImageUrl === true ? { backgroundImageUrl: shop.backgroundImageUrl } : {}),
-              ...(select?.renameCount === true ? { renameCount: shop.renameCount } : {}),
-              ...(select?.requiresManualRenameReview === true
-                ? { requiresManualRenameReview: shop.requiresManualRenameReview }
-                : {}),
-              ...(select?.isDeleted === true ? { isDeleted: shop.isDeleted } : {}),
-              ...(select?.sellerBindings !== undefined
-                ? {
-                    sellerBindings: target.bindings
-                      .filter((binding) => binding.shopId === shop.id)
-                      .map((binding) => ({ telegramId: binding.telegramId })),
-                  }
-                : {}),
-            };
-          }),
+          .filter((shop) => matchesShopWhere(shop, where))
+          .map((shop) => projectShop(target, shop, select)),
       findFirst: async (args: {
-        where: {
-          isDeleted?: boolean;
-          status?: "WORKING" | "NOT_WORKING";
-          sellerId?: string;
-          OR?: Array<{
-            primaryPublicPath?: string;
-            secondaryPublicPath?: string;
-          }>;
-        };
-        select?: {
-          id?: boolean;
-          name?: boolean;
-          sellerId?: boolean;
-          status?: boolean;
-          primaryPublicPath?: boolean;
-          secondaryPublicPath?: boolean;
-          description?: boolean;
-          headerImageUrl?: boolean;
-          backgroundImageUrl?: boolean;
-          renameCount?: boolean;
-          requiresManualRenameReview?: boolean;
-          isDeleted?: boolean;
-        };
+        where: RuntimeShopWhere;
+        select?: RuntimeShopSelect;
       }) => {
         const records = await createClient(target).shop.findMany(args);
         return records[0] ?? null;
@@ -184,9 +190,7 @@ export const createCatalogRuntimePrismaFixture = (
       },
       create: async ({ data }: { data: { sellerId: string; name: string; primaryPublicPath: string; secondaryPublicPath: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status: "WORKING" | "NOT_WORKING" } }) => {
         if (target.shops.some((shop) => shop.sellerId === data.sellerId && shop.name === data.name)) {
-          const error = new Error("Unique constraint failed");
-          Object.assign(error, { code: "P2002" });
-          throw error;
+          throw createPrismaUniqueConstraintError("Unique constraint failed");
         }
 
         if (
@@ -198,9 +202,7 @@ export const createCatalogRuntimePrismaFixture = (
               shop.secondaryPublicPath === data.secondaryPublicPath,
           )
         ) {
-          const error = new Error("Unique constraint failed");
-          Object.assign(error, { code: "P2002" });
-          throw error;
+          throw createPrismaUniqueConstraintError("Unique constraint failed");
         }
 
         const shop: SellerCatalogShop = {
@@ -222,11 +224,7 @@ export const createCatalogRuntimePrismaFixture = (
         return { ...shop };
       },
       update: async ({ where, data }: { where: { id: string }; data: { name: string; description?: string | null; headerImageUrl?: string | null; backgroundImageUrl?: string | null; status?: "WORKING" | "NOT_WORKING"; renameCount: number; requiresManualRenameReview: boolean } }) => {
-        const shop = target.shops.find((candidate) => candidate.id === where.id);
-
-        if (shop === undefined) {
-          throw new Error("Unknown shop id");
-        }
+        const shop = findShopOrThrow(target, where.id);
 
         if (
           target.shops.some(
@@ -234,9 +232,7 @@ export const createCatalogRuntimePrismaFixture = (
               candidate.id !== where.id && candidate.sellerId === shop.sellerId && candidate.name === data.name,
           )
         ) {
-          const error = new Error("Unique constraint failed");
-          Object.assign(error, { code: "P2002" });
-          throw error;
+          throw createPrismaUniqueConstraintError("Unique constraint failed");
         }
 
         shop.name = data.name;
@@ -327,11 +323,7 @@ export const createCatalogRuntimePrismaFixture = (
         };
       },
       create: async ({ data }: { data: { shopId: string; name: string; position: number } }) => {
-        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
-
-        if (shop === undefined) {
-          throw new Error("Unknown shop id");
-        }
+        const shop = findShopOrThrow(target, data.shopId);
 
         const page: SellerCatalogMenuPage = {
           id: `menu-page-runtime-${target.nextMenuPageId++}`,
@@ -365,11 +357,7 @@ export const createCatalogRuntimePrismaFixture = (
           throw new Error("Unknown menu page id");
         }
 
-        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
-
-        if (shop === undefined) {
-          throw new Error("Unknown shop id");
-        }
+        const shop = findShopOrThrow(target, data.shopId);
 
         page.shopId = data.shopId;
         page.name = data.name;
@@ -462,11 +450,7 @@ export const createCatalogRuntimePrismaFixture = (
         };
       },
       create: async ({ data }: { data: { shopId: string; menuPageId?: string | null; name: string; description?: string | null; imageUrl?: string | null; priceMinor: number } }) => {
-        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
-
-        if (shop === undefined) {
-          throw new Error("Unknown shop id");
-        }
+        const shop = findShopOrThrow(target, data.shopId);
 
         const product: SellerCatalogProduct = {
           id: `product-runtime-${target.nextProductId++}`,
@@ -499,11 +483,7 @@ export const createCatalogRuntimePrismaFixture = (
           throw new Error("Unknown product id");
         }
 
-        const shop = target.shops.find((candidate) => candidate.id === data.shopId);
-
-        if (shop === undefined) {
-          throw new Error("Unknown shop id");
-        }
+        const shop = findShopOrThrow(target, data.shopId);
 
         product.shopId = data.shopId;
         product.menuPageId = data.menuPageId ?? null;
@@ -531,9 +511,7 @@ export const createCatalogRuntimePrismaFixture = (
           .map((binding) => ({ ...binding })),
       create: async ({ data }: { data: { shopId: string; sellerId: string; telegramId: string } }) => {
         if (target.bindings.some((binding) => binding.shopId === data.shopId)) {
-          const error = new Error("duplicate binding");
-          Object.assign(error, { code: "P2002" });
-          throw error;
+          throw createPrismaUniqueConstraintError("duplicate binding");
         }
 
         const binding: SellerShopBinding = {

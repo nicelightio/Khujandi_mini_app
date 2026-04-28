@@ -17,4 +17,4 @@ status: active
 
 ## Remaining follow-up
 
-- Fresh real Android Telegram notes are still required for the task's explicit keyboard-open verify target.
+- Fresh real Android Telegram notes are now advisory pre-release evidence for the task's explicit keyboard-open verify target.

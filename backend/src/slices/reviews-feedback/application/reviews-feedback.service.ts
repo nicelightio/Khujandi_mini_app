@@ -66,6 +66,9 @@ const toCommandResult = (
   createdAt: review.createdAt,
 });
 
+const isNegativeReview = (review: Pick<ReviewsFeedbackReviewRecord, "rating">): boolean =>
+  review.rating <= NEGATIVE_REVIEW_RATING_THRESHOLD;
+
 export class ReviewsFeedbackService {
   constructor(
     private readonly repository: ReviewsFeedbackRepository,
@@ -187,7 +190,13 @@ export class ReviewsFeedbackService {
     );
 
     if (existingReview !== null) {
-      return toCommandResult(existingReview, existingReview.id.toString());
+      const reviewCreatedEvent = await this.repository.findReviewCreatedEvent(existingReview);
+      const reviewNegativeEvent = isNegativeReview(existingReview)
+        ? await this.repository.findReviewNegativeEvent(existingReview)
+        : null;
+      const latestEvent = reviewNegativeEvent ?? reviewCreatedEvent;
+
+      return toCommandResult(existingReview, latestEvent === null ? "0" : latestEvent.id.toString());
     }
 
     const artifacts = await this.repository.persistReview({
@@ -205,7 +214,7 @@ export class ReviewsFeedbackService {
 
     const negativeReviewEvent = artifacts.events.find((event) => event.type === "review.negative");
 
-    if (negativeReviewEvent !== undefined) {
+    if (artifacts.createdReview && negativeReviewEvent !== undefined) {
       const activeAdmins = await this.repository.listActiveAdminUsers();
 
       try {
