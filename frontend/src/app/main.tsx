@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RootRouter } from "./root-router";
+import { StartupSplashGate } from "./startup-splash";
 import "../shared/styles/webview-shell.css";
 import "../admin/styles/admin-theme.css";
 import "../slices/catalog/styles/catalog-storefront.css";
@@ -13,6 +14,8 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <RootRouter />
+    <StartupSplashGate>
+      <RootRouter />
+    </StartupSplashGate>
   </StrictMode>,
 );

@@ -2,6 +2,158 @@
   color-scheme: light dark;
 }
 
+[data-startup-splash="root"] {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: auto;
+  visibility: visible;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(106, 162, 112, 0.22), transparent 30%),
+    linear-gradient(145deg, #07100b 0%, #102217 48%, #eadfbf 140%);
+  color: #f9f4df;
+  animation: startup-splash-shell 2.6s ease forwards;
+}
+
+[data-startup-splash="orb"] {
+  position: absolute;
+  width: min(72vw, 340px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(249, 244, 223, 0.14), rgba(106, 162, 112, 0.1) 44%, transparent 70%);
+  transform: scale(0.86);
+  animation: startup-splash-orb 2.2s ease-out forwards;
+}
+
+[data-startup-splash="mark"] {
+  position: relative;
+  width: min(42vw, 172px);
+  height: auto;
+  filter: drop-shadow(0 18px 38px rgba(0, 0, 0, 0.36));
+  transform: translateY(-10px);
+}
+
+.startup-splash-branch,
+.startup-splash-spark {
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.startup-splash-branch {
+  fill: rgba(151, 199, 124, 0.08);
+  stroke: #e7f6cf;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: startup-splash-draw 1.9s cubic-bezier(0.47, 0, 0.2, 1) forwards,
+    startup-splash-fill 1.3s ease forwards;
+}
+
+.startup-splash-branch-1 { animation-delay: 0.08s, 1.04s; }
+.startup-splash-branch-2 { animation-delay: 0.2s, 1.12s; }
+.startup-splash-branch-3 { animation-delay: 0.32s, 1.2s; }
+.startup-splash-branch-4 { animation-delay: 0.44s, 1.28s; }
+.startup-splash-branch-5 { animation-delay: 0.56s, 1.36s; }
+
+.startup-splash-spark {
+  fill: #f4d56a;
+  opacity: 0;
+  transform: scale(0.55);
+  animation: startup-splash-spark 1.25s ease-out forwards;
+}
+
+.startup-splash-spark-1 { animation-delay: 0.96s; }
+.startup-splash-spark-2 { animation-delay: 1.08s; }
+.startup-splash-spark-3 { animation-delay: 1.2s; }
+
+[data-startup-splash="brand"] {
+  position: absolute;
+  top: calc(50% + min(28vw, 118px));
+  font: 700 18px/1.1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: startup-splash-brand 1.35s ease-out 0.74s forwards;
+}
+
+@keyframes startup-splash-shell {
+  0% { opacity: 1; }
+  78% { opacity: 1; }
+  99% {
+    opacity: 0;
+    pointer-events: auto;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+  }
+}
+
+@keyframes startup-splash-orb {
+  0% {
+    opacity: 0;
+    transform: scale(0.76);
+  }
+  45% { opacity: 1; }
+  100% {
+    opacity: 0.78;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes startup-splash-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes startup-splash-fill {
+  to { fill: rgba(151, 199, 124, 0.52); }
+}
+
+@keyframes startup-splash-spark {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.8;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes startup-splash-brand {
+  to {
+    opacity: 0.78;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-startup-splash="root"] {
+    animation-duration: 0.8s;
+  }
+
+  [data-startup-splash="orb"],
+  [data-startup-splash="brand"],
+  .startup-splash-branch,
+  .startup-splash-spark {
+    animation-duration: 0.01ms;
+    animation-delay: 0s;
+  }
+}
+
 [data-app-shell="root"] {
   min-height: var(--tg-viewport-stable-height, 100vh);
   background: Canvas;
