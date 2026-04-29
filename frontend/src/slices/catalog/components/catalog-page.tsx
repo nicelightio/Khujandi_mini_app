@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguageContext } from "../../../app/language-context";
+import { adminRoutes } from "../../../admin/lib/routes";
 import { isDebugEnabled } from "../../../shared/config/debug";
 import { getCopy } from "../../../shared/i18n/copy";
 import { useMagneticElements } from "../../../shared/ui/use-magnetic-elements";
@@ -34,6 +35,10 @@ import type {
 
 const defaultShopHeaderImage = "/media/shop-example.png?v=storefront-defaults-20260422";
 const defaultStorefrontBackgroundImage = "/media/background_green.png?v=storefront-defaults-20260422";
+const appBaseUrl = "https://tgmeal.natureonzoom.win";
+
+const buildAppUrl = (path: string): string => `${appBaseUrl}${path}`;
+const adminHomeUrl = buildAppUrl(adminRoutes.home);
 
 type CatalogPageProps = {
   viewModel: CatalogViewModel;
@@ -334,6 +339,22 @@ export const CatalogPage = ({
         {storefront !== undefined && storefront.errorMessage !== null ? <p role="alert">{storefront.errorMessage}</p> : null}
       </section>
 
+      {storefront === undefined ? (
+        <section data-catalog-admin-links aria-label="Admin interfaces">
+          <div>
+            <p data-catalog-admin-links="eyebrow">Admin interfaces</p>
+            <h2>Админка приложения</h2>
+            <p>Все операционные панели собраны на основной странице админки.</p>
+          </div>
+          <div data-catalog-admin-links="grid">
+            <a href={adminHomeUrl} data-catalog-admin-links="card">
+              <strong>Открыть админку</strong>
+              <span>{adminHomeUrl}</span>
+            </a>
+          </div>
+        </section>
+      ) : null}
+
       {storefront !== undefined && !viewModel.isLoading && viewModel.errorMessage === null ? (
         <section data-catalog-storefront="viewport">
           <article
@@ -349,6 +370,16 @@ export const CatalogPage = ({
               activateEditor({ type: "shop" });
             }}
           >
+            <a
+              href={routes.catalog}
+              data-storefront-back-link
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              Вернуться
+            </a>
+
             <StorefrontHero
               storefront={storefront}
               heroImageUrl={heroImageUrl}

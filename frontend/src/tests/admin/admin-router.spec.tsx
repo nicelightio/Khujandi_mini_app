@@ -9,6 +9,7 @@ import {
 import type { AdminAuthApi } from "../../admin/api/admin-auth-api";
 import { AdminAssignmentRoute } from "../../admin/routes/admin-assignment-route";
 import { AdminCatalogProvisioningRoute } from "../../admin/routes/admin-catalog-provisioning-route";
+import { AdminDashboardPage } from "../../admin/components/admin-dashboard-page";
 import { AdminLoginPage } from "../../admin/components/admin-login-page";
 import { AdminOrderCancellationRoute } from "../../admin/routes/admin-order-cancellation-route";
 
@@ -83,6 +84,10 @@ describe("admin router", () => {
     expect(resolveAdminRoute(adminRoutePaths.login)?.element.type).toBe(AdminLoginPage);
   });
 
+  it("resolves the main admin dashboard route", () => {
+    expect(resolveAdminRoute(adminRoutePaths.home)?.element.type).toBe(AdminDashboardPage);
+  });
+
   it("resolves the assignment route for the admin path", () => {
     expect(resolveAdminRoute(adminRoutePaths.assignment)?.element.type).toBe(AdminAssignmentRoute);
   });
@@ -113,7 +118,7 @@ describe("admin router", () => {
     expect(root.props["data-admin-contour"]).toBe("admin-web");
     expect(text).toContain("Admin login");
     expect(text).toContain("Protected routes redirect here until a valid admin-access session exists.");
-    expect(text).toContain(`Requested path: ${adminRoutePaths.assignment}`);
+    expect(text).toContain(`Requested path: ${adminRoutePaths.home}`);
     expect(renderer.root.findByProps({ name: "login" }).props.autoComplete).toBe("username");
     expect(renderer.root.findByType("button").props.disabled).toBe(true);
   });
@@ -133,6 +138,35 @@ describe("admin router", () => {
     expect(text).toContain("Admin page not found");
     expect(text).not.toContain("Admin login");
     expect(text).not.toContain("Order assignment");
+  });
+
+  it("renders the protected admin dashboard with links when authenticated", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <AdminRouter
+          pathname={adminRoutePaths.home}
+          session={createAuthenticatedAdminSessionState()}
+        />,
+      );
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    const hrefs = renderer.root.findAllByType("a").map((link) => link.props.href);
+
+    expect(text).toContain("Admin dashboard");
+    expect(text).toContain("Все доступные интерфейсы");
+    expect(hrefs).toEqual(
+      expect.arrayContaining([
+        adminRoutePaths.assignment,
+        adminRoutePaths.cancellation,
+        adminRoutePaths.catalogProvisioning,
+        "/tracking",
+        "/seller/shops/status",
+      ]),
+    );
   });
 
   it("renders login fallback when a protected route is requested without a session", async () => {
@@ -402,6 +436,6 @@ describe("admin router", () => {
     expect(authApi.logout).toHaveBeenCalledTimes(1);
     expect(text).toContain("Admin login");
     expect(text).toContain("You signed out of the admin session.");
-    expect(text).toContain(`Requested path: ${adminRoutePaths.assignment}`);
+    expect(text).toContain(`Requested path: ${adminRoutePaths.home}`);
   });
 });

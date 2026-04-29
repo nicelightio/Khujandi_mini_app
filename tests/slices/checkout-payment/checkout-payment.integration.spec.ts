@@ -35,6 +35,37 @@ const createTelegramInitData = (authDate: number, hashOverride?: string): string
 };
 
 type CheckoutPaymentPrismaClient = Omit<CheckoutPaymentPrismaProvider["client"], "$transaction">;
+type CheckoutPaymentPrismaClientOverrides = {
+  order?: Partial<CheckoutPaymentPrismaClient["order"]>;
+  user?: Partial<CheckoutPaymentPrismaClient["user"]>;
+  telegramAuthReplay?: Partial<CheckoutPaymentPrismaClient["telegramAuthReplay"]>;
+  miniAppSession?: Partial<CheckoutPaymentPrismaClient["miniAppSession"]>;
+};
+type CheckoutPaymentModuleOptions = NonNullable<Parameters<typeof createCheckoutPaymentModule>[1]>;
+
+const createPrismaClient = (
+  overrides: CheckoutPaymentPrismaClientOverrides = {},
+): CheckoutPaymentPrismaClient => ({
+  order: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    ...overrides.order,
+  },
+  user: {
+    upsert: jest.fn(),
+    update: jest.fn(),
+    ...overrides.user,
+  },
+  telegramAuthReplay: {
+    findUnique: jest.fn().mockResolvedValue(null),
+    create: jest.fn(),
+    ...overrides.telegramAuthReplay,
+  },
+  miniAppSession: {
+    create: jest.fn(),
+    ...overrides.miniAppSession,
+  },
+} as CheckoutPaymentPrismaClient);
 
 const createPrismaProvider = (
   client: CheckoutPaymentPrismaClient,
@@ -44,6 +75,16 @@ const createPrismaProvider = (
     $transaction: async (callback) => callback(client),
   },
 });
+
+const createTestModule = (
+  clientOverrides: CheckoutPaymentPrismaClientOverrides = {},
+  options: Partial<CheckoutPaymentModuleOptions> = {},
+) =>
+  createCheckoutPaymentModule(createPrismaProvider(createPrismaClient(clientOverrides)), {
+    botToken: TEST_BOT_TOKEN,
+    now: () => NOW,
+    ...options,
+  });
 
 describe("checkout-payment module integration", () => {
   it("wires controller, service and repository around the order persistence boundary", async () => {
@@ -87,29 +128,12 @@ describe("checkout-payment module integration", () => {
       refundNote: null,
       isDeleted: false,
     });
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: orderFindUnique,
-            create: orderCreate,
-          },
-          user: {
-            upsert: jest.fn(),
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn(),
-          },
-          miniAppSession: {
-            create: jest.fn(),
-          },
-      }),
-      {
-        botToken: TEST_BOT_TOKEN,
-        now: () => NOW,
+    const module = createTestModule({
+      order: {
+        findUnique: orderFindUnique,
+        create: orderCreate,
       },
-    );
+    });
 
     await expect(module.controller.getOrderByPaymentProviderTxId("tx-1")).resolves.toEqual({
       id: "order-1",
@@ -187,28 +211,20 @@ describe("checkout-payment module integration", () => {
       initDataHash: "replay-hash",
       expiresAt: new Date("2026-04-02T12:10:00.000Z"),
     });
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: jest.fn(),
-            create: jest.fn(),
-          },
-          user: {
-            upsert: userUpsert,
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: replayCreate,
-          },
-          miniAppSession: {
-            create: sessionCreate,
-          },
-      }),
+    const module = createTestModule(
       {
-        botToken: TEST_BOT_TOKEN,
+        user: {
+          upsert: userUpsert,
+        },
+        telegramAuthReplay: {
+          create: replayCreate,
+        },
+        miniAppSession: {
+          create: sessionCreate,
+        },
+      },
+      {
         allowedOrigins: ["https://miniapp.example"],
-        now: () => NOW,
         sessionTokenFactory: () => "session-token",
       },
     );
@@ -285,39 +301,31 @@ describe("checkout-payment module integration", () => {
       expiresAt: new Date("2026-04-05T12:00:00.000Z"),
       revokedAt: null,
     });
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: jest.fn(),
-            create: jest.fn(),
-          },
-          user: {
-            upsert: jest.fn().mockResolvedValue({
-              id: "user-1",
-              telegramId: "42",
-              role: "client",
-              name: "Khujand Client",
-              username: "khujandi_client",
-              language: "ru",
-              isActive: true,
-            }),
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockResolvedValue({
-              initDataHash: "replay-hash",
-              expiresAt: new Date("2026-04-02T12:10:00.000Z"),
-            }),
-          },
-          miniAppSession: {
-            create: sessionCreate,
-          },
-      }),
+    const module = createTestModule(
       {
-        botToken: TEST_BOT_TOKEN,
+        user: {
+          upsert: jest.fn().mockResolvedValue({
+            id: "user-1",
+            telegramId: "42",
+            role: "client",
+            name: "Khujand Client",
+            username: "khujandi_client",
+            language: "ru",
+            isActive: true,
+          }),
+        },
+        telegramAuthReplay: {
+          create: jest.fn().mockResolvedValue({
+            initDataHash: "replay-hash",
+            expiresAt: new Date("2026-04-02T12:10:00.000Z"),
+          }),
+        },
+        miniAppSession: {
+          create: sessionCreate,
+        },
+      },
+      {
         allowedOrigins: ["https://miniapp.example"],
-        now: () => NOW,
         sessionTokenFactory: () => "shared-cookie-value",
       },
     );
@@ -336,28 +344,10 @@ describe("checkout-payment module integration", () => {
   });
 
   it("rejects invalid initData signature", async () => {
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: jest.fn(),
-            create: jest.fn(),
-          },
-          user: {
-            upsert: jest.fn(),
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn(),
-          },
-          miniAppSession: {
-            create: jest.fn(),
-          },
-      }),
+    const module = createTestModule(
+      {},
       {
-        botToken: TEST_BOT_TOKEN,
         allowedOrigins: ["https://miniapp.example"],
-        now: () => NOW,
       },
     );
 
@@ -376,28 +366,10 @@ describe("checkout-payment module integration", () => {
   });
 
   it("rejects expired initData", async () => {
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: jest.fn(),
-            create: jest.fn(),
-          },
-          user: {
-            upsert: jest.fn(),
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn(),
-          },
-          miniAppSession: {
-            create: jest.fn(),
-          },
-      }),
+    const module = createTestModule(
+      {},
       {
-        botToken: TEST_BOT_TOKEN,
         allowedOrigins: ["https://miniapp.example"],
-        now: () => NOW,
       },
     );
 
@@ -414,28 +386,15 @@ describe("checkout-payment module integration", () => {
 
   it("rejects replayed initData when the replay guard insert loses the race", async () => {
     const replayCreate = jest.fn().mockRejectedValue({ code: "P2002" });
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: jest.fn(),
-            create: jest.fn(),
-          },
-          user: {
-            upsert: jest.fn(),
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn(),
-            create: replayCreate,
-          },
-          miniAppSession: {
-            create: jest.fn(),
-          },
-      }),
+    const module = createTestModule(
       {
-        botToken: TEST_BOT_TOKEN,
+        telegramAuthReplay: {
+          findUnique: jest.fn(),
+          create: replayCreate,
+        },
+      },
+      {
         allowedOrigins: ["https://miniapp.example"],
-        now: () => NOW,
       },
     );
 
@@ -470,34 +429,24 @@ describe("checkout-payment module integration", () => {
       language: "en",
       isActive: true,
     });
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: jest.fn(),
-            create: jest.fn(),
-          },
-          user: {
-            upsert: userUpsert,
-            update: userUpdate,
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn(),
-          },
-          miniAppSession: {
-            create: jest.fn().mockResolvedValue({
-              id: "session-1",
-              userId: "user-1",
-              sessionTokenHash: "hashed-token",
-              expiresAt: new Date("2026-04-05T12:00:00.000Z"),
-              revokedAt: null,
-            }),
-          },
-      }),
+    const module = createTestModule(
       {
-        botToken: TEST_BOT_TOKEN,
+        user: {
+          upsert: userUpsert,
+          update: userUpdate,
+        },
+        miniAppSession: {
+          create: jest.fn().mockResolvedValue({
+            id: "session-1",
+            userId: "user-1",
+            sessionTokenHash: "hashed-token",
+            expiresAt: new Date("2026-04-05T12:00:00.000Z"),
+            revokedAt: null,
+          }),
+        },
+      },
+      {
         allowedOrigins: ["https://miniapp.example"],
-        now: () => NOW,
         sessionTokenFactory: () => "session-token",
       },
     );
@@ -557,29 +506,16 @@ describe("checkout-payment module integration", () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(persistedOrder);
     const orderCreate = jest.fn().mockResolvedValue(persistedOrder);
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: orderFindUnique,
-            create: orderCreate,
-          },
-          user: {
-            upsert: jest.fn(),
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn(),
-          },
-          miniAppSession: {
-            create: jest.fn(),
-          },
-      }),
+    const module = createTestModule(
       {
-        botToken: TEST_BOT_TOKEN,
+        order: {
+          findUnique: orderFindUnique,
+          create: orderCreate,
+        },
+      },
+      {
         paymentProviderName: "local-provider",
         paymentSecretToken: "provider-secret",
-        now: () => NOW,
       },
     );
     const input = {
@@ -641,29 +577,16 @@ describe("checkout-payment module integration", () => {
   it("rejects untrusted checkout payment confirmation before touching order persistence", async () => {
     const orderFindUnique = jest.fn();
     const orderCreate = jest.fn();
-    const module = createCheckoutPaymentModule(
-      createPrismaProvider({
-          order: {
-            findUnique: orderFindUnique,
-            create: orderCreate,
-          },
-          user: {
-            upsert: jest.fn(),
-            update: jest.fn(),
-          },
-          telegramAuthReplay: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            create: jest.fn(),
-          },
-          miniAppSession: {
-            create: jest.fn(),
-          },
-      }),
+    const module = createTestModule(
       {
-        botToken: TEST_BOT_TOKEN,
+        order: {
+          findUnique: orderFindUnique,
+          create: orderCreate,
+        },
+      },
+      {
         paymentProviderName: "local-provider",
         paymentSecretToken: "provider-secret",
-        now: () => NOW,
       },
     );
 
@@ -723,29 +646,16 @@ describe("checkout-payment module integration", () => {
     async (status, message, failureCategory) => {
       const orderFindUnique = jest.fn();
       const orderCreate = jest.fn();
-      const module = createCheckoutPaymentModule(
-        createPrismaProvider({
-            order: {
-              findUnique: orderFindUnique,
-              create: orderCreate,
-            },
-            user: {
-              upsert: jest.fn(),
-              update: jest.fn(),
-            },
-            telegramAuthReplay: {
-              findUnique: jest.fn().mockResolvedValue(null),
-              create: jest.fn(),
-            },
-            miniAppSession: {
-              create: jest.fn(),
-            },
-        }),
+      const module = createTestModule(
         {
-          botToken: TEST_BOT_TOKEN,
+          order: {
+            findUnique: orderFindUnique,
+            create: orderCreate,
+          },
+        },
+        {
           paymentProviderName: "local-provider",
           paymentSecretToken: "provider-secret",
-          now: () => NOW,
         },
       );
 

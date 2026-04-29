@@ -4,6 +4,7 @@ import type {
   CheckoutPaymentRepository,
   CheckoutPaymentCatalogCompositionReader,
   CheckoutPaymentCompositionDraft,
+  CheckoutPaymentOrderRecord,
   CheckoutPaymentUserRecord,
   CreateCheckoutPaymentOrderInput,
   IssueCheckoutPaymentMiniAppSessionResult,
@@ -96,8 +97,16 @@ const createComposition = (overrides: Partial<CheckoutPaymentCompositionDraft> =
   ...overrides,
 });
 
+type FinalizeInputOverrides = Omit<
+  Partial<FinalizeCheckoutPaymentInput>,
+  "order" | "payment"
+> & {
+  order?: Partial<FinalizeCheckoutPaymentInput["order"]>;
+  payment?: Partial<FinalizeCheckoutPaymentInput["payment"]>;
+};
+
 const createFinalizeInput = (
-  overrides: Partial<FinalizeCheckoutPaymentInput> = {},
+  overrides: FinalizeInputOverrides = {},
 ): FinalizeCheckoutPaymentInput => ({
   order: {
     shopId: "shop-1",
@@ -123,6 +132,37 @@ const createFinalizeInput = (
     verificationToken: "provider-secret",
     ...overrides.payment,
   },
+});
+
+const createPaidOrderInput = (
+  overrides: Partial<CreateCheckoutPaymentOrderInput> = {},
+): CreateCheckoutPaymentOrderInput => ({
+  shopId: "shop-1",
+  shopNameSnapshot: "Bakery",
+  sellerId: "seller-1",
+  clientId: "client-1",
+  courierId: null,
+  status: "CREATED",
+  itemsTotalMinor: 1500,
+  deliveryFeeMinor: 500,
+  totalAmountMinor: 2000,
+  paymentProvider: "local-provider",
+  paymentProviderTxId: "tx-1",
+  telegramPaymentChargeId: "telegram-charge-1",
+  providerPaymentChargeId: "provider-charge-1",
+  paymentStatus: "PAID",
+  refundStatus: "NOT_REQUIRED",
+  refundNote: null,
+  isDeleted: false,
+  ...overrides,
+});
+
+const createPaidOrderRecord = (
+  overrides: Partial<CheckoutPaymentOrderRecord> = {},
+): CheckoutPaymentOrderRecord => ({
+  id: "order-1",
+  ...createPaidOrderInput(),
+  ...overrides,
 });
 
 type CatalogSnapshot = NonNullable<Awaited<ReturnType<CheckoutPaymentCatalogCompositionReader["getCheckoutCompositionSnapshot"]>>>;
@@ -164,26 +204,7 @@ describe("checkout-payment service", () => {
   });
 
   it("delegates paid order creation to the owning repository", async () => {
-    const createPaidOrder = jest.fn().mockResolvedValue({
-      id: "order-1",
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    });
+    const createPaidOrder = jest.fn().mockResolvedValue(createPaidOrderRecord());
     const service = new CheckoutPaymentService(
       {
         ...createRepository(),
@@ -194,25 +215,7 @@ describe("checkout-payment service", () => {
         now: () => NOW,
       },
     );
-    const input: CreateCheckoutPaymentOrderInput = {
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    };
+    const input = createPaidOrderInput();
 
     await expect(service.createPaidOrder(input)).resolves.toEqual({
       id: "order-1",
@@ -222,26 +225,7 @@ describe("checkout-payment service", () => {
   });
 
   it("creates an order only after trusted paid confirmation", async () => {
-    const createPaidOrderIdempotently = jest.fn().mockResolvedValue({
-      id: "order-1",
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    });
+    const createPaidOrderIdempotently = jest.fn().mockResolvedValue(createPaidOrderRecord());
     const service = new CheckoutPaymentService(
       {
         ...createRepository(),
@@ -254,90 +238,14 @@ describe("checkout-payment service", () => {
         now: () => NOW,
       },
     );
-    const input: FinalizeCheckoutPaymentInput = {
-      order: {
-        shopId: "shop-1",
-        shopNameSnapshot: "Bakery",
-        sellerId: "seller-1",
-        clientId: "client-1",
-        courierId: null,
-        itemsTotalMinor: 1500,
-        deliveryFeeMinor: 500,
-        totalAmountMinor: 2000,
-      },
-      payment: {
-        provider: "local-provider",
-        paymentProviderTxId: "tx-1",
-        telegramPaymentChargeId: "telegram-charge-1",
-        providerPaymentChargeId: "provider-charge-1",
-        status: "PAID",
-        source: "provider_callback",
-        verificationToken: "provider-secret",
-      },
-    };
+    const input = createFinalizeInput({ composition: undefined });
 
-    await expect(service.checkoutOrder(input)).resolves.toEqual({
-      id: "order-1",
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    });
-    expect(createPaidOrderIdempotently).toHaveBeenCalledWith({
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    });
+    await expect(service.checkoutOrder(input)).resolves.toEqual(createPaidOrderRecord());
+    expect(createPaidOrderIdempotently).toHaveBeenCalledWith(createPaidOrderInput());
   });
 
   it("revalidates composition against catalog state before order creation", async () => {
-    const createPaidOrderIdempotently = jest.fn().mockResolvedValue({
-      id: "order-1",
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    });
+    const createPaidOrderIdempotently = jest.fn().mockResolvedValue(createPaidOrderRecord());
     const catalogReader = createCatalogReader();
     const service = new CheckoutPaymentService(
       {
@@ -424,26 +332,7 @@ describe("checkout-payment service", () => {
   );
 
   it("returns the existing order for duplicate trusted payment confirmation", async () => {
-    const findOrderByPaymentProviderTxId = jest.fn().mockResolvedValue({
-      id: "order-1",
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    });
+    const findOrderByPaymentProviderTxId = jest.fn().mockResolvedValue(createPaidOrderRecord());
     const createPaidOrderIdempotently = jest.fn();
     const service = new CheckoutPaymentService(
       {
@@ -460,27 +349,9 @@ describe("checkout-payment service", () => {
     );
 
     await expect(
-      service.checkoutOrder({
-        order: {
-          shopId: "shop-1",
-          shopNameSnapshot: "Bakery",
-          sellerId: "seller-1",
-          clientId: "client-1",
-          courierId: null,
-          itemsTotalMinor: 1500,
-          deliveryFeeMinor: 500,
-          totalAmountMinor: 2000,
-        },
-        payment: {
-          provider: "local-provider",
-          paymentProviderTxId: "tx-1",
-          telegramPaymentChargeId: "telegram-charge-1",
-          providerPaymentChargeId: "provider-charge-1",
-          status: "PAID",
-          source: "provider_status",
-          verificationToken: "provider-secret",
-        },
-      }),
+      service.checkoutOrder(
+        createFinalizeInput({ composition: undefined, payment: { source: "provider_status" } }),
+      ),
     ).resolves.toMatchObject({
       id: "order-1",
       paymentProviderTxId: "tx-1",
@@ -490,26 +361,7 @@ describe("checkout-payment service", () => {
   });
 
   it("returns an existing paid order for duplicate confirmation without revalidating stale composition", async () => {
-    const findOrderByPaymentProviderTxId = jest.fn().mockResolvedValue({
-      id: "order-1",
-      shopId: "shop-1",
-      shopNameSnapshot: "Bakery",
-      sellerId: "seller-1",
-      clientId: "client-1",
-      courierId: null,
-      status: "CREATED",
-      itemsTotalMinor: 1500,
-      deliveryFeeMinor: 500,
-      totalAmountMinor: 2000,
-      paymentProvider: "local-provider",
-      paymentProviderTxId: "tx-1",
-      telegramPaymentChargeId: "telegram-charge-1",
-      providerPaymentChargeId: "provider-charge-1",
-      paymentStatus: "PAID",
-      refundStatus: "NOT_REQUIRED",
-      refundNote: null,
-      isDeleted: false,
-    });
+    const findOrderByPaymentProviderTxId = jest.fn().mockResolvedValue(createPaidOrderRecord());
     const createPaidOrderIdempotently = jest.fn();
     const catalogReader = createCatalogReader({ shop: { status: "NOT_WORKING" } });
     const service = new CheckoutPaymentService(
@@ -551,27 +403,9 @@ describe("checkout-payment service", () => {
     );
 
     await expect(
-      service.checkoutOrder({
-        order: {
-          shopId: "shop-1",
-          shopNameSnapshot: "Bakery",
-          sellerId: "seller-1",
-          clientId: "client-1",
-          courierId: null,
-          itemsTotalMinor: 1500,
-          deliveryFeeMinor: 500,
-          totalAmountMinor: 2000,
-        },
-        payment: {
-          provider: "local-provider",
-          paymentProviderTxId: "tx-1",
-          telegramPaymentChargeId: "telegram-charge-1",
-          providerPaymentChargeId: "provider-charge-1",
-          status: "PAID",
-          source: "client_signal",
-          verificationToken: "provider-secret",
-        },
-      }),
+      service.checkoutOrder(
+        createFinalizeInput({ composition: undefined, payment: { source: "client_signal" } }),
+      ),
     ).rejects.toEqual(
       new AppError("FORBIDDEN", "Client payment signals are not trusted", 403),
     );
@@ -594,27 +428,9 @@ describe("checkout-payment service", () => {
     );
 
     await expect(
-      service.checkoutOrder({
-        order: {
-          shopId: "shop-1",
-          shopNameSnapshot: "Bakery",
-          sellerId: "seller-1",
-          clientId: "client-1",
-          courierId: null,
-          itemsTotalMinor: 1500,
-          deliveryFeeMinor: 500,
-          totalAmountMinor: 2000,
-        },
-        payment: {
-          provider: "local-provider",
-          paymentProviderTxId: "tx-1",
-          telegramPaymentChargeId: "telegram-charge-1",
-          providerPaymentChargeId: "provider-charge-1",
-          status: "PENDING",
-          source: "provider_callback",
-          verificationToken: "provider-secret",
-        },
-      }),
+      service.checkoutOrder(
+        createFinalizeInput({ composition: undefined, payment: { status: "PENDING" } }),
+      ),
     ).rejects.toEqual(
       new AppError("CONFLICT", "Payment confirmation timed out", 409, {
         paymentStatus: "PENDING",
@@ -643,27 +459,9 @@ describe("checkout-payment service", () => {
     );
 
     await expect(
-      service.checkoutOrder({
-        order: {
-          shopId: "shop-1",
-          shopNameSnapshot: "Bakery",
-          sellerId: "seller-1",
-          clientId: "client-1",
-          courierId: null,
-          itemsTotalMinor: 1500,
-          deliveryFeeMinor: 500,
-          totalAmountMinor: 2000,
-        },
-        payment: {
-          provider: "local-provider",
-          paymentProviderTxId: "tx-1",
-          telegramPaymentChargeId: "telegram-charge-1",
-          providerPaymentChargeId: "provider-charge-1",
-          status: "FAILED",
-          source: "provider_callback",
-          verificationToken: "provider-secret",
-        },
-      }),
+      service.checkoutOrder(
+        createFinalizeInput({ composition: undefined, payment: { status: "FAILED" } }),
+      ),
     ).rejects.toEqual(
       new AppError("CONFLICT", "Payment failed", 409, {
         paymentStatus: "FAILED",
@@ -692,27 +490,18 @@ describe("checkout-payment service", () => {
     );
 
     await expect(
-      service.checkoutOrder({
-        order: {
-          shopId: "shop-1",
-          shopNameSnapshot: "Bakery",
-          sellerId: "seller-1",
-          clientId: "client-1",
-          courierId: null,
-          itemsTotalMinor: 1500,
-          deliveryFeeMinor: 500,
-          totalAmountMinor: 2000,
-        },
-        payment: {
-          provider: "local-provider",
-          paymentProviderTxId: "tx-ambiguous",
-          telegramPaymentChargeId: null,
-          providerPaymentChargeId: null,
-          status: "AMBIGUOUS",
-          source: "provider_status",
-          verificationToken: "provider-secret",
-        },
-      }),
+      service.checkoutOrder(
+        createFinalizeInput({
+          composition: undefined,
+          payment: {
+            paymentProviderTxId: "tx-ambiguous",
+            telegramPaymentChargeId: null,
+            providerPaymentChargeId: null,
+            status: "AMBIGUOUS",
+            source: "provider_status",
+          },
+        }),
+      ),
     ).rejects.toEqual(
       new AppError("CONFLICT", "Payment confirmation is ambiguous", 409, {
         paymentStatus: "AMBIGUOUS",
@@ -734,27 +523,12 @@ describe("checkout-payment service", () => {
     });
 
     const error = await service
-      .checkoutOrder({
-        order: {
-          shopId: "shop-1",
-          shopNameSnapshot: "Bakery",
-          sellerId: "seller-1",
-          clientId: "client-1",
-          courierId: null,
-          itemsTotalMinor: 1500,
-          deliveryFeeMinor: 500,
-          totalAmountMinor: 2000,
-        },
-        payment: {
-          provider: "local-provider",
-          paymentProviderTxId: "tx-1",
-          telegramPaymentChargeId: "telegram-charge-1",
-          providerPaymentChargeId: "provider-charge-1",
-          status: "CANCELED",
-          source: "provider_status",
-          verificationToken: "provider-secret",
-        },
-      })
+      .checkoutOrder(
+        createFinalizeInput({
+          composition: undefined,
+          payment: { status: "CANCELED", source: "provider_status" },
+        }),
+      )
       .catch((caught: AppError) => caught);
 
     expect(error).toEqual(

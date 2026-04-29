@@ -55,17 +55,31 @@ const createRepository = (): CatalogRepository => ({
 });
 
 describe("catalog service", () => {
-  it("keeps public browse behavior behind the owning repository boundary", async () => {
-    const service = new CatalogService(createRepository());
+  describe("repository-backed reads", () => {
+    it("keeps public browse behavior behind the owning repository boundary", async () => {
+      const service = new CatalogService(createRepository());
 
-    await expect(service.listPublicShops()).resolves.toEqual([]);
-    await expect(service.listPublicProductsByShop("shop-1")).resolves.toEqual([]);
-  });
+      await expect(service.listPublicShops()).resolves.toEqual([]);
+      await expect(service.listPublicProductsByShop("shop-1")).resolves.toEqual([]);
+    });
 
-  it("keeps the admin provisioning read model behind the owning repository boundary", async () => {
-    const service = new CatalogService({
-      ...createRepository(),
-      listAdminProvisionedShops: async () => [
+    it("keeps the admin provisioning read model behind the owning repository boundary", async () => {
+      const service = new CatalogService({
+        ...createRepository(),
+        listAdminProvisionedShops: async () => [
+          {
+            shopId: "shop-1",
+            shopName: "Hidden From Public",
+            status: "NOT_WORKING",
+            sellerId: "seller-1",
+            telegramId: "telegram-1",
+            primaryPublicPath: "seller-11",
+            secondaryPublicPath: "hidden-from-public",
+          },
+        ],
+      });
+
+      await expect(service.listAdminProvisionedShops()).resolves.toEqual([
         {
           shopId: "shop-1",
           shopName: "Hidden From Public",
@@ -75,23 +89,12 @@ describe("catalog service", () => {
           primaryPublicPath: "seller-11",
           secondaryPublicPath: "hidden-from-public",
         },
-      ],
+      ]);
     });
-
-    await expect(service.listAdminProvisionedShops()).resolves.toEqual([
-      {
-        shopId: "shop-1",
-        shopName: "Hidden From Public",
-        status: "NOT_WORKING",
-        sellerId: "seller-1",
-        telegramId: "telegram-1",
-        primaryPublicPath: "seller-11",
-        secondaryPublicPath: "hidden-from-public",
-      },
-    ]);
   });
 
-  it("builds a canonical public storefront from the persisted storefront model", async () => {
+  describe("public storefront reads", () => {
+    it("builds a canonical public storefront from the persisted storefront model", async () => {
     const service = new CatalogService({
       ...createRepository(),
       findShopByPublicPath: async () => ({
@@ -159,9 +162,9 @@ describe("catalog service", () => {
       ],
       unpagedProducts: [],
     });
-  });
+    });
 
-  it("fails closed when the requested public storefront is missing or hidden from public browse", async () => {
+    it("fails closed when the requested public storefront is missing or hidden from public browse", async () => {
     const service = new CatalogService({
       ...createRepository(),
       findShopByPublicPath: async () => ({
@@ -185,9 +188,11 @@ describe("catalog service", () => {
         publicPath: "hidden-from-public",
       }),
     );
+    });
   });
 
-  it("builds a default provisioning blueprint with starter pages and products", () => {
+  describe("provisioning blueprint", () => {
+    it("builds a default provisioning blueprint with starter pages and products", () => {
     expect(buildProvisioningTemplateBlueprint()).toEqual({
       shopStatus: "WORKING",
       menuPages: [
@@ -215,9 +220,11 @@ describe("catalog service", () => {
         },
       ],
     });
+    });
   });
 
-  it("resolves seller-owned shops from Telegram-linked bindings and keeps not-working shops visible to the owner", async () => {
+  describe("seller access reads", () => {
+    it("resolves seller-owned shops from Telegram-linked bindings and keeps not-working shops visible to the owner", async () => {
     const service = new CatalogService({
       ...createRepository(),
       listSellerBindingsByTelegramId: async () => [
@@ -256,9 +263,9 @@ describe("catalog service", () => {
         isDeleted: false,
       },
     ]);
-  });
+    });
 
-  it("fails closed when the authenticated Telegram user has no seller binding", async () => {
+    it("fails closed when the authenticated Telegram user has no seller binding", async () => {
     const service = new CatalogService(createRepository());
 
     await expect(service.listSellerShopsByTelegramId("telegram-404")).rejects.toEqual(
@@ -266,9 +273,9 @@ describe("catalog service", () => {
         telegramId: "telegram-404",
       }),
     );
-  });
+    });
 
-  it("fails closed when binding ownership drifts away from shop.sellerId", async () => {
+    it("fails closed when binding ownership drifts away from shop.sellerId", async () => {
     const service = new CatalogService({
       ...createRepository(),
       listSellerBindingsByTelegramId: async () => [
@@ -298,9 +305,11 @@ describe("catalog service", () => {
         telegramId: "telegram-1",
       }),
     );
+    });
   });
 
-  it("keeps the first rename free", async () => {
+  describe("seller shop writes", () => {
+    it("keeps the first rename free", async () => {
     const updateShop = jest.fn().mockResolvedValue(withWriteEvent({
       id: "shop-1",
       sellerId: "seller-1",
@@ -349,9 +358,9 @@ describe("catalog service", () => {
       renameCount: 1,
       requiresManualRenameReview: false,
     });
-  });
+    });
 
-  it("updates owned shop metadata without consuming the rename allowance", async () => {
+    it("updates owned shop metadata without consuming the rename allowance", async () => {
     const updateShop = jest.fn().mockResolvedValue(withWriteEvent({
       id: "shop-1",
       sellerId: "seller-1",
@@ -407,9 +416,9 @@ describe("catalog service", () => {
       renameCount: 0,
       requiresManualRenameReview: false,
     });
-  });
+    });
 
-  it("updates owned shop status without consuming the rename allowance", async () => {
+    it("updates owned shop status without consuming the rename allowance", async () => {
     const updateShop = jest.fn().mockResolvedValue(withWriteEvent({
       id: "shop-1",
       sellerId: "seller-1",
@@ -455,9 +464,11 @@ describe("catalog service", () => {
       renameCount: 0,
       requiresManualRenameReview: false,
     });
+    });
   });
 
-  it("provisions a seller shop with the default starter blueprint", async () => {
+  describe("admin provisioning command", () => {
+    it("provisions a seller shop with the default starter blueprint", async () => {
     const provisionSellerShop = jest.fn().mockResolvedValue({
       shop: {
         id: "shop-1",
@@ -512,9 +523,9 @@ describe("catalog service", () => {
       status: undefined,
       blueprint: buildProvisioningTemplateBlueprint(),
     });
-  });
+    });
 
-  it("rejects provisioning when seller identity inputs are blank", async () => {
+    it("rejects provisioning when seller identity inputs are blank", async () => {
     const service = new CatalogService(createRepository());
 
     await expect(
@@ -526,9 +537,9 @@ describe("catalog service", () => {
     ).rejects.toEqual(
       new AppError("VALIDATION_ERROR", "Provisioning requires sellerId, telegramId, and shop name", 400),
     );
-  });
+    });
 
-  it("maps repository uniqueness conflicts into a controlled provisioning error", async () => {
+    it("maps repository uniqueness conflicts into a controlled provisioning error", async () => {
     const service = new CatalogService({
       ...createRepository(),
       provisionSellerShop: async () => {
@@ -551,9 +562,9 @@ describe("catalog service", () => {
         409,
       ),
     );
-  });
+    });
 
-  it("lets the repository enforce duplicate seller shop identity regardless of telegram binding", async () => {
+    it("lets the repository enforce duplicate seller shop identity regardless of telegram binding", async () => {
     const listSellerBindingsByTelegramId = jest.fn();
     const provisionSellerShop = jest.fn().mockImplementation(async () => {
       const error = new Error("duplicate");
@@ -593,9 +604,11 @@ describe("catalog service", () => {
       status: undefined,
       blueprint: expect.any(Object),
     });
+    });
   });
 
-  it("marks repeated rename as manual paid review", async () => {
+  describe("seller shop write guards", () => {
+    it("marks repeated rename as manual paid review", async () => {
     const updateShop = jest.fn().mockResolvedValue(withWriteEvent({
       id: "shop-1",
       sellerId: "seller-1",
@@ -632,9 +645,9 @@ describe("catalog service", () => {
       renameCount: 2,
       requiresManualRenameReview: true,
     });
-  });
+    });
 
-  it("maps repository rename uniqueness conflicts into a controlled seller error", async () => {
+    it("maps repository rename uniqueness conflicts into a controlled seller error", async () => {
     const updateShop = jest.fn().mockRejectedValue(Object.assign(new Error("Unique constraint failed"), { code: "P2002" }));
     const service = new CatalogService({
       ...createRepository(),
@@ -660,9 +673,9 @@ describe("catalog service", () => {
         409,
       ),
     );
-  });
+    });
 
-  it("rejects non-owner shop writes", async () => {
+    it("rejects non-owner shop writes", async () => {
     const updateShop = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
@@ -690,9 +703,11 @@ describe("catalog service", () => {
       }),
     );
     expect(updateShop).not.toHaveBeenCalled();
+    });
   });
 
-  it("creates product only inside seller own shop", async () => {
+  describe("seller product writes", () => {
+    it("creates product only inside seller own shop", async () => {
     const createProduct = jest.fn().mockResolvedValue(withWriteEvent({
       id: "product-1",
       shopId: "shop-1",
@@ -757,9 +772,11 @@ describe("catalog service", () => {
       imageUrl: "https://example.com/somsa.png",
       priceMinor: 1500,
     });
+    });
   });
 
-  it("creates menu page only inside seller own shop", async () => {
+  describe("seller menu page writes", () => {
+    it("creates menu page only inside seller own shop", async () => {
     const createMenuPage = jest.fn().mockResolvedValue(withWriteEvent({
       id: "page-1",
       shopId: "shop-1",
@@ -804,9 +821,9 @@ describe("catalog service", () => {
       name: "New Page",
       position: 3,
     });
-  });
+    });
 
-  it("renames owned menu page without exposing delete semantics", async () => {
+    it("renames owned menu page without exposing delete semantics", async () => {
     const updateMenuPage = jest.fn().mockResolvedValue(withWriteEvent({
       id: "page-1",
       shopId: "shop-1",
@@ -845,9 +862,9 @@ describe("catalog service", () => {
       shopId: "shop-1",
       name: "Hot Meals",
     });
-  });
+    });
 
-  it("rejects menu page rename outside seller ownership", async () => {
+    it("rejects menu page rename outside seller ownership", async () => {
     const updateMenuPage = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
@@ -875,9 +892,11 @@ describe("catalog service", () => {
       }),
     );
     expect(updateMenuPage).not.toHaveBeenCalled();
+    });
   });
 
-  it("rejects product writes when the menu page belongs to another seller shop", async () => {
+  describe("seller product write guards", () => {
+    it("rejects product writes when the menu page belongs to another seller shop", async () => {
     const createProduct = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
@@ -919,9 +938,9 @@ describe("catalog service", () => {
       }),
     );
     expect(createProduct).not.toHaveBeenCalled();
-  });
+    });
 
-  it("rejects product creation in another seller shop", async () => {
+    it("rejects product creation in another seller shop", async () => {
     const createProduct = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
@@ -953,9 +972,9 @@ describe("catalog service", () => {
       }),
     );
     expect(createProduct).not.toHaveBeenCalled();
-  });
+    });
 
-  it("rejects updates to another seller product", async () => {
+    it("rejects updates to another seller product", async () => {
     const updateProduct = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
@@ -986,9 +1005,9 @@ describe("catalog service", () => {
       }),
     );
     expect(updateProduct).not.toHaveBeenCalled();
-  });
+    });
 
-  it("validates target shop linkage before updating product", async () => {
+    it("validates target shop linkage before updating product", async () => {
     const updateProduct = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
@@ -1031,5 +1050,6 @@ describe("catalog service", () => {
       }),
     );
     expect(updateProduct).not.toHaveBeenCalled();
+    });
   });
 });

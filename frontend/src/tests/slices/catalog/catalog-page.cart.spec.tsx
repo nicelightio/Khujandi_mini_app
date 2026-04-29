@@ -1,36 +1,14 @@
-import { createElement } from "react";
-import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
-import { LanguageContextProvider, type LanguageContextValue } from "../../../app/language-context";
-import { CatalogPage } from "../../../slices/catalog/components/catalog-page";
-import type { CatalogStorefrontViewModel } from "../../../slices/catalog/components/storefront-view";
+import { act, create, type ReactTestRenderer } from "react-test-renderer";
+import { createCatalogViewModel } from "../../../slices/catalog/model/catalog-view-model";
 import {
-  createCatalogViewModel,
-  createErrorCatalogViewModel,
-  createLoadingCatalogViewModel,
-} from "../../../slices/catalog/model/catalog-view-model";
-import type { SupportedLanguage } from "../../../shared/i18n/languages";
-
-const collectText = (node: unknown): string[] => {
-  if (Array.isArray(node)) {
-    return node.flatMap((child) => collectText(child));
-  }
-
-  if (typeof node === "string") {
-    return [node];
-  }
-
-  if (node === null || typeof node !== "object") {
-    return [];
-  }
-
-  const children = "children" in node ? (node.children as unknown[] | null) : null;
-
-  if (children === null) {
-    return [];
-  }
-
-  return children.flatMap((child) => collectText(child));
-};
+  collectText,
+  createCatalogPageElement,
+  createCustomerStorefront,
+  dispatchBubblingClick,
+  getCartSummaryText,
+  renderCatalogPageWithLanguage,
+  renderWithLanguage,
+} from "./catalog-page.test-utils";
 
 const reactActEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
@@ -54,329 +32,14 @@ afterEach(() => {
   consoleErrorSpy.mockRestore();
 });
 
-const createLanguageContextValue = (language: SupportedLanguage = "en"): LanguageContextValue => ({
-  state: {
-    language,
-    isHydrated: true,
-    isOverlayVisible: false,
-  },
-  controller: {
-    getState: () => ({
-      language,
-      isHydrated: true,
-      isOverlayVisible: false,
-    }),
-    hydrate: async () => ({
-      language,
-      isHydrated: true,
-      isOverlayVisible: false,
-    }),
-    selectLanguage: async (selectedLanguage) => ({
-      language: selectedLanguage,
-      isHydrated: true,
-      isOverlayVisible: false,
-    }),
-  },
-  selectLanguage: async () => undefined,
-});
-
-const renderWithLanguage = (
-  element: ReturnType<typeof createElement>,
-  language: SupportedLanguage = "en",
-) =>
-  create(
-    <LanguageContextProvider value={createLanguageContextValue(language)}>{element}</LanguageContextProvider>,
-  );
-
-const renderCatalogPageWithLanguage = (props: Parameters<typeof CatalogPage>[0]) => (
-  <LanguageContextProvider value={createLanguageContextValue("en")}>
-    <CatalogPage {...props} />
-  </LanguageContextProvider>
-);
-
-const createCustomerStorefront = (
-  shop: { id: string; publicPath: string; name: string },
-  product: { id: string; name: string; priceMinor: number; priceLabel: string },
-): CatalogStorefrontViewModel => ({
-  shop: {
-    ...shop,
-    description: null,
-    headerImageUrl: null,
-    backgroundImageUrl: null,
-    renameReviewNote: null,
-  },
-  access: {
-    canEdit: false,
-    currentTelegramId: null,
-    authDebugLabel: null,
-    statusLabel: "Public storefront",
-    activationHint: null,
-  },
-  menuPages: [
-    {
-      id: `${shop.id}-page-1`,
-      name: "Popular",
-      products: [
-        {
-          ...product,
-          description: null,
-          imageUrl: null,
-        },
-      ],
-    },
-  ],
-  unpagedProducts: [],
-  emptyMenuPagesLabel: "No menu pages yet.",
-  emptyProductsLabel: "No products yet.",
-  addMenuPageLabel: "Add menu page",
-  addProductLabel: "Add product",
-  successMessage: null,
-  errorMessage: null,
-  isSaving: false,
-  editor: null,
-  debugLogs: [],
-});
-
-const getCartSummaryText = (renderer: ReactTestRenderer): string =>
-  collectText(renderer.root.findByProps({ "data-storefront-cart": "summary" }).children).join(" ");
-
-const dispatchBubblingClick = (instance: ReactTestInstance) => {
-  let propagationStopped = false;
-  let current: ReactTestInstance | null = instance;
-
-  const event: {
-    stopPropagation: () => void;
-  } = {
-    stopPropagation: () => {
-      propagationStopped = true;
-    },
-  };
-
-  while (current !== null) {
-    const onClick = current.props.onClick as ((event: { stopPropagation: () => void }) => void) | undefined;
-    onClick?.(event);
-
-    if (propagationStopped) {
-      break;
-    }
-
-    current = current.parent;
-  }
-};
-
-const dispatchBubblingContextMenu = (instance: ReactTestInstance) => {
-  let propagationStopped = false;
-  let defaultPrevented = false;
-  let current: ReactTestInstance | null = instance;
-
-  const event: {
-    preventDefault: () => void;
-    stopPropagation: () => void;
-  } = {
-    preventDefault: () => {
-      defaultPrevented = true;
-    },
-    stopPropagation: () => {
-      propagationStopped = true;
-    },
-  };
-
-  while (current !== null) {
-    const onContextMenu = current.props.onContextMenu as
-      | ((event: { preventDefault: () => void; stopPropagation: () => void }) => void)
-      | undefined;
-    onContextMenu?.(event);
-
-    if (propagationStopped) {
-      break;
-    }
-
-    current = current.parent;
-  }
-
-  expect(defaultPrevented).toBe(true);
-};
-
-describe("catalog page", () => {
-  it("renders browse-safe shops and products for the public catalog", () => {
-    let renderer!: ReactTestRenderer;
-
-    act(() => {
-      renderer = renderWithLanguage(
-        createElement(CatalogPage, {
-          viewModel: createCatalogViewModel(
-            [
-            {
-              id: "shop-1",
-              name: "Khujand Bakery",
-              publicPath: "khujand-bakery",
-              products: [
-                {
-                  id: "product-1",
-                  shopId: "shop-1",
-                  name: "Somsa",
-                  priceMinor: 1500,
-                },
-              ],
-            },
-            ],
-            "en",
-          ),
-        }),
-      );
-    });
-
-    const text = collectText(renderer.toJSON()).join(" ");
-
-    expect(text).toContain("Catalog");
-    expect(text).toContain("Khujand Bakery");
-    expect(text).toContain("Somsa");
-    expect(text).toContain("15.00 TJS");
-    expect(renderer.root.findByProps({ "data-shell": "page" }).props).toMatchObject({
-      "data-shell-back": "hidden",
-      "data-shell-swipe": "default",
-      "data-shell-action-feedback": "none",
-    });
-  });
-
-  it("renders loading state for public browse", () => {
-    let renderer!: ReactTestRenderer;
-
-    act(() => {
-      renderer = renderWithLanguage(
-        createElement(CatalogPage, {
-          viewModel: createLoadingCatalogViewModel("en"),
-        }),
-        "en",
-      );
-    });
-
-    const text = collectText(renderer.toJSON()).join(" ");
-
-    expect(text).toContain("Loading shops and products...");
-    expect(text).toContain("Loading catalog...");
-  });
-
-  it("renders empty and error states without shop sections", () => {
-    let emptyRenderer!: ReactTestRenderer;
-    let errorRenderer!: ReactTestRenderer;
-
-    act(() => {
-      emptyRenderer = renderWithLanguage(
-        createElement(CatalogPage, {
-          viewModel: createCatalogViewModel([], "en"),
-        }),
-        "en",
-      );
-      errorRenderer = renderWithLanguage(
-        createElement(CatalogPage, {
-          viewModel: createErrorCatalogViewModel("Backend unavailable.", "en"),
-        }),
-        "en",
-      );
-    });
-
-    expect(collectText(emptyRenderer.toJSON()).join(" ")).toContain("No shops are available right now.");
-    expect(collectText(errorRenderer.toJSON()).join(" ")).toContain("Backend unavailable.");
-    expect(emptyRenderer.root.findAllByType("article")).toHaveLength(0);
-    expect(errorRenderer.root.findAllByType("article")).toHaveLength(0);
-  });
-
-  it("renders localized loading copy for a selected language", () => {
-    let renderer!: ReactTestRenderer;
-
-    act(() => {
-      renderer = renderWithLanguage(
-        createElement(CatalogPage, {
-          viewModel: createLoadingCatalogViewModel("ru"),
-        }),
-        "ru",
-      );
-    });
-
-    const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Каталог");
-    expect(text).toContain("Загрузка каталога...");
-  });
-
-  it("keeps nested storefront clicks from bubbling into the menu-page editor", () => {
-    const onActivateEditor = jest.fn();
-    let renderer!: ReactTestRenderer;
-
-    act(() => {
-      renderer = renderWithLanguage(
-        createElement(CatalogPage, {
-          viewModel: createCatalogViewModel([], "en"),
-          storefront: {
-            shop: {
-              id: "shop-1",
-              publicPath: "khujand-bakery",
-              name: "Khujand Bakery",
-              description: null,
-              headerImageUrl: null,
-              backgroundImageUrl: null,
-              renameReviewNote: null,
-            },
-            access: {
-              canEdit: true,
-              statusLabel: "Seller edit mode is active on the shared storefront tree.",
-              activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
-            },
-            menuPages: [
-              {
-                id: "page-1",
-                name: "Popular",
-                products: [
-                  {
-                    id: "product-1",
-                    name: "Somsa",
-                    description: null,
-                    imageUrl: null,
-                    priceMinor: 1500,
-                    priceLabel: "15.00 TJS",
-                  },
-                ],
-              },
-            ],
-            unpagedProducts: [],
-            emptyMenuPagesLabel: "No menu pages yet.",
-            emptyProductsLabel: "No products yet.",
-            addMenuPageLabel: "Add menu page",
-            addProductLabel: "Add product",
-            successMessage: null,
-            errorMessage: null,
-            isSaving: false,
-            editor: null,
-          },
-          onActivateEditor,
-        }),
-      );
-    });
-
-    const addProductButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add product");
-    const productItem = renderer.root.findByProps({ "data-product-id": "product-1" });
-
-    act(() => {
-      dispatchBubblingClick(addProductButton!);
-    });
-
-    act(() => {
-      dispatchBubblingClick(productItem);
-    });
-
-    expect(onActivateEditor.mock.calls).toEqual([
-      [{ type: "new-product", menuPageId: "page-1" }],
-      [{ type: "product", menuPageId: "page-1", productId: "product-1" }],
-    ]);
-  });
-
+describe("catalog page cart composition", () => {
   it("wires customer storefront cart add, update, remove, totals and checkout readiness", () => {
     const onActivateEditor = jest.fn();
     let renderer!: ReactTestRenderer;
 
     act(() => {
       renderer = renderWithLanguage(
-        createElement(CatalogPage, {
+        createCatalogPageElement({
           viewModel: createCatalogViewModel([], "en"),
           storefront: {
             shop: {
@@ -430,6 +93,8 @@ describe("catalog page", () => {
     expect(collectText(renderer.toJSON()).join(" ")).toContain("Add items to unlock checkout");
     expect(collectText(renderer.toJSON()).join(" ")).toContain("Your cart is empty.");
     expect(collectText(renderer.toJSON()).join(" ")).toContain("Preview total 0.00 TJS");
+    expect(renderer.root.findByProps({ "data-storefront-back-link": true }).props.href).toBe("/");
+    expect(collectText(renderer.root.findByProps({ "data-storefront-back-link": true }).children).join(" ")).toBe("Вернуться");
 
     const addButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
 
@@ -469,7 +134,7 @@ describe("catalog page", () => {
 
     act(() => {
       renderer = renderWithLanguage(
-        createElement(CatalogPage, {
+        createCatalogPageElement({
           viewModel: createCatalogViewModel([], "en"),
           storefront: createCustomerStorefront(
             { id: "shop-1", publicPath: "khujand-bakery", name: "Khujand Bakery" },
@@ -708,57 +373,5 @@ describe("catalog page", () => {
 
     expect(getCartSummaryText(renderer)).toContain("Green Tea");
     expect(getCartSummaryText(renderer)).toContain("Preview total 7.00 TJS");
-  });
-
-  it("opens the shop editor only once when the hero surface bubbles to the storefront article", () => {
-    const onActivateEditor = jest.fn();
-    let renderer!: ReactTestRenderer;
-
-    act(() => {
-      renderer = renderWithLanguage(
-        createElement(CatalogPage, {
-          viewModel: createCatalogViewModel([], "en"),
-          storefront: {
-            shop: {
-              id: "shop-1",
-              publicPath: "khujand-bakery",
-              name: "Khujand Bakery",
-              description: null,
-              headerImageUrl: null,
-              backgroundImageUrl: null,
-              renameReviewNote: null,
-            },
-            access: {
-              canEdit: true,
-              statusLabel: "Seller edit mode is active on the shared storefront tree.",
-              activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
-            },
-            menuPages: [],
-            unpagedProducts: [],
-            emptyMenuPagesLabel: "No menu pages yet.",
-            emptyProductsLabel: "No products yet.",
-            addMenuPageLabel: "Add menu page",
-            addProductLabel: "Add product",
-            successMessage: null,
-            errorMessage: null,
-            isSaving: false,
-            editor: null,
-          },
-          onActivateEditor,
-        }),
-      );
-    });
-
-    const hero = renderer.root.findByProps({ "data-storefront-hero": "image" });
-
-    act(() => {
-      dispatchBubblingClick(hero);
-    });
-
-    act(() => {
-      dispatchBubblingContextMenu(hero);
-    });
-
-    expect(onActivateEditor.mock.calls).toEqual([[{ type: "shop" }], [{ type: "shop" }]]);
   });
 });

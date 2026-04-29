@@ -28,6 +28,7 @@ export const AdminProtectedShell = ({
   onLogout,
 }: AdminProtectedShellProps) => {
   const navigationItems = [
+    { href: adminRoutes.home, label: "Dashboard" },
     { href: adminRoutes.assignment, label: "Assignment" },
     { href: adminRoutes.cancellation, label: "Cancellation" },
     { href: adminRoutes.catalogProvisioning, label: "Provisioning" },

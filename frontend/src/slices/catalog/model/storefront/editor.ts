@@ -25,6 +25,7 @@ export const createStorefrontEditor = (
         { name: "name", label: "Shop name", value: data.shop.name, inputMode: "text" },
         { name: "description", label: "Description", value: data.shop.description ?? "", inputMode: "textarea" },
         { name: "headerImageUrl", label: "Shop header image", value: data.shop.headerImageUrl ?? "", inputMode: "image" },
+        { name: "backgroundImageUrl", label: "Shop background image", value: data.shop.backgroundImageUrl ?? "", inputMode: "image" },
       ],
     };
   }

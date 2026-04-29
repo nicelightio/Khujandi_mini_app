@@ -1,4 +1,5 @@
 export const adminRoutes = {
+  home: "/admin",
   login: "/admin/login",
   catalogProvisioning: "/admin/catalog/shops/provision",
   assignment: "/admin/orders/assignment",

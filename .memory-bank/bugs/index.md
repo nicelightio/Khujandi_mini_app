@@ -4,6 +4,7 @@ status: active
 ---
 # Bugs Index
 
+- `FT-010/catalog storefront`: seller shared-storefront shop editor now exposes `backgroundImageUrl` alongside `headerImageUrl`, closing the owner-edit path gap where public/client storefront reads already supported the field but owner saves never sent it.
 - [.memory-bank/bugs/BUG-2026-04-27-ft014-events-runtime-and-cursor-drift.md](BUG-2026-04-27-ft014-events-runtime-and-cursor-drift.md): архивированный repo-local integration blocker; `TASK-FT014-07` mounted checked-in `/api/v1/events` for customer status polling and repaired checkout/status cursor compatibility, while Android checkout/status smoke remains advisory pre-release risk evidence.
 - [.memory-bank/bugs/BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md](BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md): активный advisory pre-release risk; `TASK-FT013-07` repo-local gates verify `REQ-032`, while fresh real `Android Telegram` checkout smoke remains recommended before release.
 - [.memory-bank/bugs/BUG-2026-04-20-api-container-missing-prisma-schema.md](BUG-2026-04-20-api-container-missing-prisma-schema.md): архивированный deploy/runtime bug; root `package.json` now declares `backend/prisma/schema.prisma` as the canonical Prisma CLI path and ships a pinned repo-local `prisma` dependency, so the checked-in `api` image can run documented `prisma migrate status|deploy` commands without a `--schema` workaround or latest-version drift.

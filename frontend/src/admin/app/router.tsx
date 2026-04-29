@@ -8,6 +8,7 @@ import {
   type AdminSessionState,
 } from "../model/admin-access-shell";
 import { AdminLoginPage } from "../components/admin-login-page";
+import { AdminDashboardPage } from "../components/admin-dashboard-page";
 import { AdminProtectedShell } from "../components/admin-protected-shell";
 import { AdminShell } from "../components/admin-shell";
 import { AdminUnknownRoute } from "../components/admin-unknown-route";
@@ -24,8 +25,13 @@ export type AdminRoute = {
 
 export const adminRoutes: AdminRoute[] = [
   {
+    path: adminRoutePaths.home,
+    element: <AdminDashboardPage />,
+    requiresAuth: true,
+  },
+  {
     path: adminRoutePaths.login,
-    element: <AdminLoginPage session={createAnonymousAdminSessionState()} redirectPath={adminRoutePaths.assignment} />,
+    element: <AdminLoginPage session={createAnonymousAdminSessionState()} redirectPath={adminRoutePaths.home} />,
     requiresAuth: false,
   },
   {
@@ -50,7 +56,7 @@ export const resolveAdminRoute = (pathname: string): AdminRoute | null =>
 
 const getCurrentPathname = (): string => {
   if (typeof window === "undefined") {
-    return adminRoutePaths.assignment;
+    return adminRoutePaths.home;
   }
 
   return window.location.pathname;
@@ -93,7 +99,7 @@ export const AdminRouter = ({
 
   useEffect(() => {
     if (activePath === adminRoutePaths.login && activeSession.status === "authenticated") {
-      setActivePath(adminRoutePaths.assignment);
+      setActivePath(adminRoutePaths.home);
     }
   }, [activePath, activeSession.status]);
 
@@ -167,7 +173,7 @@ export const AdminRouter = ({
           idleExpiresAt: nextSession.idleExpiresAt,
         }),
       );
-      setActivePath(route?.requiresAuth ? activePath : adminRoutePaths.assignment);
+      setActivePath(route?.requiresAuth ? activePath : adminRoutePaths.home);
     } finally {
       setIsLoginSubmitting(false);
     }
@@ -205,7 +211,7 @@ export const AdminRouter = ({
           session={
             activeSession.status === "authenticated" ? createAnonymousAdminSessionState() : activeSession
           }
-          redirectPath={adminRoutePaths.assignment}
+          redirectPath={adminRoutePaths.home}
           isSubmitting={isLoginSubmitting}
           onLogin={handleLogin}
         />

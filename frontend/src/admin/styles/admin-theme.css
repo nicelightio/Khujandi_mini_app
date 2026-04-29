@@ -539,6 +539,41 @@ body[data-root-contour="admin-web"] textarea {
   background: rgba(255, 255, 255, 0.015);
 }
 
+[data-admin-dashboard="links"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+[data-admin-dashboard="link"] {
+  display: grid;
+  gap: 8px;
+  min-height: 96px;
+  align-content: space-between;
+  padding: 16px;
+  border: 1px solid rgba(163, 188, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+[data-admin-dashboard="link"] span {
+  color: var(--admin-text-soft);
+  line-height: 1.35;
+}
+
+[data-admin-dashboard="link"]:hover,
+[data-admin-dashboard="link"]:focus-visible {
+  border-color: var(--admin-border-strong);
+  background: rgba(138, 164, 255, 0.07);
+  outline: none;
+}
+
 [data-admin-ui="selection-row"] strong,
 [data-admin-ui="selection-row"] span:last-child {
   color: var(--admin-text);
