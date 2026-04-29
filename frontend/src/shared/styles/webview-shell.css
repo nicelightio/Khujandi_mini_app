@@ -15,8 +15,9 @@
     radial-gradient(circle at 50% 38%, rgba(42, 171, 238, 0.28), transparent 32%),
     radial-gradient(circle at 30% 72%, rgba(0, 136, 204, 0.22), transparent 36%),
     linear-gradient(145deg, #06131f 0%, #0b2b3f 48%, #2aabee 150%);
+  background-size: 130% 130%, 145% 145%, 100% 100%;
   color: #d9f7ff;
-  animation: startup-splash-shell 3.9s ease forwards;
+  animation: startup-splash-shell 3.9s ease forwards, startup-splash-breathe 7.5s ease-in-out infinite;
 }
 
 [data-startup-splash="orb"] {
@@ -139,6 +140,12 @@
     opacity: 0.78;
     transform: translateY(0);
   }
+}
+
+@keyframes startup-splash-breathe {
+  0%,
+  100% { background-position: 50% 46%, 30% 72%, 0 0; }
+  50% { background-position: 54% 40%, 36% 66%, 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
