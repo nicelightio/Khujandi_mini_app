@@ -164,7 +164,9 @@ export const createTelegramWebAppBridge = (windowLike?: TelegramWindowLike): Tel
 
   const getRuntimeCapabilities = (): TelegramRuntimeCapabilities => {
     const hasStableViewport = getViewport().stableHeight !== null;
+    const supportsNativeChromeVersion = webApp?.isVersionAtLeast?.("7.7") === true;
     const supportsNativeChrome =
+      supportsNativeChromeVersion &&
       typeof webApp?.disableVerticalSwipes === "function" &&
       typeof webApp?.enableVerticalSwipes === "function" &&
       webApp?.BackButton !== undefined;
@@ -212,6 +214,10 @@ export const createTelegramWebAppBridge = (windowLike?: TelegramWindowLike): Tel
       };
     },
     setBackButtonVisible: (visible) => {
+      if (!getRuntimeCapabilities().supportsNativeChrome) {
+        return;
+      }
+
       if (visible) {
         webApp?.BackButton?.show?.();
         return;
@@ -220,6 +226,10 @@ export const createTelegramWebAppBridge = (windowLike?: TelegramWindowLike): Tel
       webApp?.BackButton?.hide?.();
     },
     setSwipeBehavior: (behavior) => {
+      if (!getRuntimeCapabilities().supportsNativeChrome) {
+        return;
+      }
+
       if (behavior === "locked") {
         webApp?.disableVerticalSwipes?.();
         return;

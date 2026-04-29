@@ -1,13 +1,56 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+
+declare const __APP_DEBUG__: boolean;
 
 type StartupSplashGateProps = {
   children: ReactNode;
 };
 
 export const StartupSplashGate = ({ children }: StartupSplashGateProps) => {
+  useEffect(() => {
+    const initialSplash = document.getElementById("initial-splash");
+
+    if (__APP_DEBUG__) {
+      console.info("[startup-splash] react-mounted", {
+        initialSplashCount: document.querySelectorAll("#initial-splash").length,
+        reactSplashCount: document.querySelectorAll('[data-startup-splash="root"]').length,
+        time: Math.round(performance.now()),
+      });
+    }
+
+    if (initialSplash === null) {
+      return;
+    }
+
+    const dismissTimerId = window.setTimeout(() => {
+      initialSplash.classList.add("initial-splash--dismissed");
+
+      if (__APP_DEBUG__) {
+        console.info("[startup-splash] dismissed", {
+          initialSplashCount: document.querySelectorAll("#initial-splash").length,
+          time: Math.round(performance.now()),
+        });
+      }
+    }, 3900);
+    const removeTimerId = window.setTimeout(() => {
+      initialSplash.remove();
+
+      if (__APP_DEBUG__) {
+        console.info("[startup-splash] removed", {
+          initialSplashCount: document.querySelectorAll("#initial-splash").length,
+          time: Math.round(performance.now()),
+        });
+      }
+    }, 4400);
+
+    return () => {
+      window.clearTimeout(dismissTimerId);
+      window.clearTimeout(removeTimerId);
+    };
+  }, []);
+
   return (
     <>
-      <StartupSplash />
       {children}
     </>
   );

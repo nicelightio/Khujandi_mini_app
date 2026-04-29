@@ -12,9 +12,10 @@
   pointer-events: auto;
   visibility: visible;
   background:
-    radial-gradient(circle at 50% 38%, rgba(106, 162, 112, 0.22), transparent 30%),
-    linear-gradient(145deg, #07100b 0%, #102217 48%, #eadfbf 140%);
-  color: #f9f4df;
+    radial-gradient(circle at 50% 38%, rgba(42, 171, 238, 0.28), transparent 32%),
+    radial-gradient(circle at 30% 72%, rgba(0, 136, 204, 0.22), transparent 36%),
+    linear-gradient(145deg, #06131f 0%, #0b2b3f 48%, #2aabee 150%);
+  color: #d9f7ff;
   animation: startup-splash-shell 3.9s ease forwards;
 }
 
@@ -23,7 +24,7 @@
   width: min(72vw, 340px);
   aspect-ratio: 1;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(249, 244, 223, 0.14), rgba(106, 162, 112, 0.1) 44%, transparent 70%);
+  background: radial-gradient(circle, rgba(217, 247, 255, 0.18), rgba(42, 171, 238, 0.16) 44%, transparent 70%);
   transform: scale(0.86);
   animation: startup-splash-orb 3.3s ease-out forwards;
 }
@@ -44,8 +45,8 @@
 }
 
 .startup-splash-branch {
-  fill: rgba(151, 199, 124, 0.08);
-  stroke: #e7f6cf;
+  fill: rgba(58, 130, 145, 0.14);
+  stroke: #d6f8ff;
   stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -62,7 +63,7 @@
 .startup-splash-branch-5 { animation-delay: 0.84s, 2.04s; }
 
 .startup-splash-spark {
-  fill: #f4d56a;
+  fill: #7fe8ff;
   opacity: 0;
   transform: scale(0.55);
   animation: startup-splash-spark 1.875s ease-out forwards;
@@ -115,7 +116,7 @@
 }
 
 @keyframes startup-splash-fill {
-  to { fill: rgba(151, 199, 124, 0.52); }
+  to { fill: rgba(66, 156, 171, 0.68); }
 }
 
 @keyframes startup-splash-spark {

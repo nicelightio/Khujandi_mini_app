@@ -41,7 +41,7 @@ describe("telegram webapp bridge", () => {
           expand: () => {
             calls.push("expand");
           },
-          isVersionAtLeast: (version) => version === "7.10",
+          isVersionAtLeast: (version) => version === "7.7" || version === "7.10",
           onEvent: (event, callback) => {
             calls.push(`on:${event}`);
             callback();
@@ -246,7 +246,7 @@ describe("telegram webapp bridge", () => {
     expect(bridge.getRuntimeCapabilities()).toEqual({
       supportsEnhancedShell: false,
       supportsKeyboardSafeBottomActions: true,
-      supportsNativeChrome: true,
+      supportsNativeChrome: false,
     });
   });
 });

@@ -96,7 +96,7 @@ describe("app shell", () => {
                 isExpanded: true,
                 ready: jest.fn(),
                 expand: jest.fn(),
-                isVersionAtLeast: (version) => version === "7.10",
+                isVersionAtLeast: (version) => version === "7.7" || version === "7.10",
                 onEvent: (_event, _handler) => {
                   return;
                 },
@@ -273,7 +273,7 @@ describe("app shell", () => {
                 WebApp: {
                   ready: jest.fn(),
                   expand: jest.fn(),
-                  isVersionAtLeast: (version) => version === "7.10",
+                  isVersionAtLeast: (version) => version === "7.7" || version === "7.10",
                   onEvent: (_event, _handler) => {
                     return;
                   },
