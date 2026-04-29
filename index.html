@@ -4,10 +4,130 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Khujandi Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+      html,
+      body,
+      #root {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      #initial-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(106, 162, 112, 0.22), transparent 30%),
+          linear-gradient(145deg, #07100b 0%, #102217 48%, #eadfbf 140%);
+        color: #f9f4df;
+      }
+
+      #initial-splash-orb {
+        position: absolute;
+        width: min(72vw, 340px);
+        aspect-ratio: 1;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(249, 244, 223, 0.14), rgba(106, 162, 112, 0.1) 44%, transparent 70%);
+        animation: initial-splash-orb 3.3s ease-out forwards;
+      }
+
+      #initial-splash svg {
+        position: relative;
+        width: min(42vw, 172px);
+        height: auto;
+        filter: drop-shadow(0 18px 38px rgba(0, 0, 0, 0.36));
+        transform: translateY(-10px);
+      }
+
+      .initial-splash-branch {
+        fill: rgba(151, 199, 124, 0.08);
+        stroke: #e7f6cf;
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        vector-effect: non-scaling-stroke;
+        animation: initial-splash-draw 2.85s cubic-bezier(0.47, 0, 0.2, 1) forwards,
+          initial-splash-fill 1.95s ease forwards;
+      }
+
+      .initial-splash-branch:nth-of-type(1) { animation-delay: 0.12s, 1.56s; }
+      .initial-splash-branch:nth-of-type(2) { animation-delay: 0.3s, 1.68s; }
+      .initial-splash-branch:nth-of-type(3) { animation-delay: 0.48s, 1.8s; }
+      .initial-splash-branch:nth-of-type(4) { animation-delay: 0.66s, 1.92s; }
+      .initial-splash-branch:nth-of-type(5) { animation-delay: 0.84s, 2.04s; }
+
+      .initial-splash-spark {
+        fill: #f4d56a;
+        opacity: 0;
+        transform: scale(0.55);
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: initial-splash-spark 1.875s ease-out forwards;
+      }
+
+      .initial-splash-spark:nth-of-type(6) { animation-delay: 1.44s; }
+      .initial-splash-spark:nth-of-type(7) { animation-delay: 1.62s; }
+      .initial-splash-spark:nth-of-type(8) { animation-delay: 1.8s; }
+
+      #initial-splash-brand {
+        position: absolute;
+        top: calc(50% + min(28vw, 118px));
+        font: 700 18px/1.1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: initial-splash-brand 2.025s ease-out 1.11s forwards;
+      }
+
+      @keyframes initial-splash-orb {
+        0% { opacity: 0; transform: scale(0.76); }
+        45% { opacity: 1; }
+        100% { opacity: 0.78; transform: scale(1.04); }
+      }
+
+      @keyframes initial-splash-draw {
+        to { stroke-dashoffset: 0; }
+      }
+
+      @keyframes initial-splash-fill {
+        to { fill: rgba(151, 199, 124, 0.52); }
+      }
+
+      @keyframes initial-splash-spark {
+        0% { opacity: 0; transform: scale(0.55); }
+        45% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0.8; transform: scale(0.9); }
+      }
+
+      @keyframes initial-splash-brand {
+        to { opacity: 0.78; transform: translateY(0); }
+      }
+    </style>
+    <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-splash" aria-hidden="true">
+        <div id="initial-splash-orb"></div>
+        <svg viewBox="0 0 180 180" focusable="false" role="img">
+          <path class="initial-splash-branch" d="M90 22 L42 82 H72 L34 128 H146 L108 82 H138 Z" pathLength="1"></path>
+          <path class="initial-splash-branch" d="M90 48 L60 87 H78 L52 118 H128 L102 87 H120 Z" pathLength="1"></path>
+          <path class="initial-splash-branch" d="M90 74 L72 99 H82 L66 120 H114 L98 99 H108 Z" pathLength="1"></path>
+          <path class="initial-splash-branch" d="M82 128 H98 V154 H82 Z" pathLength="1"></path>
+          <path class="initial-splash-branch" d="M90 16 L97 32 L114 34 L101 45 L105 62 L90 53 L75 62 L79 45 L66 34 L83 32 Z" pathLength="1"></path>
+          <circle class="initial-splash-spark" cx="48" cy="114" r="3"></circle>
+          <circle class="initial-splash-spark" cx="132" cy="112" r="3"></circle>
+          <circle class="initial-splash-spark" cx="90" cy="92" r="2.5"></circle>
+        </svg>
+        <div id="initial-splash-brand">Худжанди</div>
+      </div>
+    </div>
     <script type="module" src="/frontend/src/app/main.tsx"></script>
   </body>
   </html>

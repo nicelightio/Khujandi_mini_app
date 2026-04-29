@@ -15,7 +15,7 @@
     radial-gradient(circle at 50% 38%, rgba(106, 162, 112, 0.22), transparent 30%),
     linear-gradient(145deg, #07100b 0%, #102217 48%, #eadfbf 140%);
   color: #f9f4df;
-  animation: startup-splash-shell 2.6s ease forwards;
+  animation: startup-splash-shell 3.9s ease forwards;
 }
 
 [data-startup-splash="orb"] {
@@ -25,7 +25,7 @@
   border-radius: 999px;
   background: radial-gradient(circle, rgba(249, 244, 223, 0.14), rgba(106, 162, 112, 0.1) 44%, transparent 70%);
   transform: scale(0.86);
-  animation: startup-splash-orb 2.2s ease-out forwards;
+  animation: startup-splash-orb 3.3s ease-out forwards;
 }
 
 [data-startup-splash="mark"] {
@@ -51,26 +51,26 @@
   stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: startup-splash-draw 1.9s cubic-bezier(0.47, 0, 0.2, 1) forwards,
-    startup-splash-fill 1.3s ease forwards;
+  animation: startup-splash-draw 2.85s cubic-bezier(0.47, 0, 0.2, 1) forwards,
+    startup-splash-fill 1.95s ease forwards;
 }
 
-.startup-splash-branch-1 { animation-delay: 0.08s, 1.04s; }
-.startup-splash-branch-2 { animation-delay: 0.2s, 1.12s; }
-.startup-splash-branch-3 { animation-delay: 0.32s, 1.2s; }
-.startup-splash-branch-4 { animation-delay: 0.44s, 1.28s; }
-.startup-splash-branch-5 { animation-delay: 0.56s, 1.36s; }
+.startup-splash-branch-1 { animation-delay: 0.12s, 1.56s; }
+.startup-splash-branch-2 { animation-delay: 0.3s, 1.68s; }
+.startup-splash-branch-3 { animation-delay: 0.48s, 1.8s; }
+.startup-splash-branch-4 { animation-delay: 0.66s, 1.92s; }
+.startup-splash-branch-5 { animation-delay: 0.84s, 2.04s; }
 
 .startup-splash-spark {
   fill: #f4d56a;
   opacity: 0;
   transform: scale(0.55);
-  animation: startup-splash-spark 1.25s ease-out forwards;
+  animation: startup-splash-spark 1.875s ease-out forwards;
 }
 
-.startup-splash-spark-1 { animation-delay: 0.96s; }
-.startup-splash-spark-2 { animation-delay: 1.08s; }
-.startup-splash-spark-3 { animation-delay: 1.2s; }
+.startup-splash-spark-1 { animation-delay: 1.44s; }
+.startup-splash-spark-2 { animation-delay: 1.62s; }
+.startup-splash-spark-3 { animation-delay: 1.8s; }
 
 [data-startup-splash="brand"] {
   position: absolute;
@@ -80,7 +80,7 @@
   text-transform: uppercase;
   opacity: 0;
   transform: translateY(10px);
-  animation: startup-splash-brand 1.35s ease-out 0.74s forwards;
+  animation: startup-splash-brand 2.025s ease-out 1.11s forwards;
 }
 
 @keyframes startup-splash-shell {
