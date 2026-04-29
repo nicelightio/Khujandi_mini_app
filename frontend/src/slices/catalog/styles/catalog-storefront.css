@@ -232,7 +232,7 @@
   pointer-events: none;
 }
 
-[data-storefront-content="surface"] > * {
+[data-storefront-content="surface"] > :not([data-storefront-media]) {
   position: relative;
   z-index: 1;
 }
