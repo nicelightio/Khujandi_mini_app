@@ -26,4 +26,4 @@ jobs:
           script_stop: true
           script: |
             set -Eeuo pipefail
-            /usr/local/bin/tgmeal-deploy
+            sudo /usr/local/bin/tgmeal-deploy
