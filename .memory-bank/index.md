@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `Ops/Prisma production baseline`: Prisma rollout drift found during TgMeal prod DB bootstrap is repaired in source: `Shop.orders` restores schema validation and `backend/prisma/migrations/20260401000000_init_current_schema_baseline` bootstraps blank PostgreSQL databases before the later ReviewDraft and shop-identity incremental migrations; the deploy runbook now requires disposable empty-DB `prisma migrate deploy` verification for DB rollout changes.
 - `Ops/GitHub-only deploy policy`: production deploys must never build/copy directly from the active development source folder; release flow is branch -> GitHub PR -> review/CI -> merge/push to GitHub -> GitHub Actions SSH-runs server deploy, and `tgmeal-deploy` pulls `origin/main` into `/srv/tgmeal/app` while refusing dirty local deploy checkouts or non-GitHub remotes.
 - `Ops/AlmaLinux deploy`: deployment docs and compose baseline now target the current AlmaLinux prod host with existing Traefik on `80/443`, external Docker network `web`, no host nginx, a checked-in `deploy/scripts/tgmeal-deploy-alma.sh` template, and explicit PhotoChanger/Traefik safety invariants.
 - `FT-009/frontend shell`: initial screen loads now show one pre-React lightweight inline SVG blue-spruce splash with Telegram-blue tinted background for about 3.9 seconds; React dismisses that initial overlay instead of remounting a second splash, preserving CSS draw/fade motion without dependencies or slice behavior changes.

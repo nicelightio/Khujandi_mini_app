@@ -179,6 +179,13 @@ Optional migrations, only after confirming a dedicated Khujandi DB:
 RUN_MIGRATIONS=1 /usr/local/bin/tgmeal-deploy
 ```
 
+Migration readiness baseline:
+
+- `backend/prisma/schema.prisma` must validate with the project-pinned Prisma CLI.
+- `backend/prisma/migrations/` includes `20260401000000_init_current_schema_baseline`, so a blank PostgreSQL database can be bootstrapped by `prisma migrate deploy` before later incremental migrations.
+- Before changing DB rollout logic, verify the empty-DB path against a disposable PostgreSQL container rather than relying only on the already-bootstrapped prod DB.
+- If a production database was previously bootstrapped with `prisma db push`, inspect `_prisma_migrations` before enabling `RUN_MIGRATIONS=1`; after taking a `pg_dump`, reconcile only migration history with `prisma migrate resolve` when the physical schema already matches the migration output.
+
 ## 7. Manual deploy equivalent
 
 Use this only to debug the server-side script. It must still deploy `origin/main`, not local source changes.

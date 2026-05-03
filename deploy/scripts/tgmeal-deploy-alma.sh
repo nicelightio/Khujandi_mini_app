@@ -29,7 +29,7 @@ run_as_app() {
 }
 
 compose() {
-  run_as_app docker compose --project-name "${COMPOSE_PROJECT_NAME}" -f "${APP_DIR}/docker-compose.yml" "$@"
+  run_as_app bash -lc "cd \"${APP_DIR}\" && exec docker compose --project-name \"${COMPOSE_PROJECT_NAME}\" -f \"${APP_DIR}/docker-compose.yml\" \"\$@\"" bash "$@"
 }
 
 require_root
