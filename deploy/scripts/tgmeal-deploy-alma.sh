@@ -29,7 +29,7 @@ run_as_app() {
 }
 
 compose() {
-  run_as_app bash -lc "cd \"${APP_DIR}\" && exec docker compose --project-name \"${COMPOSE_PROJECT_NAME}\" -f \"${APP_DIR}/docker-compose.yml\" \"\$@\"" bash "$@"
+  run_as_app bash -lc "cd \"${APP_DIR}\" && unset DATABASE_URL TELEGRAM_BOT_TOKEN && exec docker compose --project-name \"${COMPOSE_PROJECT_NAME}\" -f \"${APP_DIR}/docker-compose.yml\" \"\$@\"" bash "$@"
 }
 
 require_root
@@ -97,7 +97,14 @@ log "Deploying GitHub commit ${local_head} from origin/${DEPLOY_BRANCH}"
 
 log "Validating compose config"
 compose config >/tmp/tgmeal-compose-${stamp}.yml
-sed -n '1,220p' /tmp/tgmeal-compose-${stamp}.yml
+sed -E \
+  -e 's#(DATABASE_URL: ).*#\1[REDACTED]#' \
+  -e 's#(TELEGRAM_BOT_TOKEN: ).*#\1[REDACTED]#' \
+  -e 's#(PROD_SSH_KEY: ).*#\1[REDACTED]#' \
+  -e 's#(PROD_SSH_HOST: ).*#\1[REDACTED]#' \
+  -e 's#(PROD_SSH_USER: ).*#\1[REDACTED]#' \
+  -e 's#(PROD_SSH_PORT: ).*#\1[REDACTED]#' \
+  /tmp/tgmeal-compose-${stamp}.yml | sed -n '1,220p'
 
 if [ "${RUN_MIGRATIONS}" = "1" ]; then
   if ! grep -q '^DATABASE_URL=' "${APP_DIR}/.env" || grep -q 'CHANGE_ME' "${APP_DIR}/.env"; then
