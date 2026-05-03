@@ -135,9 +135,19 @@ compose exec -T web wget -qO- http://127.0.0.1/ >/tmp/tgmeal-web-check-${stamp}.
 wc -c /tmp/tgmeal-api-check-${stamp}.json /tmp/tgmeal-web-check-${stamp}.html
 
 log "Public HTTPS check via Traefik"
-curl -fsSIL "https://${PUBLIC_HOST}/" | sed -n '1,20p'
-curl -fsS "https://${PUBLIC_HOST}/api/v1/shops" >/tmp/tgmeal-public-api-check-${stamp}.json
-wc -c /tmp/tgmeal-public-api-check-${stamp}.json
+for attempt in 1 2 3 4 5 6; do
+  if curl -fsSIL "https://${PUBLIC_HOST}/" | sed -n '1,20p' \
+    && curl -fsS "https://${PUBLIC_HOST}/api/v1/shops" >/tmp/tgmeal-public-api-check-${stamp}.json; then
+    wc -c /tmp/tgmeal-public-api-check-${stamp}.json
+    break
+  fi
+  if [ "${attempt}" = "6" ]; then
+    log "ERROR: public HTTPS check failed after ${attempt} attempts."
+    exit 1
+  fi
+  log "WARN: public HTTPS check failed on attempt ${attempt}; waiting for Traefik provider/router refresh."
+  sleep 5
+done
 
 log "Tail logs"
 compose logs --tail=120
