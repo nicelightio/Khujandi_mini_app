@@ -97,7 +97,7 @@ export const StorefrontMenuSections = ({
     {storefront.menuPages.length === 0 && storefront.unpagedProducts.length === 0 ? <p>{storefront.emptyMenuPagesLabel}</p> : null}
 
     {storefront.menuPages
-      .filter((menuPage) => menuPage.id === resolvedActiveTabId)
+      .filter((menuPage) => !storefront.access.canEdit || menuPage.id === resolvedActiveTabId)
       .map((menuPage) => (
         <section
           key={menuPage.id}
@@ -151,7 +151,7 @@ export const StorefrontMenuSections = ({
                     })
                   }
                 >
-                  {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : null}
+                  {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : <div aria-hidden="true" data-storefront-product="media-placeholder" />}
                   <div data-storefront-product="body">
                     <div data-storefront-product="meta">
                       <strong>{product.name}</strong>
@@ -203,7 +203,7 @@ export const StorefrontMenuSections = ({
         </section>
       ))}
 
-    {resolvedActiveTabId === "legacy-unpaged-products" && storefront.unpagedProducts.length > 0 ? (
+    {(!storefront.access.canEdit || resolvedActiveTabId === "legacy-unpaged-products") && storefront.unpagedProducts.length > 0 ? (
       <section data-menu-page-id="legacy-unpaged-products" data-storefront-menu="panel">
         <div data-storefront-menu="heading">
           <div>
@@ -236,7 +236,7 @@ export const StorefrontMenuSections = ({
                   })
                 }
               >
-                {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : null}
+                {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : <div aria-hidden="true" data-storefront-product="media-placeholder" />}
                 <div data-storefront-product="body">
                   <div data-storefront-product="meta">
                     <strong>{product.name}</strong>

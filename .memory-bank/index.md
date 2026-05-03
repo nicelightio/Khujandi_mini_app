@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `catalog/storefront product-card simplification`: customer-facing `/shops/:publicPath` now removes visual wrapper frames around menu/legacy/order-draft surfaces in browse mode and leaves the storefront as product cards only; every product card has a media slot, name and price, while seller edit mode keeps its existing menu/tab/editor affordances.
 - `Ops/Prisma production baseline`: Prisma rollout drift found during TgMeal prod DB bootstrap is repaired in source: `Shop.orders` restores schema validation and `backend/prisma/migrations/20260401000000_init_current_schema_baseline` bootstraps blank PostgreSQL databases before the later ReviewDraft and shop-identity incremental migrations; the deploy runbook now requires disposable empty-DB `prisma migrate deploy` verification for DB rollout changes.
 - `Ops/GitHub-only deploy policy`: production deploys must never build/copy directly from the active development source folder; release flow is branch -> GitHub PR -> review/CI -> merge/push to GitHub -> GitHub Actions SSH-runs server deploy, and `tgmeal-deploy` pulls `origin/main` into `/srv/tgmeal/app` while refusing dirty local deploy checkouts or non-GitHub remotes.
 - `Ops/AlmaLinux deploy`: deployment docs and compose baseline now target the current AlmaLinux prod host with existing Traefik on `80/443`, external Docker network `web`, no host nginx, a checked-in `deploy/scripts/tgmeal-deploy-alma.sh` template, and explicit PhotoChanger/Traefik safety invariants.
