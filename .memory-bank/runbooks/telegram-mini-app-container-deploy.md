@@ -1,309 +1,290 @@
 ---
-description: Runbook контейнерного развертывания Telegram Mini App на том же Ubuntu VPS с очисткой старого non-container deploy и выделенным системным пользователем.
+description: Runbook контейнерного развертывания Telegram Mini App на текущем AlmaLinux prod через existing Traefik, без host nginx и без риска для PhotoChanger.
 status: active
 ---
 # Telegram Mini App Container Deploy
 
 ## Purpose
 
-Перевести текущий тестовый сервер `tgmeal.natureonzoom.win` на контейнерный deploy того же repo: `web` контейнер со статическим frontend + reverse proxy на `api` контейнер с demo/runtime API.
+Развернуть и обновлять `Khujandi Mini App / TgMeal` на текущем production host, где установлен Hermes:
+
+- AlmaLinux 9.7;
+- existing Docker `traefik` на ports `80/443`;
+- existing critical services, особенно PhotoChanger;
+- app stack через Docker Compose project `tgmeal`.
 
 ## Scope and assumptions
 
-- Основа — предыдущий runbook `.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md`.
-- Целевой origin остается тем же: `https://tgmeal.natureonzoom.win` через Cloudflare `Full (strict)`.
-- В контейненый `80/443` остаются на host `nginx`, чтобы не ломать существующий Cloudflare Origin Certificate flow.
-- Старый non-container deploy (`/var/www/tgmeal`, `tgmeal-demo-api.service`) должен быть удален, чтобы на сервере не осталось двух параллельных app copies.
+- Целевой origin: `https://tgmeal.natureonzoom.win`.
+- Cloudflare может оставаться `Proxied + Full (strict)`.
+- На host НЕ ставим и НЕ используем nginx для TgMeal: `80/443` уже принадлежат Traefik.
+- Compose stack подключается к existing Docker network `web` и публикуется через Docker labels.
+- Старый Ubuntu/non-container deploy path deprecated; см. historical reference в [.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md](telegram-mini-app-test-server-deploy.md).
+- Скрипт deploy не делает destructive cleanup и не трогает PhotoChanger/Traefik configs.
+- Production deploy NEVER runs from the active development/source folder. Единственный путь: branch -> GitHub PR -> merge/push в GitHub -> server deploy pulls the merged GitHub commit into `/srv/tgmeal/app`.
 
 ## Target layout
 
-- App user: `tgmeal`
-- App home: `/srv/tgmeal/app`
-- Compose project: `/srv/tgmeal/app/docker-compose.yml`
-- Host nginx public edge: `443 -> 127.0.0.1:8080`
-- Containers:
-  - `web`: nginx со static frontend и `/api` proxy на `api`
-  - `api`: Node 22 runtime для `scripts/dev-api.ts`
+- App user: `tgmeal`.
+- App home: `/srv/tgmeal`.
+- Repo checkout: `/srv/tgmeal/app`.
+- Compose file: `/srv/tgmeal/app/docker-compose.yml`.
+- Compose project: `tgmeal`.
+- Public edge: existing `traefik` container.
+- Docker network for public routing: external `web`.
+- Runtime data volume: `tgmeal_catalog_runtime_data`.
+- Deploy script: `/usr/local/bin/tgmeal-deploy`.
+- GitHub Actions entrypoint: `.github/workflows/deploy-prod.yml`, which SSH-runs `/usr/local/bin/tgmeal-deploy` after `main` is updated.
+- Required GitHub Secrets for automated deploy: `PROD_SSH_HOST`, `PROD_SSH_USER`, `PROD_SSH_KEY`, optional `PROD_SSH_PORT`.
+- Deploy logs: `/var/log/tgmeal/deploy-*.log`.
 
-## 1. Connect and inspect current state
+## 0. Safety invariants for this prod
+
+Before any deploy, remember:
+
+- PhotoChanger is critical: do not stop/remove/recreate `photochanger-app`, `photochanger-pg`, `app_media_data`, `/opt/photochanger`.
+- GitHub is the only release source: do not deploy uncommitted worktree changes, do not copy files from `/root/projects/khujandi-mini-app/Khujandi_mini_app`, and do not build prod from a local feature branch.
+- Traefik is shared public edge: do not replace it with host nginx and do not edit `/opt/traefik` during normal TgMeal deploy.
+- Never run these as part of TgMeal deploy: `docker system prune`, `docker volume rm`, `docker compose down -v`, mass cleanup under `/var/lib/docker`.
+- Do not bind TgMeal to host ports `80`, `443`, `8000`, `5432`, `9000`, `37525`.
+- Prisma migrations must target only a dedicated Khujandi database. Do not accidentally use PhotoChanger PostgreSQL.
+
+## 1. Inspect current host state
 
 ```bash
-ssh root@213.155.13.112
-systemctl status tgmeal-demo-api.service --no-pager
-docker ps -a
-```
-
-## 2. Install Docker Engine + Compose plugin
-
-```bash
-apt update && apt upgrade -y
-apt install -y ca-certificates curl gnupg nginx git ufw
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
-apt update
-apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-systemctl enable --now docker
+cat /etc/os-release | sed -n '1,8p'
 docker --version
--- Docker version 29.3.1, build c2be9cc --
 docker compose version
--- Docker Compose version v5.1.1 --
+systemctl is-active docker firewalld
+getenforce
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+docker network inspect web >/dev/null && echo 'network web exists'
 ```
 
-## 3. Keep firewall baseline
+Expected baseline:
 
-```bash
-ufw allow OpenSSH
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw --force enable
-```
+- OS is AlmaLinux 9.x.
+- Docker and firewalld are active.
+- SELinux is Enforcing.
+- `traefik` is running and owns `80/443`.
+- `photochanger-app` and `photochanger-pg` are running or intentionally stopped by separate ops decision.
 
-## 4. Create dedicated app user
+## 2. Create app user and directories
 
 ```bash
 id -u tgmeal >/dev/null 2>&1 || useradd --system --create-home --home-dir /srv/tgmeal --shell /bin/bash tgmeal
 usermod -aG docker tgmeal
 install -d -o tgmeal -g tgmeal /srv/tgmeal
+install -d -m 0755 /var/log/tgmeal
 ```
 
-## 5. Deploy Database Migrations
+After adding the user to `docker`, open a fresh shell if group membership is needed interactively. The deploy script runs Docker via `runuser` and expects the user to be in the `docker` group.
 
-Перед запуском контейнеров нужно проверить и применить миграции БД.
+## 3. Clone or update deploy checkout from GitHub
 
-### 5.1 Check pending migrations
+`/srv/tgmeal/app` is a production deploy checkout, not a development workspace. It must contain only commits fetched from GitHub.
+
+Fresh clone:
 
 ```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx --yes prisma migrate status'
+runuser -u tgmeal -- git clone https://github.com/nicelightio/Khujandi_mini_app.git /srv/tgmeal/app
 ```
 
-### 5.2 Apply migrations
+Existing checkout repair/update:
 
 ```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx --yes prisma migrate deploy'
+chown -R tgmeal:tgmeal /srv/tgmeal/app/.git
+runuser -u tgmeal -- git -C /srv/tgmeal/app remote get-url origin
+runuser -u tgmeal -- git -C /srv/tgmeal/app status --short --branch
+runuser -u tgmeal -- git -C /srv/tgmeal/app fetch origin main
+runuser -u tgmeal -- git -C /srv/tgmeal/app checkout main
+runuser -u tgmeal -- git -C /srv/tgmeal/app pull --ff-only origin main
 ```
 
-Ожидаемый вывод для новой миграции:
+If `status --short` shows local changes, stop. Fix them through normal GitHub PR flow; do not deploy that dirty checkout.
 
-```
-Database migration: 20260413120000_add_shop_identity_uniqueness
-Applying migration: 20260413120000_add_shop_identity_uniqueness
-```
+## 4. Prepare runtime env
 
-### 5.3 Verify constraint exists
-
-```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose run --rm api npx prisma db execute --stdin <<< "SELECT conname FROM pg_constraint WHERE conname = '\''Shop_sellerId_name_key'\'';"'
-```
-
-Или через psql напрямую (если есть доступ):
-
-```sql
-SELECT conname FROM pg_constraint WHERE conname = 'Shop_sellerId_name_key';
-```
-
-## 7. Clone fresh repo copy as app user
-
-```bash
-sudo -u tgmeal git clone https://github.com/nicelightio/Khujandi_mini_app.git /srv/tgmeal/app
-cd /srv/tgmeal/app
-```
-
-Если нужен конкретный branch:
-
-
-## 8. Prepare runtime env for compose
-
-Создай `.env` рядом с `docker-compose.yml`:
+Create `/srv/tgmeal/app/.env` with only non-secret defaults first. Add real secrets separately when needed; do not paste tokens into chat or logs.
 
 ```bash
 cat >/srv/tgmeal/app/.env <<'EOF'
+TGMEAL_HOST=tgmeal.natureonzoom.win
 ADMIN_ALLOWED_ORIGINS=https://tgmeal.natureonzoom.win
 ADMIN_DB_PATH=/var/lib/khujandi/admin-access-runtime.sqlite
 CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite
 DEBUG=FALSE
+# DATABASE_URL must point to a dedicated Khujandi database before RUN_MIGRATIONS=1 is used.
+# DATABASE_URL=postgresql://tgmeal:CHANGE_ME@khujandi-db-host:5432/tgmeal?schema=public
+# TELEGRAM_BOT_TOKEN=replace-with-real-token-outside-chat
 EOF
 chown tgmeal:tgmeal /srv/tgmeal/app/.env
 chmod 600 /srv/tgmeal/app/.env
 ```
 
-Важно: `scripts/dev-api.ts` хранит runtime SQLite state по `ADMIN_DB_PATH` и `CATALOG_DB_PATH`. Если не задать явные path и не примонтировать persistent Docker volume, admin cookie-сессии и catalog provisioning/seller edits останутся внутри filesystem конкретного `api` контейнера и исчезнут после `docker compose up -d --build` / recreate.
+Important:
 
-`DEBUG=TRUE` допускается только как temporary diagnostic mode для embedded Telegram debugging: web build включает storefront diagnostic panel, а mounted runtime может временно ослаблять owner-only seller storefront guard и писать structured debug logs. Для нормального production-like deploy значение должно оставаться `FALSE`.
+- `DEBUG=TRUE` is temporary diagnostic mode only; production-like deploy keeps `FALSE`.
+- Runtime SQLite state persists through `tgmeal_catalog_runtime_data` volume.
+- `DATABASE_URL` default in compose is a placeholder. Confirm a dedicated Khujandi DB before migrations.
 
-Prisma CLI в checked-in `api` image запускается из `/app`, а каноническая schema лежит в `backend/prisma/schema.prisma`. Root `package.json` фиксирует этот path через `prisma.schema`, а pinned repo-local dependency `prisma` попадает в image через `npm ci --omit=dev`, поэтому `docker compose run --rm api npx --yes prisma migrate status|deploy` должен использовать совместимый checked-in CLI и работать без отдельного `--schema` workaround.
+## 5. Install deploy script
 
-## 8. Build and start containers
-
-```bash
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml build
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml up -d
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml ps
-sudo -u tgmeal docker volume inspect tgmeal_catalog_runtime_data
-```
-
-Проверь container-local origin:
+Install from the checked-in template:
 
 ```bash
-curl http://127.0.0.1:8080/
-curl http://127.0.0.1:8080/api/v1/shops
-curl -i -X POST http://127.0.0.1:8080/api/v1/admin/auth/login \
-  -H 'Origin: https://tgmeal.natureonzoom.win' \
-  -H 'Content-Type: application/json' \
-  --data '{"login":"boss@example.com","password":"super-secret-01"}'
+install -m 0755 /srv/tgmeal/app/deploy/scripts/tgmeal-deploy-alma.sh /usr/local/bin/tgmeal-deploy
 ```
 
-## 9. Repoint host nginx to the web container
-
-Используй тот же Cloudflare Origin Certificate и оставь host nginx единственной публичной точкой входа.
+Dry-read before first run:
 
 ```bash
-cat >/etc/nginx/sites-available/tgmeal.natureonzoom.win <<'EOF'
-server {
-    listen 80;
-    server_name tgmeal.natureonzoom.win;
-
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name tgmeal.natureonzoom.win;
-
-    ssl_certificate /etc/ssl/cloudflare/tgmeal.natureonzoom.win.crt;
-    ssl_certificate_key /etc/ssl/cloudflare/tgmeal.natureonzoom.win.key;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-    }
-}
-EOF
-
-ln -sf /etc/nginx/sites-available/tgmeal.natureonzoom.win /etc/nginx/sites-enabled/tgmeal.natureonzoom.win
-rm -f /etc/nginx/sites-enabled/default
-nginx -t
-systemctl reload nginx
+sed -n '1,240p' /usr/local/bin/tgmeal-deploy
 ```
 
-## 10. Validate public origin
+## 6. First deploy / update deploy
+
+Required release workflow before this command:
+
+1. Develop in a branch.
+2. Push branch to GitHub.
+3. Open PR.
+4. Review/check CI.
+5. Merge to `main` or otherwise update the approved deploy branch in GitHub.
+6. Only then deploy the GitHub commit to this server.
+
+Normal deploy:
+
+```bash
+/usr/local/bin/tgmeal-deploy
+```
+
+By default the script:
+
+1. verifies AlmaLinux, Docker, Traefik and network `web`;
+2. warns if PhotoChanger critical containers are not running;
+3. verifies `/srv/tgmeal/app` has origin `https://github.com/nicelightio/Khujandi_mini_app.git`;
+4. refuses dirty local worktree/cached changes;
+5. fast-forwards `/srv/tgmeal/app` from `origin/main`;
+6. refuses deploy if local `HEAD` differs from `origin/main`;
+7. renders `docker compose config`;
+8. skips Prisma migrations unless explicitly enabled;
+9. builds and starts `tgmeal` containers;
+10. verifies internal web/api and public HTTPS through Traefik;
+11. writes logs under `/var/log/tgmeal`.
+
+Optional migrations, only after confirming a dedicated Khujandi DB:
+
+```bash
+RUN_MIGRATIONS=1 /usr/local/bin/tgmeal-deploy
+```
+
+Migration readiness baseline:
+
+- `backend/prisma/schema.prisma` must validate with the project-pinned Prisma CLI.
+- `backend/prisma/migrations/` includes `20260401000000_init_current_schema_baseline`, so a blank PostgreSQL database can be bootstrapped by `prisma migrate deploy` before later incremental migrations.
+- Before changing DB rollout logic, verify the empty-DB path against a disposable PostgreSQL container rather than relying only on the already-bootstrapped prod DB.
+- If a production database was previously bootstrapped with `prisma db push`, inspect `_prisma_migrations` before enabling `RUN_MIGRATIONS=1`; after taking a `pg_dump`, reconcile only migration history with `prisma migrate resolve` when the physical schema already matches the migration output.
+
+## 7. Manual deploy equivalent
+
+Use this only to debug the server-side script. It must still deploy `origin/main`, not local source changes.
+
+```bash
+runuser -u tgmeal -- git -C /srv/tgmeal/app remote get-url origin
+runuser -u tgmeal -- git -C /srv/tgmeal/app status --short --branch
+runuser -u tgmeal -- git -C /srv/tgmeal/app fetch origin main
+runuser -u tgmeal -- git -C /srv/tgmeal/app checkout main
+runuser -u tgmeal -- git -C /srv/tgmeal/app pull --ff-only origin main
+test "$(runuser -u tgmeal -- git -C /srv/tgmeal/app rev-parse HEAD)" = "$(runuser -u tgmeal -- git -C /srv/tgmeal/app rev-parse origin/main)"
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml config
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml build
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml up -d
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml ps
+```
+
+## 8. Validate public origin
 
 ```bash
 curl -I https://tgmeal.natureonzoom.win
 curl https://tgmeal.natureonzoom.win/api/v1/shops
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml logs --tail=120
 ```
 
-Ожидаемо:
+Expected:
 
-- frontend открывается с того же origin;
-- `/api/v1/shops` отдает demo catalog;
-- `/api/v1/admin/auth/*` доступны через тот же публичный origin и не упираются в missing-runtime mount gap.
-- `api` контейнер хранит admin auth runtime state и catalog runtime state в named volume, а не только во внутреннем filesystem текущего container instance.
+- frontend opens on `https://tgmeal.natureonzoom.win`;
+- `/api/v1/shops` responds from the same origin;
+- `api` container is healthy;
+- no host ports are published by TgMeal containers;
+- Traefik continues serving other services.
 
-## 11. Update flow after new commit
+## 9. Troubleshooting
 
-Рекомендуемый способ обновления: через server-side deploy script.
-
-```bash
-/usr/local/bin/tgmeal-deploy
-```
-
-Эквивалент вручную:
-
-```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose build'
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose up -d'
-systemctl reload nginx
-```
-
-После rollout проверь, что volume не потерян и catalog SQLite лежит на ожидаемом path:
-
-```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose exec api sh -lc "echo $CATALOG_DB_PATH && ls -l /var/lib/khujandi"'
-```
-
-Если менялся только app code без compose/nginx:
-
-```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && git pull'
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose up -d --build'
-```
-
-## 12. Rollback
-
-```bash
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml logs --tail=200
-sudo -u tgmeal docker compose -f /srv/tgmeal/app/docker-compose.yml down
-```
-
-Если нужно быстро вернуть legacy host nginx config, восстанови предыдущий `sites-available` файл только после полной остановки контейнерного стека.
-
-## 13. Commands to deploy updates on the server
-
-Быстрый безопасный сценарий для накатывания новой версии приложения:
-
-```bash
-ssh root@213.155.13.112
-/usr/local/bin/tgmeal-deploy
-```
-
-Если нужно посмотреть логи после обновления:
-
-```bash
-sudo -u tgmeal -H bash -lc 'cd /srv/tgmeal/app && docker compose logs --tail=200'
-```
-
-## 14. Install deploy script on the server
-
-Создай server-side script:
-
-
-Запуск:
-
-```bash
-/usr/local/bin/tgmeal-deploy
-```
-
-Если нужен только статус последнего deploy log:
+Recent deploy log:
 
 ```bash
 ls -1t /var/log/tgmeal | head -n 5
-```
-или 
-```bash
-ls -1t /var/log/tgmeal
 tail -n 200 /var/log/tgmeal/$(ls -1t /var/log/tgmeal | head -n 1)
+```
+
+Compose/app logs:
+
+```bash
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml ps
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml logs --tail=200
+```
+
+Traefik logs, read-only:
+
+```bash
+docker logs --tail=200 traefik
+```
+
+Internal app checks:
+
+```bash
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml exec -T web wget -qO- http://127.0.0.1/
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml exec -T web wget -qO- http://api:3001/api/v1/shops
+```
+
+If git files become root-owned from a previous manual command:
+
+```bash
+chown -R tgmeal:tgmeal /srv/tgmeal/app/.git
+```
+
+## 10. Rollback
+
+Safe rollback is a git fast-forward/back-to-known-commit plus compose recreate. Do not remove volumes.
+
+```bash
+runuser -u tgmeal -- git -C /srv/tgmeal/app log --oneline -n 10
+runuser -u tgmeal -- git -C /srv/tgmeal/app checkout <known-good-commit>
+runuser -u tgmeal -- docker compose --project-name tgmeal -f /srv/tgmeal/app/docker-compose.yml up -d --build
+curl -I https://tgmeal.natureonzoom.win
+```
+
+After rollback, return to `main` intentionally:
+
+```bash
+runuser -u tgmeal -- git -C /srv/tgmeal/app checkout main
 ```
 
 ## Source artifacts
 
-- [.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md](telegram-mini-app-test-server-deploy.md): исходный non-container deploy flow.
-- `docker-compose.yml`: container stack для `web` + `api`.
+- `docker-compose.yml`: Traefik-label based container stack for AlmaLinux prod.
 - `Dockerfile.web`: build and serve frontend static app.
-- `Dockerfile.api`: Node runtime для repo-local demo/admin auth API.
-- `package.json`: canonical Prisma CLI schema path and pinned repo-local Prisma dependency for root/container runtime.
+- `Dockerfile.api`: Node runtime for repo-local API.
+- `deploy/nginx/web-container.conf`: nginx config inside `web` container only.
+- `.github/workflows/deploy-prod.yml`: GitHub Actions workflow that runs server-side deploy over SSH after `main` changes.
+- `deploy/scripts/tgmeal-deploy-alma.sh`: deploy script template.
+- [.memory-bank/architecture/deployment-and-runtime-topology.md](../architecture/deployment-and-runtime-topology.md): topology WHY/WHAT.
+- [.memory-bank/guides/server-deploy-and-rollout.md](../guides/server-deploy-and-rollout.md): short HOW guide.
 
-TG ID Луганский: 
-5281851429
+## Useful app URLs
 
-корень
-https://tgmeal.natureonzoom.win
-
-админка селлера 
-https://tgmeal.natureonzoom.win/seller/shops/status
-
-
-главная Админка добавить магазины 
-https://tgmeal.natureonzoom.win/admin/catalog/shops/provision
-
-Магазин 888
-https://tgmeal.natureonzoom.win/shops/888
-
-проверка оплаты
-https://tgmeal.natureonzoom.win/checkout
+- Root: `https://tgmeal.natureonzoom.win`
+- Seller admin: `https://tgmeal.natureonzoom.win/seller/shops/status`
+- Admin provisioning: `https://tgmeal.natureonzoom.win/admin/catalog/shops/provision`
+- Checkout smoke: `https://tgmeal.natureonzoom.win/checkout`

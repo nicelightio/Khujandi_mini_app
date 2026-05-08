@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState } from "react";
 
 import { StorefrontCrossfadeBackground, StorefrontCrossfadeImage } from "./storefront-media";
 import type { CatalogStorefrontEditorTarget, CatalogStorefrontViewModel, StorefrontTab } from "./storefront-view";
@@ -7,6 +7,195 @@ type StorefrontCartProduct = {
   id: string;
   name: string;
   priceMinor: number;
+};
+
+type StorefrontProductCardProduct = StorefrontCartProduct & {
+  description: string | null;
+  imageUrl: string | null;
+  priceLabel: string;
+};
+
+type StorefrontProductCardProps = {
+  product: StorefrontProductCardProduct;
+  menuPageId: string | null;
+  canEdit: boolean;
+  cartQuantity: number;
+  onActivateNestedEditor: (
+    event: {
+      stopPropagation: () => void;
+    },
+    target: CatalogStorefrontEditorTarget,
+  ) => void;
+  onActivateNestedEditorFromContextMenu: (
+    event: {
+      preventDefault: () => void;
+      stopPropagation: () => void;
+    },
+    target: CatalogStorefrontEditorTarget,
+  ) => void;
+  onAddCartItem: (product: StorefrontCartProduct) => void;
+  onUpdateCartItemQuantity: (productId: string, quantity: number) => void;
+};
+
+const customerProductLongPressDelayMs = 420;
+
+const StorefrontProductCard = ({
+  product,
+  menuPageId,
+  canEdit,
+  cartQuantity,
+  onActivateNestedEditor,
+  onActivateNestedEditorFromContextMenu,
+  onAddCartItem,
+  onUpdateCartItemQuantity,
+}: StorefrontProductCardProps) => {
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPressRef = useRef(false);
+  const [descriptionAnchor, setDescriptionAnchor] = useState<{ x: number; y: number } | null>(null);
+
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current !== null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const hideDescription = () => {
+    clearLongPressTimer();
+    setDescriptionAnchor(null);
+  };
+
+  const startCustomerLongPress = (event: PointerEvent<HTMLLIElement>) => {
+    if (canEdit) {
+      return;
+    }
+
+    clearLongPressTimer();
+    didLongPressRef.current = false;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const anchor = {
+      x: Math.max(18, Math.min(rect.width - 18, event.clientX - rect.left)),
+      y: Math.max(18, Math.min(rect.height - 18, event.clientY - rect.top)),
+    };
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    longPressTimerRef.current = setTimeout(() => {
+      didLongPressRef.current = true;
+
+      if (product.description !== null && product.description.trim().length > 0) {
+        setDescriptionAnchor(anchor);
+      }
+    }, customerProductLongPressDelayMs);
+  };
+
+  const handleCardClick = (event: { stopPropagation: () => void }) => {
+    if (canEdit) {
+      onActivateNestedEditor(event, {
+        type: "product",
+        menuPageId,
+        productId: product.id,
+      });
+
+      return;
+    }
+
+    event.stopPropagation();
+
+    if (didLongPressRef.current) {
+      didLongPressRef.current = false;
+
+      return;
+    }
+
+    onAddCartItem(product);
+  };
+
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLLIElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    handleCardClick(event);
+  };
+
+  const descriptionStyle =
+    descriptionAnchor === null
+      ? undefined
+      : ({
+          "--storefront-description-x": `${descriptionAnchor.x}px`,
+          "--storefront-description-y": `${descriptionAnchor.y}px`,
+        } as CSSProperties);
+
+  return (
+    <li
+      key={product.id}
+      data-product-id={product.id}
+      data-storefront-product="card"
+      data-storefront-product-selected={cartQuantity > 0 ? "true" : "false"}
+      role={canEdit ? undefined : "button"}
+      tabIndex={canEdit ? undefined : 0}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      onPointerDown={startCustomerLongPress}
+      onPointerUp={hideDescription}
+      onPointerCancel={hideDescription}
+      onPointerLeave={hideDescription}
+      onContextMenu={(event) => {
+        if (canEdit) {
+          onActivateNestedEditorFromContextMenu(event, {
+            type: "product",
+            menuPageId,
+            productId: product.id,
+          });
+
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      {descriptionAnchor !== null && product.description !== null ? (
+        <div role="tooltip" data-storefront-product="description-popover" style={descriptionStyle}>
+          {product.description}
+        </div>
+      ) : null}
+      {cartQuantity > 0 && !canEdit ? <span data-storefront-cart="quantity-badge">{cartQuantity}</span> : null}
+      {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : <div aria-hidden="true" data-storefront-product="media-placeholder" />}
+      <div data-storefront-product="body">
+        <div data-storefront-product="meta">
+          <strong>{product.name}</strong>
+          <span>{product.priceLabel}</span>
+        </div>
+        {product.description !== null ? <p>{product.description}</p> : null}
+        {!canEdit && cartQuantity > 0 ? (
+          <div data-storefront-cart="inline-counter" aria-label={`${product.name} quantity`}>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onUpdateCartItemQuantity(product.id, cartQuantity - 1);
+              }}
+            >
+              -
+            </button>
+            <span>{cartQuantity}</span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onUpdateCartItemQuantity(product.id, cartQuantity + 1);
+              }}
+            >
+              +
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </li>
+  );
 };
 
 type StorefrontMenuSectionsProps = {
@@ -97,7 +286,7 @@ export const StorefrontMenuSections = ({
     {storefront.menuPages.length === 0 && storefront.unpagedProducts.length === 0 ? <p>{storefront.emptyMenuPagesLabel}</p> : null}
 
     {storefront.menuPages
-      .filter((menuPage) => menuPage.id === resolvedActiveTabId)
+      .filter((menuPage) => !storefront.access.canEdit || menuPage.id === resolvedActiveTabId)
       .map((menuPage) => (
         <section
           key={menuPage.id}
@@ -132,78 +321,24 @@ export const StorefrontMenuSections = ({
               const cartQuantity = getCartQuantity(product.id);
 
               return (
-                <li
+                <StorefrontProductCard
                   key={product.id}
-                  data-product-id={product.id}
-                  data-storefront-product="card"
-                  onClick={(event) =>
-                    onActivateNestedEditor(event, {
-                      type: "product",
-                      menuPageId: menuPage.id,
-                      productId: product.id,
-                    })
-                  }
-                  onContextMenu={(event) =>
-                    onActivateNestedEditorFromContextMenu(event, {
-                      type: "product",
-                      menuPageId: menuPage.id,
-                      productId: product.id,
-                    })
-                  }
-                >
-                  {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : null}
-                  <div data-storefront-product="body">
-                    <div data-storefront-product="meta">
-                      <strong>{product.name}</strong>
-                      <span>{product.priceLabel}</span>
-                    </div>
-                    {product.description !== null ? <p>{product.description}</p> : null}
-                    {!storefront.access.canEdit ? (
-                      <div data-storefront-cart="product-actions">
-                        <button
-                          type="button"
-                          data-magnetic="true"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onAddCartItem(product);
-                          }}
-                        >
-                          {cartQuantity > 0 ? `Add one more (${cartQuantity})` : "Add to cart"}
-                        </button>
-                        {cartQuantity > 0 ? (
-                          <div data-storefront-cart="quantity-controls" aria-label={`${product.name} quantity`}>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onUpdateCartItemQuantity(product.id, cartQuantity - 1);
-                              }}
-                            >
-                              -
-                            </button>
-                            <span>{cartQuantity}</span>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onUpdateCartItemQuantity(product.id, cartQuantity + 1);
-                              }}
-                            >
-                              +
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                </li>
+                  product={product}
+                  menuPageId={menuPage.id}
+                  canEdit={storefront.access.canEdit}
+                  cartQuantity={cartQuantity}
+                  onActivateNestedEditor={onActivateNestedEditor}
+                  onActivateNestedEditorFromContextMenu={onActivateNestedEditorFromContextMenu}
+                  onAddCartItem={onAddCartItem}
+                  onUpdateCartItemQuantity={onUpdateCartItemQuantity}
+                />
               );
             })}
           </ul>
         </section>
       ))}
 
-    {resolvedActiveTabId === "legacy-unpaged-products" && storefront.unpagedProducts.length > 0 ? (
+    {(!storefront.access.canEdit || resolvedActiveTabId === "legacy-unpaged-products") && storefront.unpagedProducts.length > 0 ? (
       <section data-menu-page-id="legacy-unpaged-products" data-storefront-menu="panel">
         <div data-storefront-menu="heading">
           <div>
@@ -217,71 +352,17 @@ export const StorefrontMenuSections = ({
             const cartQuantity = getCartQuantity(product.id);
 
             return (
-              <li
+              <StorefrontProductCard
                 key={product.id}
-                data-product-id={product.id}
-                data-storefront-product="card"
-                onClick={(event) =>
-                  onActivateNestedEditor(event, {
-                    type: "product",
-                    menuPageId: product.menuPageId,
-                    productId: product.id,
-                  })
-                }
-                onContextMenu={(event) =>
-                  onActivateNestedEditorFromContextMenu(event, {
-                    type: "product",
-                    menuPageId: product.menuPageId,
-                    productId: product.id,
-                  })
-                }
-              >
-                {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : null}
-                <div data-storefront-product="body">
-                  <div data-storefront-product="meta">
-                    <strong>{product.name}</strong>
-                    <span>{product.priceLabel}</span>
-                  </div>
-                  {product.description !== null ? <p>{product.description}</p> : null}
-                  {!storefront.access.canEdit ? (
-                    <div data-storefront-cart="product-actions">
-                      <button
-                        type="button"
-                        data-magnetic="true"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onAddCartItem(product);
-                        }}
-                      >
-                        {cartQuantity > 0 ? `Add one more (${cartQuantity})` : "Add to cart"}
-                      </button>
-                      {cartQuantity > 0 ? (
-                        <div data-storefront-cart="quantity-controls" aria-label={`${product.name} quantity`}>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onUpdateCartItemQuantity(product.id, cartQuantity - 1);
-                            }}
-                          >
-                            -
-                          </button>
-                          <span>{cartQuantity}</span>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onUpdateCartItemQuantity(product.id, cartQuantity + 1);
-                            }}
-                          >
-                            +
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </li>
+                product={product}
+                menuPageId={product.menuPageId}
+                canEdit={storefront.access.canEdit}
+                cartQuantity={cartQuantity}
+                onActivateNestedEditor={onActivateNestedEditor}
+                onActivateNestedEditorFromContextMenu={onActivateNestedEditorFromContextMenu}
+                onAddCartItem={onAddCartItem}
+                onUpdateCartItemQuantity={onUpdateCartItemQuantity}
+              />
             );
           })}
         </ul>

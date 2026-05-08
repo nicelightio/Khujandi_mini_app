@@ -32,6 +32,9 @@ afterEach(() => {
   consoleErrorSpy.mockRestore();
 });
 
+const findProductCard = (renderer: ReactTestRenderer, productId: string) =>
+  renderer.root.findAllByProps({ "data-storefront-product": "card" }).find((node) => node.props["data-product-id"] === productId);
+
 describe("catalog page cart composition", () => {
   it("wires customer storefront cart add, update, remove, totals and checkout readiness", () => {
     const onActivateEditor = jest.fn();
@@ -96,10 +99,10 @@ describe("catalog page cart composition", () => {
     expect(renderer.root.findByProps({ "data-storefront-back-link": true }).props.href).toBe("/");
     expect(collectText(renderer.root.findByProps({ "data-storefront-back-link": true }).children).join(" ")).toBe("Вернуться");
 
-    const addButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const productCard = findProductCard(renderer, "product-1");
 
     act(() => {
-      dispatchBubblingClick(addButton!);
+      dispatchBubblingClick(productCard!);
     });
 
     expect(onActivateEditor).not.toHaveBeenCalled();
@@ -126,6 +129,72 @@ describe("catalog page cart composition", () => {
 
     expect(collectText(renderer.toJSON()).join(" ")).toContain("Add items to unlock checkout");
     expect(collectText(renderer.toJSON()).join(" ")).toContain("Preview total 0.00 TJS");
+  });
+
+  it("uses short card press for add-to-cart and long press only for product description", () => {
+    jest.useFakeTimers();
+
+    let renderer!: ReactTestRenderer;
+
+    act(() => {
+      renderer = renderWithLanguage(
+        createCatalogPageElement({
+          viewModel: createCatalogViewModel([], "en"),
+          storefront: createCustomerStorefront(
+            { id: "shop-1", publicPath: "khujand-bakery", name: "Khujand Bakery" },
+            {
+              id: "product-1",
+              name: "Somsa",
+              description: "Hot baked pastry",
+              priceMinor: 1500,
+              priceLabel: "15.00 TJS",
+            },
+          ),
+        }),
+      );
+    });
+
+    const productCard = findProductCard(renderer, "product-1")!;
+
+    expect(renderer.root.findAllByProps({ "data-storefront-product": "description-popover" })).toHaveLength(0);
+
+    act(() => {
+      productCard.props.onPointerDown({
+        clientX: 48,
+        clientY: 48,
+        pointerId: 1,
+        currentTarget: {
+          getBoundingClientRect: () => ({ left: 0, top: 0, width: 260, height: 120 }),
+          setPointerCapture: jest.fn(),
+        },
+      });
+      jest.advanceTimersByTime(430);
+    });
+
+    expect(collectText(renderer.root.findByProps({ "data-storefront-product": "description-popover" }).children).join(" ")).toBe(
+      "Hot baked pastry",
+    );
+
+    act(() => {
+      productCard.props.onPointerUp();
+    });
+
+    expect(renderer.root.findAllByProps({ "data-storefront-product": "description-popover" })).toHaveLength(0);
+
+    act(() => {
+      dispatchBubblingClick(productCard);
+    });
+
+    expect(getCartSummaryText(renderer)).toContain("Your cart is empty.");
+
+    act(() => {
+      dispatchBubblingClick(productCard);
+    });
+
+    expect(getCartSummaryText(renderer)).toContain("Somsa");
+    expect(renderer.root.findByProps({ "data-storefront-cart": "quantity-badge" }).children).toEqual(["1"]);
+
+    jest.useRealTimers();
   });
 
   it("passes the contract-shaped composition payload when checkout starts", () => {
@@ -155,10 +224,10 @@ describe("catalog page cart composition", () => {
 
     expect(onCheckoutComposition).not.toHaveBeenCalled();
 
-    const addButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const productCard = findProductCard(renderer, "product-1");
 
     act(() => {
-      dispatchBubblingClick(addButton!);
+      dispatchBubblingClick(productCard!);
     });
 
     const enabledCheckoutButton = renderer.root.findByProps({ "data-storefront-cart": "checkout" });
@@ -209,10 +278,10 @@ describe("catalog page cart composition", () => {
       );
     });
 
-    const addButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const productCard = findProductCard(renderer, "product-1");
 
     act(() => {
-      dispatchBubblingClick(addButton!);
+      dispatchBubblingClick(productCard!);
     });
 
     expect(getCartSummaryText(renderer)).toContain("Checkout ready");
@@ -276,10 +345,10 @@ describe("catalog page cart composition", () => {
       );
     });
 
-    const firstAddButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const firstProductCard = findProductCard(renderer, "product-1");
 
     act(() => {
-      dispatchBubblingClick(firstAddButton!);
+      dispatchBubblingClick(firstProductCard!);
     });
 
     expect(getCartSummaryText(renderer)).toContain("Somsa");
@@ -294,10 +363,10 @@ describe("catalog page cart composition", () => {
       );
     });
 
-    const secondAddButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const secondProductCard = findProductCard(renderer, "product-2");
 
     act(() => {
-      dispatchBubblingClick(secondAddButton!);
+      dispatchBubblingClick(secondProductCard!);
     });
 
     expect(getCartSummaryText(renderer)).toContain("Somsa");
@@ -335,10 +404,10 @@ describe("catalog page cart composition", () => {
       );
     });
 
-    const firstAddButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const firstProductCard = findProductCard(renderer, "product-1");
 
     act(() => {
-      dispatchBubblingClick(firstAddButton!);
+      dispatchBubblingClick(firstProductCard!);
     });
 
     act(() => {
@@ -350,10 +419,10 @@ describe("catalog page cart composition", () => {
       );
     });
 
-    const secondAddButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const secondProductCard = findProductCard(renderer, "product-2");
 
     act(() => {
-      dispatchBubblingClick(secondAddButton!);
+      dispatchBubblingClick(secondProductCard!);
     });
 
     const clearButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Clear cart");
@@ -365,10 +434,10 @@ describe("catalog page cart composition", () => {
     expect(getCartSummaryText(renderer)).toContain("Your cart is empty.");
     expect(getCartSummaryText(renderer)).toContain("Preview total 0.00 TJS");
 
-    const addAfterClearButton = renderer.root.findAllByType("button").find((node) => collectText(node.props.children).join(" ") === "Add to cart");
+    const addAfterClearCard = findProductCard(renderer, "product-2");
 
     act(() => {
-      dispatchBubblingClick(addAfterClearButton!);
+      dispatchBubblingClick(addAfterClearCard!);
     });
 
     expect(getCartSummaryText(renderer)).toContain("Green Tea");

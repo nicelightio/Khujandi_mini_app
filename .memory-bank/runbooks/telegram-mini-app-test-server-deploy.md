@@ -1,392 +1,78 @@
 ---
-description: Runbook развертывания тестового Telegram Mini App сервера на Ubuntu VPS с Cloudflare subdomain и первым Android test flow.
-status: active
+description: Deprecated historical runbook старого Ubuntu/non-container test deploy; текущий prod deploy живёт в AlmaLinux + Traefik runbook.
+status: deprecated
 ---
 # Telegram Mini App Test Server Deploy
 
-## Purpose
-
-Поднять тестовый сервер для реального `Android Telegram` verify `FT-009` на VPS `Ubuntu 22` с доменом `tgmeal.natureonzoom.win` через Cloudflare.
-
 ## Status note
 
-- Этот документ описывает исторический non-container deploy path через `node + systemd + host nginx`.
-- Текущий рекомендуемый server deploy path теперь зафиксирован в `.memory-bank/runbooks/telegram-mini-app-container-deploy.md`.
-- Используй этот historical runbook только как reference, если нужно понять legacy rollout или сравнить шаги миграции.
+Этот документ оставлен как historical reference для старого Ubuntu 22 / host nginx / systemd / non-container test deploy.
 
-## Scope and assumptions
+Текущий актуальный deploy path больше НЕ этот документ:
 
-- Цель этого runbook: быстро получить публичный `https` URL для Telegram Mini App и пройти Android runtime checks по `FT-009`.
-- Текущий repo state подходит для shell/runtime verify как `frontend + demo API`.
-- Это не production deploy всего MVP: здесь нет полноценного production backend bootstrap, БД migration flow, payment provider wiring и bot webhook contour.
-- Для текущего тестового прогона достаточно:
-  - Vite-built frontend;
-- repo-local API runtime на том же entrypoint, который запускает `npm run dev:api`;
-  - запуска Mini App из Telegram Android client.
-- Вход в приложение для тестов идет через Telegram Mini App launch context; отдельного login form нет.
+- canonical prod runbook: [.memory-bank/runbooks/telegram-mini-app-container-deploy.md](telegram-mini-app-container-deploy.md);
+- topology: [.memory-bank/architecture/deployment-and-runtime-topology.md](../architecture/deployment-and-runtime-topology.md);
+- short guide: [.memory-bank/guides/server-deploy-and-rollout.md](../guides/server-deploy-and-rollout.md).
 
-## Target environment
+## Why deprecated
 
-- VPS: `213.155.13.112`
-- OS: `Ubuntu 22.04`
-- Domain: `natureonzoom.win`
-- Mini App subdomain: `tgmeal.natureonzoom.win`
-- Recommended origin stack:
-  - `nginx`
-  - `nodejs 20`
-  - `systemd` services for frontend demo API
-  - `Cloudflare Proxied` DNS
-  - `Cloudflare Origin Certificate` on origin
-  - Cloudflare SSL mode: `Full (strict)`
+Старый flow был рассчитан на отдельный Ubuntu VPS:
 
-## Outcome
+- `apt`, `ufw`, host `nginx`;
+- `/var/www/tgmeal/app`;
+- `tgmeal-demo-api.service`;
+- public ports `80/443`, занятые host nginx.
 
-После выполнения runbook должно получиться:
+Текущий prod — AlmaLinux 9.7 server, где уже работают:
 
-- `https://tgmeal.natureonzoom.win` открывает Mini App frontend;
-- `/api/v1/shops` и `/api/v1/shops/:id/products` доступны через тот же origin;
-- BotFather направляет кнопку Web App на этот URL;
-- приложение открывается в `Android Telegram`, проходит language overlay и customer-facing shell checks;
-- evidence складывается в `.tasks/TASK-FT009-06/`.
+- Docker `traefik` on `80/443`;
+- critical PhotoChanger containers and PostgreSQL;
+- Portainer, 3x-ui, Nature on Zoom.
 
-## 1. DNS setup in Cloudflare
+Поэтому старые инструкции с host nginx/systemd нельзя применять на текущем prod: они могут конфликтовать с Traefik и сломать co-hosted services.
 
-Создай запись:
+## Historical scope only
 
-- Type: `A`
-- Name: `tgmeal`
-- IPv4: `213.155.13.112`
-- Proxy status: `Proxied`
+Use this document only to understand legacy assumptions or old Android Telegram verification context. For any real server rollout, use the active AlmaLinux container deploy runbook.
 
-Проверь, что запись резолвится:
+## Legacy summary
 
-```bash
-nslookup tgmeal.natureonzoom.win
-```
+Old target environment was:
 
-Ожидаемо: IP `213.155.13.112`.
+- VPS: `213.155.13.112`;
+- OS: `Ubuntu 22.04`;
+- Domain: `tgmeal.natureonzoom.win`;
+- Stack: host `nginx`, `nodejs 20`, `systemd` service `tgmeal-demo-api.service`, Cloudflare `Full (strict)`.
 
-## 2. Server bootstrap
+Old outcome was:
 
-Подключись к серверу:
+- `https://tgmeal.natureonzoom.win` opens Mini App frontend;
+- `/api/v1/shops` is proxied to a host Node process;
+- BotFather menu button points to the URL;
+- Android Telegram shell/runtime verification could be performed.
+
+## Do not copy to current prod
+
+Do not run these legacy patterns on the AlmaLinux prod host:
 
 ```bash
-ssh root@213.155.13.112
-```
-
-Обнови систему и поставь базовые пакеты:
-
-```bash
-apt update && apt upgrade -y
-apt install -y nginx git curl ca-certificates ufw
-```
-
-Открой нужные порты:
-
-```bash
-ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
-```
-
-## 3. Install Node.js 20
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs
-node -v
-npm -v
-```
-
-Ожидаемо: Node `20.x`.
-
-## 4. Prepare app directory
-
-```bash
-mkdir -p /var/www/tgmeal
-```
-
-Дальше клонируй репозиторий.
-
-```bash
-cd /var/www/tgmeal
-git clone https://github.com/nicelightio/Khujandi_mini_app.git app
-cd /var/www/tgmeal/app
-```
-
-## 5. Install dependencies and build frontend
-
-```bash
-cd /var/www/tgmeal/app
-npm ci
-npm run build:frontend
-```
-
-Ожидаемо появится:
-
-- `dist/index.html`
-- `dist/assets/*`
-
-## 6. Start demo API as a service
-
-Создай unit-файл:
-
-```bash
-cat >/etc/systemd/system/tgmeal-demo-api.service <<'EOF'
-[Unit]
-Description=Khujandi Mini App Demo API
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/var/www/tgmeal/app
-ExecStart=/usr/bin/npm run dev:api
-Restart=always
-RestartSec=3
-User=root
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-Запусти:
-
-```bash
-systemctl daemon-reload
+apt update
+apt install nginx ufw nodejs
+ufw allow 80/tcp
 systemctl enable --now tgmeal-demo-api.service
-systemctl status tgmeal-demo-api.service
-```
-
-Проверь API локально на сервере:
-
-```bash
-curl http://127.0.0.1:3001/api/v1/shops
-```
-
-## 7. Create Cloudflare Origin Certificate
-
-В Cloudflare:
-
-1. Открой `SSL/TLS`.
-2. Перейди в `Origin Server`.
-3. Нажми `Create Certificate`.
-4. Выбери:
-   - key type: `RSA (2048)` или `ECDSA P-256`
-   - hostname: `tgmeal.natureonzoom.win`
-   - при желании дополнительно `*.natureonzoom.win`
-5. Создай сертификат.
-6. Скопируй оба блока:
-   - `Origin Certificate`
-   - `Private Key`
-
-На сервере:
-
-```bash
-mkdir -p /etc/ssl/cloudflare
-chmod 700 /etc/ssl/cloudflare
-```
-
-Сохрани сертификат:
-
-```bash
-nano /etc/ssl/cloudflare/tgmeal.natureonzoom.win.crt
-```
-
-Сохрани ключ:
-
-```bash
-nano /etc/ssl/cloudflare/tgmeal.natureonzoom.win.key
-```
-
-После сохранения выставь права:
-
-```bash
-chmod 644 /etc/ssl/cloudflare/tgmeal.natureonzoom.win.crt
-chmod 600 /etc/ssl/cloudflare/tgmeal.natureonzoom.win.key
-```
-
-## 8. Configure nginx
-
-Создай конфиг:
-
-```bash
-cat >/etc/nginx/sites-available/tgmeal.natureonzoom.win <<'EOF'
-server {
-    listen 80;
-    server_name tgmeal.natureonzoom.win;
-
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name tgmeal.natureonzoom.win;
-
-    ssl_certificate /etc/ssl/cloudflare/tgmeal.natureonzoom.win.crt;
-    ssl_certificate_key /etc/ssl/cloudflare/tgmeal.natureonzoom.win.key;
-
-    root /var/www/tgmeal/app/dist;
-    index index.html;
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-    }
-
-    location / {
-        try_files $uri /index.html;
-    }
-}
-EOF
-```
-
-Активируй его:
-
-```bash
 ln -sf /etc/nginx/sites-available/tgmeal.natureonzoom.win /etc/nginx/sites-enabled/tgmeal.natureonzoom.win
-rm -f /etc/nginx/sites-enabled/default
-nginx -t
 systemctl reload nginx
 ```
 
-Проверь:
+Use the active Traefik/Compose path instead:
 
 ```bash
-curl http://tgmeal.natureonzoom.win
-curl http://tgmeal.natureonzoom.win/api/v1/shops
+/usr/local/bin/tgmeal-deploy
 ```
 
-## 9. Configure Cloudflare SSL mode
+## Related current docs
 
-В Cloudflare открой `SSL/TLS -> Overview` и установи:
-
-- encryption mode: `Full (strict)`
-
-Дополнительно проверь, что DNS запись `tgmeal` остается `Proxied`.
-
-Проверки:
-
-```bash
-curl -I https://tgmeal.natureonzoom.win
-```
-
-Важно:
-
-- при `Proxied + Full (strict)` отдельный `Let's Encrypt` на origin не обязателен;
-- origin cert доверяется Cloudflare, а не обычным браузером при прямом обращении к IP;
-- не переключай SSL mode на `Flexible`, если хочешь избежать лишних проблем с redirect/cookie/security baseline.
-
-## 10. Telegram BotFather integration
-
-Нужен бот, через который будет открываться Mini App.
-
-Если бот уже существует:
-
-1. Открой `@BotFather`
-2. Выполни `/mybots`
-3. Выбери нужного бота
-4. Открой `Bot Settings`
-5. Открой `Menu Button`
-6. Выбери `Configure menu button`
-7. Укажи:
-   - Title: `Open app`
-   - URL: `https://tgmeal.natureonzoom.win`
-
-Если хочешь запуск через inline/web app button в сообщении, это делается уже на стороне логики бота, но для первого Android verify menu button достаточно.
-
-## 11. First launch on Android
-
-1. Открой Telegram на Android.
-2. Найди своего бота.
-3. Нажми `Open app`.
-4. Дождись открытия Mini App.
-5. На первом запуске выбери язык.
-6. Пройди в каталог и затем в checkout.
-
-## 12. How login works for tests
-
-- Отдельного логина сейчас нет.
-- Для текущего test server flow входом считается запуск Mini App из Telegram клиента, чтобы приложение получило реальный Telegram runtime context.
-- Это достаточно для `FT-009` shell/runtime verify.
-- Для production-like auth verify нужен отдельный backend deploy с реальным `POST /auth/telegram`, `bot token`, replay guard и session contour; этот runbook этого не покрывает.
-
-## 13. Android verify procedure
-
-См. checklist:
-
-- `.tasks/TASK-FT009-06/android-evidence-checklist.md`
-
-Рекомендуемый порядок проверки:
-
-1. Запусти Mini App из Telegram Android через menu button бота.
-2. На первом запуске выбери язык и дождись открытия каталога.
-3. Проверь `bootstrap`:
-   - приложение открывается без длинного зависшего placeholder;
-   - shell выглядит готовым сразу после загрузки.
-4. Проверь каталог:
-   - safe-area не ломает верх/низ экрана;
-   - карточки и нижняя часть экрана не упираются в системные области.
-5. Проверь keyboard/viewport:
-   - открой тестовое поле ввода на каталоге;
-   - убедись, что при открытии клавиатуры layout не прыгает и контент не ломается.
-6. Проверь checkout:
-   - открой checkout route;
-   - убедись, что safe-area и нижняя CTA ведут себя корректно внутри Telegram WebView.
-7. Проверь runtime behavior:
-   - переключи тему Telegram `light/dark`, если доступно;
-   - сверни и верни приложение, чтобы проверить `activated/deactivated` behavior;
-   - проверь back/swipe policy.
-8. Запиши итог в `.tasks/TASK-FT009-06/android-notes.md`.
-
-Минимум для closure:
-
-- operator-confirmed notes по `bootstrap`, `catalog safe-area`, `checkout`, `keyboard viewport`, `theme/lifecycle`, `back/swipe`;
-- screenshots/videos можно приложить дополнительно, но они не обязательны.
-
-## 14. Updating the test server after `git pull`
-
-Базовое правило:
-
-- после `git pull` почти всегда безопасно выполнять `npm ci` и `npm run build:frontend`, если ты не уверен, какие именно файлы изменились;
-- `npm ci` обязательно нужно делать, если изменились `package.json` или `package-lock.json`;
-- `npm run build:frontend` обязательно нужно делать, если изменился любой код frontend или статические assets;
-- `systemctl restart tgmeal-demo-api.service` нужен, если изменились `scripts/dev-api.ts`, `backend/src/dev-runtime/**/*` или другой код, который использует repo-local API runtime;
-- `systemctl reload nginx` нужен только если менялся nginx config или ты хочешь безопасно перечитать конфиг после деплоя.
-
-Рекомендуемая безопасная последовательность после обновления:
-
-```bash
-cd /var/www/tgmeal/app
-git pull
-npm ci
-npm run build:frontend
-systemctl restart tgmeal-demo-api.service
-systemctl reload nginx
-```
-
-Если знаешь, что менялся только frontend и зависимости не менялись, можно короче:
-
-```bash
-cd /var/www/tgmeal/app
-git pull
-npm run build:frontend
-systemctl reload nginx
-```
-
-
-## 15. Known limitations
-
-- Текущий test server deploy дает real Telegram runtime для `FT-009`, но не production-complete backend contour.
-- Checkout здесь годится для UI/runtime verify, а не для trusted payment verification.
-- `POST /auth/telegram`, database-backed session issuance, payment callbacks и bot webhook ingress требуют отдельного production-like backend bootstrap.
-
-## Source artifacts
-
-- [.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md](../features/FT-009-mini-app-shell-and-webview-ux.md): shell/runtime acceptance.
-- [.memory-bank/runbooks/telegram-mini-app-verification.md](telegram-mini-app-verification.md): Android Telegram verify scope.
+- [.memory-bank/runbooks/telegram-mini-app-container-deploy.md](telegram-mini-app-container-deploy.md): current canonical deploy.
+- [.memory-bank/runbooks/telegram-mini-app-verification.md](telegram-mini-app-verification.md): Telegram-specific verification scope.
 - [.memory-bank/contracts/mini-app-runtime-contract.md](../contracts/mini-app-runtime-contract.md): runtime ownership boundary.
-- [.memory-bank/contracts/telegram-mini-app-auth-contract.md](../contracts/telegram-mini-app-auth-contract.md): production-like auth boundary, outside this quick test deploy.
+- [.memory-bank/contracts/telegram-mini-app-auth-contract.md](../contracts/telegram-mini-app-auth-contract.md): production-like auth boundary.

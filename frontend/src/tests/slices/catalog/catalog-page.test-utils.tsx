@@ -66,7 +66,7 @@ export const renderCatalogPageWithLanguage = (props: Parameters<typeof CatalogPa
 
 export const createCustomerStorefront = (
   shop: { id: string; publicPath: string; name: string },
-  product: { id: string; name: string; priceMinor: number; priceLabel: string },
+  product: { id: string; name: string; description?: string | null; priceMinor: number; priceLabel: string },
 ): CatalogStorefrontViewModel => ({
   shop: {
     ...shop,
@@ -89,7 +89,7 @@ export const createCustomerStorefront = (
       products: [
         {
           ...product,
-          description: null,
+          description: product.description ?? null,
           imageUrl: null,
         },
       ],

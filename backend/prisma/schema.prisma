@@ -81,6 +81,7 @@ model Shop {
   menuPages                   MenuPage[]
   products                    Product[]
   sellerBindings              SellerShopBinding[]
+  orders                      Order[]
 
   @@index([sellerId])
   @@index([status])

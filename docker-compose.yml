@@ -11,6 +11,8 @@ services:
       ADMIN_DB_PATH: ${ADMIN_DB_PATH:-/var/lib/khujandi/admin-access-runtime.sqlite}
       CATALOG_DB_PATH: ${CATALOG_DB_PATH:-/var/lib/khujandi/catalog-runtime.sqlite}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-test-bot-token}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - catalog_runtime_data:/var/lib/khujandi
     restart: unless-stopped
@@ -30,9 +32,25 @@ services:
     depends_on:
       api:
         condition: service_healthy
-    ports:
-      - "127.0.0.1:8080:80"
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: web
+      traefik.http.routers.tgmeal-http.rule: Host(`${TGMEAL_HOST:-tgmeal.natureonzoom.win}`)
+      traefik.http.routers.tgmeal-http.entrypoints: web
+      traefik.http.routers.tgmeal-http.middlewares: tgmeal-https-redirect
+      traefik.http.middlewares.tgmeal-https-redirect.redirectscheme.scheme: https
+      traefik.http.routers.tgmeal.rule: Host(`${TGMEAL_HOST:-tgmeal.natureonzoom.win}`)
+      traefik.http.routers.tgmeal.entrypoints: websecure
+      traefik.http.routers.tgmeal.tls: "true"
+      traefik.http.services.tgmeal.loadbalancer.server.port: "80"
+    networks:
+      - default
+      - web
     restart: unless-stopped
 
 volumes:
   catalog_runtime_data:
+
+networks:
+  web:
+    external: true
