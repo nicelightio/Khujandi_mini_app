@@ -1,0 +1,59 @@
+/*
+  Created Shops design tokens.
+  Scope: design artifact for admin provisioning and created-shop handoff.
+  Implementation should extend existing --admin-* tokens instead of replacing them.
+*/
+
+:root {
+  --created-shop-bg-primary: #060816;
+  --created-shop-bg-panel: rgba(11, 16, 34, 0.86);
+  --created-shop-bg-panel-strong: rgba(14, 21, 43, 0.94);
+  --created-shop-bg-warm: rgba(247, 239, 228, 0.08);
+
+  --created-shop-text-primary: #f4f7ff;
+  --created-shop-text-secondary: rgba(228, 235, 255, 0.72);
+  --created-shop-text-muted: rgba(189, 201, 232, 0.54);
+
+  --created-shop-accent-primary: #8aa4ff;
+  --created-shop-accent-warm: #ffd68e;
+  --created-shop-accent-green: #93f4bf;
+  --created-shop-danger: #ff8f9f;
+
+  --created-shop-border-subtle: rgba(163, 188, 255, 0.12);
+  --created-shop-border-strong: rgba(163, 188, 255, 0.28);
+
+  --created-shop-space-1: 4px;
+  --created-shop-space-2: 8px;
+  --created-shop-space-3: 12px;
+  --created-shop-space-4: 16px;
+  --created-shop-space-5: 20px;
+  --created-shop-space-6: 24px;
+  --created-shop-space-7: 32px;
+  --created-shop-space-8: 40px;
+
+  --created-shop-radius-sm: 12px;
+  --created-shop-radius-md: 16px;
+  --created-shop-radius-lg: 22px;
+  --created-shop-radius-xl: 28px;
+
+  --created-shop-shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.36);
+  --created-shop-shadow-soft: 0 16px 44px rgba(0, 0, 0, 0.24);
+
+  --created-shop-duration-fast: 150ms;
+  --created-shop-duration-normal: 220ms;
+  --created-shop-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --created-shop-bg-primary: #060816;
+  --created-shop-bg-panel: rgba(11, 16, 34, 0.88);
+  --created-shop-bg-panel-strong: rgba(14, 21, 43, 0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --created-shop-bg-primary: #060816;
+    --created-shop-bg-panel: rgba(11, 16, 34, 0.88);
+    --created-shop-bg-panel-strong: rgba(14, 21, 43, 0.96);
+  }
+}

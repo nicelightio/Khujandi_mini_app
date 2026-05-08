@@ -26,6 +26,8 @@ type AdminCatalogProvisioningPageProps = {
   onSubmit: () => void;
 };
 
+const buildPublicStorefrontPath = (publicPath: string): string => `/shops/${publicPath}`;
+
 export const AdminCatalogProvisioningPage = ({
   value,
   isSubmitting,
@@ -37,11 +39,13 @@ export const AdminCatalogProvisioningPage = ({
   onChange,
   onSubmit,
 }: AdminCatalogProvisioningPageProps) => (
-  <AdminPageShell title="Catalog shop provisioning">
+  <AdminPageShell title="Catalog shop provisioning" layout="hero">
     <section aria-live="polite" data-admin-provisioning="summary">
       <span data-admin-ui="micro-label">Provisioning status</span>
-      <p>Protected admin session is provided by the shared admin-access boundary.</p>
-      <p>This form provisions a skeleton shop and binds one Telegram-linked seller identity.</p>
+      <h2>Created shops become seller-ready storefronts.</h2>
+      <p>
+        Provisioning creates a durable skeleton storefront, binds one Telegram-linked seller identity, and issues public path aliases.
+      </p>
       <div data-admin-ui="fact-list">
         <div>
           <span>Runtime list</span>
@@ -58,6 +62,10 @@ export const AdminCatalogProvisioningPage = ({
         <div>
           <span>Seller binding</span>
           <strong>{value.telegramId.trim().length === 0 ? "Pending" : value.telegramId}</strong>
+        </div>
+        <div>
+          <span>Starter content</span>
+          <strong>Menu pages and products</strong>
         </div>
       </div>
       {successMessage !== null ? <p role="status">{successMessage}</p> : null}
@@ -133,36 +141,52 @@ export const AdminCatalogProvisioningPage = ({
     </form>
 
     <section aria-live="polite" data-admin-provisioning="shops-list">
-      <h2>Provisioned shops</h2>
+      <div data-admin-provisioning="shops-header">
+        <div>
+          <span data-admin-ui="micro-label">Catalog runtime</span>
+          <h2>Provisioned shops</h2>
+        </div>
+        <span data-admin-ui="status-chip" data-admin-status-tone="accent">
+          {isLoadingShops ? "Loading" : `${provisionedShops.length} shops`}
+        </span>
+      </div>
       {isLoadingShops ? <p>Loading provisioned shops...</p> : null}
-      {!isLoadingShops && provisionedShops.length === 0 ? <p>No shops have been provisioned yet.</p> : null}
+      {!isLoadingShops && provisionedShops.length === 0 ? (
+        <p>No shops have been provisioned yet. Create the first skeleton storefront from the workspace above.</p>
+      ) : null}
       {provisionedShops.length > 0 ? (
-        <table data-admin-ui="table">
-          <thead>
-            <tr>
-              <th scope="col">Shop</th>
-              <th scope="col">Visibility</th>
-              <th scope="col">Seller</th>
-              <th scope="col">Telegram</th>
-              <th scope="col">Paths</th>
-            </tr>
-          </thead>
-          <tbody>
-            {provisionedShops.map((shop) => (
-              <tr key={shop.shopId}>
-                <td>{shop.shopName}</td>
-                <td>
-                  <span data-admin-ui="status-chip" data-admin-status-tone={shop.status === "WORKING" ? "success" : "danger"}>
-                    {shop.status}
-                  </span>
-                </td>
-                <td>{shop.sellerId}</td>
-                <td>{shop.telegramId === null ? "Unbound" : shop.telegramId}</td>
-                <td>{`${shop.secondaryPublicPath} / ${shop.primaryPublicPath}`}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul data-admin-provisioning="shop-cards">
+          {provisionedShops.map((shop) => (
+            <li key={shop.shopId} data-admin-provisioning="shop-card">
+              <div data-admin-provisioning="shop-card-main">
+                <div>
+                  <span data-admin-ui="micro-label">Shop</span>
+                  <h3>{shop.shopName}</h3>
+                </div>
+                <span data-admin-ui="status-chip" data-admin-status-tone={shop.status === "WORKING" ? "success" : "danger"}>
+                  {shop.status}
+                </span>
+              </div>
+
+              <dl data-admin-provisioning="shop-facts">
+                <div>
+                  <dt>Seller</dt>
+                  <dd>{shop.sellerId}</dd>
+                </div>
+                <div>
+                  <dt>Telegram</dt>
+                  <dd>{shop.telegramId === null ? "Unbound" : shop.telegramId}</dd>
+                </div>
+              </dl>
+
+              <div data-admin-provisioning="paths" aria-label={`${shop.shopName} public storefront paths`}>
+                <a href={buildPublicStorefrontPath(shop.secondaryPublicPath)}>{shop.secondaryPublicPath}</a>
+                <a href={buildPublicStorefrontPath(shop.primaryPublicPath)}>{shop.primaryPublicPath}</a>
+              </div>
+              <p data-admin-provisioning="paths-summary">{`${shop.secondaryPublicPath} / ${shop.primaryPublicPath}`}</p>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </section>
   </AdminPageShell>

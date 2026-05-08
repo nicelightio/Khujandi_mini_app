@@ -15,6 +15,11 @@ status: active
 
 ## Recent entries
 
+## [2026-05-09] Created shops design-flow and provisioning UI pass
+- Ran a design-flow pass for created/provisioned shops inside the `catalog` slice: saved brief, IA, scoped token notes, and build tasks under `.design/created-shops/`, with explicit boundaries for `admin-web` provisioning, shared `/shops/:publicPath` storefront, and narrow `seller-web` status control.
+- Refined `/admin/catalog/shops/provision` as a presentation-only provisioning workspace: the summary now emphasizes durable skeleton storefront creation, seller Telegram binding, initial visibility and starter content, while the created-shop list uses scan-friendly cards with visible `WORKING/NOT_WORKING`, seller/Telegram facts, and public path links without exposing technical `shop.id` as a customer route.
+- Verification passed with focused admin provisioning Jest, `npm run lint`, and `npm run build:frontend`; no backend contracts, RTM lifecycle, or catalog domain semantics changed.
+
 ## [2026-04-29] MB garden synced refactor hardening wave
 - Ran `/mb-garden`: quick check found no active `TODO/TBD/Known gaps` entries outside command examples, and no `scripts/mb-lint.mjs` is configured.
 - Synced the recent refactor/security hardening wave into Memory Bank: `dev-runtime` and `reviews-feedback` repository splits are recorded in the root index, while remaining review findings are tracked as ready follow-ups for Mini App/seller Origin enforcement, refund CAS hardening, and refreshing `REFACTORING_IDEAS.md` after the changed line counts.

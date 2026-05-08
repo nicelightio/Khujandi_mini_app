@@ -605,6 +605,130 @@ body[data-root-contour="admin-web"] textarea {
   font-weight: 600;
 }
 
+/* Catalog provisioning workspace */
+[data-admin-provisioning="summary"] h2,
+[data-admin-provisioning="shops-header"] h2,
+[data-admin-provisioning="shop-card"] h3 {
+  margin: 0;
+  color: var(--admin-text);
+}
+
+[data-admin-provisioning="summary"] h2 {
+  max-width: 18rem;
+  font-size: clamp(1.25rem, 1.2vw + 1rem, 1.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+[data-admin-provisioning="form"] fieldset {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+[data-admin-provisioning="form"] legend,
+[data-admin-provisioning="form"] label:nth-of-type(4),
+[data-admin-provisioning="form"] label:nth-of-type(7) {
+  grid-column: 1 / -1;
+}
+
+[data-admin-provisioning="shops-header"],
+[data-admin-provisioning="shop-card-main"] {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+[data-admin-provisioning="shop-cards"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-admin-provisioning="shop-card"] {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(163, 188, 255, 0.08);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 214, 142, 0.07), transparent 34%),
+    rgba(255, 255, 255, 0.018);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.18);
+}
+
+[data-admin-provisioning="shop-card"] h3 {
+  margin-top: 4px;
+  font-size: 1.2rem;
+  line-height: 1.15;
+}
+
+[data-admin-provisioning="shop-facts"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+[data-admin-provisioning="shop-facts"] div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+[data-admin-provisioning="shop-facts"] dt {
+  color: var(--admin-text-dim);
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+[data-admin-provisioning="shop-facts"] dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--admin-text);
+  overflow-wrap: anywhere;
+}
+
+[data-admin-provisioning="paths"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+[data-admin-provisioning="paths"] a {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid rgba(163, 188, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(138, 164, 255, 0.07);
+  color: var(--admin-accent-strong);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.82rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+[data-admin-provisioning="paths"] a:hover,
+[data-admin-provisioning="paths"] a:focus-visible {
+  border-color: var(--admin-border-strong);
+  outline: none;
+  background: rgba(138, 164, 255, 0.12);
+}
+
+[data-admin-provisioning="paths-summary"] {
+  margin: -8px 0 0;
+  color: var(--admin-text-dim);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
 /* Login composition */
 [data-admin-login="stage"] {
   gap: 18px;
@@ -780,6 +904,17 @@ body[data-root-contour="admin-web"] textarea {
 
   [data-admin-ui="selection-row"] {
     grid-template-columns: 1fr;
+  }
+
+  [data-admin-provisioning="form"] fieldset,
+  [data-admin-provisioning="shop-facts"] {
+    grid-template-columns: 1fr;
+  }
+
+  [data-admin-provisioning="shops-header"],
+  [data-admin-provisioning="shop-card-main"] {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   [data-admin-ui="table"] {
