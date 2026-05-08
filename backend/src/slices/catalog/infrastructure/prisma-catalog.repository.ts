@@ -19,6 +19,7 @@ import type {
   SellerCatalogShop,
   SellerShopBinding,
   ShopId,
+  StartShowcase,
   UpdateSellerMenuPageInput,
   UpdateSellerProductInput,
   UpdateSellerShopInput,
@@ -26,6 +27,8 @@ import type {
 import { CatalogProvisioningWriter } from "./prisma/catalog-provisioning.writer";
 import { CatalogAdminReader } from "./prisma/catalog-admin.reader";
 import { CatalogPublicReader } from "./prisma/catalog-public.reader";
+import { CatalogStartShowcaseReader } from "./prisma/catalog-start-showcase.reader";
+import { CatalogStartShowcaseWriter } from "./prisma/catalog-start-showcase.writer";
 import { CatalogSellerReader } from "./prisma/catalog-seller.reader";
 import { CatalogSellerWriter } from "./prisma/catalog-seller.writer";
 import type {
@@ -39,6 +42,8 @@ export class PrismaCatalogRepository implements CatalogRepository {
   private readonly sellerReader: CatalogSellerReader;
   private readonly sellerWriter: CatalogSellerWriter;
   private readonly provisioningWriter: CatalogProvisioningWriter;
+  private readonly showcaseReader: CatalogStartShowcaseReader;
+  private readonly showcaseWriter: CatalogStartShowcaseWriter;
 
   constructor(private readonly prisma: CatalogPrismaProvider) {
     this.publicReader = new CatalogPublicReader(this.prisma.client);
@@ -48,10 +53,16 @@ export class PrismaCatalogRepository implements CatalogRepository {
       this.prisma.client as CatalogPrismaTransactionalClientLike,
     );
     this.provisioningWriter = new CatalogProvisioningWriter(this.prisma.client);
+    this.showcaseReader = new CatalogStartShowcaseReader(this.prisma.client);
+    this.showcaseWriter = new CatalogStartShowcaseWriter(this.prisma.client);
   }
 
   listPublicShops(): Promise<CatalogShop[]> {
     return this.publicReader.listPublicShops();
+  }
+
+  getStartShowcase(): Promise<StartShowcase> {
+    return this.showcaseReader.getStartShowcase();
   }
 
   listAllPublicPaths(): Promise<string[]> {
@@ -148,5 +159,21 @@ export class PrismaCatalogRepository implements CatalogRepository {
     input: UpdateSellerProductInput,
   ): Promise<CatalogWriteResult<SellerCatalogProduct>> {
     return this.sellerWriter.updateProduct(productId, input);
+  }
+
+  addShowcaseProduct(productId: ProductId): Promise<void> {
+    return this.showcaseWriter.addShowcaseProduct(productId);
+  }
+
+  unlinkShowcaseProduct(productId: ProductId): Promise<void> {
+    return this.showcaseWriter.unlinkShowcaseProduct(productId);
+  }
+
+  favoriteShop(shopId: ShopId): Promise<void> {
+    return this.showcaseWriter.favoriteShop(shopId);
+  }
+
+  unfavoriteShop(shopId: ShopId): Promise<void> {
+    return this.showcaseWriter.unfavoriteShop(shopId);
   }
 }

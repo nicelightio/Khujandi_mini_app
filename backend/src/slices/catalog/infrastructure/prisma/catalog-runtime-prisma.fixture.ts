@@ -1,5 +1,7 @@
 import { createPrismaProvider, type EventRecord } from "../../../../shared/db/prisma-client";
 import type {
+  CatalogFavoriteShopReference,
+  CatalogShowcaseProductReference,
   CatalogWriteEvent,
   SellerCatalogMenuPage,
   SellerCatalogProduct,
@@ -15,11 +17,15 @@ export type CatalogRuntimePrismaFixtureState = {
   shops: SellerCatalogShop[];
   menuPages: SellerCatalogMenuPage[];
   products: SellerCatalogProduct[];
+  showcaseProducts: CatalogShowcaseProductReference[];
+  favoriteShops: CatalogFavoriteShopReference[];
   bindings: SellerShopBinding[];
   events: CatalogWriteEvent[];
   nextShopId: number;
   nextMenuPageId: number;
   nextProductId: number;
+  nextShowcaseProductId: number;
+  nextFavoriteShopId: number;
   nextBindingId: number;
 };
 
@@ -115,6 +121,8 @@ const cloneCatalogFixtureState = (state: CatalogRuntimePrismaFixtureState): Cata
   shops: state.shops.map((shop) => ({ ...shop })),
   menuPages: state.menuPages.map((page) => ({ ...page })),
   products: state.products.map((product) => ({ ...product })),
+  showcaseProducts: (state.showcaseProducts ?? []).map((reference) => ({ ...reference })),
+  favoriteShops: (state.favoriteShops ?? []).map((reference) => ({ ...reference })),
   bindings: state.bindings.map((binding) => ({ ...binding })),
   events: state.events.map((event) => ({
     ...event,
@@ -123,6 +131,8 @@ const cloneCatalogFixtureState = (state: CatalogRuntimePrismaFixtureState): Cata
   nextShopId: state.nextShopId,
   nextMenuPageId: state.nextMenuPageId,
   nextProductId: state.nextProductId,
+  nextShowcaseProductId: state.nextShowcaseProductId ?? 1,
+  nextFavoriteShopId: state.nextFavoriteShopId ?? 1,
   nextBindingId: state.nextBindingId,
 });
 
@@ -502,6 +512,174 @@ export const createCatalogRuntimePrismaFixture = (
           },
           updatedAt: new Date(),
         };
+      },
+    },
+    catalogShowcaseProduct: {
+      findMany: async ({ where, orderBy, take, select }: { where?: { isActive?: boolean }; orderBy?: Array<Record<string, "asc" | "desc">> | Record<string, "asc" | "desc">; take?: number; select?: Record<string, unknown> }) => {
+        let references = (target.showcaseProducts ?? []).filter(
+          (reference) => where?.isActive === undefined || reference.isActive === where.isActive,
+        );
+
+        const orderRules = Array.isArray(orderBy) ? orderBy : orderBy === undefined ? [] : [orderBy];
+        references = [...references].sort((left, right) => {
+          for (const rule of orderRules) {
+            const [field, direction] = Object.entries(rule)[0] ?? [];
+            if (field === "sortOrder" && left.sortOrder !== right.sortOrder) {
+              return direction === "desc" ? right.sortOrder - left.sortOrder : left.sortOrder - right.sortOrder;
+            }
+          }
+
+          return 0;
+        });
+
+        return references.slice(0, take ?? references.length).map((reference) => {
+          const product = target.products.find((candidate) => candidate.id === reference.productId);
+          const shop = product === undefined ? undefined : target.shops.find((candidate) => candidate.id === product.shopId);
+
+          return {
+            ...reference,
+            ...(select?.product !== undefined && product !== undefined && shop !== undefined
+              ? {
+                  product: {
+                    id: product.id,
+                    shopId: product.shopId,
+                    menuPageId: product.menuPageId,
+                    name: product.name,
+                    description: product.description,
+                    imageUrl: product.imageUrl,
+                    priceMinor: product.priceMinor,
+                    isDeleted: product.isDeleted,
+                    shop: {
+                      id: shop.id,
+                      name: shop.name,
+                      primaryPublicPath: shop.primaryPublicPath,
+                      secondaryPublicPath: shop.secondaryPublicPath,
+                      isDeleted: shop.isDeleted,
+                      status: shop.status,
+                    },
+                  },
+                }
+              : {}),
+          };
+        });
+      },
+      findUnique: async ({ where }: { where: { productId: string } }) =>
+        (target.showcaseProducts ?? []).find((reference) => reference.productId === where.productId) ?? null,
+      count: async ({ where }: { where?: { isActive?: boolean } }) =>
+        (target.showcaseProducts ?? []).filter(
+          (reference) => where?.isActive === undefined || reference.isActive === where.isActive,
+        ).length,
+      create: async ({ data }: { data: { productId: string; sortOrder: number; isActive: boolean } }) => {
+        const reference: CatalogShowcaseProductReference = {
+          id: `showcase-product-runtime-${target.nextShowcaseProductId++}`,
+          productId: data.productId,
+          sortOrder: data.sortOrder,
+          isActive: data.isActive,
+        };
+        target.showcaseProducts.push(reference);
+        persistCommittedState(target);
+        return { ...reference };
+      },
+      update: async ({ where, data }: { where: { productId: string }; data: { sortOrder?: number; isActive?: boolean } }) => {
+        const reference = target.showcaseProducts.find((candidate) => candidate.productId === where.productId);
+
+        if (reference === undefined) {
+          throw new Error("Unknown showcase product reference");
+        }
+
+        reference.sortOrder = data.sortOrder ?? reference.sortOrder;
+        reference.isActive = data.isActive ?? reference.isActive;
+        persistCommittedState(target);
+        return { ...reference };
+      },
+    },
+    catalogFavoriteShop: {
+      findMany: async ({ where, orderBy, take, select }: { where?: { isActive?: boolean }; orderBy?: Array<Record<string, "asc" | "desc">> | Record<string, "asc" | "desc">; take?: number; select?: Record<string, unknown> }) => {
+        let references = (target.favoriteShops ?? []).filter(
+          (reference) => where?.isActive === undefined || reference.isActive === where.isActive,
+        );
+
+        const orderRules = Array.isArray(orderBy) ? orderBy : orderBy === undefined ? [] : [orderBy];
+        references = [...references].sort((left, right) => {
+          for (const rule of orderRules) {
+            const [field, direction] = Object.entries(rule)[0] ?? [];
+            if (field === "sortOrder" && left.sortOrder !== right.sortOrder) {
+              return direction === "desc" ? right.sortOrder - left.sortOrder : left.sortOrder - right.sortOrder;
+            }
+          }
+
+          return 0;
+        });
+
+        return references.slice(0, take ?? references.length).map((reference) => {
+          const shop = target.shops.find((candidate) => candidate.id === reference.shopId);
+
+          return {
+            ...reference,
+            ...(select?.shop !== undefined && shop !== undefined
+              ? {
+                  shop: {
+                    id: shop.id,
+                    name: shop.name,
+                    primaryPublicPath: shop.primaryPublicPath,
+                    secondaryPublicPath: shop.secondaryPublicPath,
+                    description: shop.description,
+                    headerImageUrl: shop.headerImageUrl,
+                    backgroundImageUrl: shop.backgroundImageUrl,
+                    status: shop.status,
+                    isDeleted: shop.isDeleted,
+                  },
+                }
+              : {}),
+          };
+        });
+      },
+      findUnique: async ({ where }: { where: { shopId: string } }) =>
+        (target.favoriteShops ?? []).find((reference) => reference.shopId === where.shopId) ?? null,
+      count: async ({ where }: { where?: { isActive?: boolean; shop?: { isDeleted?: boolean; status?: "WORKING" | "NOT_WORKING" } } }) =>
+        (target.favoriteShops ?? []).filter((reference) => {
+          if (where?.isActive !== undefined && reference.isActive !== where.isActive) {
+            return false;
+          }
+
+          if (where?.shop === undefined) {
+            return true;
+          }
+
+          const shop = target.shops.find((candidate) => candidate.id === reference.shopId);
+
+          if (shop === undefined) {
+            return false;
+          }
+
+          if (where.shop.isDeleted !== undefined && shop.isDeleted !== where.shop.isDeleted) {
+            return false;
+          }
+
+          return where.shop.status === undefined || shop.status === where.shop.status;
+        }).length,
+      create: async ({ data }: { data: { shopId: string; sortOrder: number; isActive: boolean } }) => {
+        const reference: CatalogFavoriteShopReference = {
+          id: `favorite-shop-runtime-${target.nextFavoriteShopId++}`,
+          shopId: data.shopId,
+          sortOrder: data.sortOrder,
+          isActive: data.isActive,
+        };
+        target.favoriteShops.push(reference);
+        persistCommittedState(target);
+        return { ...reference };
+      },
+      update: async ({ where, data }: { where: { shopId: string }; data: { sortOrder?: number; isActive?: boolean } }) => {
+        const reference = target.favoriteShops.find((candidate) => candidate.shopId === where.shopId);
+
+        if (reference === undefined) {
+          throw new Error("Unknown favorite shop reference");
+        }
+
+        reference.sortOrder = data.sortOrder ?? reference.sortOrder;
+        reference.isActive = data.isActive ?? reference.isActive;
+        persistCommittedState(target);
+        return { ...reference };
       },
     },
     sellerShopBinding: {

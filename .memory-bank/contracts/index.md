@@ -5,6 +5,7 @@ status: active
 # Contracts Index
 
 - [.memory-bank/contracts/catalog-public-api.md](catalog-public-api.md): Публичный storefront browse-контракт `catalog` без auth и с visibility rules по статусу магазина.
+- [.memory-bank/contracts/catalog-start-showcase-contract.md](catalog-start-showcase-contract.md): Стартовая Витрина `catalog`, live reference reads и admin-only curation writes.
 - [.memory-bank/contracts/customer-order-composition-contract.md](customer-order-composition-contract.md): Boundary payload для customer cart/order composition и checkout handoff между `catalog` и `checkout-payment`.
 - [.memory-bank/contracts/seller-catalog-write-policy.md](seller-catalog-write-policy.md): Seller-scoped edit policy, ownership, no-delete и rename markers для `catalog`.
 - [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](catalog-seller-provisioning-and-visibility.md): Admin provisioning skeleton shop, Telegram-linked seller binding и `WORKING/NOT_WORKING` visibility.

@@ -14,6 +14,17 @@ import { handleMiniAppRoutes } from "./routes/mini-app.routes";
 export { createRuntimeCookieSessionClient };
 export type { RuntimeCookieSessionClient } from "./http-runtime";
 
+const resolvePreflightMethods = (pathname: string): string => {
+  if (
+    /^\/api\/v1\/admin\/catalog\/showcase\/products\/[^/]+$/u.test(pathname) ||
+    /^\/api\/v1\/admin\/catalog\/showcase\/shops\/[^/]+$/u.test(pathname)
+  ) {
+    return "POST,DELETE,OPTIONS";
+  }
+
+  return "GET,POST,OPTIONS";
+};
+
 export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 3001;
@@ -24,7 +35,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
     const url = new URL(request.url ?? "/", `http://${host}:${port}`);
 
     if (method === "OPTIONS") {
-      const result = json(204, null);
+      const result = json(204, null, resolvePreflightMethods(url.pathname));
       response.writeHead(result.statusCode, result.headers);
       response.end();
       return;

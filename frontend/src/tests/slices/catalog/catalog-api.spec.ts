@@ -1,6 +1,130 @@
 import { createCatalogApi, type CatalogFetch } from "../../../slices/catalog/api/catalog-api";
 
 describe("catalog api", () => {
+  it("loads the public start showcase without auth headers", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async (input) => {
+      if (input === "/api/v1/showcase") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            favoriteShops: [
+              {
+                id: "shop-1",
+                name: "Khujand Bakery",
+                publicPath: "khujand-bakery",
+                description: "Fresh bread",
+                headerImageUrl: null,
+              },
+            ],
+            allKhujandLink: {
+              label: "весь Худжанд",
+              target: "/shops",
+            },
+            popularTodayProducts: [
+              {
+                id: "ref-product-1",
+                productId: "product-1",
+                shopId: "shop-1",
+                shopPublicPath: "khujand-bakery",
+                shopName: "Khujand Bakery",
+                name: "Somsa",
+                description: "Baked fresh today",
+                imageUrl: "https://example.com/somsa.png",
+                priceMinor: 1500,
+                currency: "TJS",
+                sortOrder: 1,
+              },
+            ],
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${input}`);
+    });
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await expect(api.getStartShowcase()).resolves.toEqual({
+      favoriteShops: [
+        {
+          id: "shop-1",
+          name: "Khujand Bakery",
+          publicPath: "khujand-bakery",
+          description: "Fresh bread",
+          headerImageUrl: null,
+        },
+      ],
+      allKhujandLink: {
+        label: "весь Худжанд",
+        target: "/shops",
+      },
+      popularTodayProducts: [
+        {
+          id: "ref-product-1",
+          productId: "product-1",
+          shopId: "shop-1",
+          shopPublicPath: "khujand-bakery",
+          shopName: "Khujand Bakery",
+          name: "Somsa",
+          description: "Baked fresh today",
+          imageUrl: "https://example.com/somsa.png",
+          priceMinor: 1500,
+          currency: "TJS",
+          sortOrder: 1,
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/showcase");
+  });
+
+  it("sends showcase admin curation writes with included credentials", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    }));
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await api.addShowcaseProduct("product-1");
+    await api.removeShowcaseProduct("product-1");
+    await api.addShowcaseShop("shop-1");
+    await api.removeShowcaseShop("shop-1");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/v1/admin/catalog/showcase/products/product-1", {
+      method: "POST",
+      credentials: "include",
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/admin/catalog/showcase/products/product-1", {
+      method: "DELETE",
+      credentials: "include",
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/v1/admin/catalog/showcase/shops/shop-1", {
+      method: "POST",
+      credentials: "include",
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(4, "/api/v1/admin/catalog/showcase/shops/shop-1", {
+      method: "DELETE",
+      credentials: "include",
+    });
+  });
+
+  it("fails closed for missing showcase admin read support", async () => {
+    const fetchMock: CatalogFetch = jest.fn(async () => ({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: { code: "NOT_FOUND" } }),
+    }));
+
+    const api = createCatalogApi({ fetch: fetchMock });
+
+    await expect(api.getShowcaseAdminState()).resolves.toEqual({ canCurate: false });
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/admin/catalog/showcase", {
+      credentials: "include",
+    });
+  });
+
   it("loads public shops and products without auth headers", async () => {
     const fetchMock: CatalogFetch = jest.fn(async (input) => {
       if (input === "/api/v1/shops") {

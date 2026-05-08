@@ -34,6 +34,8 @@ status: active
 
 ## Recent updates
 
+- `FT-015 repair`: post-review KISS bugfix closed the admin curation usability/preflight blockers without expanding architecture: storefront long-press/context-menu now keeps a stable add-to-showcase action, curation writes show controlled feedback and refresh/reconcile state, storefront admin menu can favorite/unfavorite the current shop, and `OPTIONS` preflight includes `DELETE` for showcase curation endpoints; atomic favorite cap and curation audit/event enrichment remain explicit residual debt rather than part of this repair.
+- `FT-015`: repo-local стартовая Витрина реализована и verified: после выбора языка root `/` показывает "Сегодня популярны", до 3 избранных магазинов и ссылку "весь Худжанд" на `/shops`; backend хранит только live catalog references, public read скрывает `NOT_WORKING`/deleted refs, а curation endpoints доступны только platform admin `BOSS`/`ADMIN`.
 - `catalog/customer product-card interactions`: customer-facing `/shops/:publicPath` product cards now use short tap/click as the add-to-cart gesture, render an in-card quantity counter with +/- controls after selection, and reserve long press for a temporary description tooltip above the touch point that disappears on release; seller edit mode still owns product click/context-menu editing separately.
 - `catalog/storefront product-card simplification`: customer-facing `/shops/:publicPath` now removes visual wrapper frames around menu/legacy/order-draft surfaces in browse mode and leaves the storefront as product cards only; every product card has a media slot, name and price, while seller edit mode keeps its existing menu/tab/editor affordances.
 - `Ops/Prisma production baseline`: Prisma rollout drift found during TgMeal prod DB bootstrap is repaired in source: `Shop.orders` restores schema validation and `backend/prisma/migrations/20260401000000_init_current_schema_baseline` bootstraps blank PostgreSQL databases before the later ReviewDraft and shop-identity incremental migrations; the deploy runbook now requires disposable empty-DB `prisma migrate deploy` verification for DB rollout changes.
@@ -219,7 +221,7 @@ status: active
 
 ## Current MVP map
 
-- `EP-001`: public catalog, customer cart/order composition, checkout/payment, customer status visibility, shared seller storefront editing and обязательная локализация.
+- `EP-001`: стартовая Витрина, public catalog, customer cart/order composition, checkout/payment, customer status visibility, shared seller storefront editing and обязательная локализация.
 - `EP-002`: операционный delivery flow: assignment, tracking, polling, cancellation, refund tracking.
 - `EP-003`: отдельный security/auth контур веб-админки.
 - `EP-004`: post-delivery feedback loop и negative alerts.

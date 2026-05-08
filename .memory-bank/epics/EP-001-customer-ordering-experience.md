@@ -11,6 +11,7 @@ status: active
 ## Included features
 
 - `FT-001` catalog browse and seller management baseline
+- `FT-015` стартовая Витрина и admin-only curation
 - `FT-010` seller storefront editing and store admin
 - `FT-011` DB-backed catalog runtime baseline
 - `FT-012` customer product selection and cart/order composition
@@ -23,6 +24,7 @@ status: active
 ## Success metrics
 
 - Клиент может просматривать витрину без авторизации.
+- После выбора языка клиент попадает на стартовую Витрину с "Сегодня популярны", избранными магазинами и переходом к общему browse/list магазинов.
 - Seller получает admin-provisioned skeleton shop и редактирует owned storefront на тех же компонентах, что и customer view.
 - Admin-provisioned и seller-edited catalog data переживают runtime restart/reset благодаря DB-backed catalog runtime.
 - Public browse видит только `WORKING` магазины, а `NOT_WORKING` остаются видимыми только owning seller-у.
@@ -37,6 +39,9 @@ status: active
 ## Acceptance criteria
 
 - Public catalog доступен без JWT.
+- Стартовая Витрина становится customer-facing entry point после language overlay и не подменяет общий список магазинов: ссылка "весь Худжанд" ведет к browse/list.
+- Товары и избранные магазины на стартовой Витрине публично резолвятся из актуального `catalog` state, а не из snapshot-копий.
+- Curation Витрины доступна только platform admin с валидной admin session и ролью `BOSS`/`ADMIN`; seller не может добавлять товары на Витрину или управлять избранностью магазинов.
 - Seller управляет только своими магазинами и товарами внутри `catalog` scope.
 - Seller edit mode использует тот же storefront contour и те же базовые storefront-компоненты, что и customer browse.
 - Первый skeleton shop создается admin provisioning flow, а не пустым self-service builder-ом seller-а.
@@ -58,11 +63,13 @@ status: active
 - В `catalog` MVP нет UI-функционала `delete` для shops, menu pages и products.
 - Локализация входит в MVP scope, но не должна дробить capability model на отдельный слайс.
 - Customer status visibility в рамках EP-001 является read-only consumer flow; lifecycle operations остаются в `FT-004`, `FT-005` и `FT-006`.
+- Стартовая Витрина хранит только catalog references; `NOT_WORKING`/deleted shops/products MUST NOT быть публично видимыми, а удаление товара с Витрины является unlink, не product delete.
 
 ## Customer workflow boundary
 
-- Каноничный customer E2E flow для EP-001: `catalog product selection -> cart/order composition -> checkout handoff -> Telegram auth/payment -> paid order CREATED -> customer status visibility via events/polling`.
+- Каноничный customer E2E flow для EP-001: `language selection -> start showcase -> catalog product selection -> cart/order composition -> checkout handoff -> Telegram auth/payment -> paid order CREATED -> customer status visibility via events/polling`.
 - `FT-001/FT-010/FT-011` дают catalog/storefront source of truth; `FT-012` превращает browse в customer order intent.
+- `FT-015` меняет стартовую точку browse: customer entry после выбора языка ведет на showcase, а общий список магазинов остается доступен через "весь Худжанд".
 - `FT-002` остается owner для auth/payment/order-creation semantics; `FT-013` закрывает реальный mounted customer workflow вокруг него.
 - `FT-005` остается owner для delivery tracking state/event semantics; `FT-014` закрывает customer-facing visibility without delivery operations ownership.
 

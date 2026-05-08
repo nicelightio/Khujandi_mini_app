@@ -64,6 +64,40 @@ export type CatalogMenuPage = {
 
 export type PublicStorefrontProduct = CatalogProduct;
 
+export type PublicShowcaseFavoriteShop = PublicStorefrontShop & {
+  status: ShopStatus;
+  sortOrder: number;
+};
+
+export type PublicShowcaseProduct = CatalogProduct & {
+  shopPublicPath: string;
+  shopName: string;
+  sortOrder: number;
+};
+
+export type StartShowcase = {
+  favoriteShops: PublicShowcaseFavoriteShop[];
+  allKhujandLink: {
+    label: "весь Худжанд";
+    target: "/shops";
+  };
+  popularTodayProducts: PublicShowcaseProduct[];
+};
+
+export type CatalogShowcaseProductReference = {
+  id: string;
+  productId: ProductId;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type CatalogFavoriteShopReference = {
+  id: string;
+  shopId: ShopId;
+  sortOrder: number;
+  isActive: boolean;
+};
+
 export type PublicStorefrontMenuPage = CatalogMenuPage & {
   products: PublicStorefrontProduct[];
 };
@@ -234,6 +268,7 @@ export type ProvisionedSellerShop = {
 
 export interface CatalogRepository {
   listPublicShops(): Promise<CatalogShop[]>;
+  getStartShowcase(): Promise<StartShowcase>;
   listAllPublicPaths(): Promise<string[]>;
   listSellerPrimaryPublicPaths(sellerId: SellerId): Promise<string[]>;
   listPublicMenuPagesByShop(shopId: ShopId): Promise<CatalogMenuPage[]>;
@@ -254,4 +289,8 @@ export interface CatalogRepository {
   provisionSellerShop(input: ProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint }): Promise<ProvisionedSellerShop>;
   createProduct(input: CreateSellerProductInput): Promise<CatalogWriteResult<SellerCatalogProduct>>;
   updateProduct(productId: ProductId, input: UpdateSellerProductInput): Promise<CatalogWriteResult<SellerCatalogProduct>>;
+  addShowcaseProduct(productId: ProductId): Promise<void>;
+  unlinkShowcaseProduct(productId: ProductId): Promise<void>;
+  favoriteShop(shopId: ShopId): Promise<void>;
+  unfavoriteShop(shopId: ShopId): Promise<void>;
 }

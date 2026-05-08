@@ -14,6 +14,19 @@ type CopyDictionary = {
     unavailableMessage: string;
     emptyStatus: string;
     emptyShopLabel: string;
+    showcaseTitle: string;
+    showcaseAvailableStatus: (count: number) => string;
+    showcaseEmptyStatus: string;
+    allKhujandLabel: string;
+    favoriteShopsLabel: string;
+    adminMenuLabel: string;
+    removeFromShowcaseLabel: string;
+    addToShowcaseLabel: string;
+    favoriteShopLabel: string;
+    unfavoriteShopLabel: string;
+    curationPendingStatus: string;
+    curationSuccessStatus: string;
+    curationFailureStatus: string;
     keyboardTestLabel: string;
     keyboardTestPlaceholder: string;
     availableCount: (count: number) => string;
@@ -107,6 +120,20 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       unavailableMessage: "Каталог временно недоступен.",
       emptyStatus: "Сейчас нет доступных магазинов.",
       emptyShopLabel: "В этом магазине пока нет товаров.",
+      showcaseTitle: "Сегодня популярны",
+      showcaseAvailableStatus: (count) =>
+        count === 0 ? "Выберите магазин или откройте весь Худжанд." : `${count} популярных товаров доступны сейчас.`,
+      showcaseEmptyStatus: "Витрина пока пуста. Можно открыть весь Худжанд.",
+      allKhujandLabel: "весь Худжанд",
+      favoriteShopsLabel: "Избранные магазины",
+      adminMenuLabel: "меню админов",
+      removeFromShowcaseLabel: "Убрать с Витрины",
+      addToShowcaseLabel: "Добавить на Витрину",
+      favoriteShopLabel: "Сделать избранным",
+      unfavoriteShopLabel: "Убрать из избранных",
+      curationPendingStatus: "Обновляем Витрину...",
+      curationSuccessStatus: "Витрина обновлена.",
+      curationFailureStatus: "Не удалось обновить Витрину.",
       keyboardTestLabel: "Тестовое поле для клавиатуры",
       keyboardTestPlaceholder: "Нажмите сюда, чтобы открыть клавиатуру",
       availableCount: (count) =>
@@ -202,6 +229,20 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       unavailableMessage: "Catalog is temporarily unavailable.",
       emptyStatus: "No shops are available right now.",
       emptyShopLabel: "No products are available in this shop yet.",
+      showcaseTitle: "Сегодня популярны",
+      showcaseAvailableStatus: (count) =>
+        count === 0 ? "Choose a shop or open all Khujand." : `${count} popular products are available now.`,
+      showcaseEmptyStatus: "The showcase is empty for now. You can open all Khujand.",
+      allKhujandLabel: "весь Худжанд",
+      favoriteShopsLabel: "Favorite shops",
+      adminMenuLabel: "меню админов",
+      removeFromShowcaseLabel: "Remove from showcase",
+      addToShowcaseLabel: "Add to showcase",
+      favoriteShopLabel: "Mark favorite",
+      unfavoriteShopLabel: "Remove favorite",
+      curationPendingStatus: "Updating showcase...",
+      curationSuccessStatus: "Showcase updated.",
+      curationFailureStatus: "Could not update showcase.",
       keyboardTestLabel: "Keyboard test field",
       keyboardTestPlaceholder: "Tap here to open the keyboard",
       availableCount: (count) => `${count} shop${count === 1 ? "" : "s"} available for browsing.`,
@@ -295,6 +336,20 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       unavailableMessage: "Феҳрист муваққатан дастнорас аст.",
       emptyStatus: "Ҳоло ягон мағозаи дастрас нест.",
       emptyShopLabel: "Дар ин мағоза ҳоло мол нест.",
+      showcaseTitle: "Сегодня популярны",
+      showcaseAvailableStatus: (count) =>
+        count === 0 ? "Мағозаро интихоб кунед ё тамоми Хуҷандро кушоед." : `${count} моли маъмул ҳоло дастрас аст.`,
+      showcaseEmptyStatus: "Витрина ҳоло холӣ аст. Метавонед тамоми Хуҷандро кушоед.",
+      allKhujandLabel: "весь Худжанд",
+      favoriteShopsLabel: "Мағозаҳои интихобшуда",
+      adminMenuLabel: "меню админов",
+      removeFromShowcaseLabel: "Аз Витрина гиред",
+      addToShowcaseLabel: "Ба Витрина илова кунед",
+      favoriteShopLabel: "Интихобшуда кунед",
+      unfavoriteShopLabel: "Аз интихобшуда гиред",
+      curationPendingStatus: "Витрина нав мешавад...",
+      curationSuccessStatus: "Витрина нав шуд.",
+      curationFailureStatus: "Витринаро нав кардан нашуд.",
       keyboardTestLabel: "Майдони санҷиши клавиатура",
       keyboardTestPlaceholder: "Барои кушодани клавиатура ин ҷоро пахш кунед",
       availableCount: (count) => `${count} мағоза барои дидан дастрас аст.`,

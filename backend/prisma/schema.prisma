@@ -81,6 +81,7 @@ model Shop {
   menuPages                   MenuPage[]
   products                    Product[]
   sellerBindings              SellerShopBinding[]
+  favoriteShowcaseReferences  CatalogFavoriteShop[]
   orders                      Order[]
 
   @@index([sellerId])
@@ -116,10 +117,35 @@ model Product {
   updatedAt  DateTime  @updatedAt
   shop       Shop      @relation(fields: [shopId], references: [id])
   menuPage   MenuPage? @relation(fields: [menuPageId], references: [id])
+  showcaseReferences CatalogShowcaseProduct[]
 
   @@index([shopId])
   @@index([menuPageId])
   @@index([isDeleted])
+}
+
+model CatalogShowcaseProduct {
+  id        String   @id @default(cuid())
+  productId String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@index([isActive, sortOrder])
+}
+
+model CatalogFavoriteShop {
+  id        String   @id @default(cuid())
+  shopId    String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shop      Shop     @relation(fields: [shopId], references: [id])
+
+  @@index([isActive, sortOrder])
 }
 
 model SellerShopBinding {

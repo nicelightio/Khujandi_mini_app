@@ -23,6 +23,10 @@ export const appRoutes: AppRoute[] = [
     element: <CatalogRoute />,
   },
   {
+    path: routes.catalogBrowse,
+    element: <CatalogRoute />,
+  },
+  {
     path: routes.storefront,
     element: <CatalogRoute />,
     matches: isStorefrontPathname,

@@ -1,6 +1,9 @@
 import { AppError } from "../../shared/errors/app-error";
 import { buildSellerStorefrontPayload } from "../catalog-runtime";
-import { resolveAdminProvisioningSession } from "../admin-access-runtime";
+import {
+  resolveAdminProvisioningSession,
+  resolveCatalogCurationAdminSession,
+} from "../admin-access-runtime";
 import { resolveMiniAppAuthenticatedUser } from "../checkout-payment-runtime";
 import { json, readJsonBody } from "../http-runtime";
 import type { DevApiRouteHandler } from "../dev-api-server.types";
@@ -21,11 +24,47 @@ export const handleCatalogRoutes: DevApiRouteHandler = async ({ request, url, me
     return json(200, await catalogModule.controller.getShops(), "GET,OPTIONS");
   }
 
+  if (method === "GET" && url.pathname === "/api/v1/showcase") {
+    try {
+      return json(200, await catalogModule.controller.getStartShowcase(), "GET,OPTIONS");
+    } catch {
+      return json(
+        500,
+        new AppError("INTERNAL_ERROR", "Catalog runtime is temporarily unavailable", 500).toPayload("trace-catalog-runtime"),
+        "GET,OPTIONS",
+      );
+    }
+  }
+
+  if (method === "GET" && url.pathname === "/api/v1/admin/catalog/showcase") {
+    try {
+      await resolveCatalogCurationAdminSession(request, {
+        controller: adminAccessModule.controller,
+        allowedOrigins,
+        now: options.now,
+      });
+
+      return json(200, { canCurate: true }, "GET,OPTIONS");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return json(error.statusCode, error.toPayload("trace-catalog-runtime"), "GET,OPTIONS");
+      }
+
+      return json(
+        500,
+        new AppError("INTERNAL_ERROR", "Catalog runtime is temporarily unavailable", 500).toPayload("trace-catalog-runtime"),
+        "GET,OPTIONS",
+      );
+    }
+  }
+
   const storefrontMatch = url.pathname.match(/^\/api\/v1\/shops\/([^/]+)$/u);
   const productsMatch = url.pathname.match(/^\/api\/v1\/shops\/([^/]+)\/products$/u);
   const sellerShopMatch = url.pathname.match(/^\/api\/v1\/seller\/shops\/([^/]+)$/u);
   const sellerMenuPageMatch = url.pathname.match(/^\/api\/v1\/seller\/menu-pages\/([^/]+)$/u);
   const sellerProductMatch = url.pathname.match(/^\/api\/v1\/seller\/products\/([^/]+)$/u);
+  const adminShowcaseProductMatch = url.pathname.match(/^\/api\/v1\/admin\/catalog\/showcase\/products\/([^/]+)$/u);
+  const adminShowcaseShopMatch = url.pathname.match(/^\/api\/v1\/admin\/catalog\/showcase\/shops\/([^/]+)$/u);
 
   if (method === "GET" && storefrontMatch !== null) {
     try {
@@ -359,6 +398,64 @@ export const handleCatalogRoutes: DevApiRouteHandler = async ({ request, url, me
         500,
         new AppError("INTERNAL_ERROR", "Catalog runtime is temporarily unavailable", 500).toPayload("trace-catalog-runtime"),
         "GET,OPTIONS",
+      );
+    }
+  }
+
+  if ((method === "POST" || method === "DELETE") && adminShowcaseProductMatch !== null) {
+    try {
+      await resolveCatalogCurationAdminSession(request, {
+        controller: adminAccessModule.controller,
+        allowedOrigins,
+        now: options.now,
+      });
+      const productId = decodeURIComponent(adminShowcaseProductMatch[1]);
+
+      if (method === "POST") {
+        await catalogModule.controller.addShowcaseProduct(productId);
+        return json(200, { ok: true }, "POST,OPTIONS");
+      }
+
+      await catalogModule.controller.unlinkShowcaseProduct(productId);
+      return json(200, { ok: true }, "DELETE,OPTIONS");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return json(error.statusCode, error.toPayload("trace-catalog-runtime"), `${method},OPTIONS`);
+      }
+
+      return json(
+        500,
+        new AppError("INTERNAL_ERROR", "Catalog runtime is temporarily unavailable", 500).toPayload("trace-catalog-runtime"),
+        `${method},OPTIONS`,
+      );
+    }
+  }
+
+  if ((method === "POST" || method === "DELETE") && adminShowcaseShopMatch !== null) {
+    try {
+      await resolveCatalogCurationAdminSession(request, {
+        controller: adminAccessModule.controller,
+        allowedOrigins,
+        now: options.now,
+      });
+      const shopId = decodeURIComponent(adminShowcaseShopMatch[1]);
+
+      if (method === "POST") {
+        await catalogModule.controller.favoriteShop(shopId);
+        return json(200, { ok: true }, "POST,OPTIONS");
+      }
+
+      await catalogModule.controller.unfavoriteShop(shopId);
+      return json(200, { ok: true }, "DELETE,OPTIONS");
+    } catch (error) {
+      if (error instanceof AppError) {
+        return json(error.statusCode, error.toPayload("trace-catalog-runtime"), `${method},OPTIONS`);
+      }
+
+      return json(
+        500,
+        new AppError("INTERNAL_ERROR", "Catalog runtime is temporarily unavailable", 500).toPayload("trace-catalog-runtime"),
+        `${method},OPTIONS`,
       );
     }
   }

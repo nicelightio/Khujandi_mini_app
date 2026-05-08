@@ -5,6 +5,7 @@ status: active
 # Features Index
 
 - [.memory-bank/features/FT-001-catalog-browse-and-seller-management.md](FT-001-catalog-browse-and-seller-management.md): Публичная витрина и baseline seller ownership в границах `catalog`.
+- [.memory-bank/features/FT-015-start-showcase-and-curation.md](FT-015-start-showcase-and-curation.md): Стартовая Витрина после выбора языка, "Сегодня популярны" и admin-only curation references.
 - [.memory-bank/features/FT-010-seller-storefront-editing-and-store-admin.md](FT-010-seller-storefront-editing-and-store-admin.md): Shared storefront seller edit mode, admin-provisioned skeleton shops и узкая админка магазина.
 - [.memory-bank/features/FT-011-db-backed-catalog-runtime-baseline.md](FT-011-db-backed-catalog-runtime-baseline.md): DB-backed runtime baseline для `catalog`, durable provisioning и restart-safe storefront resolution.
 - [.memory-bank/features/FT-012-customer-product-selection-and-cart-composition.md](FT-012-customer-product-selection-and-cart-composition.md): Выбор товаров клиентом и явный cart/order composition state перед checkout.

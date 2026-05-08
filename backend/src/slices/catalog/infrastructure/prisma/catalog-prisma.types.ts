@@ -73,6 +73,49 @@ export type SellerShopRecord = {
   updatedAt?: Date;
 };
 
+export type ShowcaseProductReferenceRecord = {
+  id: string;
+  productId: string;
+  sortOrder: number;
+  isActive: boolean;
+  product?: {
+    id: string;
+    shopId: string;
+    menuPageId: string | null;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    priceMinor: number;
+    isDeleted: boolean;
+    shop: {
+      id: string;
+      name: string;
+      primaryPublicPath: string;
+      secondaryPublicPath: string;
+      isDeleted: boolean;
+      status: ShopStatusRecord;
+    };
+  };
+};
+
+export type FavoriteShopReferenceRecord = {
+  id: string;
+  shopId: string;
+  sortOrder: number;
+  isActive: boolean;
+  shop?: {
+    id: string;
+    name: string;
+    primaryPublicPath: string;
+    secondaryPublicPath: string;
+    description: string | null;
+    headerImageUrl: string | null;
+    backgroundImageUrl: string | null;
+    status: ShopStatusRecord;
+    isDeleted: boolean;
+  };
+};
+
 type ShopFindManyArgs = {
   where: {
     isDeleted?: boolean;
@@ -404,6 +447,20 @@ export interface CatalogPrismaClientLike {
     findUnique(args: ProductFindUniqueArgs): Promise<SellerProductRecord | null>;
     create(args: ProductCreateArgs): Promise<SellerProductRecord>;
     update(args: ProductUpdateArgs): Promise<SellerProductRecord>;
+  };
+  catalogShowcaseProduct: {
+    findMany(args: Record<string, unknown>): Promise<ShowcaseProductReferenceRecord[]>;
+    findUnique(args: Record<string, unknown>): Promise<ShowcaseProductReferenceRecord | null>;
+    count(args: Record<string, unknown>): Promise<number>;
+    create(args: Record<string, unknown>): Promise<ShowcaseProductReferenceRecord>;
+    update(args: Record<string, unknown>): Promise<ShowcaseProductReferenceRecord>;
+  };
+  catalogFavoriteShop: {
+    findMany(args: Record<string, unknown>): Promise<FavoriteShopReferenceRecord[]>;
+    findUnique(args: Record<string, unknown>): Promise<FavoriteShopReferenceRecord | null>;
+    count(args: Record<string, unknown>): Promise<number>;
+    create(args: Record<string, unknown>): Promise<FavoriteShopReferenceRecord>;
+    update(args: Record<string, unknown>): Promise<FavoriteShopReferenceRecord>;
   };
   sellerShopBinding: {
     findMany(args: SellerShopBindingFindManyArgs): Promise<SellerShopBindingRecord[]>;

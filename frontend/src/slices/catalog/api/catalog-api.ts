@@ -11,6 +11,41 @@ export type CatalogProduct = {
   priceMinor: number;
 };
 
+export type CatalogShowcaseFavoriteShop = {
+  id: string;
+  name: string;
+  publicPath: string;
+  description: string | null;
+  headerImageUrl: string | null;
+};
+
+export type CatalogShowcaseProduct = {
+  id: string;
+  productId: string;
+  shopId: string;
+  shopPublicPath: string;
+  shopName: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  priceMinor: number;
+  currency: string;
+  sortOrder: number | null;
+};
+
+export type CatalogStartShowcase = {
+  favoriteShops: CatalogShowcaseFavoriteShop[];
+  allKhujandLink: {
+    label: string;
+    target: string;
+  };
+  popularTodayProducts: CatalogShowcaseProduct[];
+};
+
+export type CatalogShowcaseAdminState = {
+  canCurate: boolean;
+};
+
 export type SellerStorefrontAccess = {
   id: string;
   publicPath: string;
@@ -121,6 +156,12 @@ export type CatalogHttpResponse = {
 export type CatalogFetch = (input: string, init?: RequestInit) => Promise<CatalogHttpResponse>;
 
 export type CatalogApi = {
+  getStartShowcase: () => Promise<CatalogStartShowcase>;
+  getShowcaseAdminState: () => Promise<CatalogShowcaseAdminState>;
+  addShowcaseProduct: (productId: string) => Promise<void>;
+  removeShowcaseProduct: (productId: string) => Promise<void>;
+  addShowcaseShop: (shopId: string) => Promise<void>;
+  removeShowcaseShop: (shopId: string) => Promise<void>;
   listCatalog: () => Promise<CatalogShopWithProducts[]>;
   getPublicStorefront: (publicPath: string) => Promise<PublicStorefront | null>;
   getSellerStorefrontAccess: (shopId: string) => Promise<SellerStorefrontAccess | null>;
@@ -205,6 +246,130 @@ const toCatalogProduct = (value: unknown): CatalogProduct | null => {
     shopId: record.shopId,
     name: record.name,
     priceMinor: record.priceMinor,
+  };
+};
+
+const nullableString = (value: unknown): string | null | undefined => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  return typeof value === "string" ? value : undefined;
+};
+
+const toCatalogShowcaseFavoriteShop = (value: unknown): CatalogShowcaseFavoriteShop | null => {
+  const record = ensureObject(value);
+  const description = nullableString(record?.description);
+  const headerImageUrl = nullableString(record?.headerImageUrl ?? record?.imageUrl);
+
+  if (
+    record === null ||
+    typeof record.id !== "string" ||
+    typeof record.name !== "string" ||
+    typeof record.publicPath !== "string" ||
+    description === undefined ||
+    headerImageUrl === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    name: record.name,
+    publicPath: record.publicPath,
+    description,
+    headerImageUrl,
+  };
+};
+
+const readPriceMinor = (record: Record<string, unknown>): number | null => {
+  if (typeof record.priceMinor === "number") {
+    return record.priceMinor;
+  }
+
+  if (typeof record.price === "number") {
+    return record.price;
+  }
+
+  return null;
+};
+
+const toCatalogShowcaseProduct = (value: unknown): CatalogShowcaseProduct | null => {
+  const record = ensureObject(value);
+  const productId = typeof record?.productId === "string" ? record.productId : record?.id;
+  const description = nullableString(record?.description);
+  const imageUrl = nullableString(record?.imageUrl ?? record?.media);
+  const priceMinor = record === null ? null : readPriceMinor(record);
+  const sortOrder = record?.sortOrder === null || record?.sortOrder === undefined ? null : record.sortOrder;
+
+  if (
+    record === null ||
+    typeof record.id !== "string" ||
+    typeof productId !== "string" ||
+    typeof record.shopId !== "string" ||
+    typeof record.shopPublicPath !== "string" ||
+    typeof record.shopName !== "string" ||
+    typeof record.name !== "string" ||
+    description === undefined ||
+    imageUrl === undefined ||
+    priceMinor === null ||
+    (record.currency !== undefined && typeof record.currency !== "string") ||
+    (sortOrder !== null && typeof sortOrder !== "number")
+  ) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    productId,
+    shopId: record.shopId,
+    shopPublicPath: record.shopPublicPath,
+    shopName: record.shopName,
+    name: record.name,
+    description,
+    imageUrl,
+    priceMinor,
+    currency: record.currency ?? "TJS",
+    sortOrder,
+  };
+};
+
+const toCatalogStartShowcase = (value: unknown): CatalogStartShowcase | null => {
+  const record = ensureObject(value);
+  const favoriteShops = mapValidArray(record?.favoriteShops, toCatalogShowcaseFavoriteShop);
+  const popularTodayProducts = mapValidArray(record?.popularTodayProducts, toCatalogShowcaseProduct);
+  const allKhujandLink = ensureObject(record?.allKhujandLink);
+
+  if (
+    record === null ||
+    favoriteShops === null ||
+    popularTodayProducts === null ||
+    (allKhujandLink !== null &&
+      ((allKhujandLink.label !== undefined && typeof allKhujandLink.label !== "string") ||
+        (allKhujandLink.target !== undefined && typeof allKhujandLink.target !== "string")))
+  ) {
+    return null;
+  }
+
+  return {
+    favoriteShops: favoriteShops.slice(0, 3),
+    allKhujandLink: {
+      label: typeof allKhujandLink?.label === "string" ? allKhujandLink.label : "весь Худжанд",
+      target: typeof allKhujandLink?.target === "string" ? allKhujandLink.target : "/shops",
+    },
+    popularTodayProducts,
+  };
+};
+
+const toCatalogShowcaseAdminState = (value: unknown): CatalogShowcaseAdminState | null => {
+  const record = ensureObject(value);
+
+  if (record === null || typeof record.canCurate !== "boolean") {
+    return null;
+  }
+
+  return {
+    canCurate: record.canCurate,
   };
 };
 
@@ -465,6 +630,68 @@ export const createCatalogApi = (options: CatalogApiOptions = {}): CatalogApi =>
   const fetchImpl = options.fetch ?? defaultFetch;
 
   return {
+    getStartShowcase: async () => {
+      const showcase = toCatalogStartShowcase(await readJson(fetchImpl(`${baseUrl}/api/v1/showcase`)));
+
+      if (showcase === null) {
+        throw new Error("Catalog showcase payload is invalid.");
+      }
+
+      return showcase;
+    },
+    getShowcaseAdminState: async () => {
+      const response = await fetchImpl(`${baseUrl}/api/v1/admin/catalog/showcase`, {
+        credentials: "include",
+      });
+
+      if (response.status === 401 || response.status === 403 || response.status === 404) {
+        return { canCurate: false };
+      }
+
+      if (!response.ok) {
+        throw new Error(`Catalog request failed with status ${response.status}.`);
+      }
+
+      const state = toCatalogShowcaseAdminState(await response.json());
+
+      if (state === null) {
+        throw new Error("Catalog showcase admin payload is invalid.");
+      }
+
+      return state;
+    },
+    addShowcaseProduct: async (productId) => {
+      await requestJson(
+        fetchImpl(`${baseUrl}/api/v1/admin/catalog/showcase/products/${encodeURIComponent(productId)}`, {
+          method: "POST",
+          credentials: "include",
+        }),
+      );
+    },
+    removeShowcaseProduct: async (productId) => {
+      await requestJson(
+        fetchImpl(`${baseUrl}/api/v1/admin/catalog/showcase/products/${encodeURIComponent(productId)}`, {
+          method: "DELETE",
+          credentials: "include",
+        }),
+      );
+    },
+    addShowcaseShop: async (shopId) => {
+      await requestJson(
+        fetchImpl(`${baseUrl}/api/v1/admin/catalog/showcase/shops/${encodeURIComponent(shopId)}`, {
+          method: "POST",
+          credentials: "include",
+        }),
+      );
+    },
+    removeShowcaseShop: async (shopId) => {
+      await requestJson(
+        fetchImpl(`${baseUrl}/api/v1/admin/catalog/showcase/shops/${encodeURIComponent(shopId)}`, {
+          method: "DELETE",
+          credentials: "include",
+        }),
+      );
+    },
     listCatalog: async () => {
       const shops = toCatalogShops(await readJson(fetchImpl(`${baseUrl}/api/v1/shops`)));
 

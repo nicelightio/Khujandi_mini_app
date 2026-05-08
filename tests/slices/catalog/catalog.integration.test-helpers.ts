@@ -14,6 +14,16 @@ export const createPrismaMock = () => {
   const productFindUnique = jest.fn().mockResolvedValue(null);
   const productCreate = jest.fn();
   const productUpdate = jest.fn();
+  const showcaseProductFindMany = jest.fn().mockResolvedValue([]);
+  const showcaseProductFindUnique = jest.fn().mockResolvedValue(null);
+  const showcaseProductCount = jest.fn().mockResolvedValue(0);
+  const showcaseProductCreate = jest.fn();
+  const showcaseProductUpdate = jest.fn();
+  const favoriteShopFindMany = jest.fn().mockResolvedValue([]);
+  const favoriteShopFindUnique = jest.fn().mockResolvedValue(null);
+  const favoriteShopCount = jest.fn().mockResolvedValue(0);
+  const favoriteShopCreate = jest.fn();
+  const favoriteShopUpdate = jest.fn();
   const eventCreate = jest.fn().mockResolvedValue({
     id: 1n,
     type: "catalog.event",
@@ -43,6 +53,20 @@ export const createPrismaMock = () => {
       findUnique: productFindUnique,
       create: productCreate,
       update: productUpdate,
+    },
+    catalogShowcaseProduct: {
+      findMany: showcaseProductFindMany,
+      findUnique: showcaseProductFindUnique,
+      count: showcaseProductCount,
+      create: showcaseProductCreate,
+      update: showcaseProductUpdate,
+    },
+    catalogFavoriteShop: {
+      findMany: favoriteShopFindMany,
+      findUnique: favoriteShopFindUnique,
+      count: favoriteShopCount,
+      create: favoriteShopCreate,
+      update: favoriteShopUpdate,
     },
     sellerShopBinding: {
       findMany: sellerShopBindingFindMany,
@@ -75,6 +99,16 @@ export const createPrismaMock = () => {
       productFindUnique,
       productCreate,
       productUpdate,
+      showcaseProductFindMany,
+      showcaseProductFindUnique,
+      showcaseProductCount,
+      showcaseProductCreate,
+      showcaseProductUpdate,
+      favoriteShopFindMany,
+      favoriteShopFindUnique,
+      favoriteShopCount,
+      favoriteShopCreate,
+      favoriteShopUpdate,
       eventCreate,
       sellerShopBindingCreate,
       sellerShopBindingFindMany,

@@ -80,6 +80,10 @@ const normalizeCatalogRuntimeState = (state: CatalogRuntimeState): CatalogRuntim
   return {
     ...state,
     shops: normalizedShops,
+    showcaseProducts: state.showcaseProducts ?? [],
+    favoriteShops: state.favoriteShops ?? [],
+    nextShowcaseProductId: state.nextShowcaseProductId ?? 1,
+    nextFavoriteShopId: state.nextFavoriteShopId ?? 1,
   };
 };
 

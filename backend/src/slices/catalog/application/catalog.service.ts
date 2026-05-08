@@ -9,6 +9,7 @@ import type {
   CatalogRepository,
   CatalogShop,
   PublicCatalogStorefront,
+  StartShowcase,
   CreateSellerMenuPageInput,
   CreateSellerProductInput,
   MenuPageId,
@@ -47,6 +48,10 @@ export class CatalogService {
 
   listPublicShops(): Promise<CatalogShop[]> {
     return this.repository.listPublicShops();
+  }
+
+  getStartShowcase(): Promise<StartShowcase> {
+    return this.repository.getStartShowcase();
   }
 
   listPublicProductsByShop(publicPath: string): Promise<CatalogProduct[]> {
@@ -313,6 +318,54 @@ export class CatalogService {
 
     const result = await this.repository.updateProduct(productId, input);
     return result.record;
+  }
+
+  async addShowcaseProduct(productId: ProductId): Promise<void> {
+    const product = await this.repository.findProductById(productId);
+
+    if (product === null || product.isDeleted) {
+      throw new AppError("NOT_FOUND", "Showcase product target was not found", 404, { productId });
+    }
+
+    const shop = await this.repository.findShopById(product.shopId);
+
+    if (shop === null || shop.isDeleted) {
+      throw new AppError("NOT_FOUND", "Showcase product shop was not found", 404, {
+        productId,
+        shopId: product.shopId,
+      });
+    }
+
+    if (shop.status !== "WORKING") {
+      throw new AppError("SHOP_NOT_WORKING", "Showcase product shop is not working", 409, {
+        productId,
+        shopId: product.shopId,
+      });
+    }
+
+    await this.repository.addShowcaseProduct(productId);
+  }
+
+  unlinkShowcaseProduct(productId: ProductId): Promise<void> {
+    return this.repository.unlinkShowcaseProduct(productId);
+  }
+
+  async favoriteShop(shopId: ShopId): Promise<void> {
+    const shop = await this.repository.findShopById(shopId);
+
+    if (shop === null || shop.isDeleted) {
+      throw new AppError("NOT_FOUND", "Favorite shop target was not found", 404, { shopId });
+    }
+
+    if (shop.status !== "WORKING") {
+      throw new AppError("SHOP_NOT_WORKING", "Favorite shop is not working", 409, { shopId });
+    }
+
+    await this.repository.favoriteShop(shopId);
+  }
+
+  unfavoriteShop(shopId: ShopId): Promise<void> {
+    return this.repository.unfavoriteShop(shopId);
   }
 
   private async assertOwnedActiveShop(sellerId: SellerId, shopId: ShopId): Promise<SellerCatalogShop> {

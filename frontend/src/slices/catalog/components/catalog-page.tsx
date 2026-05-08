@@ -7,6 +7,7 @@ import { useMagneticElements } from "../../../shared/ui/use-magnetic-elements";
 import { PageShell } from "../../../shared/ui/page-shell";
 import { buildStorefrontPath, routes } from "../../../shared/lib/routes";
 import type { CatalogViewModel } from "../model/catalog-view-model";
+import type { ShowcaseProductViewModel, StartShowcaseViewModel } from "../model/showcase-view-model";
 import {
   addCatalogCompositionItem,
   buildCustomerOrderCompositionPayload,
@@ -42,12 +43,22 @@ const adminHomeUrl = buildAppUrl(adminRoutes.home);
 
 type CatalogPageProps = {
   viewModel: CatalogViewModel;
+  showcase?: StartShowcaseViewModel;
   storefront?: CatalogStorefrontViewModel;
   onActivateEditor?: (target: CatalogStorefrontEditorTarget) => void;
   onEditorFieldChange?: (name: string, value: string) => void;
   onCancelEditor?: () => void;
   onSubmitEditor?: () => void;
   onCheckoutComposition?: (payload: CustomerOrderCompositionPayload) => void;
+  onRemoveShowcaseProduct?: (productId: string) => void;
+  onFavoriteShowcaseShop?: (shopId: string) => void;
+  onUnfavoriteShowcaseShop?: (shopId: string) => void;
+  onAddStorefrontProductToShowcase?: (productId: string) => void;
+  canCurateShowcaseFromStorefront?: boolean;
+  isStorefrontShopFavorite?: boolean;
+  curationStatusMessage?: string | null;
+  curationErrorMessage?: string | null;
+  isCurationPending?: boolean;
 };
 
 type PendingCartReplacement = {
@@ -110,12 +121,22 @@ const createCompositionInput = (
 
 export const CatalogPage = ({
   viewModel,
+  showcase,
   storefront,
   onActivateEditor,
   onEditorFieldChange,
   onCancelEditor,
   onSubmitEditor,
   onCheckoutComposition,
+  onRemoveShowcaseProduct,
+  onFavoriteShowcaseShop,
+  onUnfavoriteShowcaseShop,
+  onAddStorefrontProductToShowcase,
+  canCurateShowcaseFromStorefront = false,
+  isStorefrontShopFavorite = false,
+  curationStatusMessage = null,
+  curationErrorMessage = null,
+  isCurationPending = false,
 }: CatalogPageProps) => {
   const { state } = useLanguageContext();
   const copy = getCopy(state.language).catalog;
@@ -124,6 +145,8 @@ export const CatalogPage = ({
   const [isVisualPanelOpen, setIsVisualPanelOpen] = useState(false);
   const [composition, setComposition] = useState(createEmptyCatalogCompositionState);
   const [pendingCartReplacement, setPendingCartReplacement] = useState<PendingCartReplacement | null>(null);
+  const [activeShowcaseProductId, setActiveShowcaseProductId] = useState<string | null>(null);
+  const [isShowcaseAdminMenuOpen, setIsShowcaseAdminMenuOpen] = useState(false);
   const shopRef = useRef<HTMLElement | null>(null);
   const storefrontShopId = storefront?.shop.id;
   const heroImageUrl = storefront?.shop.headerImageUrl ?? defaultShopHeaderImage;
@@ -155,6 +178,14 @@ export const CatalogPage = ({
     () => new Map(composition.items.map((item) => [item.productId, item])),
     [composition.items],
   );
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearShowcaseLongPress = () => {
+    if (longPressTimerRef.current !== null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (pendingCartReplacement === null || pendingCartReplacement.shop.id === storefrontShopId) {
@@ -317,6 +348,121 @@ export const CatalogPage = ({
     window.location.assign(routes.checkoutPayment);
   };
 
+  const startShowcaseProductLongPress = (product: ShowcaseProductViewModel) => {
+    if (showcase?.admin.canCurate !== true) {
+      return;
+    }
+
+    clearShowcaseLongPress();
+    longPressTimerRef.current = setTimeout(() => {
+      setActiveShowcaseProductId(product.productId);
+    }, 420);
+  };
+
+  const renderStartShowcase = () => {
+    if (showcase === undefined) {
+      return null;
+    }
+
+    return (
+      <section data-start-showcase="root" aria-label={showcase.title}>
+        <div data-start-showcase="heading">
+          <h1>{showcase.title}</h1>
+          {showcase.statusLabel.length > 0 ? <p>{showcase.statusLabel}</p> : null}
+          {showcase.isLoading ? <p>{copy.loadingBody}</p> : null}
+          {showcase.errorMessage !== null ? <p role="alert">{showcase.errorMessage}</p> : null}
+        </div>
+
+        {showcase.admin.canCurate ? (
+          <div data-start-showcase-admin="bar">
+            <button
+              type="button"
+              onClick={() => {
+                setIsShowcaseAdminMenuOpen((current) => !current);
+              }}
+            >
+              {showcase.admin.menuLabel}
+            </button>
+          </div>
+        ) : null}
+
+        <nav data-start-showcase="shops" aria-label={copy.favoriteShopsLabel}>
+          {showcase.favoriteShops.map((shop) => (
+            <a key={shop.id} href={shop.href} data-start-showcase="favorite-shop">
+              {shop.imageUrl !== null ? <img src={shop.imageUrl} alt="" /> : null}
+              <span>{shop.name}</span>
+              {shop.description !== null ? <small>{shop.description}</small> : null}
+            </a>
+          ))}
+          <a href={showcase.allKhujandLink.href} data-start-showcase="all-khujand">
+            {showcase.allKhujandLink.label}
+          </a>
+        </nav>
+
+        {isShowcaseAdminMenuOpen && showcase.admin.canCurate ? (
+          <div data-start-showcase-admin="menu">
+            {showcase.favoriteShops.map((shop) => (
+              <button
+                key={shop.id}
+                type="button"
+                disabled={isCurationPending}
+                onClick={() => {
+                  setIsShowcaseAdminMenuOpen(false);
+                  onUnfavoriteShowcaseShop?.(shop.id);
+                }}
+              >
+                {`${showcase.admin.unfavoriteShopLabel}: ${shop.name}`}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <ul data-start-showcase="products">
+          {showcase.popularProducts.map((product) => (
+            <li
+              key={product.id}
+              data-start-showcase-product="card"
+              data-product-id={product.productId}
+              onPointerDown={() => startShowcaseProductLongPress(product)}
+              onPointerUp={clearShowcaseLongPress}
+              onPointerCancel={clearShowcaseLongPress}
+              onPointerLeave={clearShowcaseLongPress}
+              onContextMenu={(event) => {
+                if (!showcase.admin.canCurate) {
+                  return;
+                }
+
+                event.preventDefault();
+                setActiveShowcaseProductId(product.productId);
+              }}
+            >
+              {product.imageUrl !== null ? <img src={product.imageUrl} alt="" /> : <div aria-hidden="true" />}
+              <div>
+                <strong>{product.name}</strong>
+                <span>{product.priceLabel}</span>
+                {product.description !== null ? <p>{product.description}</p> : null}
+                <a href={product.shopHref}>{product.shopName}</a>
+              </div>
+              {showcase.admin.canCurate && activeShowcaseProductId === product.productId ? (
+                <button
+                  type="button"
+                  data-start-showcase-admin="remove-product"
+                  disabled={isCurationPending}
+                  onClick={() => {
+                    setActiveShowcaseProductId(null);
+                    onRemoveShowcaseProduct?.(product.productId);
+                  }}
+                >
+                  {showcase.admin.removeProductLabel}
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  };
+
   return (
     <PageShell
       title={viewModel.headline}
@@ -337,9 +483,13 @@ export const CatalogPage = ({
         ) : null}
         {storefront !== undefined && storefront.successMessage !== null ? <p role="status">{storefront.successMessage}</p> : null}
         {storefront !== undefined && storefront.errorMessage !== null ? <p role="alert">{storefront.errorMessage}</p> : null}
+        {curationStatusMessage !== null ? <p role="status">{curationStatusMessage}</p> : null}
+        {curationErrorMessage !== null ? <p role="alert">{curationErrorMessage}</p> : null}
       </section>
 
-      {storefront === undefined ? (
+      {showcase !== undefined ? renderStartShowcase() : null}
+
+      {storefront === undefined && showcase === undefined ? (
         <section data-catalog-admin-links aria-label="Admin interfaces">
           <div>
             <p data-catalog-admin-links="eyebrow">Admin interfaces</p>
@@ -379,6 +529,38 @@ export const CatalogPage = ({
             >
               Вернуться
             </a>
+            {canCurateShowcaseFromStorefront ? (
+              <div data-storefront-admin-curation="bar">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIsShowcaseAdminMenuOpen((current) => !current);
+                  }}
+                >
+                  {copy.adminMenuLabel}
+                </button>
+                {isShowcaseAdminMenuOpen ? (
+                  <div data-storefront-admin-curation="menu">
+                    <button
+                      type="button"
+                      disabled={isCurationPending}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setIsShowcaseAdminMenuOpen(false);
+                        if (isStorefrontShopFavorite) {
+                          onUnfavoriteShowcaseShop?.(storefront.shop.id);
+                        } else {
+                          onFavoriteShowcaseShop?.(storefront.shop.id);
+                        }
+                      }}
+                    >
+                      {isStorefrontShopFavorite ? copy.unfavoriteShopLabel : copy.favoriteShopLabel}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <StorefrontHero
               storefront={storefront}
@@ -398,6 +580,10 @@ export const CatalogPage = ({
               getCartQuantity={(productId) => compositionItemsByProductId.get(productId)?.quantity ?? 0}
               onAddCartItem={addCartItem}
               onUpdateCartItemQuantity={updateCartItemQuantity}
+              canCurateShowcase={canCurateShowcaseFromStorefront}
+              addToShowcaseLabel={copy.addToShowcaseLabel}
+              isShowcaseCurationPending={isCurationPending}
+              onAddProductToShowcase={onAddStorefrontProductToShowcase}
             >
               {!storefront.access.canEdit ? (
                 <section data-storefront-cart="summary" aria-label="Cart summary">
@@ -536,7 +722,7 @@ export const CatalogPage = ({
             onSubmitEditor={onSubmitEditor}
           />
         </section>
-      ) : viewModel.isLoading || viewModel.errorMessage !== null || viewModel.isEmpty ? null : (
+      ) : showcase !== undefined || viewModel.isLoading || viewModel.errorMessage !== null || viewModel.isEmpty ? null : (
         <section>
           {viewModel.shops.map((shop) => (
             <article key={shop.id} data-shop-id={shop.id}>

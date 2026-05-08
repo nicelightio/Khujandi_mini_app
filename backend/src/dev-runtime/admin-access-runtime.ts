@@ -342,3 +342,25 @@ export const resolveAdminProvisioningSession = async (
     });
   }
 };
+
+export const resolveCatalogCurationAdminSession = async (
+  request: IncomingMessage,
+  dependencies: {
+    controller: AdminAccessController;
+    allowedOrigins: string[];
+    now?: () => Date;
+  },
+): Promise<void> => {
+  const session = await resolveProtectedAdminRouteSession(request, {
+    controller: dependencies.controller,
+    allowedOrigins: dependencies.allowedOrigins,
+    authRequiredMessage: "Catalog showcase curation requires an authenticated admin",
+    now: dependencies.now,
+  });
+
+  if (session.role !== "admin" && session.role !== "boss") {
+    throw new AppError("FORBIDDEN", "User role cannot curate catalog showcase", 403, {
+      role: session.role,
+    });
+  }
+};

@@ -15,6 +15,10 @@ export class CatalogController {
     return this.service.listPublicShops();
   }
 
+  getStartShowcase() {
+    return this.service.getStartShowcase();
+  }
+
   getStorefront(publicPath: string) {
     return this.service.getPublicStorefrontByPublicPath(publicPath);
   }
@@ -57,5 +61,21 @@ export class CatalogController {
 
   updateProduct(sellerId: string, productId: string, input: UpdateSellerProductInput) {
     return this.service.updateSellerProduct(sellerId, productId, input);
+  }
+
+  addShowcaseProduct(productId: string) {
+    return this.service.addShowcaseProduct(productId);
+  }
+
+  unlinkShowcaseProduct(productId: string) {
+    return this.service.unlinkShowcaseProduct(productId);
+  }
+
+  favoriteShop(shopId: string) {
+    return this.service.favoriteShop(shopId);
+  }
+
+  unfavoriteShop(shopId: string) {
+    return this.service.unfavoriteShop(shopId);
   }
 }

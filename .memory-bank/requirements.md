@@ -43,6 +43,7 @@ status: active
 - `REQ-031` Customer cart/order composition: клиент должен выбирать товары из public `WORKING` storefront и формировать явный single-shop cart/order composition state до checkout; composition содержит line items, quantities, preview totals and display snapshots, но не создает заказ, не резервирует stock и не является trusted payment amount.
 - `REQ-032` Catalog-to-checkout handoff and mounted paid order flow: customer checkout должен стартовать из валидного order composition payload, revalidate current catalog state server-side, пройти Mini App auth/payment boundary и создать order `CREATED` только после trusted successful payment; direct checkout без валидной composition должен вести к controlled recovery, а не к fake order.
 - `REQ-033` Customer order status visibility: после paid order creation клиент должен видеть customer-safe статус заказа через event/polling integration с существующим tracking contract, включая `CREATED`, assignment wait, courier progress and terminal states, without exposing delivery operation controls or duplicating `FT-005` lifecycle ownership.
+- `REQ-034` Стартовая Витрина и курирование: после выбора языка клиент попадает на стартовую Витрину с catalog-owned списком актуальных product references "Сегодня популярны", до 3 избранных `WORKING` магазинов и ссылкой "весь Худжанд" к общему browse/list магазинов; platform admin с валидной admin session и ролью `BOSS`/`ADMIN` может курировать ссылки через storefront long-press, а seller не получает эти права; Витрина хранит references, не snapshots, и публично скрывает `NOT_WORKING`/deleted shops/products.
 
 ## Out of scope
 - Авто-назначение курьеров.
@@ -93,6 +94,7 @@ status: active
 | REQ-031 | EP-001 | FT-012 | frontend/contract: customer selects products into a visible single-shop cart/order composition payload before checkout; unavailable repair blocks handoff | verified |
 | REQ-032 | EP-001 | FT-013, FT-002 | e2e/integration: catalog/cart handoff revalidates composition and creates order only after trusted payment on mounted customer runtime; repo-local gates passed in `TASK-FT013-07`, Android Telegram smoke remains advisory pre-release risk check | verified |
 | REQ-033 | EP-001 | FT-014, FT-005 | e2e/frontend: customer status screen consumes ordered polling/events from paid order creation through delivery completion; repo-local mounted `/api/v1/events`, customer scoping, cursor compatibility and frontend polling gates passed through `TASK-FT014-07`, Android Telegram smoke remains advisory pre-release risk check | verified |
+| REQ-034 | EP-001 | FT-015 | e2e/integration: выбор языка ведет на стартовую Витрину; public read резолвит live catalog references; admin-only long-press curation add/remove и cap избранных магазинов enforced | verified |
 
 ## Source artifacts
 

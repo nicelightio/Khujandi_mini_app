@@ -1,6 +1,8 @@
 import { AppError } from "../shared/errors/app-error";
 import type {
   AdminProvisionedShopSummary,
+  CatalogFavoriteShopReference,
+  CatalogShowcaseProductReference,
   CatalogWriteResult,
   CatalogWriteEvent,
   CatalogRepository,
@@ -16,6 +18,7 @@ import type {
   SellerCatalogShop,
   SellerShopBinding,
   ShopId,
+  StartShowcase,
   UpdateSellerProductInput,
   UpdateSellerShopInput,
 } from "../slices/catalog/domain/catalog.types";
@@ -68,6 +71,75 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return this.state.shops
       .filter((shop) => !shop.isDeleted && shop.status === "WORKING")
       .map((shop) => ({ id: shop.id, name: shop.name, publicPath: getPreferredPublicPath(shop) }));
+  }
+
+  async getStartShowcase(): Promise<StartShowcase> {
+    const favoriteShops: StartShowcase["favoriteShops"] = (this.state.favoriteShops ?? [])
+      .filter((reference) => reference.isActive)
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((reference) => {
+        const shop = this.state.shops.find((candidate) => candidate.id === reference.shopId);
+
+        if (shop === undefined || shop.isDeleted || shop.status !== "WORKING") {
+          return null;
+        }
+
+        return {
+          id: shop.id,
+          name: shop.name,
+          publicPath: getPreferredPublicPath(shop),
+          description: shop.description,
+          headerImageUrl: shop.headerImageUrl,
+          backgroundImageUrl: shop.backgroundImageUrl,
+          status: shop.status,
+          sortOrder: reference.sortOrder,
+        };
+      })
+      .filter((shop): shop is StartShowcase["favoriteShops"][number] => shop !== null)
+      .slice(0, 3);
+
+    const popularTodayProducts: StartShowcase["popularTodayProducts"] = (this.state.showcaseProducts ?? [])
+      .filter((reference) => reference.isActive)
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((reference) => {
+        const product = this.state.products.find((candidate) => candidate.id === reference.productId);
+        const shop = product === undefined
+          ? undefined
+          : this.state.shops.find((candidate) => candidate.id === product.shopId);
+
+        if (
+          product === undefined ||
+          shop === undefined ||
+          product.isDeleted ||
+          shop.isDeleted ||
+          shop.status !== "WORKING"
+        ) {
+          return null;
+        }
+
+        return {
+          id: product.id,
+          shopId: product.shopId,
+          menuPageId: product.menuPageId,
+          name: product.name,
+          description: product.description,
+          imageUrl: product.imageUrl,
+          priceMinor: product.priceMinor,
+          shopPublicPath: getPreferredPublicPath(shop),
+          shopName: shop.name,
+          sortOrder: reference.sortOrder,
+        };
+      })
+      .filter((product): product is StartShowcase["popularTodayProducts"][number] => product !== null);
+
+    return {
+      favoriteShops,
+      allKhujandLink: {
+        label: "весь Худжанд",
+        target: "/shops",
+      },
+      popularTodayProducts,
+    };
   }
 
   async listAllPublicPaths() {
@@ -499,5 +571,86 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       record,
       event,
     };
+  }
+
+  async addShowcaseProduct(productId: string): Promise<void> {
+    const existing = (this.state.showcaseProducts ?? []).find((reference) => reference.productId === productId);
+
+    if (existing !== undefined) {
+      if (!existing.isActive) {
+        existing.isActive = true;
+        existing.sortOrder = this.nextShowcaseProductSortOrder();
+      }
+      return;
+    }
+
+    const reference: CatalogShowcaseProductReference = {
+      id: `showcase-product-runtime-${this.state.nextShowcaseProductId++}`,
+      productId,
+      sortOrder: this.nextShowcaseProductSortOrder(),
+      isActive: true,
+    };
+    this.state.showcaseProducts.push(reference);
+  }
+
+  async unlinkShowcaseProduct(productId: string): Promise<void> {
+    const existing = (this.state.showcaseProducts ?? []).find((reference) => reference.productId === productId);
+
+    if (existing !== undefined) {
+      existing.isActive = false;
+    }
+  }
+
+  async favoriteShop(shopId: string): Promise<void> {
+    const existing = (this.state.favoriteShops ?? []).find((reference) => reference.shopId === shopId);
+
+    if (existing?.isActive === true) {
+      return;
+    }
+
+    const visibleFavoriteCount = (this.state.favoriteShops ?? []).filter((reference) => {
+      const shop = this.state.shops.find((candidate) => candidate.id === reference.shopId);
+
+      return reference.isActive && shop !== undefined && !shop.isDeleted && shop.status === "WORKING";
+    }).length;
+
+    if (visibleFavoriteCount >= 3) {
+      throw new AppError(
+        "SHOWCASE_FAVORITE_LIMIT",
+        "Start showcase can have at most 3 favorite shops",
+        409,
+        { limit: 3 },
+      );
+    }
+
+    if (existing !== undefined) {
+      existing.isActive = true;
+      existing.sortOrder = this.nextFavoriteShopSortOrder();
+      return;
+    }
+
+    const reference: CatalogFavoriteShopReference = {
+      id: `favorite-shop-runtime-${this.state.nextFavoriteShopId++}`,
+      shopId,
+      sortOrder: this.nextFavoriteShopSortOrder(),
+      isActive: true,
+    };
+    this.state.favoriteShops.push(reference);
+  }
+
+  async unfavoriteShop(shopId: string): Promise<void> {
+    const existing = (this.state.favoriteShops ?? []).find((reference) => reference.shopId === shopId);
+
+    if (existing !== undefined) {
+      existing.isActive = false;
+    }
+  }
+
+  private nextShowcaseProductSortOrder(): number {
+    return Math.max(0, ...(this.state.showcaseProducts ?? []).filter((reference) => reference.isActive).map((reference) => reference.sortOrder)) + 1;
+  }
+
+  private nextFavoriteShopSortOrder(): number {
+    return Math.max(0, ...(this.state.favoriteShops ?? []).filter((reference) => reference.isActive).map((reference) => reference.sortOrder)) + 1;
   }
 }

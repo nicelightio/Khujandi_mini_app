@@ -1,4 +1,12 @@
-import { type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+  useRef,
+  useState,
+} from "react";
 
 import { StorefrontCrossfadeBackground, StorefrontCrossfadeImage } from "./storefront-media";
 import type { CatalogStorefrontEditorTarget, CatalogStorefrontViewModel, StorefrontTab } from "./storefront-view";
@@ -35,6 +43,10 @@ type StorefrontProductCardProps = {
   ) => void;
   onAddCartItem: (product: StorefrontCartProduct) => void;
   onUpdateCartItemQuantity: (productId: string, quantity: number) => void;
+  canCurateShowcase?: boolean;
+  addToShowcaseLabel?: string;
+  isShowcaseCurationPending?: boolean;
+  onAddProductToShowcase?: (productId: string) => void;
 };
 
 const customerProductLongPressDelayMs = 420;
@@ -48,10 +60,15 @@ const StorefrontProductCard = ({
   onActivateNestedEditorFromContextMenu,
   onAddCartItem,
   onUpdateCartItemQuantity,
+  canCurateShowcase = false,
+  addToShowcaseLabel,
+  isShowcaseCurationPending = false,
+  onAddProductToShowcase,
 }: StorefrontProductCardProps) => {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPressRef = useRef(false);
   const [descriptionAnchor, setDescriptionAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [adminCurationAnchor, setAdminCurationAnchor] = useState<{ x: number; y: number } | null>(null);
 
   const clearLongPressTimer = () => {
     if (longPressTimerRef.current !== null) {
@@ -60,13 +77,21 @@ const StorefrontProductCard = ({
     }
   };
 
-  const hideDescription = () => {
+  const stopPressTracking = () => {
     clearLongPressTimer();
+
+    if (!canCurateShowcase) {
+      setDescriptionAnchor(null);
+    }
+  };
+
+  const openAdminCurationMenu = (anchor: { x: number; y: number }) => {
     setDescriptionAnchor(null);
+    setAdminCurationAnchor(anchor);
   };
 
   const startCustomerLongPress = (event: PointerEvent<HTMLLIElement>) => {
-    if (canEdit) {
+    if (canEdit && !canCurateShowcase) {
       return;
     }
 
@@ -82,6 +107,12 @@ const StorefrontProductCard = ({
     event.currentTarget.setPointerCapture?.(event.pointerId);
     longPressTimerRef.current = setTimeout(() => {
       didLongPressRef.current = true;
+
+      if (canCurateShowcase) {
+        openAdminCurationMenu(anchor);
+
+        return;
+      }
 
       if (product.description !== null && product.description.trim().length > 0) {
         setDescriptionAnchor(anchor);
@@ -108,10 +139,23 @@ const StorefrontProductCard = ({
       return;
     }
 
+    if (adminCurationAnchor !== null) {
+      setAdminCurationAnchor(null);
+
+      return;
+    }
+
     onAddCartItem(product);
   };
 
   const handleCardKeyDown = (event: KeyboardEvent<HTMLLIElement>) => {
+    if (event.key === "Escape" && adminCurationAnchor !== null) {
+      event.preventDefault();
+      setAdminCurationAnchor(null);
+
+      return;
+    }
+
     if (event.key !== "Enter" && event.key !== " ") {
       return;
     }
@@ -127,6 +171,22 @@ const StorefrontProductCard = ({
           "--storefront-description-x": `${descriptionAnchor.x}px`,
           "--storefront-description-y": `${descriptionAnchor.y}px`,
         } as CSSProperties);
+  const adminCurationStyle =
+    adminCurationAnchor === null
+      ? undefined
+      : ({
+          "--storefront-description-x": `${adminCurationAnchor.x}px`,
+          "--storefront-description-y": `${adminCurationAnchor.y}px`,
+        } as CSSProperties);
+
+  const openAdminCurationFromContextMenu = (event: MouseEvent<HTMLLIElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    openAdminCurationMenu({
+      x: Math.max(18, Math.min(rect.width - 18, event.clientX - rect.left)),
+      y: Math.max(18, Math.min(rect.height - 18, event.clientY - rect.top)),
+    });
+  };
 
   return (
     <li
@@ -139,9 +199,9 @@ const StorefrontProductCard = ({
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
       onPointerDown={startCustomerLongPress}
-      onPointerUp={hideDescription}
-      onPointerCancel={hideDescription}
-      onPointerLeave={hideDescription}
+      onPointerUp={stopPressTracking}
+      onPointerCancel={stopPressTracking}
+      onPointerLeave={stopPressTracking}
       onContextMenu={(event) => {
         if (canEdit) {
           onActivateNestedEditorFromContextMenu(event, {
@@ -155,12 +215,31 @@ const StorefrontProductCard = ({
 
         event.preventDefault();
         event.stopPropagation();
+
+        if (canCurateShowcase) {
+          openAdminCurationFromContextMenu(event);
+        }
       }}
     >
       {descriptionAnchor !== null && product.description !== null ? (
         <div role="tooltip" data-storefront-product="description-popover" style={descriptionStyle}>
           {product.description}
         </div>
+      ) : null}
+      {adminCurationAnchor !== null && canCurateShowcase ? (
+        <button
+          type="button"
+          data-storefront-admin-curation="add-product"
+          disabled={isShowcaseCurationPending}
+          style={adminCurationStyle}
+          onClick={(event) => {
+            event.stopPropagation();
+            setAdminCurationAnchor(null);
+            onAddProductToShowcase?.(product.id);
+          }}
+        >
+          {addToShowcaseLabel ?? "Add to showcase"}
+        </button>
       ) : null}
       {cartQuantity > 0 && !canEdit ? <span data-storefront-cart="quantity-badge">{cartQuantity}</span> : null}
       {product.imageUrl !== null ? <StorefrontCrossfadeImage src={product.imageUrl} alt="" /> : <div aria-hidden="true" data-storefront-product="media-placeholder" />}
@@ -221,6 +300,10 @@ type StorefrontMenuSectionsProps = {
   getCartQuantity: (productId: string) => number;
   onAddCartItem: (product: StorefrontCartProduct) => void;
   onUpdateCartItemQuantity: (productId: string, quantity: number) => void;
+  canCurateShowcase?: boolean;
+  addToShowcaseLabel?: string;
+  isShowcaseCurationPending?: boolean;
+  onAddProductToShowcase?: (productId: string) => void;
   children?: ReactNode;
 };
 
@@ -236,6 +319,10 @@ export const StorefrontMenuSections = ({
   getCartQuantity,
   onAddCartItem,
   onUpdateCartItemQuantity,
+  canCurateShowcase = false,
+  addToShowcaseLabel,
+  isShowcaseCurationPending = false,
+  onAddProductToShowcase,
   children,
 }: StorefrontMenuSectionsProps) => (
   <div data-storefront-content="surface">
@@ -331,6 +418,10 @@ export const StorefrontMenuSections = ({
                   onActivateNestedEditorFromContextMenu={onActivateNestedEditorFromContextMenu}
                   onAddCartItem={onAddCartItem}
                   onUpdateCartItemQuantity={onUpdateCartItemQuantity}
+                  canCurateShowcase={canCurateShowcase}
+                  addToShowcaseLabel={addToShowcaseLabel}
+                  isShowcaseCurationPending={isShowcaseCurationPending}
+                  onAddProductToShowcase={onAddProductToShowcase}
                 />
               );
             })}
@@ -362,6 +453,10 @@ export const StorefrontMenuSections = ({
                 onActivateNestedEditorFromContextMenu={onActivateNestedEditorFromContextMenu}
                 onAddCartItem={onAddCartItem}
                 onUpdateCartItemQuantity={onUpdateCartItemQuantity}
+                canCurateShowcase={canCurateShowcase}
+                addToShowcaseLabel={addToShowcaseLabel}
+                isShowcaseCurationPending={isShowcaseCurationPending}
+                onAddProductToShowcase={onAddProductToShowcase}
               />
             );
           })}

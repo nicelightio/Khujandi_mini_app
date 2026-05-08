@@ -86,9 +86,11 @@ describe("app router", () => {
   });
 
   it("matches the storefront route only for a single /shops/:shopId segment", () => {
-    expect(appRoutes[1]?.matches?.("/shops/shop-1")).toBe(true);
-    expect(appRoutes[1]?.matches?.("/shops/shop-1/menu-page-1")).toBe(false);
-    expect(appRoutes[1]?.matches?.("/shops")).toBe(false);
+    const storefrontRoute = appRoutes.find((route) => route.path === "/shops/:publicPath");
+
+    expect(storefrontRoute?.matches?.("/shops/shop-1")).toBe(true);
+    expect(storefrontRoute?.matches?.("/shops/shop-1/menu-page-1")).toBe(false);
+    expect(storefrontRoute?.matches?.("/shops")).toBe(false);
   });
 
   it("uses the browser pathname at runtime", async () => {

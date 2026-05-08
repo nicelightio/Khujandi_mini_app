@@ -29,9 +29,16 @@ status: active
 - Payment identity и anti-replay markers (`payment_provider_tx_id`, `telegram_payment_charge_id`, `provider_payment_charge_id`, invoice/payment reference) должны иметь явную persistence policy и DB-level uniqueness там, где это применимо.
 - Session/security persistence отделяется по чувствительности данных: session identifiers не попадают в JS-readable persistent storage baseline, а non-sensitive client preferences имеют explicit fallback policy.
 
+## Catalog start showcase reference persistence
+
+- Persistence стартовой Витрины принадлежит `catalog` и хранит только references на products/shops плюс curation metadata вроде active flag и ordering.
+- Витрина MUST NOT snapshot цену, описание, медиа или public routing fields product/shop; public reads резолвят эти поля из текущего `Product`/`Shop` state.
+- Product showcase unlink удаляет только showcase reference и MUST NOT удалять или мутировать underlying product.
+- Favorite shop references ограничены 3 active public items; public reads скрывают references, у которых shop/product deleted, missing или not publicly visible (`NOT_WORKING`).
+
 ## Slice to data ownership
 
-- `catalog`: `shops`, shop description/media/status, immutable public routing paths, menu pages, products, product description/media, seller ownership rules, seller Telegram binding read-model needs, public visibility rules, and the durable runtime persistence boundary for provisioning/storefront resolution.
+- `catalog`: `shops`, shop description/media/status, immutable public routing paths, menu pages, products, product description/media, seller ownership rules, seller Telegram binding read-model needs, public visibility rules, start showcase references/favorite shop references, and the durable runtime persistence boundary for provisioning/storefront resolution.
 - `checkout-payment`: paid order creation, payment transaction identity, order snapshots.
 - `delivery-assignment`: `orders` read/update touchpoints for `CREATED -> ASSIGNED`, `order_status_history`, slice-owned `delivery_assignment_audit`, `events`.
 - `delivery-tracking`: post-assignment order lifecycle and its `order_status_history`/`events` writes.
@@ -47,6 +54,7 @@ status: active
 
 - [.memory-bank/contracts/payment-confirmation-contract.md](../contracts/payment-confirmation-contract.md): trusted payment boundary.
 - [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](../contracts/catalog-seller-provisioning-and-visibility.md): seller provisioning and public visibility.
+- [.memory-bank/contracts/catalog-start-showcase-contract.md](../contracts/catalog-start-showcase-contract.md): reference persistence стартовой Витрины и admin-only curation.
 - [.memory-bank/states/order-lifecycle.md](../states/order-lifecycle.md): order/refund lifecycle rules.
 
 ## Source artifacts

@@ -68,6 +68,7 @@ describe("root router", () => {
 
   it("keeps storefront detail paths on the same catalog route tree", () => {
     expect(resolveAppRoute("/").element.type).toBe(CatalogRoute);
+    expect(resolveAppRoute("/shops").element.type).toBe(CatalogRoute);
     expect(resolveAppRoute("/shops/shop-1").element.type).toBe(CatalogRoute);
   });
 

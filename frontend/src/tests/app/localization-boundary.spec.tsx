@@ -102,6 +102,6 @@ describe("localization boundary", () => {
       await flushPromises();
     });
 
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Catalog");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Сегодня популярны");
   });
 });

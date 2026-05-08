@@ -18,6 +18,14 @@ const withWriteEvent = <TRecord>(record: TRecord) => ({
 
 const createRepository = (): CatalogRepository => ({
   listPublicShops: async () => [],
+  getStartShowcase: async () => ({
+    favoriteShops: [],
+    allKhujandLink: {
+      label: "весь Худжанд",
+      target: "/shops",
+    },
+    popularTodayProducts: [],
+  }),
   listAllPublicPaths: async () => [],
   listSellerPrimaryPublicPaths: async () => [],
   listPublicMenuPagesByShop: async () => [],
@@ -52,6 +60,10 @@ const createRepository = (): CatalogRepository => ({
   updateProduct: async () => {
     throw new Error("not implemented");
   },
+  addShowcaseProduct: async () => undefined,
+  unlinkShowcaseProduct: async () => undefined,
+  favoriteShop: async () => undefined,
+  unfavoriteShop: async () => undefined,
 });
 
 describe("catalog service", () => {

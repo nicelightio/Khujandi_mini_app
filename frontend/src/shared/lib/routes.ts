@@ -1,5 +1,6 @@
 export const routes = {
   catalog: "/",
+  catalogBrowse: "/shops",
   storefront: "/shops/:publicPath",
   checkoutPayment: "/checkout",
   orderTracking: "/tracking",
