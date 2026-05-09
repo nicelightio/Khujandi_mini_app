@@ -15,6 +15,11 @@ status: active
 
 ## Recent entries
 
+## [2026-05-09] FT-016 operator delivery migration task cards
+- Added [.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md](tasks/plans/IMPL-FT-016-operator-delivery-migration.md): execution-ready staged TASK cards for migrating implemented `FT-004`/`FT-005` v1 delivery operations to the `FT-016` operator delivery target.
+- The decomposition records current code baseline drift explicitly: direct admin assignment, old courier-driven tracking chain, partial admin assignment panel, missing offers/claim/availability/`DELAYED`/`PICKED_UP`/operator completion. It keeps the strategy additive-first and repair/extend-first for the existing admin panel.
+- No runtime implementation changes were made; the task plan is ready for phase-by-phase backlog sync when execution starts.
+
 ## [2026-05-09] FT-016 operator delivery ops spec refresh
 - Updated EP-002/requirements/state/contracts/features for the discussed KISS operator delivery operations target: `operator` role, admin-as-operator, desktop-first panel, 4-day order list, top delayed/unassigned alert, bot chat redirect, courier availability menu, optional auto-offer, atomic first-claim-wins assignment and simple courier `rating_score`.
 - Changed target lifecycle semantics: pending offers no longer equal `ASSIGNED`; `ASSIGNED` means courier claim succeeded, `PICKED_UP` is inserted before `IN_PROGRESS`, `DELAYED` is the urgent no-courier/problem state, and `DELIVERED -> COMPLETED` is operator/admin manual closure. Existing FT-004/FT-005 implementation notes are marked as superseded target behavior rather than current code closure.
