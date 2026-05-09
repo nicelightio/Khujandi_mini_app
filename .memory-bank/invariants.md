@@ -12,6 +12,7 @@ status: active
 - Все значимые доменные изменения создают событие в `events`.
 - Seller shop/menu page/product writes внутри `catalog` не являются исключением: они MUST оставлять explicit persisted event artifacts.
 - Валидные смены статуса заказа пишутся в `order_status_history`.
+- `ASSIGNED` означает, что курьер уже успешно подтвердил/claim-нул заказ; pending offer не является `ASSIGNED`.
 - `revision` / `cursor` на API-границе сериализуются строкой.
 - Негативный отзыв (`rating <= 2`) с любой стороны вызывает Telegram alert.
 - Ручной refund при отмене должен отражаться явным refund-состоянием и аудитом.
@@ -26,7 +27,7 @@ status: active
 - Не доверять `initDataUnsafe` для авторизации или иных доверенных решений.
 - Не обходить серверную state machine переходов заказа.
 - Не вводить Redis, очереди, 2FA или авто-refund как часть MVP without explicit scope change.
-- Не использовать broad broadcast как дефолт для bot notifications, если достаточно actor-targeted доставки.
+- Не использовать broad broadcast как дефолт для bot notifications, если достаточно actor-targeted доставки; auto-offer активным свободным курьерам является явным исключением.
 - Не вводить отдельный heavy seller builder/editor или UI-функционал `delete` для catalog MVP без отдельного explicit scope change.
 
 ## Notes

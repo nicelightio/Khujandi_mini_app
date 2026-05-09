@@ -1,8 +1,12 @@
 ---
 description: Implementation plan для FT-004 courier assignment.
-status: active
+status: deprecated
 ---
 # IMPL-FT-004
+
+## Superseded note
+
+- Superseded by the FT-016/updated FT-004 target: assignment is now offer + courier claim; pending offer does not set `ASSIGNED`. Keep this file only as historical implementation evidence for the legacy direct-assignment wave.
 
 ## Goal
 

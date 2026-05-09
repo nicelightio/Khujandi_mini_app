@@ -1,27 +1,58 @@
 ---
-description: Контракт Telegram-бота как обязательного runtime contour для уведомлений и review flows.
+description: Контракт Telegram-бота как обязательного runtime contour для уведомлений, courier actions, operator chat redirects и review flows.
 status: active
 ---
 # Telegram Bot Contract
 
 ## Bot roles in MVP
 
-- outbound notifications: новый заказ, назначение курьера, смена статуса, негативный отзыв;
-- inbound actions: courier status progression where bot is the interaction channel;
+- outbound notifications: новый заказ, courier offer, assignment claim, delayed/unassigned alert, смена статуса, негативный отзыв;
+- inbound actions: courier availability, courier claim, courier status progression where bot is the interaction channel;
+- operator chat redirect: order-bound menu for contacting customer/courier/shop owner;
 - review flows: клиентский и курьерский отзывы через bot-guided steps.
 
 ## Outbound delivery rules
 
-- `order.created`: уведомление активным администраторам.
-- `order.assigned`: уведомление только назначенному курьеру; fan-out другим курьерам, администраторам или клиенту не является baseline-поведением этого события.
+- `order.created`: уведомление operator/admin по настройкам панели и/или operational defaults.
+- `order.offer_created`: explicit auto-offer fan-out активным свободным курьерам или targeted delivery конкретному courier for manual offer.
+- `order.offer_repeated`: повторное уведомление через 3 минуты без claim.
+- `order.assigned`: уведомление successful claimant courier and relevant operator/admin surfaces; событие означает successful claim, not pending offer.
+- `order.delayed`: urgent alert selected operators/admins; panel also shows blinking red alert.
 - `order.status_changed`: уведомление релевантным участникам процесса по текущему state/role mapping реализации.
 - `review.negative`: fan-out активным администраторам как явное исключение к default actor-targeted policy.
 
-## Assignment delivery notes
+## Courier menu baseline
 
-- `order.assigned` transport обязан сохранять actor-targeted semantics owning slice `delivery-assignment`.
-- Retry/duplicate delivery в bot transport не должны приводить к повторному domain assignment side effect или расширению notify target.
-- Если доставка сообщения курьеру временно недоступна, это operational/runtime проблема, а не причина менять доменную семантику assignment.
+Bot has `Курьер` menu:
+
+- `Выйти на работу` / `Завершить прием заказов через 5 минут`.
+- `Автоматически принимать заказы: ON/OFF` — in MVP this opts into auto-offer participation; courier still confirms/claims each order.
+
+State fields behind the menu are KISS:
+
+- `is_active`;
+- `accepting_orders_until`;
+- `auto_offer_enabled`;
+- `rating_score`.
+
+## Assignment offer / claim notes
+
+- Pending offer is not `ASSIGNED`.
+- Courier accepts offer through bot callback/action.
+- Bot shows `пытаемся получить заказ...` while server claim is in flight.
+- Server-side claim must be atomic and must validate order active/unassigned + courier active/free.
+- Successful claim writes `order.assigned` and returns success only to the winning courier.
+- Losing concurrent claim attempts get already-taken/expired feedback without domain side effects.
+- Retry/duplicate delivery in bot transport must not create repeated assignment, history, rating or delayed side effects.
+
+## Operator chat redirect
+
+- Panel may deep-link/open bot with `orderId` context.
+- Bot opens inline menu bound to the order:
+  - написать клиенту;
+  - написать курьеру;
+  - написать хозяину магазина.
+- After recipient selection, operator writes through bot; message should be persisted enough for order latest-message/comment previews.
 
 ## Inbound review payload baseline
 
@@ -45,6 +76,7 @@ status: active
 
 - Bot commands/steps не обходят серверную state machine.
 - Любая bot-driven write-operation должна проходить auth/actor validation и порождать доменное событие.
+- Courier status progression after claim follows [.memory-bank/states/order-lifecycle.md](../states/order-lifecycle.md).
 
 ## Ingress security baseline
 
@@ -58,3 +90,4 @@ status: active
 - [doc/PRD.md](../../doc/PRD.md): обязательные bot notifications и review flows.
 - [doc/BRIEF_EXT.md](../../doc/BRIEF_EXT.md): bot channel behavior и courier/status interaction.
 - [doc/API_GUIDELINES.md](../../doc/API_GUIDELINES.md): auth/error baseline для API-границы.
+- [.memory-bank/contracts/operator-delivery-ops-contract.md](operator-delivery-ops-contract.md): operator delivery ops and chat redirect contract.

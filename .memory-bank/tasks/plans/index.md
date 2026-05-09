@@ -21,3 +21,4 @@ status: active
 - [.memory-bank/tasks/plans/IMPL-FT-012.md](IMPL-FT-012.md): План реализации customer product selection и single-shop cart/order composition перед checkout.
 - [.memory-bank/tasks/plans/IMPL-FT-013.md](IMPL-FT-013.md): План реализации customer checkout handoff и mounted paid order creation flow.
 - [.memory-bank/tasks/plans/IMPL-FT-014.md](IMPL-FT-014.md): План реализации customer-facing order status visibility поверх `FT-005` polling/event contract.
+- [.memory-bank/tasks/plans/MIGRATE-FT-004-FT-005-to-FT-016.md](MIGRATE-FT-004-FT-005-to-FT-016.md): Staged migration plan from implemented v1 delivery operations/admin panel to `FT-016` operator/courier offer flow.

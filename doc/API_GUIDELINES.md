@@ -67,7 +67,7 @@ _Источник требований: `doc/PRD.md`_
 ## 3. RBAC (канонические коды ролей)
 
 Системные роли в контрактах:
-`boss`, `manager`, `admin`, `seller`, `courier`, `client`.
+`boss`, `operator`, `admin`, `seller`, `courier`, `client`; `manager` is a business label for `operator`, and `admin` includes operator capabilities.
 
 Принципы:
 - Проверка роли обязательна для всех write-операций.
@@ -121,7 +121,9 @@ Orders API покрывает несколько slices: `checkout-payment`, `de
 - `PATCH /orders/{id}/cancel`
 
 Статусы заказа:
-`CREATED -> ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`  
+`CREATED -> ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED`
+Проблемный статус: `DELAYED` — заказ без принятого курьера/требует срочного внимания.
+`ASSIGNED` означает successful courier claim, pending offer не считается assigned.
 Отмена:
 - `CANCELLED_BY_ADMIN`
 - `CANCELLED_BY_COURIER_UNAVAILABLE`
@@ -145,7 +147,7 @@ Orders API покрывает несколько slices: `checkout-payment`, `de
 Рекомендуемая группировка контрактов по slices:
 - `catalog`: `/shops`, `/products`
 - `checkout-payment`: `/orders/checkout`
-- `delivery-assignment`: `/orders/{id}/assign-courier`
+- `delivery-assignment`: `/orders/{id}/assign-courier`, assignment offers/claim
 - `delivery-tracking`: `/orders/{id}/status`, `/events`
 - `order-cancellation`: `/orders/{id}/cancel`
 - `reviews-feedback`: `/reviews`

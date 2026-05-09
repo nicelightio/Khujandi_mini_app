@@ -6,17 +6,21 @@ status: active
 
 ## REQs
 
-- `REQ-008`, `REQ-009`, `REQ-010`, `REQ-018`
+- `REQ-008`, `REQ-009`, `REQ-010`, `REQ-018`, `REQ-035`
 
 ## Use cases
 
-- Курьер подтверждает заказ и ведет доставку через статусы.
+- Курьер после successful claim ведет доставку через статусы.
+- Operator/admin видит и контролирует delivery progress в desktop-first панели.
 - Клиент и админка видят обновления через polling.
 - Customer-facing status visibility after paid order creation is specified in `FT-014`; this feature remains the owner of lifecycle/event semantics.
 
 ## Acceptance criteria
 
-- Только `courier` может выполнять post-assignment переходы `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
+- Post-assignment lifecycle: `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
+- Courier может вести delivery до `DELIVERED`: `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED`.
+- `DELIVERED -> COMPLETED` выполняет `operator` или `admin` вручную; `DELIVERED` требует внимания и не является successful KPI.
+- Operator/admin может выполнять разрешенные status changes по варианту control/override: confirmation popup, предупреждение о записи в историю, actor role/name в history/audit, optional comment для обычных transitions.
 - Сервер принимает только следующий разрешенный transition; skip/replay/regression/terminal attempts отклоняются с `409 CONFLICT` и не создают state/history/event side effects.
 - Каждый валидный переход пишет `order_status_history` и доменное событие.
 - Успешный status command возвращает актуальные `updated_at` и строковый `revision` для cheap polling.
@@ -31,22 +35,25 @@ status: active
 - Невалидный переход не должен менять состояние заказа.
 - Ошибки должны использовать единый error contract с `trace_id`.
 - Resume после `activated/deactivated` не должен приводить к двойным status fetch/update side effects.
+- `DELAYED` заказы требуют срочного operator alert и могут быть re-claimed через `FT-004`.
 
 ## Constraints / invariants
 
 - Event format остается стабильным для future SSE/WS.
 - Cursor contract остается string-only на API boundary; consumer не должен полагаться на numeric parsing `since`/`revision`/`next_cursor`.
-- Функциональная корректность `FT-005` закрывается repo-local integration/e2e evidence, а финальное latency closure для `REQ-010` принадлежит отдельному SLA verify wave/task.
+- `ASSIGNED` означает courier claim, не pending offer.
 
 ## Scope boundary
 
-- `FT-005` владеет post-assignment lifecycle: `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
-- Переход `CREATED -> ASSIGNED` и событие назначения курьера принадлежат `FT-004`.
+- `FT-005` владеет delivery progress lifecycle: `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
+- Assignment offer/claim и `CREATED|DELAYED -> ASSIGNED` принадлежат `FT-004`.
+- Operator panel presentation, unassigned/delayed alert and chat redirect rules are specified in `FT-016`.
 - `FT-014` may consume `FT-005` polling/events for customer UI, but MUST NOT define new delivery transition ownership or customer mutation commands.
 
 ## Normative inputs
 
 - [.memory-bank/contracts/api-events-baseline.md](../contracts/api-events-baseline.md): `/events`, event shape и error contract.
+- [.memory-bank/contracts/operator-delivery-ops-contract.md](../contracts/operator-delivery-ops-contract.md): operator panel read model and command rules.
 - [.memory-bank/states/order-lifecycle.md](../states/order-lifecycle.md): order lifecycle, transition ownership и terminal states.
 - [.memory-bank/architecture/events-polling-and-bot-runtime.md](../architecture/events-polling-and-bot-runtime.md): duplicate-safe runtime/polling baseline и ownership split.
 - [.memory-bank/testing/index.md](../testing/index.md): quality gates и SLA-sensitive verification.
@@ -56,20 +63,28 @@ status: active
 
 - `PATCH /orders/{id}/status`
 - `GET /events?since=<cursor>`
+- Operator completion `DELIVERED -> COMPLETED`
 - Polling SLA verify evidence ownership for `REQ-010`
 
 ## Test strategy pointers
 
-- e2e: courier drives order to `COMPLETED` and UI observes events.
-- integration: state machine, history writes, ordered cursor polling.
+- e2e: courier drives order to `DELIVERED`, operator closes `COMPLETED`, UI observes events.
+- integration: state machine, history writes, ordered cursor polling, operator confirmation/audit.
 - verify: SLA evidence on test load.
 
 ## Implementation status
 
-- `TASK-FT005-01` freezes post-assignment state-machine ownership, `409 CONFLICT` semantics, string cursor contract, and explicit SLA verification ownership before backend/frontend scaffolding.
-- `TASK-FT005-04` implements the backend courier status command with authenticated actor validation, assigned-courier ownership checks, adjacent transition enforcement, transactional history/event writes, and polling-friendly `updatedAt`/`revision` metadata.
-- `TASK-FT005-03` adds a frontend polling-consumer scaffold and courier bot interaction harness so downstream UI/bot tasks can wire real runtime behavior without moving state-machine ownership into adapters.
-- `TASK-FT005-05` implements the backend ordered polling read path so `GET /events?since=<cursor>` returns stable event objects with string `revision` / `nextCursor`, preserves ascending order, and stays duplicate-safe for empty-window and repeated requests without read-side writes.
-- `TASK-FT005-06` wires committed `order.status_changed` notifications into the Telegram bot transport via a slice-owned notifier contract and upgrades the frontend polling consumer so command-confirmed revisions, retry polling, and resume intervals stay duplicate-safe while ordered updates keep action labels aligned with backend-owned status semantics.
-- `TASK-FT005-07` closes the functional verification suite with repo-local backend/frontend end-to-end evidence: courier-driven progression to `COMPLETED`, ordered event observation from committed revisions, and retained `409 CONFLICT` / no-cancellation-scope guarantees. `REQ-010` remains open for the separate SLA evidence task `TASK-FT005-08`.
-- `TASK-FT005-08` closes the final latency gate for `REQ-010` via a repo-local SLA harness over the actual `order-tracking` polling cadence: 20 sampled event offsets across the 5-second polling window produced `p95 = 4500 ms` and `max = 4750 ms`, so `FT-005` is now fully closed without entering `FT-006` cancellation scope.
+- Existing `TASK-FT005-*` closure and current code may already implement the legacy v1 chain `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`, with courier-driven completion semantics. Treat that as implemented baseline behavior.
+- Current target spec defines v2 lifecycle by adding `PICKED_UP` and making `DELIVERED -> COMPLETED` operator/admin-owned manual closure.
+- Migration from v1 to v2 MUST be staged: preserve existing polling/event/error/history invariants, add new status support, then update UI/bot commands and validation rules.
+- Existing orders in `ASSIGNED`, `IN_PROGRESS` or `DELIVERED` remain valid during rollout; do not bulk rewrite active production orders just to insert `PICKED_UP`.
+- The already implemented admin panel must be corrected to show v2 status ownership and attention states rather than replaced wholesale unless inspection proves replacement is simpler and safer.
+
+## Migration / rollout notes
+
+1. Inspect current state machine, event publisher, polling endpoint and admin panel behavior before changing validation.
+2. Add `PICKED_UP` and `DELAYED` support in schema/enums/read models before enabling new commands in UI/bot.
+3. Keep legacy active orders readable; allow old states to render even when they skipped `PICKED_UP`.
+4. Update courier commands to drive `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED` only after bot/UI affordances exist.
+5. Update admin/operator panel to treat `DELIVERED` as attention-required and close it manually to `COMPLETED`.
+6. Verify ordered polling, string cursor/revision semantics and duplicate-safe behavior after every state-machine change.

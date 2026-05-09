@@ -28,8 +28,8 @@ Checked-in runtime сегодня монтирует customer-facing `mini-app` 
 - `client`: выбирает товары, проходит checkout, оплачивает заказ, отслеживает статус, оставляет отзыв.
 - `courier`: получает назначение, подтверждает заказ, меняет статусы доставки, оставляет отзыв о клиенте.
 - `seller`: управляет своими магазинами, меню и товарами внутри `catalog` scope через shared storefront и узкую админку магазина.
-- `admin`: назначает курьеров, контролирует статусы, отменяет заказы по правилам и provision-ит магазины/привязку seller-ов.
-- `manager`: управляет клиентами и курьерами по бизнес-правилам.
+- `operator`: менеджер delivery operations; мониторит заказы, получает alerts, управляет назначением/статусами по правилам и ведет коммуникацию через бота.
+- `admin`: включает права `operator`, контролирует статусы, отменяет заказы по правилам и provision-ит магазины/привязку seller-ов.
 - `boss`: имеет полный доступ и provisioning админ-аккаунтов веб-админки.
 
 ## Target primary user flow
@@ -41,9 +41,10 @@ Checked-in runtime сегодня монтирует customer-facing `mini-app` 
 3. Seller использует узкую админку магазина для легких catalog-owned функций, включая переключение статуса `WORKING/NOT_WORKING`.
 4. Клиент открывает Mini App, при первом запуске выбирает язык (`ru/en/tj`) и просматривает только `WORKING` витрину без отдельной авторизации.
 5. При checkout backend валидирует Telegram `initData`, инициирует онлайн-оплату и создает заказ только после успешной оплаты.
-6. Администратор получает событие нового заказа и вручную назначает курьера.
-7. Курьер через Telegram-бота принимает заказ и ведет статусы `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
-8. Клиентские и операционные интерфейсы получают изменения через polling `GET /events?since=<cursor>` с целевым SLA p95 <= 10 сек.
+6. Operator/admin видит новый заказ в desktop-first панели; если курьер еще не принял заказ, заказ остается `CREATED`/`DELAYED`, а не ложным `ASSIGNED`.
+7. При включенном auto-offer заказ предлагается всем активным свободным курьерам; первый successful atomic claim переводит заказ в `ASSIGNED`.
+8. Курьер ведет delivery statuses `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED`, а operator/admin вручную закрывает `DELIVERED -> COMPLETED`.
+9. Клиентские и операционные интерфейсы получают изменения через polling `GET /events?since=<cursor>` с целевым SLA p95 <= 10 сек.
 9. После `COMPLETED` клиент и курьер оставляют отзывы через Telegram-бота; low rating с любой стороны формирует негативный alert.
 
 ## Constraints
@@ -54,8 +55,8 @@ Checked-in runtime сегодня монтирует customer-facing `mini-app` 
 - Timeline:
 -   MVP релизный план идет волнами `M1..M4`: customer ordering -> delivery ops -> admin security -> reviews/go-live.
 - Non-goals:
--   Нет авто-назначения курьеров.
--   Нет Redis, очередей и автоматических retry уведомлений.
+-   Auto-offer курьерам допускается только KISS-механикой без Redis/очередей: broadcast active/free couriers + atomic claim.
+-   Нет Redis, очередей и тяжелой диспетчеризации.
 -   Нет автоматических refund-процедур.
 -   Нет 2FA для веб-админки в MVP.
 -   Нет продвинутой BI/аналитики и авто-пересчета VIP/репутации.

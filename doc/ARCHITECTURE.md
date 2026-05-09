@@ -47,8 +47,8 @@ _Источник требований: `doc/PRD.md`_
 |------|----------------------------|-------------------------------|
 | `catalog` | Клиент видит витрину магазинов и товаров | просмотр витрины без авторизации |
 | `checkout-payment` | Клиент оплачивает и создает заказ | успешная оплата создает заказ, ошибка оплаты не создает заказ |
-| `delivery-assignment` | Админ назначает курьера | назначение переводит заказ в `ASSIGNED` и уведомляет курьера |
-| `delivery-tracking` | Курьер и интерфейсы видят жизненный цикл заказа | переходы `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`, polling обновлений |
+| `delivery-assignment` | Operator/admin или auto-offer предлагает заказ курьерам | courier claim атомарно переводит заказ в `ASSIGNED`; pending offer не является assignment |
+| `delivery-tracking` | Курьер, operator panel и интерфейсы видят жизненный цикл заказа | переходы `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED`, polling обновлений |
 | `order-cancellation` | Операторы корректно отменяют проблемный заказ | разрешенная роль отменяет заказ, действие аудируется |
 | `reviews-feedback` | После завершения собираются отзывы и негативные алерты | двусторонние отзывы, alert при `rating <= 2` |
 | `admin-access` | Веб-админка безопасно аутентифицирует админов | login/refresh/logout, блокировки и аудит |
@@ -58,8 +58,8 @@ _Источник требований: `doc/PRD.md`_
 | User flow из PRD | Основной slice | Дополнительные slices |
 |------------------|----------------|-----------------------|
 | `UF-01` клиент оформляет и оплачивает заказ | `checkout-payment` | `catalog` |
-| `UF-02` администратор назначает курьера | `delivery-assignment` | `delivery-tracking` |
-| `UF-03` курьер ведет доставку | `delivery-tracking` | `delivery-assignment` |
+| `UF-02` operator/admin предлагает заказ курьерам; courier claim закрепляет заказ | `delivery-assignment` | `delivery-tracking` |
+| `UF-03` курьер ведет доставку, operator/admin закрывает `COMPLETED` | `delivery-tracking` | `delivery-assignment` |
 | `UF-04` операционная отмена заказа | `order-cancellation` | `delivery-tracking` |
 | `UF-05` отзывы после завершения | `reviews-feedback` | `delivery-tracking` |
 
@@ -77,7 +77,7 @@ _Источник требований: `doc/PRD.md`_
 ### 5.2 Операционный контур (веб-админка)
 
 - Отдельный login/password auth-контур.
-- Основные slices: `admin-access`, `delivery-assignment`, `delivery-tracking`, `order-cancellation`.
+- Основные slices: `admin-access`, `delivery-assignment`, `delivery-tracking`, `order-cancellation`; operator panel живет в этом contour и потребляет эти slices без отдельного тяжелого CRM слоя.
 - Политики безопасности MVP:
   - пароль >= 12 символов;
   - 5 неудачных попыток за 15 минут -> блокировка 30 минут;
@@ -184,9 +184,10 @@ admin-web/
 - При ошибке или таймауте оплаты заказ не создается; клиент получает retry-сценарий.
 - Client-only payment events не считаются trusted payment confirmation.
 - Клиент отменять заказ не может.
-- Отмена доступна `admin` и `courier` в разрешенном операционном кейсе unavailable.
+- Отмена доступна `operator`/`admin` и `courier` в разрешенном операционном кейсе unavailable.
 - Refund при отмене выполняется вручную оператором.
-- Успешным заказом для KPI считается только `COMPLETED`.
+- `ASSIGNED` означает successful courier claim, а не pending offer.
+- `DELIVERED` требует operator/admin закрытия; успешным заказом для KPI считается только `COMPLETED`.
 - Любая значимая write-операция порождает доменное событие.
 - Формат событий стабилен для будущего перехода на SSE/WS.
 - Telegram webhook/update replay не должен приводить к повторным domain side effects.
@@ -215,10 +216,10 @@ admin-web/
 
 ## 12. Ограничения MVP и anti-overengineering rules
 
-- Нет Redis и очередей.
+- Нет Redis и очередей; courier auto-offer реализуется KISS-механикой fan-out + atomic claim без отдельной queue architecture.
 - Нет 2FA.
 - Нет автоматических refund-процедур.
-- Нет авто-назначения курьеров.
+- Нет сложного авто-назначения по геолокации/маршрутам/сменам; только KISS auto-offer + atomic claim.
 - Нет преждевременного выделения микросервисов.
 - Нет общих бизнес-абстракций без подтвержденной повторяемости.
 - Нет проектирования вокруг технических модулей, если ценность лучше выражается capability slice.

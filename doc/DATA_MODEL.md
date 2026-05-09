@@ -34,7 +34,7 @@ _Источник требований: `doc/PRD.md`_
 |------|-----|----------|
 | `id` PK | bigint | Внутренний идентификатор |
 | `telegram_id` | text, unique, nullable | Telegram ID (для Mini App/бота) |
-| `role` | enum | `boss`/`manager`/`admin`/`seller`/`courier`/`client` |
+| `role` | enum | `boss`/`operator`/`admin`/`seller`/`courier`/`client` |
 | `name` | text | Имя |
 | `username` | text | Telegram username |
 | `language` | text | `ru`/`en`/`tj` |
@@ -57,7 +57,7 @@ _Источник требований: `doc/PRD.md`_
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `user_id` PK/FK -> users.id | bigint | Только для ролей `boss/manager/admin` |
+| `user_id` PK/FK -> users.id | bigint | Только для ролей `boss/operator/admin` |
 | `password_hash` | text | Хэш пароля |
 | `password_updated_at` | timestamptz | Когда обновлен пароль |
 | `failed_attempts` | int | Счетчик неудачных попыток |

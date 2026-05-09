@@ -15,6 +15,11 @@ status: active
 
 ## Recent entries
 
+## [2026-05-09] FT-016 operator delivery ops spec refresh
+- Updated EP-002/requirements/state/contracts/features for the discussed KISS operator delivery operations target: `operator` role, admin-as-operator, desktop-first panel, 4-day order list, top delayed/unassigned alert, bot chat redirect, courier availability menu, optional auto-offer, atomic first-claim-wins assignment and simple courier `rating_score`.
+- Changed target lifecycle semantics: pending offers no longer equal `ASSIGNED`; `ASSIGNED` means courier claim succeeded, `PICKED_UP` is inserted before `IN_PROGRESS`, `DELAYED` is the urgent no-courier/problem state, and `DELIVERED -> COMPLETED` is operator/admin manual closure. Existing FT-004/FT-005 implementation notes are marked as superseded target behavior rather than current code closure.
+- Added staged migration guidance for implemented FT-004/FT-005 v1 and the existing admin panel: additive-first rollout, no mass rewrite of active orders, repair/extend existing panel by default, and `.memory-bank/tasks/plans/MIGRATE-FT-004-FT-005-to-FT-016.md` as the migration plan.
+
 ## [2026-05-09] Created shops design-flow and provisioning UI pass
 - Ran a design-flow pass for created/provisioned shops inside the `catalog` slice: saved brief, IA, scoped token notes, and build tasks under `.design/created-shops/`, with explicit boundaries for `admin-web` provisioning, shared `/shops/:publicPath` storefront, and narrow `seller-web` status control.
 - Refined `/admin/catalog/shops/provision` as a presentation-only provisioning workspace: the summary now emphasizes durable skeleton storefront creation, seller Telegram binding, initial visibility and starter content, while the created-shop list uses scan-friendly cards with visible `WORKING/NOT_WORKING`, seller/Telegram facts, and public path links without exposing technical `shop.id` as a customer route.

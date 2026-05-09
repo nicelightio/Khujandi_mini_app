@@ -30,8 +30,9 @@ status: active
 
 - Успешная write-команда возвращает актуальное состояние ресурса с `updated_at` и `revision`, когда downstream polling зависит от дешевой синхронизации.
 - Write-flow, который меняет lifecycle заказа, обязан публиковать доменное событие только после успешного persistence commit.
-- Для `FT-004` событие `order.assigned` остается canonical publish point для перехода `CREATED -> ASSIGNED`; `revision` в event/response сериализуется строкой.
+- Для `FT-004` событие `order.assigned` остается canonical publish point для successful courier claim (`CREATED|DELAYED -> ASSIGNED`); pending offer сам по себе не публикует `order.assigned`; `revision` в event/response сериализуется строкой.
 - Для `FT-005` успешный status-change command также возвращает `updated_at` и string `revision`, а невалидный lifecycle transition обязан завершаться `409 CONFLICT` без history/event side effects.
+- Для `FT-016` operator delivery ops suggested events (`order.offer_created`, `order.offer_repeated`, `order.assignment_timeout`, `order.delayed`, `order.message_received`, `order.message_sent`) используют тот же event shape и string revision/cursor contract.
 - Для customer checkout flow successful paid order creation публикует customer-observable order creation/update metadata only after persistence commit, so downstream status visibility can enter the polling flow without inventing a second tracking source.
 
 ## Error shape

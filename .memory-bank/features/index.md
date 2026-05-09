@@ -14,6 +14,7 @@ status: active
 - [.memory-bank/features/FT-003-language-selection-and-localization.md](FT-003-language-selection-and-localization.md): Обязательный first-run language overlay и базовая локализация MVP.
 - [.memory-bank/features/FT-004-courier-assignment.md](FT-004-courier-assignment.md): Ручное назначение курьера администратором.
 - [.memory-bank/features/FT-005-order-tracking-and-events-polling.md](FT-005-order-tracking-and-events-polling.md): State machine заказа, history и polling событий.
+- [.memory-bank/features/FT-016-operator-orders-monitoring-and-courier-offer-flow.md](FT-016-operator-orders-monitoring-and-courier-offer-flow.md): Desktop-first operator panel, courier availability, delayed alerts and auto-offer/claim flow.
 - [.memory-bank/features/FT-014-customer-order-status-visibility-and-delivery-tracking-integration.md](FT-014-customer-order-status-visibility-and-delivery-tracking-integration.md): Customer-facing status visibility поверх `FT-005` polling без переноса delivery operations ownership.
 - [.memory-bank/features/FT-006-operational-cancellation-and-manual-refund.md](FT-006-operational-cancellation-and-manual-refund.md): Операционная отмена и явный ручной refund tracking.
 - [.memory-bank/features/FT-007-admin-auth-and-session-security.md](FT-007-admin-auth-and-session-security.md): Login/password контур веб-админки и security policies.

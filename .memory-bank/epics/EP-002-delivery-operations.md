@@ -13,25 +13,27 @@ status: active
 - `FT-004` courier assignment
 - `FT-005` order tracking and events polling
 - `FT-006` operational cancellation and manual refund tracking
+- `FT-016` operator orders monitoring, courier availability and auto-offer
 
 ## Success metrics
 
-- Админ вручную назначает курьера без обхода RBAC.
+- Operator/admin вручную инициирует назначение без обхода RBAC, но `ASSIGNED` ставится только после courier claim.
+- Auto-offer без Redis/очередей предлагает заказ активным свободным курьерам и закрепляет первого successful claimant.
 - Все валидные переходы статусов отражаются в истории и событиях.
 - Polling SLA p95 <= 10 секунд подтверждается на MVP-нагрузке.
 - Отмена и ручной refund прозрачно фиксируются в заказе и аудите.
 
 ## Acceptance criteria
 
-- Назначение курьера переводит заказ в `ASSIGNED` и инициирует уведомление релевантному actor.
-- Курьер может провести заказ только через серверно-разрешенные переходы.
+- Courier claim переводит заказ в `ASSIGNED`; pending offers сами по себе не меняют order status на `ASSIGNED`.
+- Курьер проводит заказ через серверно-разрешенные переходы до `DELIVERED`; operator/admin закрывает `DELIVERED -> COMPLETED`.
 - `GET /events?since=<cursor>` возвращает упорядоченные события и `next_cursor` строкой.
 - Отмена доступна только разрешенным ролям и фиксирует причину, инициатора и refund state.
 
 ## Constraints / invariants
 
 - Клиент не отменяет заказ.
-- Нет broad broadcast по умолчанию, если достаточно actor-targeted уведомления.
+- Нет broad broadcast по умолчанию, кроме explicit auto-offer fan-out активным свободным курьерам.
 - Event format должен оставаться совместимым для future SSE/WS.
 
 ## Source artifacts

@@ -11,6 +11,7 @@ status: active
 - [.memory-bank/contracts/catalog-seller-provisioning-and-visibility.md](catalog-seller-provisioning-and-visibility.md): Admin provisioning skeleton shop, Telegram-linked seller binding и `WORKING/NOT_WORKING` visibility.
 - [.memory-bank/contracts/catalog-seller-access-and-session.md](catalog-seller-access-and-session.md): Seller access resolution, shared session family и route boundaries для `mini-app` + `seller-web`.
 - [.memory-bank/contracts/api-events-baseline.md](api-events-baseline.md): Базовые REST/event контракты MVP и polling shape.
+- [.memory-bank/contracts/operator-delivery-ops-contract.md](operator-delivery-ops-contract.md): Operator panel read model, courier offers/claim, status controls and chat redirects.
 - [.memory-bank/contracts/telegram-mini-app-auth-contract.md](telegram-mini-app-auth-contract.md): Контракт `POST /auth/telegram`, `initData` validation и session issuance policy.
 - [.memory-bank/contracts/mini-app-runtime-contract.md](mini-app-runtime-contract.md): Контракт shell/runtime adapter для Telegram WebView, storage policy и feature detection.
 - [.memory-bank/contracts/admin-auth-contract.md](admin-auth-contract.md): Контракт admin auth, lockout и session behavior.

@@ -5,13 +5,13 @@ status: active
 # Glossary
 
 ## Terms
-- `User`: субъект, взаимодействующий с системой в одной из ролей `boss|manager|admin|seller|courier|client`.
-- `Role` / `RBAC`: роль определяет доступные сценарии и права доступа к операциям системы.
+- `User`: субъект, взаимодействующий с системой в одной из ролей `boss|operator|admin|seller|courier|client`.
+- `Role` / `RBAC`: роль определяет доступные сценарии и права доступа к операциям системы. `admin` включает operator capabilities.
 - `Shop`: торговая точка продавца с собственной витриной, статусом публичной видимости и seller ownership.
 - `Menu Page`: страница/раздел меню внутри магазина, группирующая товары storefront-а.
 - `Product`: товарная позиция магазина с ценой, описанием, изображением и seller ownership.
 - `Order`: сущность покупки, хранящая участников, суммы, статусы и историю изменений.
-- `Order Status`: состояние заказа в основном delivery flow `CREATED -> ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
+- `Order Status`: состояние заказа в основном delivery flow `CREATED -> ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED`; `DELAYED` — urgent no-courier/problem state.
 - `Status History`: журнал смены статусов заказа (`order_status_history`).
 - `Review`: оценка `1..5` и комментарий после завершения заказа.
 - `VIP`: признак повышенного приоритета для клиентов, курьеров, продавцов или магазинов.
@@ -39,7 +39,7 @@ status: active
 - `Skeleton Shop`: автоматически созданный шаблон магазина со стартовыми страницами меню и товарами, который admin provision-ит для seller-а.
 - `Shop Status`: явное состояние видимости магазина `WORKING | NOT_WORKING`.
 - `Checkout-Payment`: capability оформления заказа, оплаты и создания заказа только после подтвержденного платежа.
-- `Delivery Assignment`: capability ручного назначения курьера администратором.
+- `Delivery Assignment`: capability offer/claim закрепления заказа за курьером; `ASSIGNED` означает successful courier claim, not pending offer.
 - `Delivery Tracking`: capability управления жизненным циклом заказа, историей статусов и event polling.
 - `Order Cancellation`: capability операционной отмены заказа и ручного refund workflow.
 - `Reviews Feedback`: capability двусторонних отзывов и негативных alert-ов.
@@ -55,6 +55,6 @@ status: active
 - `Shop Name Snapshot`: имя магазина, зафиксированное в заказе и не обновляемое при последующих переименованиях.
 
 ## Notes
-- Канонические технические роли: `boss`, `manager`, `admin`, `seller`, `courier`, `client`.
+- Канонические технические роли: `boss`, `operator`, `admin`, `seller`, `courier`, `client`; business label `manager` соответствует `operator`.
 - UI-лейблы типа `худБосс`, `худКур`, `худПотр` допустимы только как business-facing labels, не как API/DB contracts.
 - Основной язык Memory Bank: русский; устойчивые технические термины допускаются на английском.

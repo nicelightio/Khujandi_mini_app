@@ -1,8 +1,12 @@
 ---
 description: Implementation plan для FT-005 order tracking and events polling.
-status: active
+status: deprecated
 ---
 # IMPL-FT-005
+
+## Superseded note
+
+- Superseded by the FT-016/updated FT-005 target: lifecycle now includes `PICKED_UP`, `DELAYED`, and operator/admin-owned `DELIVERED -> COMPLETED`. Keep this file only as historical implementation evidence for the legacy tracking wave.
 
 ## Goal
 

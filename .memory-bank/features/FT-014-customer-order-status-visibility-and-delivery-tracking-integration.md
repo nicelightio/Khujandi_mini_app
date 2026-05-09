@@ -19,7 +19,7 @@ status: active
 ## Current implementation state
 
 - Already closed repo-local capability: `FT-005` owns post-assignment lifecycle, ordered polling, history/events and polling SLA.
-- Already closed repo-local capability: `FT-004` owns `CREATED -> ASSIGNED`; `FT-005` owns `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`.
+- Target lifecycle update: `FT-004` owns courier claim into `ASSIGNED`; `FT-005` owns `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED`. Existing repo-local `FT-014` closure predates `PICKED_UP`/`DELAYED` and will need a follow-up UI copy update when those states are implemented.
 - Implemented repo-local capability: `TASK-FT014-02` adds a customer status entry from `FT-013` paid-order metadata. Checkout success now links to `/tracking?orderId=<id>&cursor=<revision>`, the customer status entry starts read-only at `CREATED`, and missing/lost order identity recovers to catalog instead of showing fake tracking data.
 - Implemented repo-local capability: `TASK-FT014-03` wires the customer status polling consumer to `GET /events?since=<cursor>`, normalizes `next_cursor`/`entity_id`/`created_at` while preserving string-only opaque `since`/`revision` semantics, and keeps empty windows plus duplicate events stable without read-side lifecycle mutations.
 - Implemented repo-local capability: `TASK-FT014-04` renders customer-safe lifecycle copy for `CREATED`, explicit waiting for assignment, `ASSIGNED`, `IN_PROGRESS`, `DELIVERED`, `COMPLETED`, and cancellation terminal states without exposing courier/admin controls, audit details or refund internals.
@@ -31,13 +31,13 @@ status: active
 ## Use cases
 
 - После успешной оплаты клиент видит статус созданного заказа вместо обрыва flow на checkout success.
-- Клиент видит изменения `CREATED -> ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED` через polling without refreshing manually.
+- Клиент видит изменения `CREATED -> ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED` через polling without refreshing manually, включая controlled `DELAYED` wait/problem copy.
 - Клиент получает controlled state if assignment/tracking events are delayed, unavailable or cancelled by operations.
 
 ## Acceptance criteria
 
 - Customer status entry point MUST be reachable from successful `FT-013` paid order creation and tied to the created order identity.
-- Customer UI MUST display at least the customer-safe order states: `CREATED`, `ASSIGNED`, `IN_PROGRESS`, `DELIVERED`, `COMPLETED`, plus controlled cancellation/terminal messaging when the order enters an operational cancellation state.
+- Customer UI MUST display at least the customer-safe order states: `CREATED`, `DELAYED`, `ASSIGNED`, `PICKED_UP`, `IN_PROGRESS`, `DELIVERED`, `COMPLETED`, plus controlled cancellation/terminal messaging when the order enters an operational cancellation state.
 - Customer status visibility MUST consume `FT-005` event/polling contract (`GET /events?since=<cursor>`) and MUST NOT define a second delivery state machine.
 - The checked-in repo-local runtime MUST mount the customer status polling route used by the frontend and prove customer/order scoping before final closure.
 - Customer status visibility MUST respect `FT-005` cursor semantics: `since`, `revision` and `next_cursor` remain opaque strings.

@@ -16,8 +16,8 @@ status: active
 - `REQ-004` Telegram auth: Mini App использует `POST /auth/telegram`; доверенные решения опираются только на серверную валидацию raw `initData` и `auth_date`, где `auth_date` имеет TTL не более 10 минут; `initDataUnsafe` не используется для auth decisions, а replay в пределах TTL должен блокироваться; пустой или отсутствующий `initData` в unsupported launch modes не должен обходить auth boundary и требует controlled recovery path.
 - `REQ-005` Checkout/payment: заказ создается только после успешной онлайн-оплаты через локального провайдера.
 - `REQ-006` Payment failure/retry: при ошибке или таймауте оплаты заказ не создается; клиент получает ошибку и retry-сценарий.
-- `REQ-007` Delivery assignment: курьера на заказ вручную назначает администратор; назначение переводит заказ в `ASSIGNED` и инициирует уведомление назначенному курьеру.
-- `REQ-008` Delivery tracking: после назначения заказ проходит только валидные серверные переходы `ASSIGNED -> IN_PROGRESS -> DELIVERED -> COMPLETED`; невалидный переход возвращает `409 CONFLICT`.
+- `REQ-007` Delivery assignment/offers: operator/admin или optional auto-offer инициирует предложение заказа курьеру; `ASSIGNED` ставится только после подтверждения/claim курьером через серверную atomic проверку, что заказ еще активен и не закреплен.
+- `REQ-008` Delivery tracking: после принятия заказа курьер ведет валидные серверные переходы `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED`, а operator/admin вручную закрывает `DELIVERED -> COMPLETED`; невалидный переход возвращает `409 CONFLICT`.
 - `REQ-009` Events/polling: каждое значимое доменное изменение создает событие; чтение изменений идет через `GET /events?since=<cursor>`, где cursor/revision возвращаются строкой, а command-ответы публикуют `updated_at` и `revision` для дешевого polling.
 - `REQ-010` Polling SLA: целевая p95 задержка отображения обновлений в MVP <= 10 секунд.
 - `REQ-011` Order cancellation: отмена доступна только `admin` и `courier` в разрешенном unavailable-кейсе; клиент отменять заказ не может.
@@ -44,10 +44,12 @@ status: active
 - `REQ-032` Catalog-to-checkout handoff and mounted paid order flow: customer checkout должен стартовать из валидного order composition payload, revalidate current catalog state server-side, пройти Mini App auth/payment boundary и создать order `CREATED` только после trusted successful payment; direct checkout без валидной composition должен вести к controlled recovery, а не к fake order.
 - `REQ-033` Customer order status visibility: после paid order creation клиент должен видеть customer-safe статус заказа через event/polling integration с существующим tracking contract, включая `CREATED`, assignment wait, courier progress and terminal states, without exposing delivery operation controls or duplicating `FT-005` lifecycle ownership.
 - `REQ-034` Стартовая Витрина и курирование: после выбора языка клиент попадает на стартовую Витрину с catalog-owned списком актуальных product references "Сегодня популярны", до 3 избранных `WORKING` магазинов и ссылкой "весь Худжанд" к общему browse/list магазинов; platform admin с валидной admin session и ролью `BOSS`/`ADMIN` может курировать ссылки через storefront long-press, а seller не получает эти права; Витрина хранит references, не snapshots, и публично скрывает `NOT_WORKING`/deleted shops/products.
+- `REQ-035` Operator orders monitoring panel: desktop-first operator/admin panel показывает заказы за сегодня и предыдущие 3 дня, severity colors, unassigned/delayed alert сверху, сортировки, courier assignment/claim state, последнее сообщение и раскрываемую историю статусов с комментариями по ролям.
+- `REQ-036` Courier availability and auto-offer: courier bot имеет меню `Курьер` с active/stop-after-5-min и auto-offer participation ON/OFF; при включенной настройке панели новый заказ предлагается всем активным свободным курьерам, первый successful claim получает заказ, а отсутствие принятия переводит заказ в `DELAYED` и уведомляет operators.
 
 ## Out of scope
-- Авто-назначение курьеров.
-- Redis, очереди и автоматические retry уведомлений.
+- Сложное авто-назначение курьеров по геолокации/маршрутам/сменам.
+- Redis, очереди и тяжелые retry pipelines.
 - Автоматические refund-процедуры через payment provider.
 - 2FA веб-админки.
 - Продвинутая BI-аналитика и автоматический пересчет VIP/репутации.
@@ -64,9 +66,9 @@ status: active
 | REQ-004 | EP-001 | FT-002 | integration: raw `initData` validation + replay guard | implemented |
 | REQ-005 | EP-001 | FT-002 | integration/front-smoke: trusted paid checkout order creation | implemented |
 | REQ-006 | EP-001 | FT-002 | integration/front-smoke: failed payment keeps orders absent | implemented |
-| REQ-007 | EP-002 | FT-004 | e2e: admin assigns courier | done |
+| REQ-007 | EP-002 | FT-004, FT-016 | e2e: courier offer/claim and manual operator assignment require courier confirmation | planned |
 | REQ-018 | EP-002 | FT-004 | integration: assignment audit and error contract | done |
-| REQ-008 | EP-002 | FT-005 | integration: order state machine + 409 conflict | done |
+| REQ-008 | EP-002 | FT-005, FT-016 | integration: updated order state machine + operator completion + 409 conflict | planned |
 | REQ-009 | EP-002 | FT-005 | e2e: polling returns ordered events | done |
 | REQ-010 | EP-002 | FT-005 | verify: polling SLA p95 <= 10s | done |
 | REQ-011 | EP-002 | FT-006 | e2e: authorized operational cancellation only | done |
@@ -95,6 +97,8 @@ status: active
 | REQ-032 | EP-001 | FT-013, FT-002 | e2e/integration: catalog/cart handoff revalidates composition and creates order only after trusted payment on mounted customer runtime; repo-local gates passed in `TASK-FT013-07`, Android Telegram smoke remains advisory pre-release risk check | verified |
 | REQ-033 | EP-001 | FT-014, FT-005 | e2e/frontend: customer status screen consumes ordered polling/events from paid order creation through delivery completion; repo-local mounted `/api/v1/events`, customer scoping, cursor compatibility and frontend polling gates passed through `TASK-FT014-07`, Android Telegram smoke remains advisory pre-release risk check | verified |
 | REQ-034 | EP-001 | FT-015 | e2e/integration: выбор языка ведет на стартовую Витрину; public read резолвит live catalog references; admin-only long-press curation add/remove и cap избранных магазинов enforced | verified |
+| REQ-035 | EP-002 | FT-016 | e2e/frontend: operator panel list, severity, delayed alert, status history and chat redirect | planned |
+| REQ-036 | EP-002 | FT-016, FT-004 | integration/bot: courier active/free auto-offer, atomic claim, delayed timeout and operator notification | planned |
 
 ## Source artifacts
 
