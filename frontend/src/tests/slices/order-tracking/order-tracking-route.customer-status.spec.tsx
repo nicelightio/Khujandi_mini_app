@@ -1,3 +1,4 @@
+import { createOrderTrackingApi } from "../../../slices/order-tracking/api/order-tracking-api";
 import { collectText, renderRouteWithProps, silenceReactTestRendererDeprecation } from "./order-tracking-route.test-utils";
 
 describe("order-tracking route customer status", () => {
@@ -11,6 +12,7 @@ describe("order-tracking route customer status", () => {
   afterEach(() => {
     jest.useRealTimers();
     consoleErrorSpy.mockRestore();
+    jest.restoreAllMocks();
   });
 
   it("opens customer status from paid-order metadata without courier controls", async () => {
@@ -49,7 +51,9 @@ describe("order-tracking route customer status", () => {
   it("renders customer-safe lifecycle copy without courier controls", async () => {
     const statuses = [
       ["CREATED", "Order paid and waiting for courier assignment", "Payment is confirmed."],
+      ["DELAYED", "Order needs urgent attention", "Courier assignment is taking longer"],
       ["ASSIGNED", "Courier assigned", "after the courier starts"],
+      ["PICKED_UP", "Courier picked up the order", "picked up the order from the shop"],
       ["IN_PROGRESS", "Courier is on the way", "updates automatically through polling"],
       ["DELIVERED", "Order delivered", "waiting for final completion"],
       ["COMPLETED", "Order completed", "Thank you for your order"],
@@ -77,6 +81,82 @@ describe("order-tracking route customer status", () => {
       expect(text).not.toContain("Courier actions");
       expect(renderer.root.findAllByType("button")).toHaveLength(0);
     }
+  });
+
+  it("renders DELAYED as waiting/problem copy without courier progress controls", async () => {
+    const renderer = await renderRouteWithProps({
+      api: {
+        loadTrackingSession: jest.fn(),
+        pollEvents: jest.fn().mockResolvedValue({ events: [], nextCursor: "delayed:101" }),
+        submitCourierAction: jest.fn(),
+      },
+      initialSession: {
+        orderId: "order-delayed-1",
+        currentStatus: "DELAYED",
+        initialCursor: "delayed:100",
+        availableActions: [],
+        isReadOnly: true,
+      },
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Current status: DELAYED.");
+    expect(text).toContain("Order needs urgent attention");
+    expect(text).toContain("Courier assignment is taking longer than expected.");
+    expect(text).not.toContain("Courier is on the way");
+    expect(text).not.toContain("Start delivery");
+    expect(text).not.toContain("Courier actions");
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+  });
+
+  it("keeps an open customer tracking screen in sync with timeout delayed polling events", async () => {
+    jest.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          events: [
+            {
+              type: "order.delayed",
+              entity: "order",
+              entity_id: "order-delayed-1",
+              payload: {
+                orderId: "order-delayed-1",
+                oldStatus: "CREATED",
+                newStatus: "DELAYED",
+                reason: "assignment_timeout",
+                updatedAt: "2026-05-09T12:06:10.000Z",
+              },
+              revision: "rev:delayed:timeout",
+              created_at: "2026-05-09T12:06:10.000Z",
+            },
+          ],
+          next_cursor: "rev:delayed:timeout",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const renderer = await renderRouteWithProps({
+      api: createOrderTrackingApi(),
+      initialSession: {
+        orderId: "order-delayed-1",
+        currentStatus: "CREATED",
+        initialCursor: "rev:created",
+        availableActions: [],
+        isReadOnly: true,
+      },
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Current status: DELAYED.");
+    expect(text).toContain("Order needs urgent attention");
+    expect(text).toContain("Courier assignment is taking longer than expected.");
+    expect(text).toContain("Cursor: rev:delayed:timeout");
+    expect(text).not.toContain("Courier is on the way");
+    expect(text).not.toContain("Courier actions");
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/v1/events?since=rev%3Acreated", {
+      credentials: "same-origin",
+    });
   });
 
   it("renders cancellation terminal states without audit or refund internals", async () => {

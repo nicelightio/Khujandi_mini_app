@@ -9,7 +9,9 @@ datasource db {
 
 enum OrderStatus {
   CREATED
+  DELAYED
   ASSIGNED
+  PICKED_UP
   IN_PROGRESS
   DELIVERED
   COMPLETED
@@ -39,6 +41,7 @@ enum ShopStatus {
 enum UserRole {
   BOSS
   MANAGER
+  OPERATOR
   ADMIN
   SELLER
   COURIER
@@ -60,6 +63,18 @@ enum ReviewTargetRole {
 enum ReviewSource {
   MINI_APP
   TELEGRAM_BOT
+}
+
+enum AssignmentOfferKind {
+  MANUAL
+  BROADCAST
+}
+
+enum AssignmentOfferStatus {
+  PENDING
+  CLAIMED
+  EXPIRED
+  CANCELLED
 }
 
 model Shop {
@@ -187,6 +202,7 @@ model Order {
   shop                   Shop          @relation(fields: [shopId], references: [id])
   statusHistory          OrderStatusHistory[]
   assignmentAudits       DeliveryAssignmentAudit[]
+  assignmentOffers       AssignmentOffer[]
   cancellationAudits     OrderCancellationAudit[]
   reviews                Review[]
 
@@ -202,6 +218,8 @@ model OrderStatusHistory {
   oldStatus       OrderStatus
   newStatus       OrderStatus
   changedByUserId String
+  changedByRole   String?
+  changedByName   String?
   changedAt       DateTime    @default(now())
   order           Order       @relation(fields: [orderId], references: [id])
 
@@ -219,6 +237,22 @@ model DeliveryAssignmentAudit {
 
   @@index([orderId, createdAt])
   @@index([adminUserId, createdAt])
+}
+
+model AssignmentOffer {
+  id              String                @id @default(cuid())
+  orderId         String
+  targetCourierId String?
+  kind            AssignmentOfferKind
+  status          AssignmentOfferStatus @default(PENDING)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  order           Order                 @relation(fields: [orderId], references: [id])
+  targetCourier   User?                 @relation("AssignmentOfferTargetCourier", fields: [targetCourierId], references: [id])
+
+  @@index([orderId, status, createdAt])
+  @@index([targetCourierId, status, createdAt])
+  @@index([status, createdAt])
 }
 
 model OrderCancellationAudit {
@@ -258,11 +292,15 @@ model User {
   username        String?
   language        String?
   isActive        Boolean          @default(true)
+  acceptingOrdersUntil DateTime?
+  autoOfferEnabled Boolean         @default(false)
+  ratingScore     Int              @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   miniAppSessions MiniAppSession[]
   authoredReviews Review[]         @relation("ReviewAuthor")
   targetedReviews Review[]         @relation("ReviewTarget")
+  targetedAssignmentOffers AssignmentOffer[] @relation("AssignmentOfferTargetCourier")
 }
 
 model Review {

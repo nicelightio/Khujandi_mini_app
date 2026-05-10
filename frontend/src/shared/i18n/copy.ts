@@ -71,7 +71,9 @@ type CopyDictionary = {
     currentStatus: (status: string) => string;
     customerLifecycleTitle: Record<
       | "CREATED"
+      | "DELAYED"
       | "ASSIGNED"
+      | "PICKED_UP"
       | "IN_PROGRESS"
       | "DELIVERED"
       | "COMPLETED"
@@ -81,7 +83,9 @@ type CopyDictionary = {
     >;
     customerLifecycleBody: Record<
       | "CREATED"
+      | "DELAYED"
       | "ASSIGNED"
+      | "PICKED_UP"
       | "IN_PROGRESS"
       | "DELIVERED"
       | "COMPLETED"
@@ -95,7 +99,7 @@ type CopyDictionary = {
     boundaryNote: string;
     pendingAction: string;
     availableActionsLabel: string;
-    nextActionLabel: Record<"IN_PROGRESS" | "DELIVERED" | "COMPLETED", string>;
+    nextActionLabel: Record<"PICKED_UP" | "IN_PROGRESS" | "DELIVERED", string>;
   };
 };
 
@@ -184,7 +188,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       currentStatus: (status) => `Текущий статус: ${status}.`,
       customerLifecycleTitle: {
         CREATED: "Заказ оплачен и ожидает назначения курьера",
+        DELAYED: "Заказ ожидает срочного внимания",
         ASSIGNED: "Курьер назначен",
+        PICKED_UP: "Курьер забрал заказ",
         IN_PROGRESS: "Курьер в пути",
         DELIVERED: "Заказ доставлен",
         COMPLETED: "Заказ завершен",
@@ -193,7 +199,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       },
       customerLifecycleBody: {
         CREATED: "Мы подтвердили оплату. Операционная команда назначит курьера, когда заказ будет готов к доставке.",
+        DELAYED: "Назначение курьера занимает больше времени. Операционная команда уже видит этот заказ.",
         ASSIGNED: "Курьер уже назначен. Мы покажем прогресс, когда курьер начнет доставку.",
+        PICKED_UP: "Курьер забрал заказ из магазина и скоро начнет доставку.",
         IN_PROGRESS: "Курьер выполняет доставку. Статус обновится автоматически через polling.",
         DELIVERED: "Заказ отмечен доставленным. Ждем финальное завершение доставки.",
         COMPLETED: "Доставка завершена. Спасибо за заказ.",
@@ -209,9 +217,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       pendingAction: "Отправляем courier action...",
       availableActionsLabel: "Courier actions",
       nextActionLabel: {
+        PICKED_UP: "Забрать заказ",
         IN_PROGRESS: "Начать доставку",
         DELIVERED: "Отметить как доставлено",
-        COMPLETED: "Завершить заказ",
       },
     },
   },
@@ -291,7 +299,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       currentStatus: (status) => `Current status: ${status}.`,
       customerLifecycleTitle: {
         CREATED: "Order paid and waiting for courier assignment",
+        DELAYED: "Order needs urgent attention",
         ASSIGNED: "Courier assigned",
+        PICKED_UP: "Courier picked up the order",
         IN_PROGRESS: "Courier is on the way",
         DELIVERED: "Order delivered",
         COMPLETED: "Order completed",
@@ -300,7 +310,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       },
       customerLifecycleBody: {
         CREATED: "Payment is confirmed. The operations team will assign a courier when the order is ready for delivery.",
+        DELAYED: "Courier assignment is taking longer than expected. The operations team can already see this order.",
         ASSIGNED: "A courier is assigned. We will show delivery progress after the courier starts the trip.",
+        PICKED_UP: "The courier picked up the order from the shop and will start delivery soon.",
         IN_PROGRESS: "The courier is handling your delivery. This screen updates automatically through polling.",
         DELIVERED: "The order is marked as delivered. We are waiting for final completion.",
         COMPLETED: "Delivery is complete. Thank you for your order.",
@@ -316,9 +328,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       pendingAction: "Sending courier action...",
       availableActionsLabel: "Courier actions",
       nextActionLabel: {
+        PICKED_UP: "Mark picked up",
         IN_PROGRESS: "Start delivery",
         DELIVERED: "Mark as delivered",
-        COMPLETED: "Complete order",
       },
     },
   },
@@ -399,7 +411,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       currentStatus: (status) => `Ҳолати ҷорӣ: ${status}.`,
       customerLifecycleTitle: {
         CREATED: "Фармоиш пардохт шуд ва таъини курьерро интизор аст",
+        DELAYED: "Фармоиш таваҷҷуҳи фавриро интизор аст",
         ASSIGNED: "Курьер таъин шуд",
+        PICKED_UP: "Курьер фармоишро гирифт",
         IN_PROGRESS: "Курьер дар роҳ аст",
         DELIVERED: "Фармоиш расонида шуд",
         COMPLETED: "Фармоиш анҷом ёфт",
@@ -408,7 +422,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       },
       customerLifecycleBody: {
         CREATED: "Пардохт тасдиқ шуд. Гурӯҳи амалиётӣ ҳангоми омода шудани фармоиш курьер таъин мекунад.",
+        DELAYED: "Таъини курьер аз интизорӣ дарозтар шуд. Гурӯҳи амалиётӣ ин фармоишро аллакай мебинад.",
         ASSIGNED: "Курьер таъин шудааст. Пас аз оғози расониш пешрафтро нишон медиҳем.",
+        PICKED_UP: "Курьер фармоишро аз мағоза гирифт ва ба зудӣ расонишро оғоз мекунад.",
         IN_PROGRESS: "Курьер фармоишро мерасонад. Ин экран бо polling худкор нав мешавад.",
         DELIVERED: "Фармоиш ҳамчун расонидашуда қайд шуд. Анҷоми ниҳоиро интизорем.",
         COMPLETED: "Расониш анҷом ёфт. Ташаккур барои фармоиш.",
@@ -424,9 +440,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       pendingAction: "Амали courier фиристода истодаем...",
       availableActionsLabel: "Амалҳои courier",
       nextActionLabel: {
+        PICKED_UP: "Фармоиш гирифта шуд",
         IN_PROGRESS: "Расонишро оғоз кунед",
         DELIVERED: "Расонида шуд",
-        COMPLETED: "Фармоишро анҷом диҳед",
       },
     },
   },

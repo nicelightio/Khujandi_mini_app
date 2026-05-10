@@ -29,7 +29,7 @@ const createRepository = (): DeliveryTrackingRepository => ({
     order: {
       id: "order-1",
       courierId: "courier-1",
-      status: "IN_PROGRESS",
+      status: "PICKED_UP",
       updatedAt: new Date("2026-04-03T10:00:00.000Z"),
       isDeleted: false,
     },
@@ -37,7 +37,7 @@ const createRepository = (): DeliveryTrackingRepository => ({
       id: 1n,
       orderId: "order-1",
       oldStatus: "ASSIGNED",
-      newStatus: "IN_PROGRESS",
+      newStatus: "PICKED_UP",
       changedByUserId: "courier-1",
       changedAt: new Date("2026-04-03T10:00:00.000Z"),
     },
@@ -48,7 +48,7 @@ const createRepository = (): DeliveryTrackingRepository => ({
       payload: {
         orderId: "order-1",
         previousStatus: "ASSIGNED",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         changedByUserId: "courier-1",
         updatedAt: "2026-04-03T10:00:00.000Z",
       },
@@ -70,21 +70,21 @@ describe("delivery-tracking service", () => {
       notifier.notifyStatusChanged({
         orderId: "order-1",
         courierTelegramId: "10001",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         revision: "22",
-        availableActions: ["DELIVERED"],
+        availableActions: ["IN_PROGRESS"],
       }),
     ).resolves.toBeUndefined();
 
     expect(sendMessage).toHaveBeenCalledWith({
       chatId: "10001",
       text:
-        "Order order-1 is currently IN_PROGRESS. Choose the next courier action in the owning delivery-tracking flow.",
+        "Order order-1 is currently PICKED_UP. Choose the next courier action in the owning delivery-tracking flow.",
       dedupeKey: "order.status_changed:order-1:22",
       buttons: [
         {
-          label: "Mark delivered",
-          callbackData: "delivery-tracking:order-1:DELIVERED",
+          label: "Start delivery",
+          callbackData: "delivery-tracking:order-1:IN_PROGRESS",
         },
       ],
     });
@@ -100,7 +100,7 @@ describe("delivery-tracking service", () => {
         orderId: "order-1",
         currentStatus: "ASSIGNED",
         revision: "22",
-        availableActions: ["IN_PROGRESS"],
+        availableActions: ["PICKED_UP"],
       }),
     ).resolves.toBeUndefined();
 
@@ -111,8 +111,8 @@ describe("delivery-tracking service", () => {
       dedupeKey: "order.status_changed:order-1:22",
       buttons: [
         {
-          label: "Start delivery",
-          callbackData: "delivery-tracking:order-1:IN_PROGRESS",
+          label: "Mark picked up",
+          callbackData: "delivery-tracking:order-1:PICKED_UP",
         },
       ],
     });
@@ -129,6 +129,7 @@ describe("delivery-tracking service", () => {
       orderId: "order-1",
       nextStatus: "DELIVERED",
     });
+    expect(parseDeliveryTrackingCallbackData("delivery-tracking:order-1:COMPLETED")).toBeNull();
     expect(parseDeliveryTrackingCallbackData("delivery-tracking:order-1:CANCELLED_BY_ADMIN")).toBeNull();
   });
 
@@ -153,6 +154,218 @@ describe("delivery-tracking service", () => {
       isDeleted: false,
     });
     expect(findOrderById).toHaveBeenCalledWith("order-1");
+  });
+
+  it("allows PICKED_UP to advance to IN_PROGRESS in the v2 lifecycle", async () => {
+    const findOrderById = jest.fn().mockResolvedValue({
+      id: "order-1",
+      courierId: "courier-1",
+      status: "PICKED_UP",
+      updatedAt: new Date("2026-05-09T10:00:00.000Z"),
+      isDeleted: false,
+    });
+    const recordStatusTransition = jest.fn().mockResolvedValue({
+      order: {
+        id: "order-1",
+        courierId: "courier-1",
+        status: "IN_PROGRESS",
+        updatedAt: new Date("2026-05-09T10:05:00.000Z"),
+        isDeleted: false,
+      },
+      statusHistory: {
+        id: 2n,
+        orderId: "order-1",
+        oldStatus: "PICKED_UP",
+        newStatus: "IN_PROGRESS",
+        changedByUserId: "courier-1",
+        changedAt: new Date("2026-05-09T10:05:00.000Z"),
+      },
+      event: {
+        type: "order.status_changed",
+        entity: "order",
+        entityId: "order-1",
+        payload: {
+          orderId: "order-1",
+          previousStatus: "PICKED_UP",
+          status: "IN_PROGRESS",
+          changedByUserId: "courier-1",
+          updatedAt: "2026-05-09T10:05:00.000Z",
+        },
+        revision: "3",
+        createdAt: "2026-05-09T10:05:00.000Z",
+      },
+      revision: "3",
+    });
+    const service = new DeliveryTrackingService({
+      ...createRepository(),
+      findOrderById,
+      recordStatusTransition,
+    });
+
+    await expect(service.findOrderById("order-1")).resolves.toMatchObject({
+      status: "PICKED_UP",
+    });
+    await expect(
+      service.recordStatusTransition({
+        orderId: "order-1",
+        nextStatus: "IN_PROGRESS",
+        actor: {
+          userId: "courier-1",
+          role: "courier",
+        },
+      }),
+    ).resolves.toEqual({
+      orderId: "order-1",
+      status: "IN_PROGRESS",
+      updatedAt: new Date("2026-05-09T10:05:00.000Z"),
+      revision: "3",
+    });
+    expect(recordStatusTransition).toHaveBeenCalledWith({
+      orderId: "order-1",
+      changedByUserId: "courier-1",
+      oldStatus: "PICKED_UP",
+      newStatus: "IN_PROGRESS",
+      changedAt: expect.any(Date),
+    });
+  });
+
+  it("keeps OPERATOR role representable without changing current courier-only tracking writes", async () => {
+    const findOrderById = jest.fn();
+    const recordStatusTransition = jest.fn();
+    const service = new DeliveryTrackingService({
+      ...createRepository(),
+      findOrderById,
+      recordStatusTransition,
+    });
+
+    await expect(
+      service.recordStatusTransition({
+        orderId: "order-1",
+        nextStatus: "IN_PROGRESS",
+        actor: {
+          userId: "operator-1",
+          role: "operator",
+        },
+      }),
+    ).rejects.toEqual(
+      new AppError("FORBIDDEN", "User role cannot update delivery status", 403, {
+        role: "operator",
+      }),
+    );
+    expect(findOrderById).not.toHaveBeenCalled();
+    expect(recordStatusTransition).not.toHaveBeenCalled();
+  });
+
+  it("allows operator status control to close DELIVERED to COMPLETED with actor metadata", async () => {
+    const findOrderById = jest.fn().mockResolvedValue({
+      id: "order-1",
+      courierId: "courier-1",
+      status: "DELIVERED",
+      updatedAt: new Date("2026-05-09T12:00:00.000Z"),
+      isDeleted: false,
+    });
+    const recordStatusTransition = jest.fn().mockResolvedValue({
+      order: {
+        id: "order-1",
+        courierId: "courier-1",
+        status: "COMPLETED",
+        updatedAt: new Date("2026-05-09T12:05:00.000Z"),
+        isDeleted: false,
+      },
+      statusHistory: {
+        id: 5n,
+        orderId: "order-1",
+        oldStatus: "DELIVERED",
+        newStatus: "COMPLETED",
+        changedByUserId: "admin-account-1",
+        changedByRole: "admin",
+        changedByName: "Admin One",
+        changedAt: new Date("2026-05-09T12:05:00.000Z"),
+      },
+      event: {
+        type: "order.status_changed",
+        entity: "order",
+        entityId: "order-1",
+        payload: {
+          orderId: "order-1",
+          previousStatus: "DELIVERED",
+          status: "COMPLETED",
+          changedByUserId: "admin-account-1",
+          changedByRole: "admin",
+          changedByName: "Admin One",
+          updatedAt: "2026-05-09T12:05:00.000Z",
+        },
+        revision: "5",
+        createdAt: "2026-05-09T12:05:00.000Z",
+      },
+      revision: "5",
+    });
+    const service = new DeliveryTrackingService({
+      ...createRepository(),
+      findOrderById,
+      recordStatusTransition,
+    });
+
+    await expect(
+      service.recordOperatorStatusTransition({
+        orderId: "order-1",
+        nextStatus: "COMPLETED",
+        actor: {
+          userId: "admin-account-1",
+          role: "admin",
+          name: "Admin One",
+        },
+      }),
+    ).resolves.toEqual({
+      orderId: "order-1",
+      status: "COMPLETED",
+      updatedAt: new Date("2026-05-09T12:05:00.000Z"),
+      revision: "5",
+    });
+    expect(recordStatusTransition).toHaveBeenCalledWith({
+      orderId: "order-1",
+      changedByUserId: "admin-account-1",
+      changedByRole: "admin",
+      changedByName: "Admin One",
+      oldStatus: "DELIVERED",
+      newStatus: "COMPLETED",
+      changedAt: expect.any(Date),
+    });
+  });
+
+  it("rejects broad operator status override attempts without persistence side effects", async () => {
+    const recordStatusTransition = jest.fn();
+    const service = new DeliveryTrackingService({
+      ...createRepository(),
+      findOrderById: jest.fn().mockResolvedValue({
+        id: "order-1",
+        courierId: "courier-1",
+        status: "ASSIGNED",
+        updatedAt: new Date("2026-05-09T12:00:00.000Z"),
+        isDeleted: false,
+      }),
+      recordStatusTransition,
+    });
+
+    await expect(
+      service.recordOperatorStatusTransition({
+        orderId: "order-1",
+        nextStatus: "DELIVERED",
+        actor: {
+          userId: "admin-account-1",
+          role: "admin",
+          name: "Admin One",
+        },
+      }),
+    ).rejects.toEqual(
+      new AppError("CONFLICT", "Order cannot transition to the requested status", 409, {
+        orderId: "order-1",
+        currentStatus: "ASSIGNED",
+        nextStatus: "DELIVERED",
+        expectedStatus: "PICKED_UP",
+      }),
+    );
+    expect(recordStatusTransition).not.toHaveBeenCalled();
   });
 
   it("returns ordered polling events with string cursor semantics from the owning repository", async () => {
@@ -214,7 +427,7 @@ describe("delivery-tracking service", () => {
       order: {
         id: "order-1",
         courierId: "courier-1",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         updatedAt: new Date("2026-04-03T10:00:00.000Z"),
         isDeleted: false,
       },
@@ -222,7 +435,7 @@ describe("delivery-tracking service", () => {
         id: 1n,
         orderId: "order-1",
         oldStatus: "ASSIGNED",
-        newStatus: "IN_PROGRESS",
+        newStatus: "PICKED_UP",
         changedByUserId: "courier-1",
         changedAt: new Date("2026-04-03T10:00:00.000Z"),
       },
@@ -233,7 +446,7 @@ describe("delivery-tracking service", () => {
         payload: {
           orderId: "order-1",
           previousStatus: "ASSIGNED",
-          status: "IN_PROGRESS",
+          status: "PICKED_UP",
           changedByUserId: "courier-1",
           updatedAt: "2026-04-03T10:00:00.000Z",
         },
@@ -249,7 +462,7 @@ describe("delivery-tracking service", () => {
     });
     const input: DeliveryTrackingStatusCommandInput = {
       orderId: "order-1",
-      nextStatus: "IN_PROGRESS",
+      nextStatus: "PICKED_UP",
       actor: {
         userId: "courier-1",
         role: "courier",
@@ -258,7 +471,7 @@ describe("delivery-tracking service", () => {
 
     await expect(service.recordStatusTransition(input)).resolves.toEqual({
       orderId: "order-1",
-      status: "IN_PROGRESS",
+      status: "PICKED_UP",
       updatedAt: new Date("2026-04-03T10:00:00.000Z"),
       revision: "2",
     });
@@ -266,7 +479,7 @@ describe("delivery-tracking service", () => {
       orderId: "order-1",
       changedByUserId: "courier-1",
       oldStatus: "ASSIGNED",
-      newStatus: "IN_PROGRESS",
+      newStatus: "PICKED_UP",
       changedAt: expect.any(Date),
     });
   });
@@ -284,7 +497,7 @@ describe("delivery-tracking service", () => {
       order: {
         id: "order-1",
         courierId: "courier-1",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         updatedAt: new Date("2026-04-03T10:00:00.000Z"),
         isDeleted: false,
       },
@@ -292,7 +505,7 @@ describe("delivery-tracking service", () => {
         id: 1n,
         orderId: "order-1",
         oldStatus: "ASSIGNED",
-        newStatus: "IN_PROGRESS",
+        newStatus: "PICKED_UP",
         changedByUserId: "courier-1",
         changedAt: new Date("2026-04-03T10:00:00.000Z"),
       },
@@ -303,7 +516,7 @@ describe("delivery-tracking service", () => {
         payload: {
           orderId: "order-1",
           previousStatus: "ASSIGNED",
-          status: "IN_PROGRESS",
+          status: "PICKED_UP",
           changedByUserId: "courier-1",
           updatedAt: "2026-04-03T10:00:00.000Z",
         },
@@ -328,7 +541,7 @@ describe("delivery-tracking service", () => {
     await expect(
       service.recordStatusTransition({
         orderId: "order-1",
-        nextStatus: "IN_PROGRESS",
+        nextStatus: "PICKED_UP",
         actor: {
           userId: "courier-1",
           role: "courier",
@@ -336,7 +549,7 @@ describe("delivery-tracking service", () => {
       }),
     ).resolves.toMatchObject({
       orderId: "order-1",
-      status: "IN_PROGRESS",
+      status: "PICKED_UP",
       revision: "2",
     });
 
@@ -344,9 +557,9 @@ describe("delivery-tracking service", () => {
     expect(notifier.notifyStatusChanged).toHaveBeenCalledWith({
       orderId: "order-1",
       courierTelegramId: "10001",
-      status: "IN_PROGRESS",
+      status: "PICKED_UP",
       revision: "2",
-      availableActions: ["DELIVERED"],
+      availableActions: ["IN_PROGRESS"],
     });
   });
 
@@ -363,7 +576,7 @@ describe("delivery-tracking service", () => {
       order: {
         id: "order-1",
         courierId: "courier-1",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         updatedAt: new Date("2026-04-03T10:00:00.000Z"),
         isDeleted: false,
       },
@@ -371,7 +584,7 @@ describe("delivery-tracking service", () => {
         id: 1n,
         orderId: "order-1",
         oldStatus: "ASSIGNED",
-        newStatus: "IN_PROGRESS",
+        newStatus: "PICKED_UP",
         changedByUserId: "courier-1",
         changedAt: new Date("2026-04-03T10:00:00.000Z"),
       },
@@ -382,7 +595,7 @@ describe("delivery-tracking service", () => {
         payload: {
           orderId: "order-1",
           previousStatus: "ASSIGNED",
-          status: "IN_PROGRESS",
+          status: "PICKED_UP",
           changedByUserId: "courier-1",
           updatedAt: "2026-04-03T10:00:00.000Z",
         },
@@ -407,7 +620,7 @@ describe("delivery-tracking service", () => {
     await expect(
       service.recordStatusTransition({
         orderId: "order-1",
-        nextStatus: "IN_PROGRESS",
+        nextStatus: "PICKED_UP",
         actor: {
           userId: "courier-1",
           role: "courier",
@@ -415,7 +628,7 @@ describe("delivery-tracking service", () => {
       }),
     ).resolves.toEqual({
       orderId: "order-1",
-      status: "IN_PROGRESS",
+      status: "PICKED_UP",
       updatedAt: new Date("2026-04-03T10:00:00.000Z"),
       revision: "2",
     });
@@ -453,7 +666,112 @@ describe("delivery-tracking service", () => {
         orderId: "order-1",
         currentStatus: "ASSIGNED",
         nextStatus: "DELIVERED",
-        expectedStatus: "IN_PROGRESS",
+        expectedStatus: "PICKED_UP",
+      }),
+    );
+    expect(recordStatusTransition).not.toHaveBeenCalled();
+  });
+
+  it("keeps legacy active orders already in IN_PROGRESS able to move to DELIVERED", async () => {
+    const findOrderById = jest.fn().mockResolvedValue({
+      id: "order-1",
+      courierId: "courier-1",
+      status: "IN_PROGRESS",
+      updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+      isDeleted: false,
+    });
+    const recordStatusTransition = jest.fn().mockResolvedValue({
+      order: {
+        id: "order-1",
+        courierId: "courier-1",
+        status: "DELIVERED",
+        updatedAt: new Date("2026-04-03T10:10:00.000Z"),
+        isDeleted: false,
+      },
+      statusHistory: {
+        id: 2n,
+        orderId: "order-1",
+        oldStatus: "IN_PROGRESS",
+        newStatus: "DELIVERED",
+        changedByUserId: "courier-1",
+        changedAt: new Date("2026-04-03T10:10:00.000Z"),
+      },
+      event: {
+        type: "order.status_changed",
+        entity: "order",
+        entityId: "order-1",
+        payload: {
+          orderId: "order-1",
+          previousStatus: "IN_PROGRESS",
+          status: "DELIVERED",
+          changedByUserId: "courier-1",
+          updatedAt: "2026-04-03T10:10:00.000Z",
+        },
+        revision: "3",
+        createdAt: "2026-04-03T10:10:00.000Z",
+      },
+      revision: "3",
+    });
+    const service = new DeliveryTrackingService({
+      ...createRepository(),
+      findOrderById,
+      recordStatusTransition,
+    });
+
+    await expect(
+      service.recordStatusTransition({
+        orderId: "order-1",
+        nextStatus: "DELIVERED",
+        actor: {
+          userId: "courier-1",
+          role: "courier",
+        },
+      }),
+    ).resolves.toEqual({
+      orderId: "order-1",
+      status: "DELIVERED",
+      updatedAt: new Date("2026-04-03T10:10:00.000Z"),
+      revision: "3",
+    });
+    expect(recordStatusTransition).toHaveBeenCalledWith({
+      orderId: "order-1",
+      changedByUserId: "courier-1",
+      oldStatus: "IN_PROGRESS",
+      newStatus: "DELIVERED",
+      changedAt: expect.any(Date),
+    });
+  });
+
+  it("rejects courier completion because DELIVERED -> COMPLETED is operator-owned later", async () => {
+    const findOrderById = jest.fn().mockResolvedValue({
+      id: "order-1",
+      courierId: "courier-1",
+      status: "DELIVERED",
+      updatedAt: new Date("2026-04-03T10:10:00.000Z"),
+      isDeleted: false,
+    });
+    const recordStatusTransition = jest.fn();
+    const service = new DeliveryTrackingService({
+      ...createRepository(),
+      findOrderById,
+      recordStatusTransition,
+    });
+
+    await expect(
+      service.recordStatusTransition({
+        orderId: "order-1",
+        nextStatus: "COMPLETED",
+        actor: {
+          userId: "courier-1",
+          role: "courier",
+        },
+      }),
+    ).rejects.toEqual(
+      new AppError("CONFLICT", "Order cannot transition to the requested status", 409, {
+        orderId: "order-1",
+        currentStatus: "DELIVERED",
+        nextStatus: "COMPLETED",
+        expectedStatus: null,
       }),
     );
     expect(recordStatusTransition).not.toHaveBeenCalled();
@@ -477,7 +795,7 @@ describe("delivery-tracking service", () => {
     await expect(
       service.recordStatusTransition({
         orderId: "order-1",
-        nextStatus: "IN_PROGRESS",
+        nextStatus: "PICKED_UP",
         actor: {
           userId: "courier-1",
           role: "courier",
@@ -510,7 +828,7 @@ describe("delivery-tracking service", () => {
     await expect(
       service.recordStatusTransition({
         orderId: "order-1",
-        nextStatus: "IN_PROGRESS",
+        nextStatus: "PICKED_UP",
         actor: {
           userId: "admin-1",
           role: "admin",

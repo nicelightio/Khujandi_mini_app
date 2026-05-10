@@ -110,7 +110,7 @@ describe("admin router runtime auth boundary", () => {
 
       text = collectText(renderer.toJSON()).join(" ");
       expect(text).toContain("Signed in as boss (admin-account-1).");
-      expect(text).toContain("Courier assignment");
+      expect(text).toContain("Operator delivery orders");
 
       await expect(authApi.refresh()).resolves.toEqual({
         adminAccountId: "admin-account-1",

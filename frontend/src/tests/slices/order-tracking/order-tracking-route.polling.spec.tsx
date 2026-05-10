@@ -29,7 +29,7 @@ describe("order-tracking route polling", () => {
         events: [
           orderStatusChangedEvent({
             previousStatus: "ASSIGNED",
-            status: "IN_PROGRESS",
+            status: "PICKED_UP",
             revision: "11",
             updatedAt: "2026-04-03T12:00:00.000Z",
           }),
@@ -40,7 +40,7 @@ describe("order-tracking route polling", () => {
         events: [
           orderStatusChangedEvent({
             previousStatus: "ASSIGNED",
-            status: "IN_PROGRESS",
+            status: "PICKED_UP",
             revision: "11",
             updatedAt: "2026-04-03T12:00:00.000Z",
           }),
@@ -52,7 +52,7 @@ describe("order-tracking route polling", () => {
         orderId: "order-1",
         currentStatus: "ASSIGNED",
         initialCursor: "10",
-        availableActions: ["IN_PROGRESS"],
+        availableActions: ["PICKED_UP"],
       }),
       pollEvents,
       submitCourierAction: jest.fn(),
@@ -60,10 +60,10 @@ describe("order-tracking route polling", () => {
 
     let text = collectText(renderer.toJSON()).join(" ");
     expect(text).toContain("Order tracking");
-    expect(text).toContain("Current status: IN_PROGRESS.");
+    expect(text).toContain("Current status: PICKED_UP.");
     expect(text).toContain("Cursor: 11");
     expect(text).toContain("Updates applied: 1.");
-    expect(text).toContain("Mark as delivered");
+    expect(text).toContain("Start delivery");
 
     await act(async () => {
       jest.advanceTimersByTime(5000);
@@ -79,10 +79,10 @@ describe("order-tracking route polling", () => {
   it("keeps command-applied revisions duplicate-safe when polling resumes after submit", async () => {
     const submitCourierAction = jest.fn().mockResolvedValue({
       orderId: "order-1",
-      status: "DELIVERED",
+      status: "IN_PROGRESS",
       revision: "12",
       updatedAt: "2026-04-03T12:05:00.000Z",
-      availableActions: ["COMPLETED"],
+      availableActions: ["DELIVERED"],
     });
     const pollEvents = jest
       .fn()
@@ -93,8 +93,8 @@ describe("order-tracking route polling", () => {
       .mockResolvedValueOnce({
         events: [
           orderStatusChangedEvent({
-            previousStatus: "IN_PROGRESS",
-            status: "DELIVERED",
+            previousStatus: "PICKED_UP",
+            status: "IN_PROGRESS",
             revision: "12",
             updatedAt: "2026-04-03T12:05:00.000Z",
           }),
@@ -104,9 +104,9 @@ describe("order-tracking route polling", () => {
     const renderer = await renderRoute({
       loadTrackingSession: async () => ({
         orderId: "order-1",
-        currentStatus: "IN_PROGRESS",
+        currentStatus: "PICKED_UP",
         initialCursor: "11",
-        availableActions: ["DELIVERED"],
+        availableActions: ["IN_PROGRESS"],
       }),
       pollEvents,
       submitCourierAction,
@@ -119,7 +119,7 @@ describe("order-tracking route polling", () => {
 
     expect(submitCourierAction).toHaveBeenCalledWith({
       orderId: "order-1",
-      nextStatus: "DELIVERED",
+      nextStatus: "IN_PROGRESS",
     });
     await act(async () => {
       jest.advanceTimersByTime(5000);
@@ -127,36 +127,14 @@ describe("order-tracking route polling", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Current status: DELIVERED.");
-    expect(text).toContain("Complete order");
+    expect(text).toContain("Current status: IN_PROGRESS.");
+    expect(text).toContain("Mark as delivered");
     expect(text).toContain("Updates applied: 1.");
     expect(pollEvents).toHaveBeenNthCalledWith(2, "12");
   });
 
-  it("drives the courier flow to COMPLETED while ordered polling stays duplicate-safe across resume", async () => {
-    const submitCourierAction = jest
-      .fn()
-      .mockResolvedValueOnce({
-        orderId: "order-1",
-        status: "IN_PROGRESS",
-        revision: "11",
-        updatedAt: "2026-04-03T12:00:00.000Z",
-        availableActions: ["DELIVERED"],
-      })
-      .mockResolvedValueOnce({
-        orderId: "order-1",
-        status: "DELIVERED",
-        revision: "12",
-        updatedAt: "2026-04-03T12:05:00.000Z",
-        availableActions: ["COMPLETED"],
-      })
-      .mockResolvedValueOnce({
-        orderId: "order-1",
-        status: "COMPLETED",
-        revision: "13",
-        updatedAt: "2026-04-03T12:10:00.000Z",
-        availableActions: [],
-      });
+  it("applies v2 customer polling through operator completion while remaining read-only", async () => {
+    const submitCourierAction = jest.fn();
     const pollEvents = jest
       .fn()
       .mockResolvedValueOnce({
@@ -167,7 +145,7 @@ describe("order-tracking route polling", () => {
         events: [
           orderStatusChangedEvent({
             previousStatus: "ASSIGNED",
-            status: "IN_PROGRESS",
+            status: "PICKED_UP",
             revision: "11",
             updatedAt: "2026-04-03T12:00:00.000Z",
           }),
@@ -177,8 +155,8 @@ describe("order-tracking route polling", () => {
       .mockResolvedValueOnce({
         events: [
           orderStatusChangedEvent({
-            previousStatus: "IN_PROGRESS",
-            status: "DELIVERED",
+            previousStatus: "PICKED_UP",
+            status: "IN_PROGRESS",
             revision: "12",
             updatedAt: "2026-04-03T12:05:00.000Z",
           }),
@@ -188,8 +166,8 @@ describe("order-tracking route polling", () => {
       .mockResolvedValueOnce({
         events: [
           orderStatusChangedEvent({
-            previousStatus: "DELIVERED",
-            status: "COMPLETED",
+            previousStatus: "IN_PROGRESS",
+            status: "DELIVERED",
             revision: "13",
             updatedAt: "2026-04-03T12:10:00.000Z",
           }),
@@ -197,42 +175,47 @@ describe("order-tracking route polling", () => {
         nextCursor: "13",
       })
       .mockResolvedValueOnce({
+        events: [
+          orderStatusChangedEvent({
+            previousStatus: "DELIVERED",
+            status: "COMPLETED",
+            revision: "14",
+            updatedAt: "2026-04-03T12:15:00.000Z",
+          }),
+        ],
+        nextCursor: "14",
+      })
+      .mockResolvedValueOnce({
         events: [],
-        nextCursor: "13",
+        nextCursor: "14",
       });
     const renderer = await renderRoute({
       loadTrackingSession: async () => ({
         orderId: "order-1",
         currentStatus: "ASSIGNED",
         initialCursor: "10",
-        availableActions: ["IN_PROGRESS"],
+        availableActions: [],
+        isReadOnly: true,
       }),
       pollEvents,
       submitCourierAction,
     });
 
     await act(async () => {
-      renderer.root.findAllByType("button")[0].props.onClick();
+      jest.advanceTimersByTime(5000);
       await flushPromises();
     });
+
     await act(async () => {
       jest.advanceTimersByTime(5000);
       await flushPromises();
     });
 
     await act(async () => {
-      renderer.root.findAllByType("button")[0].props.onClick();
-      await flushPromises();
-    });
-    await act(async () => {
       jest.advanceTimersByTime(5000);
       await flushPromises();
     });
 
-    await act(async () => {
-      renderer.root.findAllByType("button")[0].props.onClick();
-      await flushPromises();
-    });
     await act(async () => {
       jest.advanceTimersByTime(5000);
       await flushPromises();
@@ -240,28 +223,18 @@ describe("order-tracking route polling", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
     expect(text).toContain("Current status: COMPLETED.");
-    expect(text).toContain("Updates applied: 3.");
-    expect(text).toContain("Cursor: 13");
-    expect(text).toContain("Latest revision: 13.");
+    expect(text).toContain("Updates applied: 4.");
+    expect(text).toContain("Cursor: 14");
+    expect(text).toContain("Latest revision: 14.");
     expect(text).not.toContain("Start delivery");
     expect(text).not.toContain("Mark as delivered");
     expect(text).not.toContain("Complete order");
-    expect(submitCourierAction).toHaveBeenNthCalledWith(1, {
-      orderId: "order-1",
-      nextStatus: "IN_PROGRESS",
-    });
-    expect(submitCourierAction).toHaveBeenNthCalledWith(2, {
-      orderId: "order-1",
-      nextStatus: "DELIVERED",
-    });
-    expect(submitCourierAction).toHaveBeenNthCalledWith(3, {
-      orderId: "order-1",
-      nextStatus: "COMPLETED",
-    });
+    expect(submitCourierAction).not.toHaveBeenCalled();
     expect(pollEvents).toHaveBeenNthCalledWith(1, "10");
-    expect(pollEvents).toHaveBeenNthCalledWith(2, "11");
-    expect(pollEvents).toHaveBeenNthCalledWith(3, "12");
-    expect(pollEvents).toHaveBeenNthCalledWith(4, "13");
+    expect(pollEvents).toHaveBeenNthCalledWith(2, "10");
+    expect(pollEvents).toHaveBeenNthCalledWith(3, "11");
+    expect(pollEvents).toHaveBeenNthCalledWith(4, "12");
+    expect(pollEvents).toHaveBeenNthCalledWith(5, "13");
   });
 
   it("pauses on shell deactivation and resumes polling duplicate-safely from the latest cursor", async () => {
@@ -275,7 +248,7 @@ describe("order-tracking route polling", () => {
         events: [
           orderStatusChangedEvent({
             previousStatus: "ASSIGNED",
-            status: "IN_PROGRESS",
+            status: "PICKED_UP",
             revision: "11",
             updatedAt: "2026-04-03T12:00:00.000Z",
           }),
@@ -315,7 +288,7 @@ describe("order-tracking route polling", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Current status: IN_PROGRESS.");
+    expect(text).toContain("Current status: PICKED_UP.");
     expect(text).toContain("Updates applied: 1.");
     expect(pollEvents).toHaveBeenNthCalledWith(1, "10");
     expect(pollEvents).toHaveBeenLastCalledWith("10");

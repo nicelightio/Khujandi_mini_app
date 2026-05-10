@@ -4,6 +4,7 @@ export type OrderCancellationRevision = string;
 export type OrderCancellationUserRole =
   | "boss"
   | "manager"
+  | "operator"
   | "admin"
   | "seller"
   | "courier"
@@ -11,7 +12,9 @@ export type OrderCancellationUserRole =
 
 export type OrderCancellationOrderStatus =
   | "CREATED"
+  | "DELAYED"
   | "ASSIGNED"
+  | "PICKED_UP"
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"

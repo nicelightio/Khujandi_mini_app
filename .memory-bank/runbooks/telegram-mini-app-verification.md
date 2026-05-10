@@ -37,6 +37,13 @@ status: active
 7. Проверить centralized back/swipe policy и отсутствие direct `Telegram.WebApp.*` access из slice-level UI.
 8. Не дублировать auth/session transport assertions из `FT-002` и language-domain assertions из `FT-003`; в `FT-009` подтверждается только shell/runtime baseline и shared WebView-safe storage boundary.
 
+### FT-016 operator delivery flow
+
+1. Проверить customer-facing status screen в реальном Android Telegram client после paid order creation: ожидание курьера, `ASSIGNED`, `PICKED_UP`, `IN_PROGRESS`, `DELIVERED`, `COMPLETED`.
+2. Проверить courier bot menu/callback path в реальном Telegram client: `Курьер`, start work, stop-after-5-min, auto-offer participation, offer claim in-flight copy and successful/duplicate claim outcomes.
+3. Проверить, что operator/admin web panel и Telegram bot callbacks не обходят server-side offer/claim/state-machine rules.
+4. Repo-local closure для `FT-016` уже подтверждена `TASK-FT016-18`; real Android Telegram smoke остается advisory pre-release evidence, если не запрошен отдельный blocking gate.
+
 ## Minimal real-client baseline
 
 - Recommended advisory pre-release baseline для текущего MVP: `Android Telegram`.

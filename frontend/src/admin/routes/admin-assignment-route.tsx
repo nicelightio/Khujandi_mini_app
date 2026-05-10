@@ -1,147 +1,323 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AdminAssignmentPage } from "../components/admin-assignment-page";
 import {
   AdminAssignmentApiError,
   createAdminAssignmentApi,
   type AdminAssignmentApi,
+  type AdminOperatorDeliveryOrderStatus,
+  type AdminOperatorDeliveryOrdersResult,
 } from "../api/admin-assignment-api";
 import {
   createErrorAdminAssignmentViewModel,
   createLoadingAdminAssignmentViewModel,
   createReadyAdminAssignmentViewModel,
-  createSelectedCourierAdminAssignmentViewModel,
-  createSubmittingAdminAssignmentViewModel,
-  createSuccessAdminAssignmentViewModel,
-  type AdminAssignmentBootstrap,
+  defaultAdminAssignmentSortKey,
+  idleAdminAssignmentOfferMutationState,
+  idleAdminAssignmentStatusMutationState,
+  type AdminAssignmentOfferMutationState,
+  type AdminAssignmentSortKey,
+  type AdminAssignmentStatusMutationState,
 } from "../model/admin-assignment-view-model";
-
-type AdminAssignmentSubmitInput = {
-  orderId: string;
-  courierId: string;
-};
-
-type AdminAssignmentSubmitResult = {
-  confirmationMessage: string;
-};
 
 type AdminAssignmentRouteProps = {
   api?: AdminAssignmentApi;
-  loadBootstrap?: () => Promise<AdminAssignmentBootstrap>;
-  submitAssignment?: (input: AdminAssignmentSubmitInput) => Promise<AdminAssignmentSubmitResult>;
+  loadOperatorDeliveryOrders?: () => Promise<AdminOperatorDeliveryOrdersResult>;
+  requestTargetCourierId?: (orderId: string) => string | null;
+  confirmStatusChange?: (orderId: string, nextStatus: AdminOperatorDeliveryOrderStatus) => boolean;
 };
-
-const defaultBootstrap: AdminAssignmentBootstrap = {
-  orderId: "order-created-1001",
-  orderLabel: "Order #1001",
-  statusLabel: "Assignment shell is ready for CREATED -> ASSIGNED wiring.",
-  couriers: [
-    {
-      id: "courier-7",
-      label: "Courier 7",
-      detail: "Available now",
-    },
-    {
-      id: "courier-8",
-      label: "Courier 8",
-      detail: "Backup shift",
-    },
-  ],
-};
-
-const loadDefaultBootstrap = async (): Promise<AdminAssignmentBootstrap> => defaultBootstrap;
-
-const toAssignmentConfirmationMessage = (result: {
-  orderId: string;
-  courierId: string;
-  revision: string;
-}): string => `Courier ${result.courierId} assigned to ${result.orderId}. Revision ${result.revision} is ready for downstream polling.`;
 
 export const AdminAssignmentRoute = ({
   api,
-  loadBootstrap = loadDefaultBootstrap,
-  submitAssignment,
+  loadOperatorDeliveryOrders,
+  requestTargetCourierId,
+  confirmStatusChange,
 }: AdminAssignmentRouteProps) => {
   const assignmentApi = useRef(api ?? createAdminAssignmentApi());
-  const submitInFlightRef = useRef(false);
-  const [bootstrap, setBootstrap] = useState<AdminAssignmentBootstrap | null>(null);
+  const inFlightOfferOrderIds = useRef<Set<string>>(new Set<string>());
+  const [ordersResult, setOrdersResult] = useState<AdminOperatorDeliveryOrdersResult | null>(null);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<ReadonlySet<string>>(new Set<string>());
+  const [sortKey, setSortKey] = useState<AdminAssignmentSortKey>(defaultAdminAssignmentSortKey);
+  const [offerMutation, setOfferMutation] = useState<AdminAssignmentOfferMutationState>(
+    idleAdminAssignmentOfferMutationState,
+  );
+  const [statusMutation, setStatusMutation] = useState<AdminAssignmentStatusMutationState>(
+    idleAdminAssignmentStatusMutationState,
+  );
   const [viewModel, setViewModel] = useState(createLoadingAdminAssignmentViewModel);
+  const loadOrders = useCallback(
+    () => (loadOperatorDeliveryOrders ?? (() => assignmentApi.current.listOperatorDeliveryOrders()))(),
+    [loadOperatorDeliveryOrders],
+  );
 
   useEffect(() => {
     let isActive = true;
 
-    void loadBootstrap().then((nextBootstrap) => {
-      if (!isActive) {
-        return;
-      }
+    setViewModel(createLoadingAdminAssignmentViewModel());
 
-      setBootstrap(nextBootstrap);
-      setViewModel(createReadyAdminAssignmentViewModel(nextBootstrap));
-    });
+    void loadOrders()
+      .then((nextOrdersResult) => {
+        if (!isActive) {
+          return;
+        }
+
+        setOrdersResult(nextOrdersResult);
+        setExpandedOrderIds(new Set<string>());
+        setOfferMutation(idleAdminAssignmentOfferMutationState);
+        setStatusMutation(idleAdminAssignmentStatusMutationState);
+        setViewModel(createReadyAdminAssignmentViewModel(nextOrdersResult));
+      })
+      .catch((error) => {
+        if (!isActive) {
+          return;
+        }
+
+        const message =
+          error instanceof AdminAssignmentApiError || error instanceof Error
+            ? error.message
+            : "Operator delivery orders are temporarily unavailable.";
+        setOrdersResult(null);
+        setExpandedOrderIds(new Set<string>());
+        setOfferMutation(idleAdminAssignmentOfferMutationState);
+        setStatusMutation(idleAdminAssignmentStatusMutationState);
+        setViewModel(createErrorAdminAssignmentViewModel(message));
+      });
 
     return () => {
       isActive = false;
     };
-  }, [loadBootstrap]);
+  }, [loadOrders]);
 
-  const handleCourierChange = (courierId: string) => {
-    if (bootstrap === null) {
+  const stableExpandedOrderIds = useMemo(() => expandedOrderIds, [expandedOrderIds]);
+
+  const handleSortChange = (nextSortKey: AdminAssignmentSortKey) => {
+    setSortKey(nextSortKey);
+  };
+
+  const handleToggleHistory = (orderId: string) => {
+    if (ordersResult === null) {
       return;
     }
 
-    setViewModel(createSelectedCourierAdminAssignmentViewModel(bootstrap, courierId));
+    setExpandedOrderIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+
+      setViewModel(createReadyAdminAssignmentViewModel(ordersResult, next, sortKey, offerMutation, statusMutation));
+      return next;
+    });
   };
 
-  const handleSubmit = async () => {
-    if (
-      bootstrap === null ||
-      viewModel.selectedCourierId.length === 0 ||
-      viewModel.isSubmitting ||
-      submitInFlightRef.current
-    ) {
+  const resolveTargetCourierId = (orderId: string): string | null => {
+    if (requestTargetCourierId !== undefined) {
+      return requestTargetCourierId(orderId);
+    }
+
+    if (typeof window === "undefined" || typeof window.prompt !== "function") {
+      return null;
+    }
+
+    const value = window.prompt("Courier ID for pending targeted offer");
+    const trimmed = value?.trim() ?? "";
+    return trimmed.length === 0 ? null : trimmed;
+  };
+
+  const handleCreateTargetedOffer = (orderId: string) => {
+    if (ordersResult === null || inFlightOfferOrderIds.current.has(orderId)) {
       return;
     }
 
-    const selectedCourierId = viewModel.selectedCourierId;
-    submitInFlightRef.current = true;
-    setViewModel(createSubmittingAdminAssignmentViewModel(bootstrap, selectedCourierId));
+    const courierId = resolveTargetCourierId(orderId);
 
-    try {
-      const result =
-        submitAssignment === undefined
-          ? await assignmentApi.current.submitAssignment({
-              orderId: bootstrap.orderId,
-              courierId: selectedCourierId,
-            })
-          : await submitAssignment({
-              orderId: bootstrap.orderId,
-              courierId: selectedCourierId,
-            });
-
-      setViewModel(
-        createSuccessAdminAssignmentViewModel(
-          bootstrap,
-          selectedCourierId,
-          "confirmationMessage" in result ? result.confirmationMessage : toAssignmentConfirmationMessage(result),
-        ),
-      );
-    } catch (error) {
-      const message =
-        error instanceof AdminAssignmentApiError || error instanceof Error
-          ? error.message
-          : "Assignment is temporarily unavailable.";
-      setViewModel(createErrorAdminAssignmentViewModel(bootstrap, selectedCourierId, message));
-    } finally {
-      submitInFlightRef.current = false;
+    if (courierId === null) {
+      const nextMutation: AdminAssignmentOfferMutationState = {
+        orderId,
+        kind: "targeted",
+        status: "failed",
+        message: "Courier ID is required for a targeted offer.",
+      };
+      setOfferMutation(nextMutation);
+      setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
+      return;
     }
+
+    const submittingMutation: AdminAssignmentOfferMutationState = {
+      orderId,
+      kind: "targeted",
+      status: "submitting",
+      message: null,
+    };
+    inFlightOfferOrderIds.current.add(orderId);
+    setOfferMutation(submittingMutation);
+    setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, submittingMutation, statusMutation));
+
+    void assignmentApi.current
+      .createManualTargetedOffer({
+        orderId,
+        courierId,
+      })
+      .then((result) => {
+        const nextMutation: AdminAssignmentOfferMutationState = {
+          orderId,
+          kind: "targeted",
+          status: "succeeded",
+          message: `Pending offer ${result.offerId} created for ${result.targetCourierId}.`,
+        };
+        setOfferMutation(nextMutation);
+        setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
+      })
+      .catch((error) => {
+        const message =
+          error instanceof AdminAssignmentApiError || error instanceof Error
+            ? error.message
+            : "Manual targeted offer could not be created.";
+        const nextMutation: AdminAssignmentOfferMutationState = {
+          orderId,
+          kind: "targeted",
+          status: "failed",
+          message,
+        };
+        setOfferMutation(nextMutation);
+        setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
+      })
+      .finally(() => {
+        inFlightOfferOrderIds.current.delete(orderId);
+      });
   };
+
+  const handleCreateBroadcastOffer = (orderId: string) => {
+    if (ordersResult === null || inFlightOfferOrderIds.current.has(orderId)) {
+      return;
+    }
+
+    const submittingMutation: AdminAssignmentOfferMutationState = {
+      orderId,
+      kind: "broadcast",
+      status: "submitting",
+      message: null,
+    };
+    inFlightOfferOrderIds.current.add(orderId);
+    setOfferMutation(submittingMutation);
+    setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, submittingMutation, statusMutation));
+
+    void assignmentApi.current
+      .createBroadcastOffer({
+        orderId,
+      })
+      .then((result) => {
+        const nextMutation: AdminAssignmentOfferMutationState = {
+          orderId,
+          kind: "broadcast",
+          status: "succeeded",
+          message: `Pending broadcast offers created for ${result.eligibleCourierCount} couriers.`,
+        };
+        setOfferMutation(nextMutation);
+        setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
+      })
+      .catch((error) => {
+        const message =
+          error instanceof AdminAssignmentApiError || error instanceof Error
+            ? error.message
+            : "Auto-offer broadcast could not be created.";
+        const nextMutation: AdminAssignmentOfferMutationState = {
+          orderId,
+          kind: "broadcast",
+          status: "failed",
+          message,
+        };
+        setOfferMutation(nextMutation);
+        setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
+      })
+      .finally(() => {
+        inFlightOfferOrderIds.current.delete(orderId);
+      });
+  };
+
+  const shouldConfirmStatusChange = (
+    orderId: string,
+    nextStatus: AdminOperatorDeliveryOrderStatus,
+  ): boolean => {
+    if (confirmStatusChange !== undefined) {
+      return confirmStatusChange(orderId, nextStatus);
+    }
+
+    if (typeof window === "undefined" || typeof window.confirm !== "function") {
+      return false;
+    }
+
+    return window.confirm(`Write ${nextStatus} to status history for ${orderId}?`);
+  };
+
+  const handleConfirmStatusChange = (
+    orderId: string,
+    nextStatus: AdminOperatorDeliveryOrderStatus,
+  ) => {
+    if (ordersResult === null || !shouldConfirmStatusChange(orderId, nextStatus)) {
+      return;
+    }
+
+    const submittingMutation: AdminAssignmentStatusMutationState = {
+      orderId,
+      nextStatus,
+      status: "submitting",
+      message: null,
+    };
+    setStatusMutation(submittingMutation);
+    setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, offerMutation, submittingMutation));
+
+    void assignmentApi.current
+      .updateOperatorOrderStatus({
+        orderId,
+        nextStatus,
+      })
+      .then(async (result) => {
+        const refreshedOrdersResult = await loadOrders();
+        const nextMutation: AdminAssignmentStatusMutationState = {
+          orderId,
+          nextStatus,
+          status: "succeeded",
+          message: `${result.status} written to history at revision ${result.revision}.`,
+        };
+        setOrdersResult(refreshedOrdersResult);
+        setStatusMutation(nextMutation);
+        setViewModel(createReadyAdminAssignmentViewModel(refreshedOrdersResult, expandedOrderIds, sortKey, offerMutation, nextMutation));
+      })
+      .catch((error) => {
+        const message =
+          error instanceof AdminAssignmentApiError || error instanceof Error
+            ? error.message
+            : "Operator status transition could not be written.";
+        const nextMutation: AdminAssignmentStatusMutationState = {
+          orderId,
+          nextStatus,
+          status: "failed",
+          message,
+        };
+        setStatusMutation(nextMutation);
+        setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, offerMutation, nextMutation));
+      });
+  };
+
+  useEffect(() => {
+    if (ordersResult === null) {
+      return;
+    }
+
+    setViewModel(createReadyAdminAssignmentViewModel(ordersResult, stableExpandedOrderIds, sortKey, offerMutation, statusMutation));
+  }, [ordersResult, stableExpandedOrderIds, sortKey, offerMutation, statusMutation]);
 
   return (
     <AdminAssignmentPage
       viewModel={viewModel}
-      onCourierChange={handleCourierChange}
-      onSubmit={() => {
-        void handleSubmit();
-      }}
+      onSortChange={handleSortChange}
+      onToggleHistory={handleToggleHistory}
+      onCreateTargetedOffer={handleCreateTargetedOffer}
+      onCreateBroadcastOffer={handleCreateBroadcastOffer}
+      onConfirmStatusChange={handleConfirmStatusChange}
     />
   );
 };

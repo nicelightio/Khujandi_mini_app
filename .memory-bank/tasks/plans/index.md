@@ -22,4 +22,4 @@ status: active
 - [.memory-bank/tasks/plans/IMPL-FT-013.md](IMPL-FT-013.md): План реализации customer checkout handoff и mounted paid order creation flow.
 - [.memory-bank/tasks/plans/IMPL-FT-014.md](IMPL-FT-014.md): План реализации customer-facing order status visibility поверх `FT-005` polling/event contract.
 - [.memory-bank/tasks/plans/MIGRATE-FT-004-FT-005-to-FT-016.md](MIGRATE-FT-004-FT-005-to-FT-016.md): Staged migration plan from implemented v1 delivery operations/admin panel to `FT-016` operator/courier offer flow.
-- [.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md](IMPL-FT-016-operator-delivery-migration.md): Execution-ready TASK cards for staged `FT-016` operator delivery migration from implemented `FT-004`/`FT-005` v1 baseline.
+- [.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md](IMPL-FT-016-operator-delivery-migration.md): Execution-ready TASK cards and closure trail for staged `FT-016` operator delivery migration from implemented `FT-004`/`FT-005` v1 baseline through repo-local `TASK-FT016-18` verification and `TASK-FT016-19` docs sync.

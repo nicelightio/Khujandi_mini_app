@@ -1,4 +1,4 @@
-export type DeliveryTrackingHarnessStatus = "ASSIGNED" | "IN_PROGRESS" | "DELIVERED" | "COMPLETED";
+export type DeliveryTrackingHarnessStatus = "ASSIGNED" | "PICKED_UP" | "IN_PROGRESS" | "DELIVERED";
 
 export type DeliveryTrackingHarnessActionStatus = Exclude<DeliveryTrackingHarnessStatus, "ASSIGNED">;
 
@@ -34,9 +34,9 @@ export type DeliveryTrackingCourierPromptInput = {
 const CALLBACK_PREFIX = "delivery-tracking";
 
 const actionLabels: Record<DeliveryTrackingHarnessActionStatus, string> = {
+  PICKED_UP: "Mark picked up",
   IN_PROGRESS: "Start delivery",
   DELIVERED: "Mark delivered",
-  COMPLETED: "Complete order",
 };
 
 export const buildDeliveryTrackingCallbackData = (
@@ -52,7 +52,7 @@ export const parseDeliveryTrackingCallbackData = (
     prefix !== CALLBACK_PREFIX ||
     typeof orderId !== "string" ||
     orderId.length === 0 ||
-    (nextStatus !== "IN_PROGRESS" && nextStatus !== "DELIVERED" && nextStatus !== "COMPLETED")
+    (nextStatus !== "PICKED_UP" && nextStatus !== "IN_PROGRESS" && nextStatus !== "DELIVERED")
   ) {
     return null;
   }

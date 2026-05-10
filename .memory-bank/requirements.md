@@ -66,10 +66,10 @@ status: active
 | REQ-004 | EP-001 | FT-002 | integration: raw `initData` validation + replay guard | implemented |
 | REQ-005 | EP-001 | FT-002 | integration/front-smoke: trusted paid checkout order creation | implemented |
 | REQ-006 | EP-001 | FT-002 | integration/front-smoke: failed payment keeps orders absent | implemented |
-| REQ-007 | EP-002 | FT-004, FT-016 | e2e: courier offer/claim and manual operator assignment require courier confirmation | planned |
+| REQ-007 | EP-002 | FT-004, FT-016 | e2e: courier offer/claim and manual operator assignment require courier confirmation; verified by `TASK-FT016-18` repo-local flow | verified |
 | REQ-018 | EP-002 | FT-004 | integration: assignment audit and error contract | done |
-| REQ-008 | EP-002 | FT-005, FT-016 | integration: updated order state machine + operator completion + 409 conflict | planned |
-| REQ-009 | EP-002 | FT-005 | e2e: polling returns ordered events | done |
+| REQ-008 | EP-002 | FT-005, FT-016 | integration: updated order state machine + operator completion + 409 conflict; verified by `TASK-FT016-18` repo-local flow | verified |
+| REQ-009 | EP-002 | FT-005, FT-016 | e2e: polling returns ordered events and v2 operator/customer visibility; verified by `TASK-FT016-18` repo-local flow | verified |
 | REQ-010 | EP-002 | FT-005 | verify: polling SLA p95 <= 10s | done |
 | REQ-011 | EP-002 | FT-006 | e2e: authorized operational cancellation only | done |
 | REQ-012 | EP-002 | FT-006 | integration: refund status + audit persistence | done |
@@ -81,6 +81,7 @@ status: active
 | REQ-018 | EP-002 | FT-005 | integration: error contract + audit/event generation | done |
 | REQ-018 | EP-002 | FT-006 | integration: cancellation audit and error contract | done |
 | REQ-018 | EP-003 | FT-007 | integration: auth audit and error contract | done |
+| REQ-018 | EP-002 | FT-016 | integration: offer/claim/status audit, events and controlled errors across v2 operator delivery flow; verified by FT-016 migration tasks and `TASK-FT016-18` repo-local flow | verified |
 | REQ-019 | EP-001 | FT-009 | verify: Android Telegram WebView shell baseline | done |
 | REQ-020 | EP-001 | FT-001 | unit: rename policy and shop name snapshot | done |
 | REQ-021 | EP-001 | FT-002 | integration: trusted payment callback and replay protection | implemented |
@@ -97,8 +98,8 @@ status: active
 | REQ-032 | EP-001 | FT-013, FT-002 | e2e/integration: catalog/cart handoff revalidates composition and creates order only after trusted payment on mounted customer runtime; repo-local gates passed in `TASK-FT013-07`, Android Telegram smoke remains advisory pre-release risk check | verified |
 | REQ-033 | EP-001 | FT-014, FT-005 | e2e/frontend: customer status screen consumes ordered polling/events from paid order creation through delivery completion; repo-local mounted `/api/v1/events`, customer scoping, cursor compatibility and frontend polling gates passed through `TASK-FT014-07`, Android Telegram smoke remains advisory pre-release risk check | verified |
 | REQ-034 | EP-001 | FT-015 | e2e/integration: выбор языка ведет на стартовую Витрину; public read резолвит live catalog references; admin-only long-press curation add/remove и cap избранных магазинов enforced | verified |
-| REQ-035 | EP-002 | FT-016 | e2e/frontend: operator panel list, severity, delayed alert, status history and chat redirect | planned |
-| REQ-036 | EP-002 | FT-016, FT-004 | integration/bot: courier active/free auto-offer, atomic claim, delayed timeout and operator notification | planned |
+| REQ-035 | EP-002 | FT-016 | e2e/frontend: operator panel list, severity, delayed alert, status history and chat redirect; verified by `TASK-FT016-18` repo-local flow except real bot chat execution remains MVP redirect scope | verified |
+| REQ-036 | EP-002 | FT-016, FT-004 | integration/bot: courier active/free auto-offer, atomic claim, delayed timeout and operator notification; verified by `TASK-FT016-18` repo-local flow | verified |
 
 ## Source artifacts
 

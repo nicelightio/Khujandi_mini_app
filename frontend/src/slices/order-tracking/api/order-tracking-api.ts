@@ -1,13 +1,15 @@
 export type OrderTrackingStatus =
   | "CREATED"
+  | "DELAYED"
   | "ASSIGNED"
+  | "PICKED_UP"
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"
   | "CANCELLED_BY_ADMIN"
   | "CANCELLED_BY_COURIER_UNAVAILABLE";
 
-export type OrderTrackingActionStatus = "IN_PROGRESS" | "DELIVERED" | "COMPLETED";
+export type OrderTrackingActionStatus = "PICKED_UP" | "IN_PROGRESS" | "DELIVERED";
 
 export type OrderTrackingSession = {
   orderId: string;
@@ -18,7 +20,7 @@ export type OrderTrackingSession = {
 };
 
 export type OrderTrackingEvent = {
-  type: "order.assigned" | "order.status_changed";
+  type: "order.assigned" | "order.status_changed" | "order.delayed";
   entity: "order";
   entityId: string;
   payload: {
@@ -85,7 +87,9 @@ const readJson = async (response: Response): Promise<unknown> => {
 const parseStatus = (value: unknown): OrderTrackingStatus | null => {
   switch (value) {
     case "CREATED":
+    case "DELAYED":
     case "ASSIGNED":
+    case "PICKED_UP":
     case "IN_PROGRESS":
     case "DELIVERED":
     case "COMPLETED":
@@ -98,14 +102,21 @@ const parseStatus = (value: unknown): OrderTrackingStatus | null => {
 };
 
 const parseEvent = (value: unknown): OrderTrackingEvent | null => {
-  if (!isRecord(value) || (value.type !== "order.assigned" && value.type !== "order.status_changed")) {
+  if (
+    !isRecord(value) ||
+    (value.type !== "order.assigned" && value.type !== "order.status_changed" && value.type !== "order.delayed")
+  ) {
     return null;
   }
 
   const entityId = typeof value.entityId === "string" ? value.entityId : value.entity_id;
   const createdAt = typeof value.createdAt === "string" ? value.createdAt : value.created_at;
   const payload = isRecord(value.payload) ? value.payload : null;
-  const status = parseStatus(payload?.status);
+  const status = parseStatus(
+    value.type === "order.delayed"
+      ? payload?.newStatus
+      : payload?.status ?? payload?.newStatus,
+  );
 
   if (
     value.entity !== "order" ||
@@ -120,7 +131,11 @@ const parseEvent = (value: unknown): OrderTrackingEvent | null => {
     return null;
   }
 
-  const previousStatus = parseStatus(payload.previousStatus);
+  const previousStatus = parseStatus(
+    value.type === "order.delayed"
+      ? payload.oldStatus
+      : payload.previousStatus ?? payload.oldStatus,
+  );
 
   return {
     type: value.type,
@@ -164,7 +179,7 @@ const defaultSession: OrderTrackingSession = {
   orderId: "order-scaffold-1",
   currentStatus: "ASSIGNED",
   initialCursor: "0",
-  availableActions: ["IN_PROGRESS"],
+  availableActions: ["PICKED_UP"],
 };
 
 export const createOrderTrackingApi = (): OrderTrackingApi => ({

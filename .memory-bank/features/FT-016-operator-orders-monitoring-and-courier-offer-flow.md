@@ -1,6 +1,6 @@
 ---
 description: Feature C4 L3 для desktop-first operator panel, delayed/unassigned alerts, courier availability и bot chat redirect.
-status: planned
+status: active
 ---
 # FT-016 Operator Orders Monitoring And Courier Offer Flow
 
@@ -139,3 +139,16 @@ status: planned
 - Timeout test proves 3+3 minute delayed escalation and operator notification.
 - Bot menu test proves courier active/stop/auto-offer toggles.
 - Status control test proves confirmation, history actor and `409 CONFLICT` on invalid transition.
+
+## Verification status
+
+- `TASK-FT016-18` verified the repo-local v2 operator delivery flow with `PASS`: paid order creation, unassigned operator visibility, manual offer, courier claim into `ASSIGNED`, courier progress through `PICKED_UP -> IN_PROGRESS -> DELIVERED`, operator/admin `COMPLETED`, polling visibility, disabled normal legacy assignment, and old v1 active order readability.
+- `TASK-FT016-19` syncs the Memory Bank closure for that evidence and leaves the task as `ready_for_verify`; verifier role remains separate.
+- Historical failed task evidence remains preserved: `TASK-FT016-07` repaired by `TASK-FT016-07-FIX`, `TASK-FT016-13` repaired by `TASK-FT016-13-FIX`, `TASK-FT016-15` repaired by `TASK-FT016-15-FIX`, and `TASK-FT016-17` repaired by `TASK-FT016-17-FIX`.
+
+## Residual debt / risk
+
+- Real Android Telegram smoke for the full v2 operator/courier/customer path was not run during `TASK-FT016-18`/`TASK-FT016-19`; it remains advisory pre-release evidence unless separately requested.
+- Production deploy smoke, real Telegram delivery of courier bot callbacks, and real bot chat execution were not part of repo-local closure.
+- Bot chat redirect remains MVP redirect/harness scope; full CRM-style chat UI is still out of scope.
+- Redis, queues, GPS/maps/routing optimization, and worker/cron dispatch architecture remain explicitly out of scope for MVP.

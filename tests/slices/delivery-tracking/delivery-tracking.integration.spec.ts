@@ -9,7 +9,10 @@ type StatusEventRecord = {
   type: string;
   entity: string;
   entityId: string;
-  payload: ReturnType<typeof statusEventPayload>;
+  payload: ReturnType<typeof statusEventPayload> & {
+    changedByRole?: string;
+    changedByName?: string;
+  };
   createdAt: Date;
 };
 
@@ -176,6 +179,21 @@ describe("delivery-tracking module integration", () => {
       await expect(
         module.controller.recordStatusTransition({
           orderId: "order-1",
+          nextStatus: "PICKED_UP",
+          actor: {
+            userId: "courier-1",
+            role: "courier",
+          },
+        }),
+      ).resolves.toEqual({
+        orderId: "order-1",
+        status: "PICKED_UP",
+        updatedAt: new Date("2026-04-03T10:00:05.000Z"),
+        revision: "202",
+      });
+      await expect(
+        module.controller.recordStatusTransition({
+          orderId: "order-1",
           nextStatus: "IN_PROGRESS",
           actor: {
             userId: "courier-1",
@@ -185,8 +203,8 @@ describe("delivery-tracking module integration", () => {
       ).resolves.toEqual({
         orderId: "order-1",
         status: "IN_PROGRESS",
-        updatedAt: new Date("2026-04-03T10:00:05.000Z"),
-        revision: "202",
+        updatedAt: new Date("2026-04-03T10:10:05.000Z"),
+        revision: "203",
       });
       await expect(
         module.controller.recordStatusTransition({
@@ -200,21 +218,6 @@ describe("delivery-tracking module integration", () => {
       ).resolves.toEqual({
         orderId: "order-1",
         status: "DELIVERED",
-        updatedAt: new Date("2026-04-03T10:10:05.000Z"),
-        revision: "203",
-      });
-      await expect(
-        module.controller.recordStatusTransition({
-          orderId: "order-1",
-          nextStatus: "COMPLETED",
-          actor: {
-            userId: "courier-1",
-            role: "courier",
-          },
-        }),
-      ).resolves.toEqual({
-        orderId: "order-1",
-        status: "COMPLETED",
         updatedAt: new Date("2026-04-03T10:20:05.000Z"),
         revision: "204",
       });
@@ -230,7 +233,7 @@ describe("delivery-tracking module integration", () => {
           id: "order-1",
         },
         data: {
-          status: "IN_PROGRESS",
+          status: "PICKED_UP",
         },
         select: orderSelect,
       });
@@ -239,7 +242,7 @@ describe("delivery-tracking module integration", () => {
           id: "order-1",
         },
         data: {
-          status: "DELIVERED",
+          status: "IN_PROGRESS",
         },
         select: orderSelect,
       });
@@ -248,7 +251,7 @@ describe("delivery-tracking module integration", () => {
           id: "order-1",
         },
         data: {
-          status: "COMPLETED",
+          status: "DELIVERED",
         },
         select: orderSelect,
       });
@@ -256,7 +259,7 @@ describe("delivery-tracking module integration", () => {
         data: {
           orderId: "order-1",
           oldStatus: "ASSIGNED",
-          newStatus: "IN_PROGRESS",
+          newStatus: "PICKED_UP",
           changedByUserId: "courier-1",
           changedAt: expect.any(Date),
         },
@@ -264,8 +267,8 @@ describe("delivery-tracking module integration", () => {
       expect(statusHistoryCreate).toHaveBeenNthCalledWith(2, {
         data: {
           orderId: "order-1",
-          oldStatus: "IN_PROGRESS",
-          newStatus: "DELIVERED",
+          oldStatus: "PICKED_UP",
+          newStatus: "IN_PROGRESS",
           changedByUserId: "courier-1",
           changedAt: expect.any(Date),
         },
@@ -273,8 +276,8 @@ describe("delivery-tracking module integration", () => {
       expect(statusHistoryCreate).toHaveBeenNthCalledWith(3, {
         data: {
           orderId: "order-1",
-          oldStatus: "DELIVERED",
-          newStatus: "COMPLETED",
+          oldStatus: "IN_PROGRESS",
+          newStatus: "DELIVERED",
           changedByUserId: "courier-1",
           changedAt: expect.any(Date),
         },
@@ -284,7 +287,7 @@ describe("delivery-tracking module integration", () => {
           type: "order.status_changed",
           entity: "order",
           entityId: "order-1",
-          payload: statusEventPayload("ASSIGNED", "IN_PROGRESS", "2026-04-03T10:00:05.000Z"),
+          payload: statusEventPayload("ASSIGNED", "PICKED_UP", "2026-04-03T10:00:05.000Z"),
         },
       });
       expect(eventCreate).toHaveBeenNthCalledWith(2, {
@@ -292,7 +295,7 @@ describe("delivery-tracking module integration", () => {
           type: "order.status_changed",
           entity: "order",
           entityId: "order-1",
-          payload: statusEventPayload("IN_PROGRESS", "DELIVERED", "2026-04-03T10:10:05.000Z"),
+          payload: statusEventPayload("PICKED_UP", "IN_PROGRESS", "2026-04-03T10:10:05.000Z"),
         },
       });
       expect(eventCreate).toHaveBeenNthCalledWith(3, {
@@ -300,7 +303,7 @@ describe("delivery-tracking module integration", () => {
           type: "order.status_changed",
           entity: "order",
           entityId: "order-1",
-          payload: statusEventPayload("DELIVERED", "COMPLETED", "2026-04-03T10:20:05.000Z"),
+          payload: statusEventPayload("IN_PROGRESS", "DELIVERED", "2026-04-03T10:20:05.000Z"),
         },
       });
 
@@ -312,9 +315,9 @@ describe("delivery-tracking module integration", () => {
 
       await expect(module.controller.getEventsSince("201")).resolves.toEqual({
         events: [
-          expectedStatusEvent("202", "ASSIGNED", "IN_PROGRESS", "2026-04-03T10:00:05.000Z"),
-          expectedStatusEvent("203", "IN_PROGRESS", "DELIVERED", "2026-04-03T10:10:05.000Z"),
-          expectedStatusEvent("204", "DELIVERED", "COMPLETED", "2026-04-03T10:20:05.000Z"),
+          expectedStatusEvent("202", "ASSIGNED", "PICKED_UP", "2026-04-03T10:00:05.000Z"),
+          expectedStatusEvent("203", "PICKED_UP", "IN_PROGRESS", "2026-04-03T10:10:05.000Z"),
+          expectedStatusEvent("204", "IN_PROGRESS", "DELIVERED", "2026-04-03T10:20:05.000Z"),
         ],
         nextCursor: "204",
       });
@@ -335,20 +338,20 @@ describe("delivery-tracking module integration", () => {
         .mockResolvedValueOnce(assignedOrder);
       const orderUpdate = jest.fn().mockResolvedValue({
         ...assignedOrder,
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         updatedAt: new Date("2026-04-03T10:00:05.000Z"),
       });
       const statusHistoryCreate = jest.fn().mockResolvedValue({
         id: 201n,
         orderId: "order-1",
         oldStatus: "ASSIGNED",
-        newStatus: "IN_PROGRESS",
+        newStatus: "PICKED_UP",
         changedByUserId: "courier-1",
         changedAt: new Date("2026-04-03T10:00:05.000Z"),
       });
       const eventCreate = jest
         .fn()
-        .mockResolvedValue(persistedStatusEvent(202n, "ASSIGNED", "IN_PROGRESS", "2026-04-03T10:00:05.000Z"));
+        .mockResolvedValue(persistedStatusEvent(202n, "ASSIGNED", "PICKED_UP", "2026-04-03T10:00:05.000Z"));
       const userFindUnique = jest.fn().mockResolvedValue({
         telegramId: "10001",
       });
@@ -376,7 +379,7 @@ describe("delivery-tracking module integration", () => {
       await expect(
         module.controller.recordStatusTransition({
           orderId: "order-1",
-          nextStatus: "IN_PROGRESS",
+          nextStatus: "PICKED_UP",
           actor: {
             userId: "courier-1",
             role: "courier",
@@ -384,7 +387,7 @@ describe("delivery-tracking module integration", () => {
         }),
       ).resolves.toEqual({
         orderId: "order-1",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         updatedAt: new Date("2026-04-03T10:00:05.000Z"),
         revision: "202",
       });
@@ -392,7 +395,7 @@ describe("delivery-tracking module integration", () => {
       await expect(
         module.controller.recordStatusTransition({
           orderId: "order-1",
-          nextStatus: "IN_PROGRESS",
+          nextStatus: "PICKED_UP",
           actor: {
             userId: "courier-1",
             role: "courier",
@@ -400,7 +403,7 @@ describe("delivery-tracking module integration", () => {
         }),
       ).resolves.toEqual({
         orderId: "order-1",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         updatedAt: new Date("2026-04-03T10:00:05.000Z"),
         revision: "202",
       });
@@ -416,9 +419,9 @@ describe("delivery-tracking module integration", () => {
       expect(notifier.notifyStatusChanged).toHaveBeenNthCalledWith(1, {
         orderId: "order-1",
         courierTelegramId: "10001",
-        status: "IN_PROGRESS",
+        status: "PICKED_UP",
         revision: "202",
-        availableActions: ["DELIVERED"],
+        availableActions: ["IN_PROGRESS"],
       });
       expect(notifier.notifyStatusChanged).toHaveBeenCalledTimes(2);
       expect(orderUpdate).toHaveBeenCalledTimes(2);
@@ -469,10 +472,181 @@ describe("delivery-tracking module integration", () => {
           orderId: "order-1",
           currentStatus: "ASSIGNED",
           nextStatus: "DELIVERED",
-          expectedStatus: "IN_PROGRESS",
+          expectedStatus: "PICKED_UP",
         }),
       );
       expectNoPersistenceSideEffects(orderUpdate, statusHistoryCreate, eventCreate);
+    });
+
+    it("returns 409 for courier completion without persistence side effects", async () => {
+      const orderUpdate = jest.fn();
+      const statusHistoryCreate = jest.fn();
+      const eventCreate = jest.fn();
+      const prisma = createPrismaProvider({
+        order: {
+          findUnique: jest.fn().mockResolvedValue({
+            ...assignedOrder,
+            status: "DELIVERED",
+            updatedAt: new Date("2026-04-03T10:20:00.000Z"),
+          }),
+          update: orderUpdate,
+        },
+        orderStatusHistory: {
+          create: statusHistoryCreate,
+        },
+        event: {
+          create: eventCreate,
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            telegramId: "10001",
+          }),
+        },
+      });
+      const module = createDeliveryTrackingModule(prisma);
+
+      await expect(
+        module.controller.recordStatusTransition({
+          orderId: "order-1",
+          nextStatus: "COMPLETED",
+          actor: {
+            userId: "courier-1",
+            role: "courier",
+          },
+        }),
+      ).rejects.toEqual(
+        new AppError("CONFLICT", "Order cannot transition to the requested status", 409, {
+          orderId: "order-1",
+          currentStatus: "DELIVERED",
+          nextStatus: "COMPLETED",
+          expectedStatus: null,
+        }),
+      );
+      expectNoPersistenceSideEffects(orderUpdate, statusHistoryCreate, eventCreate);
+    });
+
+    it("allows operator/admin DELIVERED to COMPLETED closure with actor metadata", async () => {
+      const deliveredOrder = {
+        ...assignedOrder,
+        status: "DELIVERED",
+        updatedAt: new Date("2026-05-09T12:00:00.000Z"),
+      };
+      const orderFindUnique = jest.fn().mockResolvedValue(deliveredOrder);
+      const orderUpdate = jest.fn().mockResolvedValue({
+        ...deliveredOrder,
+        status: "COMPLETED",
+        updatedAt: new Date("2026-05-09T12:05:00.000Z"),
+      });
+      const statusHistoryCreate = jest.fn().mockImplementation(async (args) => ({
+        id: 205n,
+        ...args.data,
+      }));
+      const eventCreate = jest.fn().mockImplementation(async (args) => ({
+        id: 206n,
+        ...args.data,
+        createdAt: new Date("2026-05-09T12:05:00.000Z"),
+      }));
+      const module = createDeliveryTrackingModule(
+        createPrismaProvider({
+          order: {
+            findUnique: orderFindUnique,
+            update: orderUpdate,
+          },
+          orderStatusHistory: {
+            create: statusHistoryCreate,
+          },
+          event: {
+            create: eventCreate,
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue(null),
+          },
+        }),
+      );
+
+      await expect(
+        module.controller.recordOperatorStatusTransition({
+          orderId: "order-1",
+          nextStatus: "COMPLETED",
+          actor: {
+            userId: "admin-account-1",
+            role: "admin",
+            name: "Admin One",
+          },
+        }),
+      ).resolves.toEqual({
+        orderId: "order-1",
+        status: "COMPLETED",
+        updatedAt: new Date("2026-05-09T12:05:00.000Z"),
+        revision: "206",
+      });
+
+      expect(orderUpdate).toHaveBeenCalledWith({
+        where: {
+          id: "order-1",
+        },
+        data: {
+          status: "COMPLETED",
+        },
+        select: orderSelect,
+      });
+      expect(statusHistoryCreate).toHaveBeenCalledWith({
+        data: {
+          orderId: "order-1",
+          oldStatus: "DELIVERED",
+          newStatus: "COMPLETED",
+          changedByUserId: "admin-account-1",
+          changedByRole: "admin",
+          changedByName: "Admin One",
+          changedAt: expect.any(Date),
+        },
+      });
+      expect(eventCreate).toHaveBeenCalledWith({
+        data: {
+          type: "order.status_changed",
+          entity: "order",
+          entityId: "order-1",
+          payload: {
+            orderId: "order-1",
+            previousStatus: "DELIVERED",
+            status: "COMPLETED",
+            changedByUserId: "admin-account-1",
+            changedByRole: "admin",
+            changedByName: "Admin One",
+            updatedAt: "2026-05-09T12:05:00.000Z",
+          },
+        },
+      });
+    });
+
+    it("keeps legacy status history rows readable when actor metadata is null", async () => {
+      const legacyHistory = {
+        id: 207n,
+        orderId: "order-1",
+        oldStatus: "ASSIGNED" as const,
+        newStatus: "PICKED_UP" as const,
+        changedByUserId: "courier-1",
+        changedByRole: null,
+        changedByName: null,
+        changedAt: new Date("2026-05-09T12:05:00.000Z"),
+      };
+
+      expect({
+        ...legacyHistory,
+        changedByRole: legacyHistory.changedByRole ?? undefined,
+        changedByName: legacyHistory.changedByName ?? undefined,
+      }).toEqual({
+        id: 207n,
+        orderId: "order-1",
+        oldStatus: "ASSIGNED",
+        newStatus: "PICKED_UP",
+        changedByUserId: "courier-1",
+        changedByRole: undefined,
+        changedByName: undefined,
+        changedAt: new Date("2026-05-09T12:05:00.000Z"),
+      });
     });
 
     it("rejects courier actors that do not own the order without persistence side effects", async () => {
@@ -618,6 +792,52 @@ describe("delivery-tracking module integration", () => {
       expect(secondResult).toEqual(firstResult);
       expect(eventFindMany).toHaveBeenNthCalledWith(1, eventFindManyArgs(103n));
       expect(eventFindMany).toHaveBeenNthCalledWith(2, eventFindManyArgs(103n));
+      expectNoPersistenceSideEffects(orderUpdate, statusHistoryCreate, eventCreate);
+    });
+
+    it("does not emit malformed status events when the payload has no status", async () => {
+      const orderUpdate = jest.fn();
+      const statusHistoryCreate = jest.fn();
+      const eventCreate = jest.fn();
+      const eventFindMany = jest.fn().mockResolvedValue([
+        {
+          id: 106n,
+          type: "order.delayed",
+          entity: "order",
+          entityId: "order-1",
+          payload: {
+            orderId: "order-1",
+            oldStatus: "CREATED",
+            updatedAt: "2026-05-09T12:06:10.000Z",
+          },
+          createdAt: new Date("2026-05-09T12:06:10.000Z"),
+        },
+      ]);
+      const prisma = createPrismaProvider({
+        order: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          update: orderUpdate,
+        },
+        orderStatusHistory: {
+          create: statusHistoryCreate,
+        },
+        event: {
+          create: eventCreate,
+          findMany: eventFindMany,
+        },
+        user: {
+          findUnique: jest.fn().mockResolvedValue({
+            telegramId: "10001",
+          }),
+        },
+      });
+      const module = createDeliveryTrackingModule(prisma);
+
+      await expect(module.controller.getEventsSince("105")).resolves.toEqual({
+        events: [],
+        nextCursor: "105",
+      });
+      expect(eventFindMany).toHaveBeenCalledWith(eventFindManyArgs(105n));
       expectNoPersistenceSideEffects(orderUpdate, statusHistoryCreate, eventCreate);
     });
   });

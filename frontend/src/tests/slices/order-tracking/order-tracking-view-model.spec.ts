@@ -32,7 +32,7 @@ describe("order-tracking polling consumer", () => {
       orderId: "order-1",
       currentStatus: "ASSIGNED",
       initialCursor: "10",
-      availableActions: ["IN_PROGRESS"],
+      availableActions: ["PICKED_UP"],
     });
 
     const nextState = applyOrderTrackingPollResult(initialState, {
@@ -44,7 +44,7 @@ describe("order-tracking polling consumer", () => {
           payload: {
             orderId: "order-1",
             previousStatus: "ASSIGNED",
-            status: "IN_PROGRESS",
+            status: "PICKED_UP",
             changedByUserId: "courier-1",
             updatedAt: "2026-04-03T12:00:00.000Z",
           },
@@ -58,7 +58,7 @@ describe("order-tracking polling consumer", () => {
           payload: {
             orderId: "order-1",
             previousStatus: "ASSIGNED",
-            status: "IN_PROGRESS",
+            status: "PICKED_UP",
             changedByUserId: "courier-1",
             updatedAt: "2026-04-03T12:00:00.000Z",
           },
@@ -70,10 +70,10 @@ describe("order-tracking polling consumer", () => {
     });
 
     expect(nextState.cursor).toBe("11");
-    expect(nextState.currentStatus).toBe("IN_PROGRESS");
+    expect(nextState.currentStatus).toBe("PICKED_UP");
     expect(nextState.appliedEventCount).toBe(1);
     expect(nextState.lastAppliedRevision).toBe("11");
-    expect(nextState.availableActions).toEqual(["DELIVERED"]);
+    expect(nextState.availableActions).toEqual(["IN_PROGRESS"]);
   });
 
   it("keeps empty polling windows stable while advancing the opaque next cursor", () => {
@@ -98,12 +98,12 @@ describe("order-tracking polling consumer", () => {
       orderId: "order-1",
       currentStatus: "ASSIGNED",
       initialCursor: "cursor:9",
-      availableActions: ["IN_PROGRESS"],
+      availableActions: ["PICKED_UP"],
     });
 
     const nextState = applyOrderTrackingPollResult(initialState, {
       events: [
-        createStatusChangedEvent("revision:10", "IN_PROGRESS"),
+        createStatusChangedEvent("revision:10", "PICKED_UP"),
         createStatusChangedEvent("revision:2", "DELIVERED"),
       ],
       nextCursor: "cursor:after-revision-2",
@@ -166,16 +166,16 @@ describe("order-tracking polling consumer", () => {
   it("marks command revisions as already applied so resumed polling does not double-apply them", () => {
     const initialState = createOrderTrackingConsumerState({
       orderId: "order-1",
-      currentStatus: "IN_PROGRESS",
+      currentStatus: "PICKED_UP",
       initialCursor: "11",
-      availableActions: ["DELIVERED"],
+      availableActions: ["IN_PROGRESS"],
     });
 
     const afterCommand = applyOrderTrackingActionResult(initialState, {
       orderId: "order-1",
-      status: "DELIVERED",
+      status: "IN_PROGRESS",
       revision: "12",
-      availableActions: ["COMPLETED"],
+      availableActions: ["DELIVERED"],
     });
     const afterRetryPoll = applyOrderTrackingPollResult(afterCommand, {
       events: [
@@ -185,8 +185,8 @@ describe("order-tracking polling consumer", () => {
           entityId: "order-1",
           payload: {
             orderId: "order-1",
-            previousStatus: "IN_PROGRESS",
-            status: "DELIVERED",
+            previousStatus: "PICKED_UP",
+            status: "IN_PROGRESS",
             changedByUserId: "courier-1",
             updatedAt: "2026-04-03T12:05:00.000Z",
           },
@@ -200,8 +200,8 @@ describe("order-tracking polling consumer", () => {
     expect(afterCommand.cursor).toBe("12");
     expect(afterCommand.appliedEventCount).toBe(1);
     expect(afterRetryPoll.appliedEventCount).toBe(1);
-    expect(afterRetryPoll.currentStatus).toBe("DELIVERED");
-    expect(afterRetryPoll.availableActions).toEqual(["COMPLETED"]);
+    expect(afterRetryPoll.currentStatus).toBe("IN_PROGRESS");
+    expect(afterRetryPoll.availableActions).toEqual(["DELIVERED"]);
   });
 });
 
@@ -250,6 +250,126 @@ describe("order-tracking events API", () => {
         createdAt: "2026-04-03T11:55:00.000Z",
       },
     ]);
+  });
+
+  it("accepts FT-016 lifecycle statuses as parser compatibility without coercing cursors", () => {
+    const result = parseOrderTrackingPollResult({
+      events: [
+        {
+          type: "order.status_changed",
+          entity: "order",
+          entity_id: "order-1",
+          payload: {
+            orderId: "order-1",
+            previousStatus: "CREATED",
+            status: "DELAYED",
+            changedByUserId: "operator-1",
+            updatedAt: "2026-05-09T10:00:00.000Z",
+          },
+          revision: "rev:delayed",
+          created_at: "2026-05-09T10:00:00.000Z",
+        },
+        {
+          type: "order.status_changed",
+          entity: "order",
+          entity_id: "order-1",
+          payload: {
+            orderId: "order-1",
+            previousStatus: "ASSIGNED",
+            status: "PICKED_UP",
+            changedByUserId: "courier-1",
+            updatedAt: "2026-05-09T10:05:00.000Z",
+          },
+          revision: "rev:picked-up",
+          created_at: "2026-05-09T10:05:00.000Z",
+        },
+      ],
+      next_cursor: "rev:picked-up",
+    });
+
+    expect(result.nextCursor).toBe("rev:picked-up");
+    expect(result.events.map((event) => event.payload.status)).toEqual(["DELAYED", "PICKED_UP"]);
+    expect(result.events.map((event) => event.payload.previousStatus)).toEqual(["CREATED", "ASSIGNED"]);
+  });
+
+  it("normalizes operator status events from oldStatus/newStatus payload fields", () => {
+    const result = parseOrderTrackingPollResult({
+      events: [
+        {
+          type: "order.status_changed",
+          entity: "order",
+          entity_id: "order-1",
+          payload: {
+            orderId: "order-1",
+            oldStatus: "DELIVERED",
+            newStatus: "COMPLETED",
+            changedByUserId: "operator-1",
+            changedByRole: "operator",
+            changedByName: "Operator One",
+            updatedAt: "2026-05-09T12:10:00.000Z",
+          },
+          revision: "rev:operator:completed",
+          created_at: "2026-05-09T12:10:00.000Z",
+        },
+      ],
+      next_cursor: "rev:operator:completed",
+    });
+
+    expect(result.nextCursor).toBe("rev:operator:completed");
+    expect(result.events[0]).toMatchObject({
+      type: "order.status_changed",
+      entityId: "order-1",
+      payload: {
+        previousStatus: "DELIVERED",
+        status: "COMPLETED",
+        changedByUserId: "operator-1",
+      },
+      revision: "rev:operator:completed",
+    });
+  });
+
+  it("normalizes timeout delayed events from newStatus and oldStatus payload fields", () => {
+    const result = parseOrderTrackingPollResult({
+      events: [
+        {
+          type: "order.delayed",
+          entity: "order",
+          entity_id: "order-timeout-1",
+          payload: {
+            orderId: "order-timeout-1",
+            oldStatus: "CREATED",
+            newStatus: "DELAYED",
+            reason: "assignment_timeout",
+            updatedAt: "2026-05-09T12:06:10.000Z",
+          },
+          revision: "rev:delayed:timeout",
+          created_at: "2026-05-09T12:06:10.000Z",
+        },
+      ],
+      next_cursor: "rev:delayed:timeout",
+    });
+
+    expect(result).toEqual({
+      events: [
+        {
+          type: "order.delayed",
+          entity: "order",
+          entityId: "order-timeout-1",
+          payload: {
+            orderId: "order-timeout-1",
+            previousStatus: "CREATED",
+            status: "DELAYED",
+            changedByUserId: undefined,
+            courierId: undefined,
+            assignedByUserId: undefined,
+            updatedAt: "2026-05-09T12:06:10.000Z",
+          },
+          revision: "rev:delayed:timeout",
+          createdAt: "2026-05-09T12:06:10.000Z",
+        },
+      ],
+      nextCursor: "rev:delayed:timeout",
+    });
   });
 
   it("rejects non-string next cursors instead of coercing them", () => {

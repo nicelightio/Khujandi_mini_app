@@ -22,7 +22,7 @@ status: active
 - Auto-offer по умолчанию выключен и включается в настройках operator panel.
 - Auto-offer fan-out идет только активным свободным курьерам.
 - Claim выполняется atomic проверкой: order still active, `courier_id` пустой, status `CREATED|DELAYED`, courier active/free.
-- Первый successful claim пишет `courier_id`, `assigned_at`, `order_status_history`, событие `order.assigned` и command-response с `updated_at`/string `revision`.
+- Первый successful claim пишет `courier_id`, `order_status_history`, событие `order.assigned` и command-response с `updated_at`/string `revision`. Время assignment/claim выводится из status history, event metadata или read model; отдельное `Order.assignedAt` не является требованием схемы.
 - Concurrent losers получают controlled already-taken outcome без history/event side effects.
 - Если offer не принят за 3 минуты, отправляется repeat notification; если еще через 3 минуты не принят, заказ получает/сохраняет `DELAYED`, operators получают срочный alert.
 - Для персонального offer courier `rating_score` уменьшается на 1 после second timeout; для broadcast offer без конкретного courier штраф не применяется.
@@ -60,9 +60,10 @@ status: active
 
 - Existing `TASK-FT004-*` closure and current code may already implement legacy v1 admin direct assignment (`CREATED -> ASSIGNED`). Treat that as an implemented baseline, not as invalid history.
 - Current target spec defines v2 behavior: assignment is offer + courier claim; pending offer does not set `ASSIGNED`; successful claim publishes `order.assigned`.
-- Migration from v1 to v2 MUST be additive-first and staged: keep existing `orders.courier_id`, `orders.status`, `assigned_at`, audit/history/event guarantees, then add `assignment_offers` and claim semantics without breaking existing orders.
-- During transition, legacy direct assignment may remain as an explicit admin/operator override only if it is named and guarded as override behavior; normal manual assignment must create a targeted offer requiring courier confirmation.
-- New implementation work should be planned under `FT-016`/migration tasks and must include compatibility checks against the already implemented admin panel and delivery code.
+- Migration from v1 to v2 MUST be additive-first and staged: keep existing `orders.courier_id`, `orders.status`, audit/history/event guarantees and derived assignment time semantics, then add `assignment_offers` and claim semantics without breaking existing orders.
+- `TASK-FT016-18` verified the repo-local v2 assignment flow with `PASS`: normal manual operator/admin assignment creates a pending targeted offer, courier claim is the point where the order becomes `ASSIGNED`, `order.assigned` is published only after successful claim, and old v1 active assigned orders remain readable.
+- Normal legacy direct assignment is no longer the default path; after `TASK-FT016-17-FIX`, any retained direct assignment behavior is isolated as explicit override-only behavior with separate confirmation/audit semantics.
+- Historical migration failures are retained in their task records; downstream docs should reference repaired-by evidence instead of rewriting the original `FAIL` results.
 
 ## Migration / rollout notes
 
@@ -72,3 +73,9 @@ status: active
 4. Switch manual assignment UI from direct assignment to targeted offer only after bot claim and atomic server claim are ready.
 5. Change `order.assigned` publication point for the normal v2 path to successful claim; keep any legacy direct-assignment event semantics isolated behind an override path until removed.
 6. Verify duplicate Telegram callbacks and concurrent claims before enabling broadcast auto-offer.
+
+## Verification status
+
+- Repo-local closure: verified by `TASK-FT016-18`.
+- Required checks included `npm run test:delivery-assignment -- --runInBand`, focused admin assignment tests through the full FT-016 flow, `npm run lint`, `npm run build:frontend`, `git diff --check`, and changed markdown link validation.
+- Real Android Telegram smoke for courier bot claim/menu behavior was not run during `TASK-FT016-18`/`TASK-FT016-19`; it remains advisory pre-release evidence unless separately requested.

@@ -336,7 +336,7 @@ describe("admin router", () => {
       password: "correct-horse-battery",
     });
     expect(text).toContain("Signed in as manager (admin-account-7).");
-    expect(text).toContain("Courier assignment");
+    expect(text).toContain("Operator delivery orders");
   });
 
   it("keeps manual sign-in available while protected-route session restore is in progress", async () => {

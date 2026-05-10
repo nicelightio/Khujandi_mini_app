@@ -101,7 +101,7 @@ status: active
 - Dependencies: TASK-FT016-00.
 - Files/areas likely touched: `backend/prisma/schema.prisma`, new `backend/prisma/migrations/*/migration.sql`, `backend/src/slices/*/domain/*.types.ts`, `frontend/src/slices/order-tracking/api/order-tracking-api.ts`, tests parsing statuses.
 - Acceptance criteria: old statuses still parse; new statuses parse; no active order rewrite; `ADMIN` still works as operator-capable.
-- Verification/tests: `npx prisma validate`; focused backend type/test suite for affected slices; `npm run test:order-tracking:frontend`.
+- Verification/tests: `DATABASE_URL=postgresql://user:pass@localhost:5432/khujandi npx prisma validate`; focused backend type/test suite for affected slices; `npm run test:order-tracking:frontend`.
 - Risk/rollback note: enum additions are forward-only in PostgreSQL; rollback should disable feature flags/routes rather than remove enum values.
 
 #### TASK-FT016-02 - Add courier availability and assignment offer persistence compatibility
@@ -116,7 +116,7 @@ status: active
 - Dependencies: TASK-FT016-01.
 - Files/areas likely touched: `backend/prisma/schema.prisma`, migration SQL, `backend/src/slices/delivery-assignment/domain/delivery-assignment.types.ts`, `backend/src/slices/delivery-assignment/infrastructure/prisma-delivery-assignment.repository.ts`.
 - Acceptance criteria: schema validates; existing `assignCourier` tests still pass or are intentionally updated only for schema shape; no code path requires offers yet.
-- Verification/tests: `npx prisma validate`; `npm run test:delivery-assignment`; migration dry-run against empty DB if available.
+- Verification/tests: `DATABASE_URL=postgresql://user:pass@localhost:5432/khujandi npx prisma validate`; `npm run test:delivery-assignment`; migration dry-run against empty DB if available.
 - Risk/rollback note: if offer model causes runtime issues, do not delete table; leave unused until service code is fixed.
 
 #### TASK-FT016-03 - Add backend operator delivery read contract endpoint
@@ -237,10 +237,10 @@ status: active
 - Contour: backend / telegram-bot
 - Touched layers: application, domain, infra, persistence, tests
 - Objective: make first successful courier claim the only normal path to `ASSIGNED`.
-- Exact scope: add claim command from bot callback; use transaction/conditional update to require claimable offer, order `CREATED|DELAYED`, empty `courierId`, courier active/free; success writes `courierId`, `assignedAt` if available, status `ASSIGNED`, history/audit/event and marks offer claimed.
+- Exact scope: add claim command from bot callback; use transaction/conditional update to require claimable offer, order `CREATED|DELAYED`, empty `courierId`, courier active/free; success writes `courierId`, status `ASSIGNED`, history/audit/event, derives assignment time from status history/event metadata/read model and marks offer claimed.
 - Out of scope: auto-offer broadcast, timeout, status progression after `ASSIGNED`.
 - Dependencies: TASK-FT016-09.
-- Files/areas likely touched: delivery-assignment service/repository/types, Prisma schema if `assignedAt` is added, Telegram offer callback harness, tests.
+- Files/areas likely touched: delivery-assignment service/repository/types, Telegram offer callback harness, tests.
 - Acceptance criteria: exactly one concurrent claimant wins; losers get already-taken/expired outcome without history/event side effects; duplicate Telegram callback is idempotent/controlled.
 - Verification/tests: integration race test, duplicate callback unit test, runtime claim smoke.
 - Risk/rollback note: if claim fails in rollout, disable offer creation and use legacy override temporarily.

@@ -80,8 +80,12 @@ type DeliveryTrackingEventFindManyArgs = {
 type DeliveryTrackingEventPayloadRecord = {
   orderId: string;
   previousStatus?: string;
-  status: string;
+  oldStatus?: string;
+  status?: string;
+  newStatus?: string;
   changedByUserId?: string;
+  changedByRole?: string;
+  changedByName?: string;
   courierId?: string;
   assignedByUserId?: string;
   updatedAt: string;
@@ -135,23 +139,34 @@ const normalizeCursor = (cursor?: string): bigint => {
   return BigInt(cursor);
 };
 
-const mapEventRecord = (event: DeliveryTrackingPersistedEventRecord): DeliveryTrackingEventRecord => ({
-  type: event.type as DeliveryTrackingEventRecord["type"],
-  entity: event.entity as DeliveryTrackingEventRecord["entity"],
-  entityId: event.entityId,
-  payload: {
-    orderId: event.payload.orderId,
-    previousStatus:
-      event.payload.previousStatus === undefined ? undefined : mapOrderStatus(event.payload.previousStatus),
-    status: mapOrderStatus(event.payload.status),
-    changedByUserId: event.payload.changedByUserId,
-    courierId: event.payload.courierId,
-    assignedByUserId: event.payload.assignedByUserId,
-    updatedAt: event.payload.updatedAt,
-  },
-  revision: event.id.toString(),
-  createdAt: event.createdAt.toISOString(),
-});
+const mapEventRecord = (event: DeliveryTrackingPersistedEventRecord): DeliveryTrackingEventRecord | null => {
+  const status = event.payload.status ?? event.payload.newStatus;
+
+  if (status === undefined) {
+    return null;
+  }
+
+  const previousStatus = event.payload.previousStatus ?? event.payload.oldStatus;
+
+  return {
+    type: event.type as DeliveryTrackingEventRecord["type"],
+    entity: event.entity as DeliveryTrackingEventRecord["entity"],
+    entityId: event.entityId,
+    payload: {
+      orderId: event.payload.orderId,
+      previousStatus: previousStatus === undefined ? undefined : mapOrderStatus(previousStatus),
+      status: mapOrderStatus(status),
+      changedByUserId: event.payload.changedByUserId,
+      changedByRole: event.payload.changedByRole as DeliveryTrackingEventRecord["payload"]["changedByRole"],
+      changedByName: event.payload.changedByName,
+      courierId: event.payload.courierId,
+      assignedByUserId: event.payload.assignedByUserId,
+      updatedAt: event.payload.updatedAt,
+    },
+    revision: event.id.toString(),
+    createdAt: event.createdAt.toISOString(),
+  };
+};
 
 export class PrismaDeliveryTrackingRepository implements DeliveryTrackingRepository {
   constructor(private readonly prisma: DeliveryTrackingPrismaProvider) {}
@@ -241,28 +256,48 @@ export class PrismaDeliveryTrackingRepository implements DeliveryTrackingReposit
         },
       });
 
+      const statusHistoryInput: CreateDeliveryTrackingStatusHistoryInput = {
+        orderId: input.orderId,
+        oldStatus: input.oldStatus,
+        newStatus: input.newStatus,
+        changedByUserId: input.changedByUserId,
+        changedAt: input.changedAt,
+      };
+
+      if (input.changedByRole !== undefined) {
+        statusHistoryInput.changedByRole = input.changedByRole;
+      }
+
+      if (input.changedByName !== undefined) {
+        statusHistoryInput.changedByName = input.changedByName;
+      }
+
       const statusHistory = await transactionClient.orderStatusHistory.create({
-        data: {
-          orderId: input.orderId,
-          oldStatus: input.oldStatus,
-          newStatus: input.newStatus,
-          changedByUserId: input.changedByUserId,
-          changedAt: input.changedAt,
-        },
+        data: statusHistoryInput,
       });
+
+      const statusEventPayload: CreateDeliveryTrackingEventInput["payload"] = {
+        orderId: input.orderId,
+        previousStatus: input.oldStatus,
+        status: input.newStatus,
+        changedByUserId: input.changedByUserId,
+        updatedAt: order.updatedAt.toISOString(),
+      };
+
+      if (input.changedByRole !== undefined) {
+        statusEventPayload.changedByRole = input.changedByRole;
+      }
+
+      if (input.changedByName !== undefined) {
+        statusEventPayload.changedByName = input.changedByName;
+      }
 
       const event = await transactionClient.event.create({
         data: {
           type: "order.status_changed",
           entity: "order",
           entityId: input.orderId,
-          payload: {
-            orderId: input.orderId,
-            previousStatus: input.oldStatus,
-            status: input.newStatus,
-            changedByUserId: input.changedByUserId,
-            updatedAt: order.updatedAt.toISOString(),
-          },
+          payload: statusEventPayload,
         },
       });
 
@@ -272,7 +307,7 @@ export class PrismaDeliveryTrackingRepository implements DeliveryTrackingReposit
           status: mapOrderStatus(order.status),
         },
         statusHistory,
-        event: mapEventRecord(event),
+        event: mapEventRecord(event)!,
         revision: event.id.toString(),
       };
     });
@@ -299,7 +334,11 @@ export class PrismaDeliveryTrackingRepository implements DeliveryTrackingReposit
       },
     });
 
-    const mappedEvents = events.map(mapEventRecord);
+    const mappedEvents = events.flatMap((event) => {
+      const mappedEvent = mapEventRecord(event);
+
+      return mappedEvent === null ? [] : [mappedEvent];
+    });
     const lastEvent = mappedEvents[mappedEvents.length - 1];
     const nextCursor = lastEvent?.revision ?? cursor ?? "0";
 

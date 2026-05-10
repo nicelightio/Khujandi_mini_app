@@ -121,7 +121,7 @@ describe("order-tracking polling SLA", () => {
                 payload: {
                   orderId: "order-1",
                   previousStatus: "ASSIGNED",
-                  status: "IN_PROGRESS",
+                  status: "PICKED_UP",
                   changedByUserId: "courier-1",
                   updatedAt: new Date(sampleStartedAtMs + eventOffsetMs).toISOString(),
                 },
@@ -144,7 +144,7 @@ describe("order-tracking polling SLA", () => {
           orderId: "order-1",
           currentStatus: "ASSIGNED",
           initialCursor: "10",
-          availableActions: ["IN_PROGRESS"],
+          availableActions: ["PICKED_UP"],
         }),
         pollEvents,
         submitCourierAction: jest.fn(),
@@ -156,7 +156,7 @@ describe("order-tracking polling SLA", () => {
       });
 
       const text = collectText(renderer.toJSON()).join(" ");
-      expect(text).toContain("Current status: IN_PROGRESS.");
+      expect(text).toContain("Current status: PICKED_UP.");
       expect(text).toContain("Cursor: 11");
       expect(text).toContain("Updates applied: 1.");
 

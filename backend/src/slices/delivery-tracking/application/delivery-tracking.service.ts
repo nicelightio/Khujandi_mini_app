@@ -12,6 +12,7 @@ import type {
 import { AppError } from "../../../shared/errors/app-error";
 
 const ALLOWED_TRACKING_ROLE = "courier";
+const ALLOWED_OPERATOR_TRACKING_ROLES = new Set(["operator", "admin"]);
 const NOOP_DELIVERY_TRACKING_NOTIFIER: DeliveryTrackingNotifier = {
   async notifyStatusChanged() {
     return undefined;
@@ -19,7 +20,14 @@ const NOOP_DELIVERY_TRACKING_NOTIFIER: DeliveryTrackingNotifier = {
 };
 
 const NEXT_STATUS_BY_CURRENT_STATUS: Partial<Record<DeliveryTrackingOrderStatus, DeliveryTrackingOrderStatus>> = {
-  ASSIGNED: "IN_PROGRESS",
+  ASSIGNED: "PICKED_UP",
+  PICKED_UP: "IN_PROGRESS",
+  IN_PROGRESS: "DELIVERED",
+};
+
+const NEXT_OPERATOR_STATUS_BY_CURRENT_STATUS: Partial<Record<DeliveryTrackingOrderStatus, DeliveryTrackingOrderStatus>> = {
+  ASSIGNED: "PICKED_UP",
+  PICKED_UP: "IN_PROGRESS",
   IN_PROGRESS: "DELIVERED",
   DELIVERED: "COMPLETED",
 };
@@ -33,7 +41,7 @@ const getAvailableActionsForStatus = (
 };
 
 const toNotificationStatus = (status: DeliveryTrackingOrderStatus): DeliveryTrackingActionStatus => {
-  if (status === "IN_PROGRESS" || status === "DELIVERED" || status === "COMPLETED") {
+  if (status === "PICKED_UP" || status === "IN_PROGRESS" || status === "DELIVERED") {
     return status;
   }
 
@@ -129,6 +137,54 @@ export class DeliveryTrackingService {
     };
   }
 
+  async recordOperatorStatusTransition(
+    input: DeliveryTrackingStatusCommandInput,
+  ): Promise<DeliveryTrackingCommandResult> {
+    const actor = input.actor;
+
+    if (actor === null) {
+      throw new AppError("AUTH_REQUIRED", "Status control requires an authenticated operator", 401);
+    }
+
+    if (!ALLOWED_OPERATOR_TRACKING_ROLES.has(actor.role)) {
+      throw new AppError("FORBIDDEN", "User role cannot control delivery status", 403, {
+        role: actor.role,
+      });
+    }
+
+    const order = await this.repository.findOrderById(input.orderId);
+
+    this.assertOperatorTrackableOrder(order, input.orderId, input.nextStatus);
+
+    const expectedStatus = NEXT_OPERATOR_STATUS_BY_CURRENT_STATUS[order.status] ?? null;
+
+    if (expectedStatus !== input.nextStatus) {
+      throw new AppError("CONFLICT", "Order cannot transition to the requested status", 409, {
+        orderId: input.orderId,
+        currentStatus: order.status,
+        nextStatus: input.nextStatus,
+        expectedStatus,
+      });
+    }
+
+    const artifacts = await this.repository.recordStatusTransition({
+      orderId: order.id,
+      changedByUserId: actor.userId,
+      changedByRole: actor.role,
+      changedByName: actor.name,
+      oldStatus: order.status,
+      newStatus: input.nextStatus,
+      changedAt: new Date(),
+    });
+
+    return {
+      orderId: artifacts.order.id,
+      status: artifacts.order.status,
+      updatedAt: artifacts.order.updatedAt,
+      revision: artifacts.revision,
+    };
+  }
+
   private assertTrackableOrder(
     order: DeliveryTrackingOrderRecord | null,
     orderId: DeliveryTrackingOrderId,
@@ -141,6 +197,27 @@ export class DeliveryTrackingService {
     }
 
     if (!(order.status in NEXT_STATUS_BY_CURRENT_STATUS)) {
+      throw new AppError("CONFLICT", "Order cannot transition to the requested status", 409, {
+        orderId,
+        currentStatus: order.status,
+        nextStatus,
+        expectedStatus: null,
+      });
+    }
+  }
+
+  private assertOperatorTrackableOrder(
+    order: DeliveryTrackingOrderRecord | null,
+    orderId: DeliveryTrackingOrderId,
+    nextStatus: DeliveryTrackingOrderStatus,
+  ): asserts order is DeliveryTrackingOrderRecord {
+    if (order === null || order.isDeleted) {
+      throw new AppError("ORDER_NOT_FOUND", "Order was not found", 404, {
+        orderId,
+      });
+    }
+
+    if (!(order.status in NEXT_OPERATOR_STATUS_BY_CURRENT_STATUS)) {
       throw new AppError("CONFLICT", "Order cannot transition to the requested status", 409, {
         orderId,
         currentStatus: order.status,

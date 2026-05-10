@@ -4,7 +4,7 @@ import type { OrderTrackingViewModel } from "../model/order-tracking-view-model"
 
 type OrderTrackingPageProps = {
   viewModel: OrderTrackingViewModel;
-  onSubmitCourierAction: (nextStatus: "IN_PROGRESS" | "DELIVERED" | "COMPLETED") => void;
+  onSubmitCourierAction: (nextStatus: "PICKED_UP" | "IN_PROGRESS" | "DELIVERED") => void;
 };
 
 export const OrderTrackingPage = ({ viewModel, onSubmitCourierAction }: OrderTrackingPageProps) => {

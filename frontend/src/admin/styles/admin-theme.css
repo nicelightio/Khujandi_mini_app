@@ -192,6 +192,11 @@ body[data-root-contour="admin-web"] textarea {
   background: rgba(138, 164, 255, 0.1);
 }
 
+[data-admin-status-tone="info"] {
+  border-color: rgba(109, 213, 255, 0.34);
+  background: rgba(109, 213, 255, 0.12);
+}
+
 [data-admin-status-tone="success"] {
   border-color: rgba(147, 244, 191, 0.28);
   background: rgba(147, 244, 191, 0.1);
@@ -200,6 +205,21 @@ body[data-root-contour="admin-web"] textarea {
 [data-admin-status-tone="danger"] {
   border-color: rgba(255, 143, 159, 0.26);
   background: rgba(255, 143, 159, 0.1);
+}
+
+[data-admin-status-tone="warning"] {
+  border-color: rgba(255, 204, 128, 0.28);
+  background: rgba(255, 204, 128, 0.1);
+}
+
+[data-admin-status-tone="orange"] {
+  border-color: rgba(255, 162, 92, 0.34);
+  background: rgba(255, 162, 92, 0.12);
+}
+
+[data-admin-status-tone="purple"] {
+  border-color: rgba(198, 138, 255, 0.3);
+  background: rgba(198, 138, 255, 0.11);
 }
 
 [data-admin-status-tone="neutral"] {
@@ -780,6 +800,124 @@ body[data-root-contour="admin-web"] textarea {
 
 [data-admin-panel="workspace"] {
   align-self: start;
+}
+
+[data-admin-assignment="orders"] {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+[data-admin-assignment="courier-alert"] {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid rgba(163, 188, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+[data-admin-assignment="courier-alert"][data-admin-alert-state="active"] {
+  border-color: rgba(255, 143, 159, 0.28);
+  background: rgba(255, 143, 159, 0.07);
+  animation: adminDelayedBlink 1.35s ease-in-out infinite;
+}
+
+[data-admin-assignment="courier-alert"] ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+[data-admin-assignment="courier-alert"] li {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(163, 188, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(6, 10, 22, 0.34);
+}
+
+[data-admin-assignment="sort-controls"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+[data-admin-assignment="sort-controls"] button[aria-pressed="true"] {
+  border-color: rgba(109, 213, 255, 0.38);
+  background: rgba(109, 213, 255, 0.12);
+  color: var(--admin-text);
+}
+
+[data-admin-assignment="table-wrap"] {
+  overflow-x: auto;
+}
+
+[data-admin-assignment="orders-table"] td {
+  min-width: 140px;
+}
+
+[data-admin-assignment="orders-table"] td > span,
+[data-admin-assignment="orders-table"] td > strong {
+  display: block;
+}
+
+[data-admin-assignment="orders-table"] td > span {
+  margin-top: 6px;
+  color: var(--admin-text-soft);
+}
+
+[data-admin-assignment="action-cells"] {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+}
+
+[data-admin-assignment="action-cells"] button {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  min-height: 46px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+[data-admin-assignment="action-cells"] button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+[data-admin-assignment="action-cells"] strong {
+  color: var(--admin-text-soft);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+[data-admin-assignment="history-table"] {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+[data-admin-delayed-alert="true"] {
+  animation: adminDelayedBlink 0.9s ease-in-out infinite;
+}
+
+@keyframes adminDelayedBlink {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(255, 143, 159, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 24px rgba(255, 143, 159, 0.34);
+  }
 }
 
 [data-admin-page="debug"] {

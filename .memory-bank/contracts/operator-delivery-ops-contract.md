@@ -27,7 +27,7 @@ Each row exposes:
 - current `status`;
 - computed `severity`;
 - current courier display data or no-courier marker;
-- assigned/claimed timestamp when present;
+- assigned/claimed timestamp derived from status history, event metadata or a read-model field when present;
 - latest message preview and sender role;
 - status revision/cursor metadata for polling.
 
@@ -73,7 +73,7 @@ Claim must be atomic. The winning write requires:
 - courier is active/free;
 - offer is still claimable.
 
-Success sets `courier_id`, `assigned_at`, status `ASSIGNED`, history/audit/event and returns updated state with string `revision`.
+Success sets `courier_id`, status `ASSIGNED`, history/audit/event and returns updated state with string `revision`. Assignment time is derived from status history, event metadata or the operator read model; the canonical `Order` schema does not require an `assigned_at`/`assignedAt` field.
 
 Already-taken/expired claim returns controlled failure without history/event side effects.
 

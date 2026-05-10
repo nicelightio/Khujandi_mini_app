@@ -2,10 +2,11 @@ export type DeliveryTrackingOrderId = string;
 export type DeliveryTrackingUserId = string;
 export type DeliveryTrackingRevision = string;
 export type DeliveryTrackingCursor = string;
-export type DeliveryTrackingActionStatus = "IN_PROGRESS" | "DELIVERED" | "COMPLETED";
+export type DeliveryTrackingActionStatus = "PICKED_UP" | "IN_PROGRESS" | "DELIVERED";
 export type DeliveryTrackingUserRole =
   | "boss"
   | "manager"
+  | "operator"
   | "admin"
   | "seller"
   | "courier"
@@ -13,7 +14,9 @@ export type DeliveryTrackingUserRole =
 
 export type DeliveryTrackingOrderStatus =
   | "CREATED"
+  | "DELAYED"
   | "ASSIGNED"
+  | "PICKED_UP"
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"
@@ -31,6 +34,7 @@ export type DeliveryTrackingOrderRecord = {
 export type DeliveryTrackingStatusActor = {
   userId: DeliveryTrackingUserId;
   role: DeliveryTrackingUserRole;
+  name?: string;
 };
 
 export type DeliveryTrackingStatusCommandInput = {
@@ -44,11 +48,18 @@ export type CreateDeliveryTrackingStatusHistoryInput = {
   oldStatus: DeliveryTrackingOrderStatus;
   newStatus: DeliveryTrackingOrderStatus;
   changedByUserId: DeliveryTrackingUserId;
+  changedByRole?: DeliveryTrackingUserRole;
+  changedByName?: string;
   changedAt: Date;
 };
 
-export type DeliveryTrackingStatusHistoryRecord = CreateDeliveryTrackingStatusHistoryInput & {
+export type DeliveryTrackingStatusHistoryRecord = Omit<
+  CreateDeliveryTrackingStatusHistoryInput,
+  "changedByRole" | "changedByName"
+> & {
   id: bigint;
+  changedByRole?: DeliveryTrackingUserRole | null;
+  changedByName?: string | null;
 };
 
 export type CreateDeliveryTrackingEventInput = {
@@ -60,12 +71,14 @@ export type CreateDeliveryTrackingEventInput = {
     previousStatus: DeliveryTrackingOrderStatus;
     status: DeliveryTrackingOrderStatus;
     changedByUserId: DeliveryTrackingUserId;
+    changedByRole?: DeliveryTrackingUserRole;
+    changedByName?: string;
     updatedAt: string;
   };
 };
 
 export type DeliveryTrackingEventRecord = {
-  type: "order.assigned" | "order.status_changed";
+  type: "order.assigned" | "order.status_changed" | "order.delayed";
   entity: "order";
   entityId: DeliveryTrackingOrderId;
   payload: {
@@ -73,6 +86,8 @@ export type DeliveryTrackingEventRecord = {
     previousStatus?: DeliveryTrackingOrderStatus;
     status: DeliveryTrackingOrderStatus;
     changedByUserId?: DeliveryTrackingUserId;
+    changedByRole?: DeliveryTrackingUserRole;
+    changedByName?: string;
     courierId?: DeliveryTrackingUserId;
     assignedByUserId?: DeliveryTrackingUserId;
     updatedAt: string;
@@ -84,6 +99,8 @@ export type DeliveryTrackingEventRecord = {
 export type PersistDeliveryTrackingTransitionInput = {
   orderId: DeliveryTrackingOrderId;
   changedByUserId: DeliveryTrackingUserId;
+  changedByRole?: DeliveryTrackingUserRole;
+  changedByName?: string;
   oldStatus: DeliveryTrackingOrderStatus;
   newStatus: DeliveryTrackingOrderStatus;
   changedAt: Date;

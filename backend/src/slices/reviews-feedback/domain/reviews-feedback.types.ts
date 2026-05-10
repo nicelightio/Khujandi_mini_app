@@ -5,6 +5,7 @@ export type ReviewsFeedbackRevision = string;
 export type ReviewsFeedbackUserRole =
   | "boss"
   | "manager"
+  | "operator"
   | "admin"
   | "seller"
   | "courier"
@@ -12,7 +13,9 @@ export type ReviewsFeedbackUserRole =
 
 export type ReviewsFeedbackOrderStatus =
   | "CREATED"
+  | "DELAYED"
   | "ASSIGNED"
+  | "PICKED_UP"
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"

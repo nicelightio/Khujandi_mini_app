@@ -23,4 +23,10 @@ export class DeliveryTrackingController {
   ): Promise<DeliveryTrackingCommandResult> {
     return this.service.recordStatusTransition(input);
   }
+
+  recordOperatorStatusTransition(
+    input: DeliveryTrackingStatusCommandInput,
+  ): Promise<DeliveryTrackingCommandResult> {
+    return this.service.recordOperatorStatusTransition(input);
+  }
 }

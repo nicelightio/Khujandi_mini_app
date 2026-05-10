@@ -14,6 +14,7 @@ export type CheckoutPaymentSessionTokenHash = string;
 export type CheckoutPaymentUserRole =
   | "boss"
   | "manager"
+  | "operator"
   | "admin"
   | "seller"
   | "courier"
@@ -21,7 +22,9 @@ export type CheckoutPaymentUserRole =
 
 export type CheckoutPaymentOrderStatus =
   | "CREATED"
+  | "DELAYED"
   | "ASSIGNED"
+  | "PICKED_UP"
   | "IN_PROGRESS"
   | "DELIVERED"
   | "COMPLETED"

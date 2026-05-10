@@ -78,7 +78,9 @@ status: active
 - Current target spec defines v2 lifecycle by adding `PICKED_UP` and making `DELIVERED -> COMPLETED` operator/admin-owned manual closure.
 - Migration from v1 to v2 MUST be staged: preserve existing polling/event/error/history invariants, add new status support, then update UI/bot commands and validation rules.
 - Existing orders in `ASSIGNED`, `IN_PROGRESS` or `DELIVERED` remain valid during rollout; do not bulk rewrite active production orders just to insert `PICKED_UP`.
-- The already implemented admin panel must be corrected to show v2 status ownership and attention states rather than replaced wholesale unless inspection proves replacement is simpler and safer.
+- The already implemented admin panel was corrected in the FT-016 migration to show v2 status ownership and attention states rather than being rebuilt.
+- `TASK-FT016-18` verified the repo-local v2 tracking flow with `PASS`: courier progression `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED`, operator/admin `DELIVERED -> COMPLETED`, ordered polling visibility for customer/admin consumers, disabled normal legacy assignment setup, and old v1 active order readability.
+- Historical migration failures are retained in their task records; repaired gaps are represented by `TASK-FT016-13-FIX`, `TASK-FT016-15-FIX`, and `TASK-FT016-17-FIX`.
 
 ## Migration / rollout notes
 
@@ -88,3 +90,9 @@ status: active
 4. Update courier commands to drive `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED` only after bot/UI affordances exist.
 5. Update admin/operator panel to treat `DELIVERED` as attention-required and close it manually to `COMPLETED`.
 6. Verify ordered polling, string cursor/revision semantics and duplicate-safe behavior after every state-machine change.
+
+## Verification status
+
+- Repo-local closure: verified by `TASK-FT016-18`.
+- Required checks included `npm run test:delivery-tracking -- --runInBand`, `npm run test:order-tracking:frontend -- --runInBand`, focused admin assignment tests, checkout-payment runtime tests for paid `CREATED` source orders, `npm run lint`, `npm run build:frontend`, `git diff --check`, and changed markdown link validation.
+- Real Android Telegram customer/courier smoke was not run during `TASK-FT016-18`/`TASK-FT016-19`; it remains advisory pre-release evidence unless separately requested.

@@ -1,0 +1,4 @@
+-- Additive FT-016 compatibility only: no row rewrites or behavior changes.
+ALTER TYPE "OrderStatus" ADD VALUE IF NOT EXISTS 'DELAYED' AFTER 'CREATED';
+ALTER TYPE "OrderStatus" ADD VALUE IF NOT EXISTS 'PICKED_UP' AFTER 'ASSIGNED';
+ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'OPERATOR' AFTER 'MANAGER';

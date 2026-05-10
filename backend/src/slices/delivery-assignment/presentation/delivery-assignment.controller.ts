@@ -1,7 +1,13 @@
 import { DeliveryAssignmentService } from "../application/delivery-assignment.service";
 import type {
-  AssignDeliveryOrderInput,
+  AssignDeliveryOrderOverrideInput,
+  ClaimDeliveryAssignmentOfferInput,
+  CreateBroadcastDeliveryAssignmentOfferInput,
+  CreateManualDeliveryAssignmentOfferInput,
+  DeliveryAssignmentBroadcastOfferCommandResult,
   DeliveryAssignmentCommandResult,
+  DeliveryAssignmentOfferCommandResult,
+  DeliveryAssignmentOfferTimeoutEvaluationResult,
   DeliveryAssignmentOrderId,
   DeliveryAssignmentUserId,
 } from "../domain/delivery-assignment.types";
@@ -17,7 +23,27 @@ export class DeliveryAssignmentController {
     return this.service.findCourierById(courierId);
   }
 
-  assignCourier(input: AssignDeliveryOrderInput): Promise<DeliveryAssignmentCommandResult> {
-    return this.service.assignCourier(input);
+  assignCourierOverride(input: AssignDeliveryOrderOverrideInput): Promise<DeliveryAssignmentCommandResult> {
+    return this.service.assignCourierOverride(input);
+  }
+
+  claimOffer(input: ClaimDeliveryAssignmentOfferInput): Promise<DeliveryAssignmentCommandResult> {
+    return this.service.claimOffer(input);
+  }
+
+  createManualOffer(
+    input: CreateManualDeliveryAssignmentOfferInput,
+  ): Promise<DeliveryAssignmentOfferCommandResult> {
+    return this.service.createManualOffer(input);
+  }
+
+  createBroadcastOffers(
+    input: CreateBroadcastDeliveryAssignmentOfferInput,
+  ): Promise<DeliveryAssignmentBroadcastOfferCommandResult> {
+    return this.service.createBroadcastOffers(input);
+  }
+
+  evaluateOfferTimeouts(now?: Date): Promise<DeliveryAssignmentOfferTimeoutEvaluationResult> {
+    return this.service.evaluateOfferTimeouts(now);
   }
 }

@@ -6,78 +6,38 @@ status: active
 
 ## Run metadata
 - Mode: `/autopilot`
-- Started at: `2026-04-01`
-- Resumed at: `2026-04-13`
+- Prepared at: `2026-05-09`
 - Operator: `Codex`
-- Scope: existing decomposed backlog with active review gate, resumed for `FT-011`
+- Scope: `FT-016` operator delivery migration; `TASK-FT016-13` verification failed on customer parser support for the real `order.delayed` event shape, `TASK-FT016-13-FIX` verified `PASS`, `TASK-FT016-14` verified `PASS`, `TASK-FT016-15` verification failed on operator role mapping, `TASK-FT016-15-FIX` verified `PASS`, `TASK-FT016-16` verified `PASS`, `TASK-FT016-17` verification failed because delivery-tracking runtime tests still depended on the disabled legacy `/assignment` setup, `TASK-FT016-17-FIX` verified `PASS` after focused test/runtime setup repair, `TASK-FT016-18` verified `PASS` under strict verification/docs-only scope, and `TASK-FT016-19` verified `PASS` after docs-only Memory Bank sync.
+- Source plan: `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md`
 
 ## Review gate
 - Latest review verdict: `APPROVE`
-- Evidence: `.tasks/TASK-MB-REVIEW/REQUEST.md`
+- Evidence: `.protocols/AUTONOMOUS-RUN/review.md`
+- Gate status: `TASK-FT016-10` verified `PASS`; `TASK-FT016-11` verified `PASS`; `TASK-FT016-12` verified `PASS`; `TASK-FT016-13` verified historical `FAIL`; `TASK-FT016-13-FIX` verified `PASS` and repairs `TASK-FT016-13`; `TASK-FT016-14` verified `PASS`; `TASK-FT016-15` verified historical `FAIL`; `TASK-FT016-15-FIX` verified `PASS` and repairs `TASK-FT016-15`; `TASK-FT016-16` verified `PASS`; `TASK-FT016-17` verified `FAIL`; `TASK-FT016-17-FIX` verified `PASS` and repairs `TASK-FT016-17`; repeat review gate approved `TASK-FT016-18`; `TASK-FT016-18` verified `PASS` without production/test/schema/fixture/evidence patches; `TASK-FT016-19` verified `PASS` with docs/protocol-only closure.
 
 ## Blocking questions / assumptions
-- No blocking questions at run start.
-- Assumption: existing uncommitted spec-layer edits in the workspace are the intended baseline for `FT-002` docs freeze and may be completed in place without reverting unrelated changes.
-- Current note: after spec sync, real Telegram client-matrix evidence for customer-facing checkout UI moved to `FT-009`; `FT-002` now keeps repo-local auth/payment runtime and transport verification scope.
-- Current note: `FT-009` is now decomposed and becomes the active shell/runtime closure scope for shared `REQ-019`, `REQ-022`, and `REQ-023` obligations.
-- Current note: `FT-009` closure is complete after operator-confirmed Android Telegram verification on the deployed test server.
-- Current note: `FT-010` backlog decomposition is now present; the run is resumed to execute the new ready tasks.
-- Current note: `FT-011` backlog decomposition is now present; the run is resumed to execute the new DB-backed catalog runtime tasks.
-- Assumption: user instruction "`/verifiy`" refers to the existing `/verify` command and each task keeps execute -> verify inside the same worker session.
-- Current note: `FT-009` hardening follow-up backlog is now present; the resumed run is scoped only to `TASK-FT009-07` .. `TASK-FT009-09` and intentionally excludes the broader runtime-propagation refactor.
+- Assumption: `TASK-FT016-00`, `TASK-FT016-01`, `TASK-FT016-02`, `TASK-FT016-03`, `TASK-FT016-04`, `TASK-FT016-05`, `TASK-FT016-06`, `TASK-FT016-07-FIX`, `TASK-FT016-08`, and `TASK-FT016-09` are verified `PASS` and marked `done`.
+- Assumption: `TASK-FT016-07` remains historically `failed`, but its layer-boundary scope leak is repaired by `TASK-FT016-07-FIX`; downstream selection should depend on `TASK-FT016-07-FIX` as the repaired prerequisite.
+- Assumption: `TASK-FT016-10`, `TASK-FT016-11`, and `TASK-FT016-12` passed verification. `TASK-FT016-13` remains historically failed, but its customer parser gap is repaired by narrow parser repair `TASK-FT016-13-FIX`; `TASK-FT016-14` passed verification. `TASK-FT016-15` remains historically failed, but its admin-access `manager` role mapping gap is repaired by `TASK-FT016-15-FIX`, scoped to normalizing `manager` into delivery-tracking `operator` capability for the operator/admin status command boundary.
 
 ## Queue state
-- `done`: `TASK-FT001-01`, `TASK-FT001-02`, `TASK-FT001-03`, `TASK-FT001-04`, `TASK-FT001-05`, `TASK-FT001-06`, `TASK-FT001-07`, `TASK-FT001-08`, `TASK-FT001-09`, `TASK-FT002-01`, `TASK-FT002-02`, `TASK-FT002-03`, `TASK-FT002-04`, `TASK-FT002-05`, `TASK-FT002-06`, `TASK-FT002-07`, `TASK-FT002-08`, `TASK-FT003-01`, `TASK-FT003-02`, `TASK-FT003-03`, `TASK-FT003-04`, `TASK-FT003-05`, `TASK-FT003-06`, `TASK-FT004-01`, `TASK-FT004-02`, `TASK-FT004-03`, `TASK-FT004-04`, `TASK-FT004-05`, `TASK-FT004-06`, `TASK-FT004-07`, `TASK-FT005-01`, `TASK-FT005-02`, `TASK-FT005-03`, `TASK-FT005-04`, `TASK-FT005-05`, `TASK-FT005-06`, `TASK-FT005-07`, `TASK-FT005-08`, `TASK-FT006-01`, `TASK-FT006-02`, `TASK-FT006-03`, `TASK-FT006-04`, `TASK-FT006-05`, `TASK-FT006-06`, `TASK-FT006-07`, `TASK-FT006-08`, `TASK-FT007-01`, `TASK-FT007-02`, `TASK-FT007-03`, `TASK-FT007-04`, `TASK-FT007-05`, `TASK-FT007-06`, `TASK-FT007-07`, `TASK-FT007-09`, `TASK-FT008-01`, `TASK-FT008-02`, `TASK-FT008-03`, `TASK-FT008-04`, `TASK-FT008-05`, `TASK-FT008-06`, `TASK-FT008-07`, `TASK-FT008-08`, `TASK-FT008-09`, `TASK-FT008-10`, `TASK-FT009-01`, `TASK-FT009-02`, `TASK-FT009-03`, `TASK-FT009-04`, `TASK-FT009-05`, `TASK-FT009-06`, `TASK-FT009-07`, `TASK-FT010-01`, `TASK-FT010-10`, `TASK-FT010-04`, `TASK-FT010-11`, `TASK-FT010-12`, `TASK-FT010-05`, `TASK-FT010-13`, `TASK-FT010-14`, `TASK-FT010-15`, `TASK-FT010-02`, `TASK-FT010-16`, `TASK-FT010-17`, `TASK-FT011-01`, `TASK-FT011-02`, `TASK-FT011-03`, `TASK-FT011-07`, `TASK-FT011-08`, `TASK-FT011-04`, `TASK-FT011-05`, `TASK-FT011-06`, `TASK-FT011-09`
 - `ready`: none
+- `planned`: none in the currently synced FT-016 queue.
 - `in_progress`: none
-- `blocked`: `TASK-FT009-10`
-- `failed`: `TASK-FT007-08`, `TASK-FT009-09`, `TASK-FT010-03`, `TASK-FT010-09`
+- `ready_for_verify`: none
+- `blocked`: none in the currently synced FT-016 queue.
+- `done`: `TASK-FT016-00`, `TASK-FT016-01`, `TASK-FT016-02`, `TASK-FT016-03`, `TASK-FT016-04`, `TASK-FT016-05`, `TASK-FT016-06`, `TASK-FT016-07-FIX`, `TASK-FT016-08`, `TASK-FT016-09`, `TASK-FT016-10`, `TASK-FT016-11`, `TASK-FT016-12`, `TASK-FT016-13-FIX`, `TASK-FT016-14`, `TASK-FT016-15-FIX`, `TASK-FT016-16`, `TASK-FT016-17-FIX`, `TASK-FT016-18`, `TASK-FT016-19`
+- `failed`: `TASK-FT016-07` (historical, repaired by `TASK-FT016-07-FIX`), `TASK-FT016-13` (historical, repaired by `TASK-FT016-13-FIX`), `TASK-FT016-15` (historical, repaired by `TASK-FT016-15-FIX`), `TASK-FT016-17` (historical, repaired by `TASK-FT016-17-FIX`)
 
 ## Failure budget
 - Max retries per task: `2`
 - Max consecutive failures: `3`
 - Max open blockers: `3`
-- Current consecutive failures: `1`
-- Current open blockers: `1`
+- Current consecutive failures: `0`
+- Current open blockers: `0`
+- Open blockers: none in the currently synced FT-016 queue; `TASK-FT016-13`, `TASK-FT016-15`, and `TASK-FT016-17` historical failure evidence is retained and repaired by their fix tasks.
 
 ## Terminal state
-- Current state: `HALT_QUALITY_GATES`
-- Note: run resumed after `FT-010` decomposition; scheduler is executing the new ready tasks strictly sequentially in separate worker sessions per explicit user instruction.
-- Note: run resumed after `FT-011` decomposition; scheduler starts with `TASK-FT011-01`, then delegates `/verify` and, for runtime-sensitive tasks, `/red-verify` in separate worker sessions before deciding whether to continue.
-- Note: `TASK-FT010-03` failed `red-verify` due to an open admin provisioning route without auth/RBAC; scheduler created and started `TASK-FT010-09` as the required fix-up task before resuming the blocked `FT-010` chain.
-- Note: `TASK-FT010-09` also failed `red-verify`; the anonymous gap is closed, but the route still authorizes privileged writes directly from the refresh cookie, so scheduler started `TASK-FT010-10` to restore the proper `FT-007` protected-route session boundary.
-- Note: `TASK-FT010-10` completed with PASS on the repo-local verification bundle; provisioning writes now require the protected admin cookie boundary and fail closed for refresh-only, forged-access, or expired protected sessions.
-- Note: downstream `FT-010` tasks now treat `TASK-FT010-10` as the closure of the provisioning auth/runtime chain, so `TASK-FT010-04` is resumed as the next backend-critical ready task ahead of the still-independent frontend scaffold `TASK-FT010-02`.
-- Note: `TASK-FT010-04` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-11` to move seller reads from a dev-runtime-local session clone onto the real Mini App auth/session runtime boundary before widening the rest of the seller flow.
-- Note: `TASK-FT010-11` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-12` to remove the remaining route-local Mini App cookie issuance seam before treating seller runtime/session reuse as fully risk-closed.
-- Note: `TASK-FT010-12` reached `semantic-pass`, so the Mini App auth/session transport seam is no longer a known blocker; scheduler started `TASK-FT010-05` as the next backend-critical seller write slice before returning to the still-independent frontend scaffold `TASK-FT010-02`.
-- Note: `TASK-FT010-05` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-13` to close the remaining observability/audit-event semantics for seller catalog writes before widening frontend seller surfaces.
-- Note: `TASK-FT010-13` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-14` to align seller write observability semantics across Prisma-backed and in-memory catalog adapters before moving on to the still-independent frontend scaffold `TASK-FT010-02`.
-- Note: `TASK-FT010-14` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-15` to resolve the remaining event-sink parity question for non-persistent catalog adapters before broadening frontend seller work.
-- Note: `TASK-FT010-15` reached `semantic-pass`, so the backend observability follow-up chain is closed; scheduler started `TASK-FT010-02` as the next and only remaining ready task before the frontend-dependent `FT-010` tasks can advance.
-- Note: `TASK-FT010-02` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-16` to harden `/admin/*` and `/seller/*` route-family matching before building more behavior on top of the new contour scaffold.
-- Note: `TASK-FT010-16` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-17` to remove the remaining implicit fallback for unknown `/admin/*` paths before proceeding to behavior wiring on top of the hardened contours.
-- Note: `TASK-FT010-17` reached `semantic-pass`; the narrow route-boundary hardening chain is now closed, so `TASK-FT010-06` and `TASK-FT010-07` become the next ready frontend behavior tasks while `TASK-FT010-08` remains blocked on their completion.
-- Note: `TASK-FT010-18` is started ahead of still-ready `TASK-FT010-07` because shared storefront edit mode must stop using synthetic/local data before the narrower seller-web/admin UI flows are treated as semantically reliable.
-- Note: `TASK-FT010-18` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-19` to reconcile canonical seller storefront reads with legacy shop/product records that still lack explicit `MenuPage` linkage before moving on to `TASK-FT010-07`.
-- Note: `TASK-FT010-19` reached `semantic-pass`, so shared storefront seller edit mode now reads/writes canonical owner-visible data even for legacy unpaged products; scheduler started `TASK-FT010-07` as the last functional `FT-010` task before final verification/docs closure.
-- Note: `TASK-FT010-07` closed with formal PASS and only `semantic-concern`; scheduler started `TASK-FT010-20` to isolate seller-web status writes from broad storefront metadata updates before running the final `TASK-FT010-08` verification/docs wave.
-- Note: `TASK-FT010-20` reached `semantic-pass`, so the remaining `FT-010` work is the final `TASK-FT010-08` verification/docs closure wave.
-- Note: `TASK-FT010-08` reached `semantic-pass`; no ready or blocked tasks remain in the current `FT-010` run scope, so the resumed `/autopilot` wave is complete.
-- Note: `TASK-FT011-01` passed formal `/verify`, but `/red-verify` returned `semantic-concern`: mounted runtime now composes through `PrismaCatalogRepository`, yet the underlying source of truth still comes from process-local in-memory state. The concern is accepted for this narrow task because later ready tasks `TASK-FT011-02`, `TASK-FT011-03`, and `TASK-FT011-04` already own the remaining durability/bootstrap/runtime-baseline closure.
-- Note: scheduler starts `TASK-FT011-02` before still-ready `TASK-FT011-03` and `TASK-FT011-04` because removing hidden in-memory bootstrap is the narrowest direct follow-up to the accepted `TASK-FT011-01` semantic concern and reduces drift before wider provisioning/read-path work.
-- Note: `TASK-FT011-02` passed formal `/verify`, but `/red-verify` returned `semantic-concern`: restart-safe bootstrap now persists across runtime restarts, yet it still snapshots a runtime-local mirror instead of moving mounted catalog surfaces onto canonical catalog persistence. The concern is accepted for this narrow task because `TASK-FT011-03`, `TASK-FT011-04`, and `TASK-FT011-05` already own transactional write semantics, persisted read-path closure, and final durability regressions.
-- Note: scheduler starts `TASK-FT011-03` before still-ready `TASK-FT011-04` because transactional provisioning is the narrowest backend write-path follow-up and should be fixed before mounted storefront/seller reads are switched onto the new persisted runtime baseline.
-- Note: `TASK-FT011-03` passed formal `/verify`, but `/red-verify` returned `semantic-concern`: duplicate handling is now fail-closed for serialized identical replays, yet it is still enforced above the persistence boundary and remains race-unsafe under concurrent identical provisioning.
-- Note: scheduler starts follow-up `TASK-FT011-07` before still-ready `TASK-FT011-04` because race-safe duplicate enforcement is the direct semantic continuation of the same provisioning boundary and should be closed before shifting broader mounted reads onto the runtime baseline.
-- Note: `TASK-FT011-07` passed formal `/verify`, but `/red-verify` returned `semantic-concern`: the new durable uniqueness closes the provisioning race, yet it also changes seller rename semantics and can surface raw persistence failures instead of controlled conflict errors. The concern is accepted for `TASK-FT011-07` itself because the generated follow-up `TASK-FT011-08` now owns the controlled rename-conflict closure.
-- Note: `TASK-FT011-08` reached `semantic-pass`; durable `sellerId + shop name` uniqueness is now reconciled with seller rename behavior through a controlled `SHOP_RENAME_CONFLICT` `409`, so the provisioning/rename follow-up chain is closed and `TASK-FT011-04` becomes the next ready runtime-baseline task.
-- Note: `TASK-FT011-04` reached `semantic-pass`, `TASK-FT011-05` reached `semantic-pass`, and `TASK-FT011-06` completed with successful verify plus `semantic-pass`; no `ready` or `blocked` tasks remain in the current `FT-011` backlog slice, so the resumed `/autopilot` run reaches terminal state `SUCCESS`.
-- Note: `FT-009` hardening follow-up reopened the run with one execution-ready task `TASK-FT009-07`; scheduler starts it in a dedicated worker session and will delegate `/verify` back to the same worker per explicit user instruction.
-- Note: `TASK-FT009-07` completed with formal `PASS`, then `red-verify` returned `semantic-concern`: shell ownership moved correctly into `PageShell`, but explicit Telegram keyboard-open evidence and broader validation of the new page scroll model remain for the next hardening steps. The concern is accepted as non-blocking because `TASK-FT009-08` and `TASK-FT009-09` already own the remaining degradation-policy and closure wave.
-- Note: scheduler promotes `TASK-FT009-08` immediately after `TASK-FT009-07` because the minimal shell capability/degradation policy is the next direct hardening step before the final verification wave `TASK-FT009-09`.
-- Note: `TASK-FT009-08` completed with focused PASS on lint plus app/shared/checkout shell tests; the centralized minimal capability/degradation policy is now checked in, and `TASK-FT009-09` is promoted to `ready` for real-client evidence and final closure.
-- Note: post-change `red-verify` for `TASK-FT009-08` returned `semantic-concern`: policy ownership is centralized correctly, but the reduced-runtime fallback currently drops the shell-owned keyboard-safe bottom-action layout to `inline`; the concern is accepted as non-blocking because `TASK-FT009-09` already owns the final Android evidence and semantic reconciliation.
-- Note: scheduler now starts `TASK-FT009-09` in a fresh worker session as the final closure wave for the current `FT-009` hardening subset.
-- Note: `TASK-FT009-09` completed its repo-local implementation and deterministic checks, but formal `/verify` returned `FAIL` because fresh real `Android Telegram` operator notes for keyboard-open CTA reachability and degraded fallback behavior are still missing.
-- Note: scheduler opened `BUG-2026-04-20-task-ft009-09-missing-android-keyboard-evidence`, created blocked follow-up `TASK-FT009-10`, and halted the current run with `HALT_QUALITY_GATES` rather than overstate closure without the required real-device evidence.
+- Current state: `SUCCESS`
+- Note: `TASK-FT016-19` verified `PASS`; the FT-016 migration is complete for repo-local scope. Residual real Android Telegram smoke, production deploy smoke, real Telegram bot delivery and real bot chat execution remain advisory/pre-release risks unless separately requested. No code, tests, schema, fixture, evidence or implementation behavior changes were made by this verifier.

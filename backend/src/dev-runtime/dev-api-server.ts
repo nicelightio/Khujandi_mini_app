@@ -67,6 +67,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
     baseUrl,
     prisma: runtime.prisma,
     catalogModule: runtime.catalogModule,
+    operationalModules: runtime.routeContext.operationalModules,
     catalogDatabasePath: runtime.catalogDatabasePath,
     catalogState: runtime.catalogState,
     checkoutPaymentState: runtime.checkoutPaymentState,

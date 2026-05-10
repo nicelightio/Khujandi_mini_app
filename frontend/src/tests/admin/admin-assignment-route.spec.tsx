@@ -1,7 +1,7 @@
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
-import { AdminAssignmentApiError } from "../../admin/api/admin-assignment-api";
+import { AdminAssignmentApiError, type AdminAssignmentApi } from "../../admin/api/admin-assignment-api";
 import { AdminAssignmentRoute } from "../../admin/routes/admin-assignment-route";
-import type { AdminAssignmentBootstrap } from "../../admin/model/admin-assignment-view-model";
+import type { AdminOperatorDeliveryOrderStatus, AdminOperatorDeliveryOrdersResult } from "../../admin/api/admin-assignment-api";
 
 const reactActEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
@@ -60,35 +60,175 @@ afterEach(() => {
   globalWithFetch.fetch = originalFetch;
 });
 
-const bootstrap: AdminAssignmentBootstrap = {
-  orderId: "order-created-77",
-  orderLabel: "Order #77",
-  statusLabel: "Ready to assign the paid order.",
-  couriers: [
+const operatorOrders: AdminOperatorDeliveryOrdersResult = {
+  window: {
+    from: "2026-05-05T19:00:00.000Z",
+    to: "2026-05-09T12:00:00.000Z",
+  },
+  generatedAt: "2026-05-09T12:00:00.000Z",
+  revision: "44",
+  orders: [
     {
-      id: "courier-1",
-      label: "Courier 1",
-      detail: "North zone",
+      orderId: "order-delayed-3001",
+      publicOrderNumber: "order-delayed-3001",
+      summary: {
+        shopName: "Khujandi Plov",
+        totalAmountMinor: 12500,
+        currency: "TJS",
+      },
+      createdAt: "2026-05-09T11:20:00.000Z",
+      updatedAt: "2026-05-09T11:50:00.000Z",
+      status: "DELAYED",
+      severity: "delayed",
+      courier: {
+        marker: "absent",
+        current: null,
+      },
+      assignedAt: null,
+      claimedAt: null,
+      latestMessage: null,
+      latestMessagePreview: null,
+      latestMessageSenderRole: null,
+      statusRevision: "43",
+      history: [
+        {
+          id: "history-delayed-1",
+          status: "DELAYED",
+          previousStatus: "CREATED",
+          changedAt: "2026-05-09T11:50:00.000Z",
+          actor: {
+            userId: "admin-account-1",
+            role: "admin",
+            name: "Admin One",
+          },
+          timeInStatusSeconds: null,
+          timeSinceOrderCreatedSeconds: 1800,
+          comments: {
+            courier: null,
+            admin: null,
+            customer: null,
+            shopOwner: null,
+          },
+        },
+      ],
     },
     {
-      id: "courier-2",
-      label: "Courier 2",
-      detail: "South zone",
+      orderId: "order-delivered-3003",
+      publicOrderNumber: "order-delivered-3003",
+      summary: {
+        shopName: "Delivered Shop",
+        totalAmountMinor: 15000,
+        currency: "TJS",
+      },
+      createdAt: "2026-05-09T11:10:00.000Z",
+      updatedAt: "2026-05-09T12:00:00.000Z",
+      status: "DELIVERED",
+      severity: "attention",
+      courier: {
+        marker: "current",
+        current: {
+          id: "courier-8",
+          name: "Courier 8",
+          telegramId: "70008",
+        },
+      },
+      assignedAt: "2026-05-09T11:30:00.000Z",
+      claimedAt: "2026-05-09T11:30:00.000Z",
+      latestMessage: null,
+      latestMessagePreview: null,
+      latestMessageSenderRole: null,
+      statusRevision: "45",
+      history: [
+        {
+          id: "history-delivered-1",
+          status: "DELIVERED",
+          previousStatus: "IN_PROGRESS",
+          changedAt: "2026-05-09T12:00:00.000Z",
+          actor: {
+            userId: "courier-8",
+            role: "courier",
+            name: "Courier 8",
+          },
+          timeInStatusSeconds: null,
+          timeSinceOrderCreatedSeconds: 3000,
+          comments: {
+            courier: null,
+            admin: null,
+            customer: null,
+            shopOwner: null,
+          },
+        },
+      ],
+    },
+    {
+      orderId: "order-picked-up-3002",
+      publicOrderNumber: "order-picked-up-3002",
+      summary: {
+        shopName: "Somoni Burger",
+        totalAmountMinor: 9900,
+        currency: "TJS",
+      },
+      createdAt: "2026-05-09T11:35:00.000Z",
+      updatedAt: "2026-05-09T11:58:00.000Z",
+      status: "PICKED_UP",
+      severity: "active_under_30",
+      courier: {
+        marker: "current",
+        current: {
+          id: "courier-7",
+          name: "Courier 7",
+          telegramId: "70007",
+        },
+      },
+      assignedAt: "2026-05-09T11:40:00.000Z",
+      claimedAt: "2026-05-09T11:40:00.000Z",
+      latestMessage: null,
+      latestMessagePreview: null,
+      latestMessageSenderRole: null,
+      statusRevision: "44",
+      history: [
+        {
+          id: "history-picked-up-1",
+          status: "PICKED_UP",
+          previousStatus: "ASSIGNED",
+          changedAt: "2026-05-09T11:58:00.000Z",
+          actor: {
+            userId: "courier-7",
+            role: "courier",
+            name: "Courier 7",
+          },
+          timeInStatusSeconds: null,
+          timeSinceOrderCreatedSeconds: 1380,
+          comments: {
+            courier: null,
+            admin: null,
+            customer: null,
+            shopOwner: null,
+          },
+        },
+      ],
     },
   ],
 };
 
 describe("admin assignment route", () => {
   const renderRoute = async (
-    submitAssignment?: Parameters<typeof AdminAssignmentRoute>[0]["submitAssignment"],
+    loadOperatorDeliveryOrders?: () => Promise<AdminOperatorDeliveryOrdersResult>,
+    options: {
+      api?: AdminAssignmentApi;
+      requestTargetCourierId?: (orderId: string) => string | null;
+      confirmStatusChange?: (orderId: string, nextStatus: AdminOperatorDeliveryOrderStatus) => boolean;
+    } = {},
   ): Promise<ReactTestRenderer> => {
     let renderer!: ReactTestRenderer;
 
     await act(async () => {
       renderer = create(
         <AdminAssignmentRoute
-          loadBootstrap={async () => bootstrap}
-          submitAssignment={submitAssignment}
+          api={options.api}
+          loadOperatorDeliveryOrders={loadOperatorDeliveryOrders}
+          requestTargetCourierId={options.requestTargetCourierId}
+          confirmStatusChange={options.confirmStatusChange}
         />,
       );
       await flushPromises();
@@ -97,188 +237,389 @@ describe("admin assignment route", () => {
     return renderer;
   };
 
-  it("renders the assignment shell and default form state", async () => {
-    const renderer = await renderRoute();
+  it("renders the API-backed operator order read surface", async () => {
+    const renderer = await renderRoute(async () => operatorOrders);
     const text = collectText(renderer.toJSON()).join(" ");
 
     expect(text).toContain("Admin Web");
-    expect(text).toContain("Courier assignment");
-    expect(text).toContain("Order #77");
-    expect(text).toContain("Ready to assign the paid order.");
-    expect(text).toContain("Admin login/session stays outside FT-004");
-    expect(renderer.root.findByType("select").props.value).toBe("courier-1");
-    expect(renderer.root.findByType("button").props.disabled).toBe(false);
+    expect(text).toContain("Operator delivery orders");
+    expect(text).toContain("3 orders loaded from the operator read model.");
+    expect(text).toContain("Courier attention");
+    expect(text).toContain("Today plus previous 3 days");
+    expect(text).toContain("Revision 44");
+    expect(text).toContain("order-delayed-3001");
+    expect(text).toContain("Khujandi Plov / 125 TJS");
+    expect(text).toContain("Delayed");
+    expect(text).toContain("No accepted courier");
+    expect(text).toContain("DELAYED");
+    expect(text).toContain("Absent");
+    expect(text).toContain("No messages yet");
+    expect(text).toContain("Message placeholder");
+    expect(text).toContain("order-picked-up-3002");
+    expect(text).toContain("order-delivered-3003");
+    expect(text).toContain("Complete order -> COMPLETED");
+    expect(text).toContain("Courier 7 / tg 70007");
+    expect(text).toContain("Current");
+    expect(text).toContain("Urgency");
+    expect(text).toContain("Created time");
+    expect(text).toContain("Status");
+    expect(text).toContain("Courier");
+    expect(text).toContain("Assigned time");
+    expect(text).toContain("Message presence");
+    expect(text).not.toContain("Last message time");
+    expect(text).toContain("Targeted offer");
+    expect(text).toContain("Broadcast offer");
+    expect(text).toContain("Status control");
+    expect(text).toContain("Bot chat");
+    expect(text).toContain("Create pending offer");
+    expect(text).toContain("Runtime not yet enabled");
   });
 
-  it("updates the selected courier before submit", async () => {
-    const renderer = await renderRoute();
+  it("does not render the old direct assignment CTA as the default action", async () => {
+    const renderer = await renderRoute(async () => operatorOrders);
+    const text = collectText(renderer.toJSON()).join(" ");
+
+    expect(text).not.toContain("Assign courier");
+    expect(renderer.root.findAllByType("select")).toHaveLength(0);
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+  });
+
+  it("enables offer actions for unassigned rows and status control only for allowed next transitions", async () => {
+    const renderer = await renderRoute(async () => operatorOrders);
+    const actionButtons = renderer.root.findAll(
+      (node) => typeof node.props["data-admin-action-cell"] === "string",
+    );
+
+    expect(actionButtons).toHaveLength(12);
+    expect(actionButtons.map((button) => button.props["data-admin-action-cell"])).toEqual([
+      "targeted_offer",
+      "broadcast_offer",
+      "status_control",
+      "bot_chat",
+      "targeted_offer",
+      "broadcast_offer",
+      "status_control",
+      "bot_chat",
+      "targeted_offer",
+      "broadcast_offer",
+      "status_control",
+      "bot_chat",
+    ]);
+    expect(actionButtons.map((button) => button.props.disabled)).toEqual([
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+    ]);
+    expect(actionButtons[0].props.title).toContain("Creates a pending courier offer");
+    expect(actionButtons[1].props.title).toContain("Auto-offer is otherwise OFF");
+    expect(actionButtons[2].props.title).toContain("No allowed operator/admin next transition");
+    expect(actionButtons[3].props.title).toContain("Bot redirect is not executed");
+    expect(actionButtons[6].props.title).toContain("Requires confirmation");
+  });
+
+  it("submits a targeted offer and renders controlled success state", async () => {
+    const createManualTargetedOffer = jest.fn().mockResolvedValue({
+      orderId: "order-delayed-3001",
+      offerId: "offer-3001",
+      targetCourierId: "courier-8",
+      kind: "manual",
+      status: "pending",
+      orderStatus: "DELAYED",
+      updatedAt: "2026-05-09T12:00:00.000Z",
+      revision: "45",
+    });
+    const renderer = await renderRoute(async () => operatorOrders, {
+      api: {
+        listOperatorDeliveryOrders: jest.fn(),
+        createManualTargetedOffer,
+        createBroadcastOffer: jest.fn(),
+        updateOperatorOrderStatus: jest.fn(),
+      },
+      requestTargetCourierId: () => "courier-8",
+    });
+    const targetedOfferButton = renderer.root.findAllByProps({
+      "data-admin-action-cell": "targeted_offer",
+    })[0];
 
     await act(async () => {
-      renderer.root.findByType("select").props.onChange({
-        target: {
-          value: "courier-2",
-        },
+      targetedOfferButton.props.onClick();
+      await flushPromises();
+    });
+
+    expect(createManualTargetedOffer).toHaveBeenCalledWith({
+      orderId: "order-delayed-3001",
+      courierId: "courier-8",
+    });
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Offer created");
+    expect(
+      renderer.root.findAllByProps({
+        "data-admin-action-cell": "targeted_offer",
+      })[0].props.title,
+    ).toBe("Pending offer offer-3001 created for courier-8.");
+  });
+
+  it("disables same-order offer actions while an offer request is in flight", async () => {
+    let resolveOffer!: (value: Awaited<ReturnType<AdminAssignmentApi["createManualTargetedOffer"]>>) => void;
+    const createManualTargetedOffer = jest.fn(
+      () =>
+        new Promise<Awaited<ReturnType<AdminAssignmentApi["createManualTargetedOffer"]>>>((resolve) => {
+          resolveOffer = resolve;
+        }),
+    );
+    const renderer = await renderRoute(async () => operatorOrders, {
+      api: {
+        listOperatorDeliveryOrders: jest.fn(),
+        createManualTargetedOffer,
+        createBroadcastOffer: jest.fn(),
+        updateOperatorOrderStatus: jest.fn(),
+      },
+      requestTargetCourierId: () => "courier-8",
+    });
+    const delayedRow = () =>
+      renderer.root.findByProps({
+        "data-admin-assignment-row": "order-delayed-3001",
+      });
+
+    await act(async () => {
+      delayedRow().findAllByProps({ "data-admin-action-cell": "targeted_offer" })[0].props.onClick();
+      delayedRow().findAllByProps({ "data-admin-action-cell": "targeted_offer" })[0].props.onClick();
+      await flushPromises();
+    });
+
+    expect(createManualTargetedOffer).toHaveBeenCalledTimes(1);
+    expect(delayedRow().findAllByProps({ "data-admin-action-cell": "targeted_offer" })[0].props.disabled).toBe(true);
+    expect(delayedRow().findAllByProps({ "data-admin-action-cell": "broadcast_offer" })[0].props.disabled).toBe(true);
+
+    await act(async () => {
+      resolveOffer({
+        orderId: "order-delayed-3001",
+        offerId: "offer-3001",
+        targetCourierId: "courier-8",
+        kind: "manual",
+        status: "pending",
+        orderStatus: "DELAYED",
+        updatedAt: "2026-05-09T12:00:00.000Z",
+        revision: "45",
       });
       await flushPromises();
     });
 
-    expect(renderer.root.findByType("select").props.value).toBe("courier-2");
+    expect(delayedRow().findAllByProps({ "data-admin-action-cell": "targeted_offer" })[0].props.disabled).toBe(false);
+    expect(delayedRow().findAllByProps({ "data-admin-action-cell": "broadcast_offer" })[0].props.disabled).toBe(false);
   });
 
-  it("renders a success confirmation after a fixture submit", async () => {
-    const submitAssignment = jest.fn().mockResolvedValue({
-      confirmationMessage: "Courier 2 assigned. Backend wiring remains pending.",
+  it("submits an explicit broadcast offer trigger and renders controlled success state", async () => {
+    const createBroadcastOffer = jest.fn().mockResolvedValue({
+      orderId: "order-delayed-3001",
+      kind: "broadcast",
+      status: "pending",
+      orderStatus: "DELAYED",
+      eligibleCourierCount: 2,
+      offers: [
+        {
+          orderId: "order-delayed-3001",
+          offerId: "offer-broadcast-1",
+          targetCourierId: "courier-7",
+          kind: "broadcast",
+          status: "pending",
+          orderStatus: "DELAYED",
+          updatedAt: "2026-05-09T12:00:00.000Z",
+          revision: "46",
+        },
+      ],
+      updatedAt: "2026-05-09T12:00:00.000Z",
+      revision: "46",
     });
-    const renderer = await renderRoute(submitAssignment);
+    const renderer = await renderRoute(async () => operatorOrders, {
+      api: {
+        listOperatorDeliveryOrders: jest.fn(),
+        createManualTargetedOffer: jest.fn(),
+        createBroadcastOffer,
+        updateOperatorOrderStatus: jest.fn(),
+      },
+    });
+    const broadcastOfferButton = renderer.root.findAllByProps({
+      "data-admin-action-cell": "broadcast_offer",
+    })[0];
 
     await act(async () => {
-      renderer.root.findByType("select").props.onChange({
-        target: {
-          value: "courier-2",
-        },
-      });
+      broadcastOfferButton.props.onClick();
       await flushPromises();
     });
 
+    expect(createBroadcastOffer).toHaveBeenCalledWith({
+      orderId: "order-delayed-3001",
+    });
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Offers created");
+    expect(
+      renderer.root.findAllByProps({
+        "data-admin-action-cell": "broadcast_offer",
+      })[0].props.title,
+    ).toBe("Pending broadcast offers created for 2 couriers.");
+  });
+
+  it("confirms DELIVERED to COMPLETED operator closure and refetches the read model", async () => {
+    const updateOperatorOrderStatus = jest.fn().mockResolvedValue({
+      orderId: "order-delivered-3003",
+      status: "COMPLETED",
+      updatedAt: "2026-05-09T12:05:00.000Z",
+      revision: "46",
+    });
+    const refreshedOperatorOrders: AdminOperatorDeliveryOrdersResult = {
+      ...operatorOrders,
+      revision: "46",
+      orders: operatorOrders.orders.map((order) =>
+        order.orderId === "order-delivered-3003"
+          ? {
+              ...order,
+              status: "COMPLETED",
+              severity: "completed",
+              updatedAt: "2026-05-09T12:05:00.000Z",
+              statusRevision: "46",
+              history: [
+                ...order.history,
+                {
+                  id: "history-completed-1",
+                  status: "COMPLETED",
+                  previousStatus: "DELIVERED",
+                  changedAt: "2026-05-09T12:05:00.000Z",
+                  actor: {
+                    userId: "admin-account-1",
+                    role: "admin",
+                    name: "Admin One",
+                  },
+                  timeInStatusSeconds: null,
+                  timeSinceOrderCreatedSeconds: 3300,
+                  comments: {
+                    courier: null,
+                    admin: null,
+                    customer: null,
+                    shopOwner: null,
+                  },
+                },
+              ],
+            }
+          : order,
+      ),
+    };
+    const loadOperatorDeliveryOrders = jest
+      .fn()
+      .mockResolvedValueOnce(operatorOrders)
+      .mockResolvedValueOnce(refreshedOperatorOrders);
+    const confirmStatusChange = jest.fn().mockReturnValue(true);
+    const renderer = await renderRoute(loadOperatorDeliveryOrders, {
+      api: {
+        listOperatorDeliveryOrders: jest.fn(),
+        createManualTargetedOffer: jest.fn(),
+        createBroadcastOffer: jest.fn(),
+        updateOperatorOrderStatus,
+      },
+      confirmStatusChange,
+    });
+    const deliveredRow = renderer.root.findByProps({
+      "data-admin-assignment-row": "order-delivered-3003",
+    });
+    const statusButton = deliveredRow.findAllByProps({
+      "data-admin-action-cell": "status_control",
+    })[0];
+
     await act(async () => {
-      renderer.root.findByType("form").props.onSubmit({
-        preventDefault: jest.fn(),
-      });
+      statusButton.props.onClick();
+      await flushPromises();
+    });
+
+    expect(confirmStatusChange).toHaveBeenCalledWith("order-delivered-3003", "COMPLETED");
+    expect(updateOperatorOrderStatus).toHaveBeenCalledWith({
+      orderId: "order-delivered-3003",
+      nextStatus: "COMPLETED",
+    });
+    expect(loadOperatorDeliveryOrders).toHaveBeenCalledTimes(2);
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Status updated");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("COMPLETED");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Completed");
+    const completedRow = renderer.root.findByProps({
+      "data-admin-assignment-row": "order-delivered-3003",
+    });
+    expect(
+      completedRow.findAllByProps({
+        "data-admin-action-cell": "status_control",
+      })[0].props.disabled,
+    ).toBe(true);
+  });
+
+  it("expands status history rows for an order", async () => {
+    const renderer = await renderRoute(async () => operatorOrders);
+    const historyButton = renderer.root
+      .findAllByType("button")
+      .find((button) => collectText(button).join(" ").includes("Show history"));
+
+    expect(historyButton).toBeDefined();
+
+    await act(async () => {
+      historyButton!.props.onClick();
       await flushPromises();
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Courier assigned");
-    expect(text).toContain("Courier 2 assigned. Backend wiring remains pending.");
-    expect(submitAssignment).toHaveBeenCalledWith({
-      orderId: "order-created-77",
-      courierId: "courier-2",
-    });
-    expect(renderer.root.findByType("button").props.disabled).toBe(true);
+    expect(text).toContain("CREATED");
+    expect(text).toContain("Admin One (admin)");
+    expect(text).toContain("30m");
+    expect(text).toContain("No comments");
   });
 
-  it("uses the default backend API client and renders revision-based success feedback", async () => {
+  it("sorts rows through deterministic read-side controls", async () => {
+    const renderer = await renderRoute(async () => operatorOrders);
+    const collectRowOrder = () =>
+      renderer.root
+        .findAll((node) => typeof node.props["data-admin-assignment-row"] === "string")
+        .map((node) => node.props["data-admin-assignment-row"]);
+
+    expect(collectRowOrder()).toEqual(["order-delayed-3001", "order-delivered-3003", "order-picked-up-3002"]);
+
+    await act(async () => {
+      renderer.root.findByProps({ "data-admin-sort-key": "created_at" }).props.onClick();
+      await flushPromises();
+    });
+
+    expect(collectRowOrder()).toEqual(["order-picked-up-3002", "order-delayed-3001", "order-delivered-3003"]);
+  });
+
+  it("uses the default backend API client and only performs a read request", async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        orderId: "order-created-77",
-        courierId: "courier-2",
-        status: "ASSIGNED",
-        updated_at: "2026-04-03T10:00:00.000Z",
-        revision: "91",
-      }),
+      json: async () => operatorOrders,
     });
     globalWithFetch.fetch = fetchMock as typeof fetch;
+
     const renderer = await renderRoute();
-
-    await act(async () => {
-      renderer.root.findByType("select").props.onChange({
-        target: {
-          value: "courier-2",
-        },
-      });
-      await flushPromises();
-    });
-
-    await act(async () => {
-      renderer.root.findByType("form").props.onSubmit({
-        preventDefault: jest.fn(),
-      });
-      await flushPromises();
-    });
-
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(fetchMock).toHaveBeenCalledWith("/api/v1/admin/orders/order-created-77/assignment", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        courierId: "courier-2",
-      }),
-    });
-    expect(text).toContain("Courier assigned");
-    expect(text).toContain("Courier courier-2 assigned to order-created-77. Revision 91 is ready for downstream polling.");
-  });
 
-  it("renders a controlled error when submit fails", async () => {
-    const submitAssignment = jest
-      .fn()
-      .mockRejectedValue(
-        new AdminAssignmentApiError("CONFLICT", "Order cannot be assigned from the current state", "trace-ft004-06"),
-      );
-    const renderer = await renderRoute(submitAssignment);
-
-    await act(async () => {
-      renderer.root.findByType("form").props.onSubmit({
-        preventDefault: jest.fn(),
-      });
-      await flushPromises();
-    });
-
-    const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Order cannot be assigned from the current state (trace: trace-ft004-06)");
-    expect(renderer.root.findByType("button").props.disabled).toBe(false);
-  });
-
-  it("renders a controlled backend error via the default API client", async () => {
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 409,
-      json: async () => ({
-        error: {
-          code: "CONFLICT",
-          message: "Order cannot be assigned from the current state",
-          details: {
-            currentStatus: "ASSIGNED",
-          },
-        },
-        trace_id: "trace-ft004-07",
-      }),
-    });
-    globalWithFetch.fetch = fetchMock as typeof fetch;
-    const renderer = await renderRoute();
-
-    await act(async () => {
-      renderer.root.findByType("form").props.onSubmit({
-        preventDefault: jest.fn(),
-      });
-      await flushPromises();
-    });
-
-    const text = collectText(renderer.toJSON()).join(" ");
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(text).toContain("Order cannot be assigned from the current state (trace: trace-ft004-07)");
-    expect(text).toContain("Admin login/session stays outside FT-004");
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/admin/operator/delivery/orders", {
+      method: "GET",
+      credentials: "include",
+    });
+    expect(text).toContain("Operator delivery orders");
+    expect(text).toContain("order-picked-up-3002");
   });
 
-  it("prevents duplicate submit side effects while the request is in flight", async () => {
-    let resolveSubmit!: (value: { confirmationMessage: string }) => void;
-    const submitAssignment = jest.fn(
-      () =>
-        new Promise<{ confirmationMessage: string }>((resolve) => {
-          resolveSubmit = resolve;
-        }),
-    );
-    const renderer = await renderRoute(submitAssignment);
-
-    await act(async () => {
-      const submit = renderer.root.findByType("form").props.onSubmit;
-      submit({ preventDefault: jest.fn() });
-      submit({ preventDefault: jest.fn() });
-      await Promise.resolve();
+  it("renders a controlled error when the read model fails", async () => {
+    const renderer = await renderRoute(async () => {
+      throw new AdminAssignmentApiError("AUTH_REQUIRED", "Admin session required", "trace-ft016-04");
     });
 
-    expect(submitAssignment).toHaveBeenCalledTimes(1);
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Assigning courier...");
-
-    await act(async () => {
-      resolveSubmit({ confirmationMessage: "Courier assigned once." });
-      await flushPromises();
-    });
-
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Courier assigned once.");
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Operator delivery orders could not be loaded.");
+    expect(text).toContain("Admin session required (trace: trace-ft016-04)");
   });
 });

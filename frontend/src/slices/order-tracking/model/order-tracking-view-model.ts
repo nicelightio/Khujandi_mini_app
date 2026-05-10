@@ -48,11 +48,11 @@ export const getAvailableActionsForOrderTrackingStatus = (
 ): OrderTrackingActionStatus[] => {
   switch (status) {
     case "ASSIGNED":
+      return ["PICKED_UP"];
+    case "PICKED_UP":
       return ["IN_PROGRESS"];
     case "IN_PROGRESS":
       return ["DELIVERED"];
-    case "DELIVERED":
-      return ["COMPLETED"];
     default:
       return [];
   }
@@ -60,12 +60,14 @@ export const getAvailableActionsForOrderTrackingStatus = (
 
 const orderTrackingStatusRank: Record<OrderTrackingStatus, number> = {
   CREATED: 0,
+  DELAYED: 0,
   ASSIGNED: 1,
-  IN_PROGRESS: 2,
-  DELIVERED: 3,
-  COMPLETED: 4,
-  CANCELLED_BY_ADMIN: 4,
-  CANCELLED_BY_COURIER_UNAVAILABLE: 4,
+  PICKED_UP: 2,
+  IN_PROGRESS: 3,
+  DELIVERED: 4,
+  COMPLETED: 5,
+  CANCELLED_BY_ADMIN: 5,
+  CANCELLED_BY_COURIER_UNAVAILABLE: 5,
 };
 
 const isTerminalOrderTrackingStatus = (status: OrderTrackingStatus): boolean =>

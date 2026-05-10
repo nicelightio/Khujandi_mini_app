@@ -15,6 +15,348 @@ status: active
 
 ## Recent entries
 
+## [2026-05-10] Worker delivery-tracking durable actor history repair
+- Repaired `delivery-tracking` Prisma status history persistence so operator/admin status changes, including `DELIVERED -> COMPLETED`, write nullable `changedByRole`/`changedByName` into `OrderStatusHistory` when provided.
+- Added an additive Prisma migration with no backfill requirement, and focused delivery-tracking coverage for actor metadata persistence plus null legacy row compatibility. Lifecycle transitions, RBAC, assignment/claim/timeout and UI behavior remain unchanged.
+
+## [2026-05-10] Worker A mounted delayed polling mapper repair
+- Repaired the `delivery-tracking` polling mapper so timeout-created `order.delayed` events expose canonical `status`/`previousStatus` from `newStatus`/`oldStatus`, while events without a usable status are skipped from the read stream.
+- Added focused mounted `/api/v1/events` regression coverage for a manual offer timeout that creates `order.delayed` and is visible to the authenticated customer polling path. No frontend parser, timeout evaluator, schema or assignment semantics were changed.
+
+## [2026-05-10] Worker D docs/scripts consistency repair
+- Repaired docs/scripts consistency drift only: `assigned_at`/`assignedAt` wording now says assignment time is derived from status history, event metadata or read model rather than a required `Order.assignedAt` schema field; active Prisma validation task commands now include the required `DATABASE_URL=postgresql://user:pass@localhost:5432/khujandi` prefix.
+- Narrowed `test:delivery-assignment:frontend` to assignment-specific admin frontend specs so it no longer runs unrelated catalog admin-router coverage.
+- Checks: `git diff --check` and changed markdown local link validation passed. `npm run test:delivery-assignment:frontend -- --runInBand` no longer runs `admin-router.spec.tsx`, but still fails on existing `admin-assignment-route.spec.tsx` expectations in the current dirty worktree; no production code, schema, test behavior, commits or pushes were changed.
+
+## [2026-05-09] TASK-FT016-19 verified
+- Verified `TASK-FT016-19` with `PASS`: Memory Bank docs now reflect the repo-local FT-016 v2 flow after `TASK-FT016-18`, including offer/claim assignment, `PICKED_UP`, operator/admin `COMPLETED`, disabled normal legacy assignment and old v1 active order readability.
+- Confirmed historical failed/repaired task evidence remains preserved and residual real Android Telegram smoke / production deploy smoke / real Telegram bot delivery risks remain explicit. Marked `TASK-FT016-19` done and closed the FT-016 migration as complete for repo-local scope.
+- Required docs-only checks passed: `git diff --check` and changed markdown local link validation. No production code, tests, schemas, fixtures, evidence artifacts, implementation behavior, commits or pushes were changed by this verifier.
+
+## [2026-05-09] TASK-FT016-19 documentation closure
+- Synced FT-016 Memory Bank docs after `TASK-FT016-18` repo-local verification `PASS`: feature docs now describe v2 offer/claim assignment, `PICKED_UP` lifecycle, operator/admin completion, disabled normal legacy assignment, repaired historical failures, and residual advisory Android Telegram smoke risk.
+- Updated requirements RTM references for `REQ-009`/`REQ-018` to include the FT-016 repo-local evidence path, refreshed the task plan index, added Telegram verification runbook notes for the v2 operator delivery flow, and moved `TASK-FT016-19` to `ready_for_verify`.
+- No production code, tests, schemas, fixtures, evidence artifacts, implementation behavior, commits or pushes were changed by this docs-only task.
+
+## [2026-05-09] TASK-FT016-19 backlog/status sync
+- Synced only `TASK-FT016-19` from the `FT-016` implementation plan into the active backlog as the next documentation and Memory Bank sync task after `TASK-FT016-18` verified `PASS`.
+- The task is constrained to feature docs, requirements RTM lifecycle, tasks/plans index, changelog and runbook notes if needed; code fixes, implementation behavior changes and additional FT-016 task expansion remain out of scope.
+- Updated the `/autopilot` status protocol so the next sequential iteration may select `TASK-FT016-19` as the single ready FT-016 task.
+
+## [2026-05-09] TASK-FT016-18 verified full operator delivery flow
+- Verified `TASK-FT016-18` with `PASS` under strict verification/docs-only constraints: no production code, frontend/backend logic, schema, test, fixture or evidence patches were made.
+- Repo-local evidence covers paid checkout order creation, operator unassigned visibility, manual offer, courier claim into `ASSIGNED`, courier progression through `PICKED_UP -> IN_PROGRESS -> DELIVERED`, operator/admin `DELIVERED -> COMPLETED`, customer/admin polling visibility, disabled normal legacy assignment and old v1 active order readability.
+- Passed checks: checkout-payment Jest, `npm run test:delivery-assignment -- --runInBand`, `npm run test:delivery-tracking -- --runInBand`, focused admin assignment Jest, `npm run test:order-tracking:frontend -- --runInBand`, `npm run lint`, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation.
+
+## [2026-05-09] TASK-FT016-18 strict verification scope repaired
+- Updated `TASK-FT016-18` back to `ready` with strict verification/docs-only scope after the REQUEST_CHANGES review gate.
+- The task now explicitly forbids production code changes, frontend/backend logic changes, schema changes, test repair, evidence repair, fixture repair, and implementation/test/fixture/evidence patches during verification. Any wiring gap must produce `FAIL` plus a separate narrow repair task.
+- Updated the `/autopilot` status protocol so `TASK-FT016-18` is the active ready task and the currently synced FT-016 queue has no blocker.
+
+## [2026-05-09] TASK-FT016-18 review gate requested scope changes
+- Review gate returned `REQUEST_CHANGES` for `TASK-FT016-18` before execution because the card still allowed test/evidence repair during verification, which conflicts with the required verification/docs-only gate.
+- Marked `TASK-FT016-18` blocked pending follow-up approval of strict verification reports/docs-only scope. If the end-to-end flow exposes a wiring gap, the verifier must fail the task and create or suggest a narrow repair task instead of patching during verification.
+
+## [2026-05-09] TASK-FT016-18 backlog sync
+- Synced only `TASK-FT016-18` from the `FT-016` implementation plan into the active backlog as the next end-to-end operator delivery flow verification task after `TASK-FT016-17-FIX` verified `PASS`.
+- Dependencies use repaired-by evidence for the plan's historical failed prerequisites: `TASK-FT016-13-FIX` repairs `TASK-FT016-13`, and `TASK-FT016-17-FIX` repairs `TASK-FT016-17`; `TASK-FT016-16` is the completed polling-consumer prerequisite.
+- Scope is verification/docs only: prove the paid `CREATED` order through offer, claim, courier progression, operator `COMPLETED`, polling visibility and old v1 readability. `TASK-FT016-19` remains unsynced in the implementation plan; no implementation files were changed.
+
+## [2026-05-09] TASK-FT016-17-FIX verified
+- Verified `TASK-FT016-17-FIX` with `PASS`: delivery-tracking runtime setup no longer uses disabled normal legacy `/assignment` expecting `200`; newly assigned runtime orders use v2 manual `assignment-offers` plus courier `claimOffer`.
+- Confirmed `/assignment-override` was not added to delivery-tracking setup, normal legacy `/assignment` remains disabled with `LEGACY_ASSIGNMENT_DISABLED`, and no production behavior, flow semantic change or shared extraction was introduced by the fix.
+- Required checks passed: `npm run test:delivery-tracking -- --runInBand`, `npm run test:delivery-assignment -- --runInBand`, `git diff --check`, and changed markdown local link validation. Marked `TASK-FT016-17-FIX` done and recorded `TASK-FT016-17` as repaired-by while retaining original `FAIL` evidence.
+
+## [2026-05-09] TASK-FT016-17-FIX implementation
+- Repaired `tests/slices/delivery-tracking/delivery-tracking.runtime.spec.ts` so newly assigned runtime orders use v2 manual `assignment-offers` plus courier `claimOffer` setup instead of the disabled normal legacy `/assignment` endpoint.
+- Customer event filtering coverage now expects the v2 `order.offer_created` and `order.assigned` events for the visible order, excludes unrelated order events, and keeps the global opaque cursor advance.
+- No production behavior, legacy endpoint re-enable, flow semantic change or shared extraction was added. Focused checks passed: `npm run test:delivery-tracking -- --runInBand`, `npm run test:delivery-assignment -- --runInBand`, and `git diff --check`. `TASK-FT016-17-FIX` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-17-FIX backlog sync
+- Added the single active repair card `TASK-FT016-17-FIX` with status `ready` after `TASK-FT016-17` verification failed on stale delivery-tracking runtime setup.
+- Scope is limited to `tests/slices/delivery-tracking/delivery-tracking.runtime.spec.ts`: normal setup must stop using disabled legacy `POST /api/v1/admin/orders/:id/assignment` expecting `200`, and should use v2 offer+claim setup or already-assigned seed/readability setup.
+- `/assignment-override` remains allowed only in explicit override tests with `confirmDirectAssignmentOverride: true`; no production behavior changes, flow semantics changes, or legacy endpoint re-enable are part of this fix.
+
+## [2026-05-09] TASK-FT016-17 implementation
+- Isolated the legacy direct assignment path: normal admin/operator assignment remains on pending `assignment-offers`, while the old mounted `/assignment` endpoint now returns `LEGACY_ASSIGNMENT_DISABLED` and does not assign.
+- Retained direct assignment only through explicit `/assignment-override` with `confirmDirectAssignmentOverride: true`, route-boundary operator role normalization, and a distinct `override_assigned` delivery-assignment audit action.
+- Added focused coverage for normal-offer behavior, disabled legacy direct endpoint, required override confirmation, confirmed override, and audit action distinction. Focused checks passed: `npm run test:delivery-assignment -- --runInBand` and focused admin assignment API/view-model/route Jest. `TASK-FT016-17` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-17 backlog sync
+- Synced only `TASK-FT016-17` from the `FT-016` implementation plan into the active backlog as the next task after `TASK-FT016-16` verified `PASS`.
+- The task is constrained to isolating or removing the legacy direct assignment normal path: normal manual operator/admin flow should create an offer, while any retained direct assignment must be explicit override-only with confirmation/audit and v1 assigned orders remaining readable.
+- Dependencies include `TASK-FT016-10`, repaired-by `TASK-FT016-15-FIX` for the plan's historical `TASK-FT016-15` prerequisite, and `TASK-FT016-16`. `TASK-FT016-18+` remain unsynced in the implementation plan. No implementation files were changed.
+
+## [2026-05-09] TASK-FT016-16 verified
+- Verified `TASK-FT016-16` with `PASS`: customer order tracking consumes ordered `PICKED_UP`, `IN_PROGRESS`, `DELIVERED` and operator/admin `COMPLETED` polling updates read-only, accepts `DELAYED` plus `oldStatus/newStatus` payloads, and keeps `revision`/`next_cursor` string-only.
+- Confirmed `COMPLETED` and `CANCELLED_*` terminal states stay closed, customer UI exposes no operator/admin controls, and admin operator read-model coverage handles `PICKED_UP`, `DELAYED`, `COMPLETED` and terminal closed rows.
+- Required checks passed: `npm run test:order-tracking:frontend -- --runInBand`, focused admin assignment API/view-model/route Jest, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation. Marked `TASK-FT016-16` done.
+
+## [2026-05-09] TASK-FT016-16 implementation
+- Aligned frontend polling consumers with the FT-016 v2 delivery lifecycle: customer order tracking now exposes only courier-owned actions through `PICKED_UP -> IN_PROGRESS -> DELIVERED`, while operator/admin `COMPLETED` is consumed as a read-only polling event.
+- Extended the customer event parser to accept both `status/previousStatus` and `newStatus/oldStatus` status-event payloads without parsing opaque cursor/revision values.
+- Added focused customer polling tests for ordered `PICKED_UP`, `IN_PROGRESS`, `DELIVERED`, `COMPLETED` updates with no mutation controls, plus admin tests proving terminal rows stay closed after `COMPLETED`/`CANCELLED_*`.
+- Focused checks passed: `npm run test:order-tracking:frontend -- --runInBand`, focused admin assignment API/view-model/route Jest, `npm run build:frontend`, and `git diff --check`. `TASK-FT016-16` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-16 backlog sync
+- Synced only `TASK-FT016-16` from the `FT-016` implementation plan into the active backlog as the next polling-consumer alignment task after `TASK-FT016-15-FIX` verified `PASS`.
+- The task is constrained to mini-app/admin-web polling consumers for `PICKED_UP`, `DELAYED` and operator/admin `COMPLETED`; backend transition logic, offer claim, timeout evaluator, assignment rules, cancellation/refund and legacy cleanup remain out of scope.
+- Dependencies include `TASK-FT016-14` and repaired-by evidence `TASK-FT016-15-FIX` for the historical `TASK-FT016-15` failure. `TASK-FT016-17+` remain unsynced in the implementation plan. No implementation files were changed.
+
+## [2026-05-09] TASK-FT016-15-FIX verified
+- Verified `TASK-FT016-15-FIX` with `PASS`: the mounted operator/admin status command now normalizes admin-access `manager` to delivery-tracking `operator` only at this command boundary.
+- Confirmed `admin` remains admin-capable, `boss` remains rejected with no status side effects, and invalid manager `PICKED_UP -> COMPLETED` still returns `409 CONFLICT`.
+- Required checks passed: `npm run test:delivery-tracking -- --runInBand` and `git diff --check`. Changed markdown local link validation was not applicable because no markdown links were added. Marked `TASK-FT016-15-FIX` done and recorded `TASK-FT016-15` as repaired-by while retaining original FAIL evidence.
+
+## [2026-05-09] TASK-FT016-15-FIX implementation
+- Repaired the mounted operator/admin status command role boundary by normalizing admin-access `manager` to delivery-tracking `operator` only for this command. `admin` still passes through as `admin`, and non-operator roles are not broadly authorized.
+- Added focused runtime coverage proving authenticated `MANAGER` can close `DELIVERED -> COMPLETED`, invalid manager `PICKED_UP -> COMPLETED` still returns `409`, and `BOSS` remains rejected without status side effects.
+- Focused checks passed: `npm run test:delivery-tracking -- --runInBand` and `git diff --check`. Changed markdown local link validation was not applicable because no markdown links were added. `TASK-FT016-15-FIX` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-15-FIX backlog sync
+- Added the single active repair card `TASK-FT016-15-FIX` with status `ready` after `TASK-FT016-15` verification failed on real admin-access role mapping.
+- Scope is limited to the operator/admin status command boundary: normalize admin-access `manager` to delivery-tracking `operator` capability for this command, keep `admin` admin-capable, and add runtime coverage for `manager` `DELIVERED -> COMPLETED`.
+- No implementation files were changed; lifecycle transitions, UI behavior, cancellation/refund, assignment/claim/timeout/auto-offer and legacy cleanup remain out of scope.
+
+## [2026-05-09] TASK-FT016-15 implementation
+- Added a separate `delivery-tracking` operator/admin status command and admin runtime endpoint for allowed next transitions only, including `DELIVERED -> COMPLETED`; courier tracking/bot completion remains rejected.
+- Admin-web now enables status control only where the server has an allowed next transition and asks for confirmation before writing the command; targeted/broadcast offer and bot-chat behavior remain in their existing scopes.
+- Status-change event payloads can carry actor role/name, and the operator read model surfaces actor role/name in history rows after runtime status writes.
+- Focused checks passed: `npm run test:delivery-tracking -- --runInBand`, focused admin assignment API/route/view-model Jest, `npm run build:frontend`, and `git diff --check`. Changed markdown local link validation was not applicable because no markdown links were added. `TASK-FT016-15` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-15 backlog sync
+- Synced only `TASK-FT016-15` from the `FT-016` implementation plan into the active backlog as the next operator/admin completion task after `TASK-FT016-14` verified `PASS`.
+- The task is constrained to operator/admin status control and `DELIVERED -> COMPLETED` closure with confirmation and actor-visible history/read-model evidence; courier completion remains rejected.
+- Dependencies are the plan prerequisites `TASK-FT016-14` and `TASK-FT016-06`; `TASK-FT016-16+` remain unsynced in the implementation plan. No implementation files were changed.
+
+## [2026-05-09] TASK-FT016-14 verified
+- Verified `TASK-FT016-14` with `PASS`: the `delivery-tracking` v2 courier lifecycle is now `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED`, and courier `DELIVERED -> COMPLETED` is rejected until the future operator/admin completion task.
+- Confirmed transition/action statuses and Telegram tracking callbacks expose only pickup/progress/delivered actions; legacy active orders already in `IN_PROGRESS` can still move to `DELIVERED`.
+- Required checks passed: `npm run test:delivery-tracking -- --runInBand`, `git diff --check`, and changed markdown local link validation. Marked `TASK-FT016-14` done.
+
+## [2026-05-09] TASK-FT016-14 implementation
+- Enabled the `delivery-tracking` v2 courier lifecycle `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED` in the slice-owned transition map and removed courier `DELIVERED -> COMPLETED` from available tracking actions.
+- Updated the Telegram delivery-tracking harness to expose `PICKED_UP`, `IN_PROGRESS`, and `DELIVERED` callback actions only; `COMPLETED` callbacks now parse as invalid transport intents.
+- Preserved compatibility for legacy active orders already in `IN_PROGRESS`: `IN_PROGRESS -> DELIVERED` remains valid, while skip/replay/regression and courier completion attempts return `409 CONFLICT` without persistence side effects.
+- Focused checks passed: `npm run test:delivery-tracking:unit -- --runInBand`, `npm run test:delivery-tracking:integration -- --runInBand`, `npm run test:delivery-tracking -- --runInBand`, and `git diff --check`. Changed markdown local link validation was not applicable because no markdown links were added. `TASK-FT016-14` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-14 backlog sync
+- Synced only `TASK-FT016-14` from the `FT-016` implementation plan into the active backlog as the next v2 delivery-tracking state-machine task after `TASK-FT016-13-FIX` verified `PASS`.
+- The task is constrained to backend/telegram-bot delivery-tracking transitions: `ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED`, preserving old already-in-progress orders and keeping courier completion disabled.
+- Dependencies include the plan prerequisites `TASK-FT016-01` and `TASK-FT016-10`, plus repaired-by evidence `TASK-FT016-13-FIX` for the historical `TASK-FT016-13` failure. `TASK-FT016-15+` remain unsynced in the implementation plan. No implementation files were changed.
+
+## [2026-05-09] TASK-FT016-13-FIX verified
+- Verified `TASK-FT016-13-FIX` with `PASS`: customer order-tracking now accepts the real timeout-produced `order.delayed` event shape and normalizes `payload.newStatus -> status` plus `payload.oldStatus -> previousStatus`.
+- Focused parser and open read-only tracking route tests prove an already-open customer screen renders `DELAYED` waiting/problem copy without courier progress wording or mutation controls.
+- Required checks passed: `npm run test:order-tracking:frontend -- --runInBand`, focused admin assignment/view-model Jest, and `git diff --check`. Marked `TASK-FT016-13-FIX` done; `TASK-FT016-13` remains historically failed with repaired-by evidence rather than being silently rewritten.
+
+## [2026-05-09] TASK-FT016-13-FIX implementation
+- Repaired the customer order-tracking parser so polling now accepts the real timeout-produced `order.delayed` event and normalizes `payload.newStatus -> status` plus `payload.oldStatus -> previousStatus`.
+- Added focused parser coverage and an open read-only customer tracking route polling test proving `CREATED -> DELAYED` renders customer-safe waiting/problem copy without courier/admin mutation controls or courier progress wording.
+- Required checks passed: `npm run test:order-tracking:frontend -- --runInBand` and `git diff --check`. Changed markdown local link validation was not applicable because no markdown links were added. `TASK-FT016-13-FIX` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-13-FIX backlog sync
+- Added the single active repair card `TASK-FT016-13-FIX` with status `ready` after the `TASK-FT016-13` verification failure.
+- Scope is limited to the `mini-app` customer order-tracking parser/read-copy path: accept `order.delayed`, normalize `payload.newStatus -> status` and `payload.oldStatus -> previousStatus`, and add focused parser/polling coverage.
+- No implementation files were changed; backend producer, timeout evaluator, assignment/offer/claim, admin-web and mutation-command scopes remain explicitly out of the fix.
+
+## [2026-05-09] TASK-FT016-13 verification failed
+- Verified `TASK-FT016-13` with `FAIL`: admin/operator `DELAYED` alert/read-model copy and direct customer `DELAYED` copy tests pass, but customer order tracking parser does not consume the real timeout-produced `order.delayed` event shape.
+- Blocking gap: `TASK-FT016-12` emits `order.delayed` with `oldStatus`/`newStatus`, while `frontend/src/slices/order-tracking/api/order-tracking-api.ts` accepts only `order.assigned`/`order.status_changed` and requires `payload.status`.
+- Required checks still pass (`focused admin assignment Jest`, `npm run test:order-tracking:frontend -- --runInBand`, `git diff --check`, changed-doc link validation), but acceptance remains failed until `order.delayed` is normalized in the customer parser with focused coverage.
+
+## [2026-05-09] TASK-FT016-13 implementation
+- Surfaced `DELAYED` defensively in the admin/operator read model: `status=DELAYED` now drives danger tone, delayed row marker and top-alert copy even if a stale/non-delayed severity value is returned by the read model.
+- Customer order tracking remains read-only and now has focused route coverage for `DELAYED` waiting/problem copy without courier progress wording or mutation controls; existing parser coverage accepts `DELAYED` and `PICKED_UP` as FT-016 lifecycle statuses.
+- Required scoped checks passed: focused admin assignment Jest, `npm run test:order-tracking:frontend -- --runInBand`, `git diff --check`, and changed markdown local link validation. The broader admin script still has the unrelated catalog provisioning copy expectation drift in `admin-router.spec.tsx`. `TASK-FT016-13` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-13 backlog sync
+- Synced only `TASK-FT016-13` from the `FT-016` implementation plan into the active backlog as the next `DELAYED` escalation presentation/read-copy task. Status is `ready` because `TASK-FT016-12` is verified `PASS` and marked `done`.
+- The task is constrained to admin panel/customer order-tracking visibility for `DELAYED`: no timeout evaluator changes, assignment rule changes, customer mutation commands, claim logic, auto-offer changes, pickup/completion/status progression, or legacy direct assignment cleanup.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-13`; `TASK-FT016-14+` remain unsynced in the implementation plan. No implementation files were changed.
+
+## [2026-05-09] TASK-FT016-12 verified
+- Verified `TASK-FT016-12` with `PASS`: the offer timeout evaluator is an explicit callable `delivery-assignment` command/manual tick route, with no worker, cron, Redis, queue, microservice, GPS/maps/routing, auto-accept or broadcast behavior change.
+- Confirmed repeat notification is persisted/sent once after 3 minutes, pending offers expire after 6 minutes, unassigned orders are set/kept `DELAYED`, `order.assignment_timeout`/`order.delayed` artifacts are recorded before Telegram operator alerts, and only personal/manual target couriers are penalized once.
+- Required checks passed: `npm run test:delivery-assignment -- --runInBand`, `git diff --check`, and changed markdown local link validation. Marked `TASK-FT016-12` done and closed the active synced `FT-016` queue for this `/autopilot` run.
+
+## [2026-05-09] TASK-FT016-12 implementation
+- Added an explicit KISS offer timeout evaluator for `delivery-assignment`: callable service/controller command plus protected dev-runtime manual tick route, with no worker, cron, Redis, queue or auto-offer behavior change.
+- The evaluator records `order.offer_repeated` once after 3 minutes, expires still-pending offers after 6 minutes, sets/keeps unassigned orders `DELAYED`, records `order.assignment_timeout` and `order.delayed` only after persistence, and notifies operators through the existing Telegram dispatcher boundary when operator Telegram targets exist.
+- Personal/manual target courier `ratingScore` is decremented once on second timeout; broadcast offers are expired without courier penalty. Claimed/accepted offers, `ASSIGNED` orders, orders with `courierId`, completed/terminal/post-assignment lifecycle and claim semantics stay untouched.
+- Focused coverage added for repeat-once, 6-minute expiry/`DELAYED`, idempotency, skip claimed/assigned, no claim/broadcast side effects, personal-only penalty and runtime manual tick. `npm run test:delivery-assignment -- --runInBand` passes; `TASK-FT016-12` is `ready_for_verify`.
+
+## [2026-05-09] TASK-FT016-12 backlog sync
+- Synced only `TASK-FT016-12` from the `FT-016` implementation plan into the active backlog as the next timeout/`DELAYED` evaluator task. Status is `ready` because `TASK-FT016-11` is verified `PASS` and marked `done`; the plan's explicit `TASK-FT016-10` dependency remains listed.
+- The task is constrained to an explicit KISS timeout evaluator/manual tick path: repeat notification after 3 minutes once, expire pending offers after 6 minutes, set or keep `DELAYED`, publish timeout/delayed events, notify operators, and penalize only personal target couriers once.
+- `TASK-FT016-13+` remain unsynced in the implementation plan. No implementation files were changed.
+
+## [2026-05-09] TASK-FT016-11 verified
+- Verified `TASK-FT016-11` with `PASS`: the optional auto-offer broadcast path is an explicit operator/admin trigger and remains default OFF because no automatic new-order evaluator, timer, queue or background dispatch path was added.
+- Confirmed broadcast filters active/free/auto-offer-enabled couriers, persists pending `broadcast` offers plus `order.offer_created` before Telegram notifications, and does not set `courierId`, change status to `ASSIGNED`, write assignment history/audit or publish `order.assigned`.
+- Required checks passed: `npm run test:delivery-assignment -- --runInBand`, focused admin assignment Jest, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation. Marked `TASK-FT016-11` done and closed the active synced `FT-016` queue for this `/autopilot` run.
+
+## [2026-05-09] TASK-FT016-11 implementation
+- Added an explicit operator/admin auto-offer broadcast trigger for `delivery-assignment`. Auto-offer remains default OFF because no automatic new-order evaluator or global background setting was added; broadcast happens only through the explicit admin/operator command.
+- Broadcast filters active/free/auto-offer-enabled couriers, persists pending `broadcast` offers plus `order.offer_created` events, then sends courier offer notifications after persistence. Broadcast itself does not set `courierId`, does not change order status to `ASSIGNED`, does not write assignment history/audit and does not publish `order.assigned`.
+- Added the narrow admin-web action/API for explicit broadcast, runtime smoke with two eligible couriers, and focused tests for default OFF/no automatic broadcast, eligible filtering, persistence-before-notification and no assignment side effects. Required checks passed: `npm run test:delivery-assignment -- --runInBand`, focused admin assignment Jest, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation. `TASK-FT016-11` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-11 backlog sync
+- Synced only `TASK-FT016-11` from the `FT-016` implementation plan into the active backlog as the next optional auto-offer broadcast trigger task. Status is `ready` because `TASK-FT016-10` is verified `PASS` and marked `done`.
+- The plan orders `TASK-FT016-11` before timeout/`DELAYED` escalation; `TASK-FT016-12+` remain unsynced in the implementation plan. `TASK-FT016-11` is constrained to explicit opt-in broadcast fan-out with default OFF and still requires courier claim for assignment.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-11` for `FT-016`.
+
+## [2026-05-09] TASK-FT016-10 verified
+- Verified `TASK-FT016-10` with `PASS`: Telegram claim callback parsing delegates to the existing delivery-assignment service boundary, pending targeted/broadcast offers remain non-assignment until claim, and the successful claim transaction sets `courierId`, status `ASSIGNED`, accepted offer `CLAIMED`, sibling pending offers `CANCELLED`, status history/audit and `order.assigned` only after successful persistence.
+- Confirmed duplicate/concurrent/wrong/invalid claims do not create second assignment/history/audit/event side effects; manual offer creation still does not set `ASSIGNED`; legacy direct assignment remains as the explicit existing `/assignment` path.
+- Required checks passed: `npm run test:delivery-assignment -- --runInBand`, `git diff --check`, and changed markdown local link validation. Marked `TASK-FT016-10` done and closed the active synced `FT-016` queue for this `/autopilot` run.
+
+## [2026-05-09] TASK-FT016-10 implementation
+- Added atomic pending-offer courier claim for `delivery-assignment`: a Telegram bot claim callback parses into a slice-local application command, validates pending claimable offer, `CREATED|DELAYED` unassigned order, and active/free courier, then commits the first successful claim.
+- The successful v2 claim path sets `courierId`, status `ASSIGNED`, marks the accepted offer `CLAIMED`, cancels sibling pending offers when supported by the model, writes status history/audit and publishes `order.assigned` only after commit. Duplicate/concurrent/wrong/invalid claims return controlled failures without second history/audit/event side effects. Legacy direct assignment remains unchanged as an explicit legacy path.
+- Required checks passed: `npm run test:delivery-assignment -- --runInBand` and `git diff --check`. `TASK-FT016-10` is `ready_for_verify`; verifier role remains separate.
+
+## [2026-05-09] TASK-FT016-10 backlog sync
+- Synced only `TASK-FT016-10` from the `FT-016` implementation plan into the active backlog as the next atomic courier claim task. Status is `ready` because `TASK-FT016-09` is verified `PASS` and marked `done`.
+- The task is constrained to pending-offer claim only: exactly one claimant may win, order status becomes `ASSIGNED` only after successful claim, and `order.assigned` may be published only after that claim.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-10`; `TASK-FT016-11+` remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-09 verified
+- Verified `TASK-FT016-09` with `PASS`: manual targeted offer creation persists a pending manual `AssignmentOffer`, validates order `CREATED|DELAYED`, validates the target courier through the current active/free availability boundary, records `order.offer_created`, and notifies the courier through the Telegram notifier boundary.
+- Confirmed the order remains unassigned: no status change to `ASSIGNED`, no `courierId` assignment, no status history/audit write, and no `order.assigned` publication from the manual offer path. Legacy direct assignment remains available only as the explicit legacy `/assignment` path.
+- Required checks passed: `npm run test:delivery-assignment -- --runInBand`, focused admin assignment Jest, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation. Marked `TASK-FT016-09` done and closed the active synced `FT-016` queue for this `/autopilot` run.
+
+## [2026-05-09] TASK-FT016-09 implementation
+- Added manual targeted offer creation for `delivery-assignment`: operator/admin can create a pending manual `AssignmentOffer` only for `CREATED` or `DELAYED` orders and only when the target courier is active/free through the existing availability boundary.
+- The new path persists `order.offer_created` after offer persistence, notifies the target courier through the existing Telegram notifier boundary, and leaves order status/courier assignment unchanged. It does not publish `order.assigned`, write status history, claim an offer, run timeout escalation, broadcast auto-offers, or clean up legacy direct assignment.
+- Admin assignment UI now enables the existing targeted-offer action for eligible unassigned rows and renders controlled submit success/error states. Focused backend/admin tests, frontend build and `git diff --check` pass; the broader admin suite still has the unrelated catalog provisioning copy expectation drift.
+
+## [2026-05-09] TASK-FT016-09 backlog sync
+- Synced only `TASK-FT016-09` from the `FT-016` implementation plan into the active backlog as the next manual targeted offer creation task. Status is `ready` because `TASK-FT016-07-FIX` and `TASK-FT016-08` are verified `PASS` and marked `done`.
+- The task is constrained to pending targeted offer creation: order status remains unchanged, no claim, timeout, auto-offer broadcast, legacy direct assignment cleanup, or normal direct assignment path is enabled.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-09`; later `FT-016` migration tasks remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-08 verified
+- Verified `TASK-FT016-08` with `PASS`: the Telegram courier availability harness is transport-only, emits the `Курьер` menu/actions, parses callbacks into delivery-assignment service intents only, and has no direct Prisma imports/writes.
+- Required checks passed: `npm run test:delivery-assignment`, `git diff --check`, and changed markdown local link validation.
+- Marked `TASK-FT016-08` done. `TASK-FT016-09` can be prepared next from the FT-016 implementation plan, but remains unsynced in the active backlog until deliberately selected.
+
+## [2026-05-09] TASK-FT016-08 implementation
+- Added a transport-only Telegram courier availability harness for the `Курьер` menu with `Выйти на работу`, `Завершить прием заказов через 5 минут`, and `Автоматически принимать заказы: ON/OFF` buttons.
+- Callback payloads parse into delivery-assignment service intents and can be delegated only through the existing courier availability service boundary; no webhook runtime, Prisma write path, offer creation, claim, status progression, timeout, admin UI, history/audit or event side effects were added.
+- Required checks passed: `npm run test:delivery-assignment`, `git diff --check`, and changed markdown local link validation. `TASK-FT016-08` remains `in_progress` for verifier closure.
+
+## [2026-05-09] TASK-FT016-08 backlog sync
+- Synced only `TASK-FT016-08` from the `FT-016` implementation plan into the active backlog as the next `telegram-bot` transport/harness task for the courier menu and callback intent parsing.
+- Status is `ready` because `TASK-FT016-07-FIX` is verified `PASS` and marked `done`, repairing the historical `TASK-FT016-07` prerequisite. `TASK-FT016-09+` remain unsynced in the implementation plan.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-08`.
+
+## [2026-05-09] TASK-FT016-07-FIX verified
+- Verified `TASK-FT016-07-FIX` with `PASS`: the out-of-scope courier availability presentation/controller exposure is removed, while the `TASK-FT016-07` application/domain/infra availability behavior and focused tests remain intact.
+- Required checks passed: `npm run test:delivery-assignment`, `git diff --check`, and changed/new markdown local link validation.
+- Marked `TASK-FT016-07-FIX` done and resolved `BUG-2026-05-09-task-ft016-07-presentation-scope-leak`. `TASK-FT016-07` remains historically failed with repaired-by evidence rather than being silently rewritten.
+
+## [2026-05-09] TASK-FT016-07-FIX implementation
+- Removed the out-of-scope courier availability presentation exposure from `backend/src/slices/delivery-assignment/presentation/delivery-assignment.controller.ts`. The allowed `TASK-FT016-07` application/domain/infra availability behavior remains intact.
+- Required checks passed: `npm run test:delivery-assignment`, `git diff --check`, and changed markdown local link validation.
+- Updated the `TASK-FT016-07` verification evidence and bug record to show the scope leak is repaired pending verifier closure. `TASK-FT016-07-FIX` remains `in_progress` in backlog for the verifier to close.
+
+## [2026-05-09] TASK-FT016-07 verification failed
+- Verified `TASK-FT016-07` with `FAIL`: the courier availability service/repository behavior and focused tests pass, but the change also exposed availability methods through `backend/src/slices/delivery-assignment/presentation/delivery-assignment.controller.ts`, violating the approved `application/domain/infra/tests` only scope.
+- Required checks passed: `npm run test:delivery-assignment`, `git diff --check`, changed markdown local link validation and `DATABASE_URL=postgresql://user:pass@localhost:5432/khujandi npx prisma validate`. The schema validation was run because the shared worktree includes FT-016 schema changes from earlier tasks.
+- Marked `TASK-FT016-07` failed, opened `BUG-2026-05-09-task-ft016-07-presentation-scope-leak`, and added ready repair task `TASK-FT016-07-FIX`. Later FT-016 tasks remain blocked until the repair passes.
+
+## [2026-05-09] TASK-FT016-07 implementation
+- Added the `delivery-assignment` backend application boundary for server-owned courier availability: start work, stop accepting after 5 minutes, auto-offer participation toggle and active/free query. Active is calculated from courier work state plus `accepting_orders_until`; free is calculated from current orders in `ASSIGNED`, `PICKED_UP`, `IN_PROGRESS`, or `DELIVERED`.
+- Kept the task intentionally inert beyond availability state: no offer creation, courier claim, bot menu/callback wiring, admin UI toggle, auto-offer fan-out, timeout evaluator or order status/history/audit/event side effects were added. Focused delivery-assignment tests and `git diff --check` passed; Prisma schema was not changed.
+
+## [2026-05-09] TASK-FT016-07 backlog sync
+- Synced only `TASK-FT016-07` from the `FT-016` implementation plan into the active backlog as the next delivery-assignment application-boundary task for courier availability. Status is `ready` because `TASK-FT016-02` and `TASK-FT016-06` are marked `done`.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-07`; `TASK-FT016-08+` remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-06 verified
+- Verified `TASK-FT016-06` with `PASS`: the admin-web operator delivery table now shows disabled/guarded action cells for targeted offer, status control confirmation and bot chat redirect, with explicit `Backend not yet enabled` / `Runtime not yet enabled` labels and details that no offer, status history write, lifecycle command, bot redirect or message persistence is active.
+- Required checks passed: focused admin assignment Jest, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation. The broader `admin-router.spec.tsx` still has the unrelated catalog provisioning copy expectation drift and remains non-blocking for this task.
+- Marked `TASK-FT016-06` done. Later `FT-016` migration tasks remain unsynced in `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md` until deliberately selected for a later wave.
+
+## [2026-05-09] TASK-FT016-06 implementation
+- Added inert admin-web operator action cells for targeted offer, status control confirmation and bot chat redirect on the existing operator delivery orders surface. All three actions are visibly unavailable with `Backend not yet enabled` / `Runtime not yet enabled` labels, so the UI prepares the FT-016 affordances without calling offer/status/bot/message behavior.
+- Preserved the `TASK-FT016-04/05` read surface and admin shell: no backend mutation, direct assignment flow, bot deep-link execution, message persistence, cancellation/refund behavior, auto-offer toggle or courier claim was added. Focused admin assignment route/model tests, `npm run build:frontend`, and `git diff --check` passed; the broader `admin-router.spec.tsx` still has the pre-existing catalog provisioning copy expectation drift.
+
+## [2026-05-09] TASK-FT016-06 backlog sync
+- Synced only `TASK-FT016-06` from the `FT-016` implementation plan into the active backlog as the next admin-web placeholder action task. Status is `ready` because `TASK-FT016-05` is verified `PASS` and marked `done`.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-06`; `TASK-FT016-07+` remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-05 verified
+- Verified `TASK-FT016-05` with `PASS`: the admin-web operator surface remains read-side only, renders the top courier attention alert for `DELAYED` and no-accepted-courier rows, applies deterministic severity tones with blinking `DELAYED` rows, and supports stable local sorting for urgency/severity, created time, status, courier absent/name, assigned time and last-message availability.
+- Required checks passed: focused admin assignment Jest, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation.
+- Marked `TASK-FT016-05` done. Later `FT-016` migration tasks remain unsynced in `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md` until deliberately selected for the next wave.
+
+## [2026-05-09] TASK-FT016-05 implementation
+- Added the admin-web read-side operator attention alert for `DELAYED` and no-accepted-courier orders on the existing assignment/operator page, with deterministic local severity tones: `DELAYED`/60m+/`DELIVERED` attention as red, no courier as light blue, active under 30m yellow, 30-60m orange, cancelled purple, and completed neutral.
+- Added local read-model sorting controls for urgency/severity, created time, status, courier absent/name, assigned time and last message availability with stable tie-breakers. The current backend read model has no separate `latestMessageAt`, so the last-message control explicitly treats placeholder rows as null/last without widening the backend contract.
+- No backend state creation, timeout, bot notification, offer/status/cancellation/refund mutation, courier claim, auto-offer toggle, chat redirect or cancellation UI behavior was added.
+
+## [2026-05-09] TASK-FT016-05 backlog sync
+- Synced only `TASK-FT016-05` from the `FT-016` implementation plan into the active backlog as the next admin-web read-side presentation task. Status is `ready` because `TASK-FT016-04` is verified `PASS` and marked `done`.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next sequential `/autopilot` iteration may select only `TASK-FT016-05`; `TASK-FT016-06+` remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-04 verified
+- Verified `TASK-FT016-04` with `PASS`: the protected admin assignment route now consumes `GET /api/v1/admin/operator/delivery/orders` as a read-only operator delivery orders surface and renders the backend 4-day window, severity chips, courier current/absent markers, row summaries, null latest-message placeholders and expandable history while preserving the existing admin shell/theme.
+- Required checks passed: focused admin assignment Jest, `npm run build:frontend`, `git diff --check`, and changed markdown local link validation. The broader `npm run test:delivery-assignment:frontend -- --runInBand` still has a non-blocking catalog provisioning copy expectation drift unrelated to this task.
+- Marked `TASK-FT016-04` done. Later `FT-016` migration tasks remain unsynced in `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md` until deliberately selected for the next wave.
+
+## [2026-05-09] TASK-FT016-04 implementation
+- Converted the existing protected admin assignment route into a read-only operator delivery orders surface that consumes `GET /api/v1/admin/operator/delivery/orders`. The page keeps the admin shell/theme, renders the backend 4-day window, severity chips, current/absent courier marker, assigned/claimed timestamps, latest-message placeholders and expandable status history.
+- Removed the old direct assignment form/CTA from the default route experience. No backend mutation, offer submit, auto-offer toggle, chat redirect, cancellation UI, refund UI, status command or bot behavior was added. Focused admin API/route tests and `npm run build:frontend` passed; the broader admin suite still has an unrelated catalog provisioning copy expectation drift.
+
+## [2026-05-09] TASK-FT016-04 backlog sync
+- Synced only `TASK-FT016-04` from the `FT-016` implementation plan into the active backlog as the next admin-web read-surface task. Status is `ready` because `TASK-FT016-03` is verified `PASS` and marked `done`.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next `/autopilot` iteration may select only `TASK-FT016-04`; `TASK-FT016-05+` remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-03 verified
+- Verified `TASK-FT016-03` with `PASS`: the read-only protected admin operator delivery endpoint returns the 4-day local-calendar read model with status, courier marker/display, assigned/claimed timestamp, severity, history rows, revision metadata and explicit `null` latest-message placeholders.
+- Required checks passed: `npm run test:delivery-tracking -- --runInBand`, `npm run test:delivery-assignment -- --runInBand`, `npm run test:order-cancellation -- --runInBand`, `git diff --check`, and changed markdown local link validation.
+- Marked `TASK-FT016-03` done. Later `FT-016` migration tasks remain unsynced in `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md` until deliberately selected for the next wave.
+
+## [2026-05-09] TASK-FT016-03 implementation
+- Added the read-only admin-protected operator delivery endpoint `GET /api/v1/admin/operator/delivery/orders` in the dev runtime. It returns the local-calendar 4-day order window with row summaries, current status, courier absent/current marker, assigned/claimed timestamp when known, computed severity, status history rows, status revision metadata, and explicit `null` latest-message placeholders while no order communication model exists.
+- Kept existing assignment, cancellation and refund routes operational; no UI, offer creation, claim, status mutation, cancellation/refund mutation, bot behavior, auto-offer or timeout evaluator was enabled. Focused runtime coverage includes legacy v1 active orders plus representable `DELAYED` and `PICKED_UP` rows.
+
+## [2026-05-09] TASK-FT016-03 backlog sync
+- Synced only `TASK-FT016-03` from the `FT-016` implementation plan into the active backlog as the next read-only backend operator delivery contract task. Status is `ready` because `TASK-FT016-02` is verified `PASS` and marked `done`.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next `/autopilot` iteration may select only `TASK-FT016-03`; `TASK-FT016-04+` remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-02 verified
+- Verified `TASK-FT016-02` with `PASS`: additive courier availability fields and `AssignmentOffer` persistence are present with order/courier/status indexes, existing direct assignment v1 remains operational, and no offer creation, claim, timeout, auto-offer, bot menu, operator panel, status transition behavior, backfill, row rewrite, or mass update was enabled.
+- Required checks passed: `DATABASE_URL=postgresql://user:pass@localhost:5432/khujandi npx prisma validate`, `npm run test:delivery-assignment`, `npx prisma migrate diff --from-empty --to-schema-datamodel backend/prisma/schema.prisma --script`, `git diff --check`, and changed markdown local link validation. The migrations-directory diff still requires a `--shadow-database-url`; this is recorded as an acceptable residual for this verification because the required schema dry-run passed and migration SQL is additive on inspection.
+- Marked `TASK-FT016-02` done. Later `FT-016` migration tasks remain unsynced in `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md` until deliberately selected for the next wave.
+
+## [2026-05-09] TASK-FT016-02 implementation
+- Added additive `FT-016` persistence compatibility for courier availability and assignment offers: user rows now have `acceptingOrdersUntil`, `autoOfferEnabled`, and `ratingScore`, and the new `AssignmentOffer` persistence shape represents manual/broadcast pending/claimed/expired/cancelled offers with order and courier lookup indexes.
+- Updated `delivery-assignment` domain/repository compatibility and focused tests so these fields/offers are representable while the existing v1 direct assignment path remains operational. No offer creation, claim, timeout, auto-offer, bot menu, operator panel, lifecycle transition behavior, backfill, or row rewrite was enabled.
+
+## [2026-05-09] TASK-FT016-02 backlog sync
+- Synced only `TASK-FT016-02` from the `FT-016` implementation plan into the active backlog as a persistence/domain compatibility task for courier availability and assignment offers. Status is `ready` because `TASK-FT016-01` is verified `PASS` and marked `done`.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next `/autopilot` iteration may select only `TASK-FT016-02`; later `FT-016` migration tasks remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-01 verified
+- Verified `TASK-FT016-01` with `PASS`: Prisma enum compatibility for `DELAYED`, `PICKED_UP`, and `OPERATOR` is present; the migration is enum-only; backend domain unions and mini-app order-tracking parser/view-model accept the new values without enabling offers, claims, bot menu, auto-offer, operator panel behavior, timeout behavior, or new status transitions.
+- Required checks passed: `DATABASE_URL=postgresql://user:pass@localhost:5432/khujandi npx prisma validate`, `npm run test:delivery-tracking:unit`, `npm run test:delivery-assignment:unit`, `npm run test:order-tracking:frontend`, `git diff --check`, and changed markdown local link validation.
+- Marked `TASK-FT016-01` done. Later `FT-016` migration tasks remain unsynced in `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md` until deliberately selected for the next wave.
+
+## [2026-05-09] TASK-FT016-01 backlog sync
+- Synced only `TASK-FT016-01` from the `FT-016` implementation plan into the active backlog as a compatibility-only schema/domain task. Status is `ready` because `TASK-FT016-00` is verified `PASS` and marked `done`.
+- Updated `.protocols/AUTONOMOUS-RUN/status.md` so the next `/autopilot` iteration may select only `TASK-FT016-01`; later `TASK-FT016-02+` remain unsynced in the implementation plan.
+
+## [2026-05-09] TASK-FT016-00 verified
+- Verified `TASK-FT016-00` with `PASS`: the Phase 0 report records current v1 direct assignment and old courier-driven tracking chain as baseline drift, not historical bugs, confirms admin panel repair/extend-first strategy, and captures owning slices, contours, touched layers and shared-code justification.
+- Marked `TASK-FT016-00` done in the active backlog. No runtime or schema implementation changes were made; later `FT-016` migration tasks remain in the implementation plan until deliberately synced after this preflight.
+
+## [2026-05-09] FT-016 autopilot preflight sync
+- Refreshed `.protocols/AUTONOMOUS-RUN/status.md` for the current `FT-016` `/autopilot` run with review gate `pending/unknown`, queue state, failure budget and terminal hold.
+- Synced only Phase 0 into the active backlog as ready `TASK-FT016-00`; later migration tasks remain in `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md` until the baseline drift handoff confirms sequencing.
+
 ## [2026-05-09] FT-016 operator delivery migration task cards
 - Added [.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md](tasks/plans/IMPL-FT-016-operator-delivery-migration.md): execution-ready staged TASK cards for migrating implemented `FT-004`/`FT-005` v1 delivery operations to the `FT-016` operator delivery target.
 - The decomposition records current code baseline drift explicitly: direct admin assignment, old courier-driven tracking chain, partial admin assignment panel, missing offers/claim/availability/`DELAYED`/`PICKED_UP`/operator completion. It keeps the strategy additive-first and repair/extend-first for the existing admin panel.

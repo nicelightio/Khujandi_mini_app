@@ -41,7 +41,7 @@ status: active
 - Auto-offer MAY fan-out order offer активным свободным курьерам, если настройка панели включена.
 - Курьер в боте видит `пытаемся получить заказ...` до ответа сервера.
 - Claim должен быть atomic: закрепление возможно только если order still active, `courier_id` пустой, статус допускает claim (`CREATED` или `DELAYED`), courier active/free.
-- Первый successful claim выставляет `courier_id`, `ASSIGNED`, `assigned_at`, пишет history/event и возвращает success этому courier.
+- Первый successful claim выставляет `courier_id`, `ASSIGNED`, пишет history/event и возвращает success этому courier. Время assignment/claim выводится из status history, event metadata или read model; каноническая `Order` schema не требует отдельного `assigned_at`/`assignedAt`.
 - Остальные concurrent claim attempts получают controlled already-taken outcome без side effects.
 - Если offer не принят за 3 минуты, отправляется повторное уведомление; если еще через 3 минуты не принят, заказ переходит/остается `DELAYED`, operators получают срочный alert, а для персонального offer courier `rating_score` уменьшается на 1.
 
