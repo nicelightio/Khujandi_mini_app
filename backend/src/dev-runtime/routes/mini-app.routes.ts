@@ -1,6 +1,7 @@
 import { AppError } from "../../shared/errors/app-error";
 import { resolveMiniAppAuthenticatedUser } from "../checkout-payment-runtime";
 import { json, readJsonBody, readSingleHeader, serializeCookie } from "../http-runtime";
+import { createPaymentProviderUnavailableError } from "../payment-provider-runtime";
 import type { DevApiRouteHandler } from "../dev-api-server.types";
 import { toCheckoutPaymentCompositionDraft } from "../utils/checkout-composition";
 import { buildRuntimePaymentProviderTxId } from "../utils/payment-transaction-id";
@@ -10,8 +11,7 @@ export const handleMiniAppRoutes: DevApiRouteHandler = async ({ request, url, me
     catalogModule,
     catalogState,
     checkoutPaymentModule,
-    checkoutPaymentProviderName,
-    checkoutPaymentProviderSecret,
+    checkoutPaymentProvider,
     checkoutPaymentState,
     operationalModules,
     options,
@@ -99,6 +99,17 @@ export const handleMiniAppRoutes: DevApiRouteHandler = async ({ request, url, me
     }
   }
 
+  if (method === "GET" && url.pathname === "/api/v1/orders/checkout/bootstrap") {
+    return json(
+      200,
+      {
+        mockPaymentAvailable:
+          checkoutPaymentProvider.enabled && checkoutPaymentProvider.provider === "mock",
+      },
+      "GET,OPTIONS",
+    );
+  }
+
   if (method === "POST" && url.pathname === "/api/v1/orders/checkout") {
     try {
       const user = await resolveMiniAppAuthenticatedUser(request, {
@@ -106,6 +117,10 @@ export const handleMiniAppRoutes: DevApiRouteHandler = async ({ request, url, me
         now: options.now,
       });
       const body = await readJsonBody(request);
+
+      if (!checkoutPaymentProvider.enabled) {
+        throw createPaymentProviderUnavailableError();
+      }
 
       const composition = toCheckoutPaymentCompositionDraft(body.composition);
       const shop = catalogState.shops.find(
@@ -142,7 +157,7 @@ export const handleMiniAppRoutes: DevApiRouteHandler = async ({ request, url, me
         },
         composition,
         payment: {
-          provider: checkoutPaymentProviderName,
+          provider: checkoutPaymentProvider.providerName,
           paymentProviderTxId: buildRuntimePaymentProviderTxId(user.id, composition),
           telegramPaymentChargeId: null,
           providerPaymentChargeId: null,
@@ -151,7 +166,7 @@ export const handleMiniAppRoutes: DevApiRouteHandler = async ({ request, url, me
             composition,
           }) ?? "PAID",
           source: "provider_status",
-          verificationToken: checkoutPaymentProviderSecret,
+          verificationToken: checkoutPaymentProvider.secretToken,
         },
       });
       const updatedAt = options.now?.() ?? new Date();

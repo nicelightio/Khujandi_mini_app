@@ -130,6 +130,7 @@ describe("checkout-payment page", () => {
               statusLabel: "Secure checkout is ready.",
               supportingNotes: ["Telegram auth is requested only when you start checkout."],
               primaryActionLabel: "Continue to payment",
+              mockPaymentAvailable: false,
             },
             composition,
           ),
@@ -145,6 +146,7 @@ describe("checkout-payment page", () => {
               statusLabel: "Secure checkout is ready.",
               supportingNotes: ["Telegram auth is requested only when you start checkout."],
               primaryActionLabel: "Continue to payment",
+              mockPaymentAvailable: false,
             },
             "Backend unavailable.",
             "Payment was not completed. You can try again.",
@@ -167,6 +169,39 @@ describe("checkout-payment page", () => {
     );
   });
 
+  it("renders backend-available mock payment as a checkout note without a second action", () => {
+    let renderer!: ReactTestRenderer;
+
+    act(() => {
+      renderer = renderWithLanguage(
+        createElement(CheckoutPaymentPage, {
+          viewModel: createReadyCheckoutPaymentViewModel(
+            {
+              headline: "Checkout",
+              statusLabel: "Secure checkout is ready.",
+              supportingNotes: ["Telegram auth is requested only when you start checkout."],
+              primaryActionLabel: "Continue to payment",
+              mockPaymentAvailable: true,
+            },
+            composition,
+            "en",
+          ),
+          onPrimaryAction: () => undefined,
+        }),
+        "en",
+      );
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+
+    expect(text).toContain("E2E mock payment is active.");
+    expect(text).toContain(
+      "The backend mock provider is available. The existing checkout button still submits to the backend.",
+    );
+    expect(renderer.root.findAllByType("button")).toHaveLength(1);
+    expect(renderer.root.findByType("button").children).toEqual(["Continue to payment"]);
+  });
+
   it("renders submitting and success states for checkout actions", () => {
     let submittingRenderer!: ReactTestRenderer;
     let successRenderer!: ReactTestRenderer;
@@ -179,6 +214,7 @@ describe("checkout-payment page", () => {
             statusLabel: "Secure checkout is ready.",
             supportingNotes: ["Telegram auth is requested only when you start checkout."],
             primaryActionLabel: "Continue to payment",
+            mockPaymentAvailable: false,
           }, "en"),
           onPrimaryAction: () => undefined,
         }),
@@ -192,6 +228,7 @@ describe("checkout-payment page", () => {
               statusLabel: "Secure checkout is ready.",
               supportingNotes: ["Telegram auth is requested only when you start checkout."],
               primaryActionLabel: "Continue to payment",
+              mockPaymentAvailable: false,
             },
             {
               orderId: "order-1",
@@ -254,6 +291,7 @@ describe("checkout-payment page", () => {
                   statusLabel: "Secure checkout is ready.",
                   supportingNotes: ["Telegram auth is requested only when you start checkout."],
                   primaryActionLabel: "Continue to payment",
+                  mockPaymentAvailable: false,
                 },
                 "en",
               )}
@@ -272,6 +310,7 @@ describe("checkout-payment page", () => {
                   statusLabel: "Secure checkout is ready.",
                   supportingNotes: ["Telegram auth is requested only when you start checkout."],
                   primaryActionLabel: "Continue to payment",
+                  mockPaymentAvailable: false,
                 },
                 {
                   orderId: "order-1",
@@ -327,6 +366,7 @@ describe("checkout-payment page", () => {
                   statusLabel: "Secure checkout is ready.",
                   supportingNotes: ["Telegram auth is requested only when you start checkout."],
                   primaryActionLabel: "Continue to payment",
+                  mockPaymentAvailable: false,
                 },
                 composition,
               )}

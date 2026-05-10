@@ -1,4 +1,5 @@
 import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
+import { resolveRuntimeCheckoutPaymentProvider } from "../../../backend/src/dev-runtime/payment-provider-runtime";
 import { adminOrigin, createTelegramInitData } from "../catalog/catalog.runtime.test-helpers";
 
 const composition = {
@@ -22,15 +23,48 @@ const composition = {
   created_at: "2026-04-26T00:00:00.000Z",
 };
 
+const stalePriceComposition = {
+  ...composition,
+  items: [
+    {
+      product_id: "product-1",
+      quantity: 1,
+      display_snapshot: {
+        product_name: "Плов зарвода",
+        unit_price_minor: 4400,
+        currency: "TJS",
+      },
+    },
+  ],
+  preview_total: {
+    amount_minor: 4400,
+    currency: "TJS",
+  },
+};
+
 describe("checkout-payment mounted runtime", () => {
-  it("mounts Mini App auth and checkout endpoints without anonymous order creation", async () => {
+  it("accepts explicit PAYMENT_PROVIDER=mock outside production and keeps checkout idempotent", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",
       port: 0,
+      paymentProvider: "mock",
+      nodeEnv: "development",
     });
 
     try {
       const initialOrderCount = runtime.checkoutPaymentState.orders.length;
+      const bootstrapResponse = await runtime.createClient().request({
+        path: "/api/v1/orders/checkout/bootstrap",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(bootstrapResponse.status).toBe(200);
+      expect(bootstrapResponse.body).toEqual({
+        mockPaymentAvailable: true,
+      });
+      expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
+
       const anonymousClient = runtime.createClient();
       const anonymousCheckout = await anonymousClient.request({
         path: "/api/v1/orders/checkout",
@@ -104,6 +138,7 @@ describe("checkout-payment mounted runtime", () => {
         updated_at: expect.any(String),
         revision: expect.any(String),
       });
+      expect(checkoutResponse.body.revision).not.toBe(checkoutResponse.body.orderId);
       expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount + 1);
       expect(runtime.checkoutPaymentState.orders.at(-1)).toMatchObject({
         shopId: "shop-1",
@@ -114,7 +149,7 @@ describe("checkout-payment mounted runtime", () => {
         itemsTotalMinor: 4500,
         deliveryFeeMinor: 0,
         totalAmountMinor: 4500,
-        paymentProvider: "local-runtime-provider",
+        paymentProvider: "mock",
         paymentStatus: "PAID",
         refundStatus: "NOT_REQUIRED",
       });
@@ -140,6 +175,165 @@ describe("checkout-payment mounted runtime", () => {
     }
   });
 
+  it("keeps direct checkout and stale server-side revalidation no-order in mock mode", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      paymentProvider: "mock",
+      nodeEnv: "development",
+    });
+
+    try {
+      const initialOrderCount = runtime.checkoutPaymentState.orders.length;
+      const bootstrapResponse = await runtime.createClient().request({
+        path: "/api/v1/orders/checkout/bootstrap",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(bootstrapResponse.status).toBe(200);
+      expect(bootstrapResponse.body).toEqual({
+        mockPaymentAvailable: true,
+      });
+      expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
+
+      const client = runtime.createClient();
+      await client.request({
+        path: "/api/v1/auth/telegram",
+        origin: adminOrigin,
+        body: {
+          initData: createTelegramInitData({
+            authDate: Math.floor(Date.now() / 1000),
+            telegramId: "4407",
+            firstName: "Direct",
+            lastName: "Client",
+            username: "direct_checkout_client",
+          }),
+        },
+      });
+
+      const directCheckoutResponse = await client.request({
+        path: "/api/v1/orders/checkout",
+        origin: adminOrigin,
+        body: {},
+      });
+
+      expect(directCheckoutResponse.status).toBe(409);
+      expect(directCheckoutResponse.body).toMatchObject({
+        error: {
+          code: "COMPOSITION_REPAIR_REQUIRED",
+          details: {
+            reason: "composition_missing",
+            repairAction: "repair_composition",
+            orderCreated: false,
+          },
+        },
+      });
+      expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
+
+      const staleCheckoutResponse = await client.request({
+        path: "/api/v1/orders/checkout",
+        origin: adminOrigin,
+        body: {
+          composition: stalePriceComposition,
+        },
+      });
+
+      expect(staleCheckoutResponse.status).toBe(409);
+      expect(staleCheckoutResponse.body).toMatchObject({
+        error: {
+          code: "COMPOSITION_REPAIR_REQUIRED",
+          details: {
+            reason: "price_changed",
+            repairAction: "repair_composition",
+            orderCreated: false,
+          },
+        },
+      });
+      expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  it("rejects PAYMENT_PROVIDER=mock in production-like runtime before checkout trust", async () => {
+    expect(() =>
+      resolveRuntimeCheckoutPaymentProvider({
+        paymentProvider: "mock",
+        nodeEnv: "production",
+      }),
+    ).toThrow("Mock payment provider is not allowed in production");
+
+    await expect(
+      startDevApiServer({
+        host: "127.0.0.1",
+        port: 0,
+        paymentProvider: "mock",
+        nodeEnv: "production",
+      }),
+    ).rejects.toThrow("Mock payment provider is not allowed in production");
+  });
+
+  it("does not trust DEBUG=true without explicit PAYMENT_PROVIDER=mock", async () => {
+    const runtime = await startDevApiServer({
+      host: "127.0.0.1",
+      port: 0,
+      isDebugEnabled: true,
+      nodeEnv: "development",
+    });
+
+    try {
+      const initialOrderCount = runtime.checkoutPaymentState.orders.length;
+      const bootstrapResponse = await runtime.createClient().request({
+        path: "/api/v1/orders/checkout/bootstrap",
+        method: "GET",
+        origin: adminOrigin,
+      });
+
+      expect(bootstrapResponse.status).toBe(200);
+      expect(bootstrapResponse.body).toEqual({
+        mockPaymentAvailable: false,
+      });
+      expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
+
+      const client = runtime.createClient();
+      await client.request({
+        path: "/api/v1/auth/telegram",
+        origin: adminOrigin,
+        body: {
+          initData: createTelegramInitData({
+            authDate: Math.floor(Date.now() / 1000),
+            telegramId: "4317",
+            firstName: "Debug",
+            lastName: "Client",
+            username: "debug_checkout_client",
+          }),
+        },
+      });
+
+      const checkoutResponse = await client.request({
+        path: "/api/v1/orders/checkout",
+        origin: adminOrigin,
+        body: {
+          composition,
+        },
+      });
+
+      expect(checkoutResponse.status).toBe(503);
+      expect(checkoutResponse.body).toMatchObject({
+        error: {
+          code: "PAYMENT_PROVIDER_UNAVAILABLE",
+          details: {
+            orderCreated: false,
+          },
+        },
+      });
+      expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it.each([
     ["FAILED", "payment_failed"],
     ["CANCELED", "payment_canceled"],
@@ -149,6 +343,8 @@ describe("checkout-payment mounted runtime", () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",
       port: 0,
+      paymentProvider: "mock",
+      nodeEnv: "development",
       checkoutPaymentProviderStatusResolver: () => status,
     });
 
@@ -200,6 +396,8 @@ describe("checkout-payment mounted runtime", () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",
       port: 0,
+      paymentProvider: "mock",
+      nodeEnv: "development",
     });
 
     try {

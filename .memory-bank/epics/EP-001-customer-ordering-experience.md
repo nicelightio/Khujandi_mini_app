@@ -17,6 +17,7 @@ status: active
 - `FT-012` customer product selection and cart/order composition
 - `FT-002` checkout payment and paid order creation
 - `FT-013` customer checkout handoff and paid order creation flow
+- `FT-017` guarded e2e mock payment mode
 - `FT-014` customer order status visibility and delivery tracking integration
 - `FT-003` language selection and localization baseline
 - `FT-009` mini app shell and Telegram WebView UX baseline

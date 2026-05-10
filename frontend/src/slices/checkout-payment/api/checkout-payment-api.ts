@@ -7,6 +7,7 @@ export type CheckoutPaymentBootstrap = {
   statusLabel: string;
   supportingNotes: string[];
   primaryActionLabel: string;
+  mockPaymentAvailable: boolean;
 };
 
 export type CheckoutPaymentAuthResult = {
@@ -95,6 +96,30 @@ const postJson = async (path: string, body: unknown): Promise<unknown> => {
   return payload;
 };
 
+const getJson = async (path: string): Promise<unknown> => {
+  const response = await fetch(path, {
+    method: "GET",
+    credentials: "same-origin",
+  });
+  const payload = await readJson(response);
+
+  if (!response.ok) {
+    throw toApiError(payload, "Checkout is temporarily unavailable.");
+  }
+
+  return payload;
+};
+
+const loadMockPaymentAvailability = async (): Promise<boolean> => {
+  try {
+    const payload = await getJson("/api/v1/orders/checkout/bootstrap");
+
+    return isRecord(payload) && payload.mockPaymentAvailable === true;
+  } catch {
+    return false;
+  }
+};
+
 export type CheckoutPaymentApi = {
   loadCheckoutBootstrap: (language?: SupportedLanguage) => Promise<CheckoutPaymentBootstrap>;
   authenticateTelegram: (initData: string) => Promise<CheckoutPaymentAuthResult>;
@@ -103,15 +128,20 @@ export type CheckoutPaymentApi = {
 };
 
 export const createCheckoutPaymentApi = (): CheckoutPaymentApi => ({
-  loadCheckoutBootstrap: async (language) => ({
-    headline: getCopy(language).checkout.headline,
-    statusLabel: getCopy(language).checkout.readyStatus,
-    supportingNotes: [
-      getCopy(language).checkout.noteAuth,
-      getCopy(language).checkout.noteTrustedPayment,
-    ],
-    primaryActionLabel: getCopy(language).checkout.primaryAction,
-  }),
+  loadCheckoutBootstrap: async (language) => {
+    const copy = getCopy(language).checkout;
+
+    return {
+      headline: copy.headline,
+      statusLabel: copy.readyStatus,
+      supportingNotes: [
+        copy.noteAuth,
+        copy.noteTrustedPayment,
+      ],
+      primaryActionLabel: copy.primaryAction,
+      mockPaymentAvailable: await loadMockPaymentAvailability(),
+    };
+  },
   authenticateTelegram: async (initData: string) => {
     if (initData.trim().length === 0) {
       throw new CheckoutPaymentApiError("AUTH_REQUIRED", "Telegram init data is missing.");

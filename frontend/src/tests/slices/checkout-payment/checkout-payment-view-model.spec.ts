@@ -13,6 +13,7 @@ const bootstrap = {
   statusLabel: "Secure checkout is ready.",
   supportingNotes: ["Telegram auth is requested only when you start checkout."],
   primaryActionLabel: "Continue to payment",
+  mockPaymentAvailable: false,
 };
 
 const composition = {
@@ -42,6 +43,7 @@ describe("checkout-payment view model", () => {
       headline: "Оформление заказа",
       statusLabel: "Подготавливаем сессию оформления заказа...",
       supportingNotes: [],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Перейти к оплате",
       isLoading: true,
       isSubmitting: false,
@@ -58,6 +60,7 @@ describe("checkout-payment view model", () => {
       headline: "Пардохт",
       statusLabel: "Сессияи пардохтро омода карда истодаем...",
       supportingNotes: [],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Ба пардохт гузаред",
       isLoading: true,
       isSubmitting: false,
@@ -76,6 +79,7 @@ describe("checkout-payment view model", () => {
       headline: "Checkout",
       statusLabel: "Secure checkout is ready.",
       supportingNotes: ["Telegram auth is requested only when you start checkout."],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Continue to payment",
       isLoading: false,
       isSubmitting: false,
@@ -94,6 +98,7 @@ describe("checkout-payment view model", () => {
       headline: "Checkout",
       statusLabel: "Build your cart in the catalog first.",
       supportingNotes: ["Telegram auth is requested only when you start checkout."],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Return to catalog",
       isLoading: false,
       isSubmitting: false,
@@ -119,6 +124,7 @@ describe("checkout-payment view model", () => {
       headline: "Checkout",
       statusLabel: "Сейчас не удалось завершить оформление заказа.",
       supportingNotes: ["Telegram auth is requested only when you start checkout."],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Повторить оплату",
       isLoading: false,
       isSubmitting: false,
@@ -137,6 +143,7 @@ describe("checkout-payment view model", () => {
       headline: "Checkout",
       statusLabel: "Авторизуем Telegram и подтверждаем оплату...",
       supportingNotes: ["Telegram auth is requested only when you start checkout."],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Обрабатываем оформление...",
       isLoading: false,
       isSubmitting: true,
@@ -164,6 +171,7 @@ describe("checkout-payment view model", () => {
       headline: "Checkout",
       statusLabel: "Оформление заказа завершено.",
       supportingNotes: ["Telegram auth is requested only when you start checkout."],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Заказ создан",
       isLoading: false,
       isSubmitting: false,
@@ -189,6 +197,7 @@ describe("checkout-payment view model", () => {
           statusLabel: "Безопасное оформление заказа готово.",
           supportingNotes: ["Авторизация через Telegram запрашивается только после начала оформления."],
           primaryActionLabel: "Перейти к оплате",
+          mockPaymentAvailable: false,
         },
         "Backend unavailable.",
         "Оплата не завершилась. Попробуйте еще раз.",
@@ -198,6 +207,7 @@ describe("checkout-payment view model", () => {
       headline: "Оформление заказа",
       statusLabel: "Сейчас не удалось завершить оформление заказа.",
       supportingNotes: ["Авторизация через Telegram запрашивается только после начала оформления."],
+      mockPaymentAffordance: null,
       primaryActionLabel: "Повторить оплату",
       isLoading: false,
       isSubmitting: false,
@@ -208,6 +218,26 @@ describe("checkout-payment view model", () => {
       recoveryMessage: null,
       compositionSummary: null,
       statusEntry: null,
+    });
+  });
+
+  it("creates a mock payment affordance only when backend availability is true", () => {
+    expect(
+      createReadyCheckoutPaymentViewModel(
+        {
+          ...bootstrap,
+          mockPaymentAvailable: true,
+        },
+        composition,
+        "en",
+      ),
+    ).toMatchObject({
+      mockPaymentAffordance: {
+        label: "E2E mock payment is active.",
+        body: "The backend mock provider is available. The existing checkout button still submits to the backend.",
+      },
+      primaryActionLabel: "Continue to payment",
+      isActionDisabled: false,
     });
   });
 });

@@ -4,6 +4,9 @@ status: active
 ---
 # AUTONOMOUS-RUN Decision Log
 
+- 2026-05-11: Started scoped `/autopilot` for `FT-017` only after teamlead selected option 1. The global backlog contains unrelated `ready` tasks, so this run intentionally ignores non-`TASK-FT017-*` items.
+- 2026-05-11: Teamlead confirmed KISS implementation direction: replace/gate old implicit repo-local `local-runtime-provider` through explicit `PAYMENT_PROVIDER=mock`, with baseline guard `NODE_ENV !== "production"` and mock `success/paid` only.
+- 2026-05-11: `TASK-FT017-03` verified `PASS`; checkout-only mock/e2e affordance is metadata-backed, text-only, hidden outside ready composition-backed checkout, and `TASK-FT017-04` is promoted to `ready`.
 - 2026-04-01: `/autopilot` accepted because backlog is task-card based and latest `mb-review` verdict is `APPROVE`.
 - 2026-04-01: Run starts sequentially because this session has not yet proven `TASK-FT002-02` and `TASK-FT002-03` are conflict-free at the file level.
 - 2026-04-01: `TASK-FT002-01` is treated as docs-first scope only; verification basis is traceability against `REQ-004`, `REQ-021`, `REQ-022`, and `REQ-023` plus contract/runbook consistency.

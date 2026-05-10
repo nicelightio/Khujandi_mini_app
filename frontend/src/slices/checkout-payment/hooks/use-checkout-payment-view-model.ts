@@ -37,6 +37,7 @@ const createFallbackBootstrap = (language: SupportedLanguage = "ru"): CheckoutPa
   statusLabel: getCopy(language).checkout.readyStatus,
   supportingNotes: [getCopy(language).checkout.noteAuth, getCopy(language).checkout.noteTrustedPayment],
   primaryActionLabel: getCopy(language).checkout.primaryAction,
+  mockPaymentAvailable: false,
 });
 
 export const useCheckoutPaymentViewModel = (
@@ -68,7 +69,7 @@ export const useCheckoutPaymentViewModel = (
           setViewModel(
             handoff === null
               ? createRecoveryCheckoutPaymentViewModel(loadedBootstrap, language)
-              : createReadyCheckoutPaymentViewModel(loadedBootstrap, handoff),
+              : createReadyCheckoutPaymentViewModel(loadedBootstrap, handoff, language),
           );
         }
       },

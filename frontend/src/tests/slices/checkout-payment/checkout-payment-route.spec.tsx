@@ -197,6 +197,37 @@ describe("checkout-payment route", () => {
     expect(text).toContain("Перейти к оплате");
   });
 
+  it("shows the mock payment affordance only for backend-available checkout with composition", async () => {
+    const api = {
+      loadCheckoutBootstrap: async () => ({
+        headline: "Checkout",
+        statusLabel: "Secure checkout is ready.",
+        supportingNotes: ["Order creation stays server-side only."],
+        primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: true,
+      }),
+      authenticateTelegram: jest.fn(),
+      syncLanguagePreference: jest.fn(),
+      submitCheckout: jest.fn(),
+    };
+
+    const checkoutRenderer = await renderRoute({ api, bridge: createBridge("query_id=raw") });
+    const recoveryRenderer = await renderRoute(
+      { api, bridge: createBridge("query_id=raw") },
+      createLanguageController("en"),
+      null,
+    );
+
+    const checkoutText = collectText(checkoutRenderer.toJSON()).join(" ");
+    const recoveryText = collectText(recoveryRenderer.toJSON()).join(" ");
+
+    expect(checkoutText).toContain("E2E mock payment is active.");
+    expect(checkoutText).toContain("The backend mock provider is available.");
+    expect(recoveryText).not.toContain("E2E mock payment is active.");
+    expect(api.authenticateTelegram).not.toHaveBeenCalled();
+    expect(api.submitCheckout).not.toHaveBeenCalled();
+  });
+
   it("recovers direct checkout access without a composition draft", async () => {
     const api = {
       loadCheckoutBootstrap: async () => ({
@@ -204,6 +235,7 @@ describe("checkout-payment route", () => {
         statusLabel: "Secure checkout is ready.",
         supportingNotes: ["Order creation stays server-side only."],
         primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: false,
       }),
       authenticateTelegram: jest.fn(),
       syncLanguagePreference: jest.fn(),
@@ -229,6 +261,7 @@ describe("checkout-payment route", () => {
         statusLabel: "Secure checkout is ready.",
         supportingNotes: ["Order creation stays server-side only."],
         primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: false,
       }),
       authenticateTelegram: jest.fn().mockResolvedValue({
         transport: "httpOnlyCookie",
@@ -277,6 +310,7 @@ describe("checkout-payment route", () => {
         statusLabel: "Secure checkout is ready.",
         supportingNotes: ["Order creation stays server-side only."],
         primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: false,
       }),
       authenticateTelegram: jest.fn().mockResolvedValue({
         transport: "httpOnlyCookie",
@@ -317,6 +351,7 @@ describe("checkout-payment route", () => {
         statusLabel: "Secure checkout is ready.",
         supportingNotes: ["Order creation stays server-side only."],
         primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: false,
       }),
       authenticateTelegram: jest.fn().mockResolvedValue({
         transport: "httpOnlyCookie",
@@ -356,6 +391,7 @@ describe("checkout-payment route", () => {
         statusLabel: "Secure checkout is ready.",
         supportingNotes: ["Order creation stays server-side only."],
         primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: false,
       }),
       authenticateTelegram: jest.fn(),
       syncLanguagePreference: jest.fn(),
@@ -375,6 +411,58 @@ describe("checkout-payment route", () => {
     expect(api.authenticateTelegram).not.toHaveBeenCalled();
     expect(api.syncLanguagePreference).not.toHaveBeenCalled();
     expect(api.submitCheckout).not.toHaveBeenCalled();
+  });
+
+  it("does not show mock affordance or bypass backend from frontend-only debug state", async () => {
+    const debugGlobal = globalThis as typeof globalThis & { __APP_DEBUG__?: boolean };
+    const previousDebugValue = debugGlobal.__APP_DEBUG__;
+    const api = {
+      loadCheckoutBootstrap: async () => ({
+        headline: "Checkout",
+        statusLabel: "Secure checkout is ready.",
+        supportingNotes: ["Order creation stays server-side only."],
+        primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: false,
+      }),
+      authenticateTelegram: jest.fn().mockResolvedValue({
+        transport: "httpOnlyCookie",
+        requiresOriginCheck: true,
+        telegramId: "42",
+      }),
+      syncLanguagePreference: jest.fn().mockResolvedValue(undefined),
+      submitCheckout: jest
+        .fn()
+        .mockRejectedValue(
+          new CheckoutPaymentApiError(
+            "PAYMENT_PROVIDER_UNAVAILABLE",
+            "Checkout payment provider is not configured.",
+          ),
+        ),
+    };
+
+    try {
+      debugGlobal.__APP_DEBUG__ = true;
+      const renderer = await renderRoute({ api, bridge: createBridge("query_id=raw") });
+
+      expect(collectText(renderer.toJSON()).join(" ")).not.toContain("E2E mock payment is active.");
+
+      await act(async () => {
+        renderer.root.findByType("button").props.onClick();
+        await flushPromises();
+      });
+
+      const text = collectText(renderer.toJSON()).join(" ");
+      expect(text).toContain("Checkout payment provider is not configured.");
+      expect(text).not.toContain("Checkout completed.");
+      expect(api.submitCheckout).toHaveBeenCalledWith(composition);
+      expect(api.submitCheckout).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previousDebugValue === undefined) {
+        delete debugGlobal.__APP_DEBUG__;
+      } else {
+        debugGlobal.__APP_DEBUG__ = previousDebugValue;
+      }
+    }
   });
 
   it("renders a controlled error state when the bootstrap API fails", async () => {

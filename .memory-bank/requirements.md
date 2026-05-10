@@ -87,6 +87,7 @@ status: active
 | REQ-021 | EP-001 | FT-002 | integration: trusted payment callback and replay protection | implemented |
 | REQ-022 | EP-001 | FT-002, FT-003, FT-009, FT-010 | integration/verify: session-storage policy + Android shell evidence; seller runtime session-boundary hardening remains follow-up-based | implemented |
 | REQ-023 | EP-001 | FT-003, FT-009 | verify: Telegram-specific test env + Android shell evidence; checkout runtime pending | implemented |
+| REQ-023 | EP-001 | FT-017 | e2e/config: guarded repo-local mock payment mode for checkout runtime; production refusal, `DEBUG=true` not trusted, mock success/idempotency/no-order gates verified by `TASK-FT017-04` | verified |
 | REQ-024 | EP-001 | FT-010 | e2e: seller edits shared storefront without separate builder; repo-local shared-storefront tests now prove owner edit-mode reuse on the existing catalog tree and explicit delete-free baseline evidence | done |
 | REQ-025 | EP-001 | FT-010 | integration/e2e: admin-provisioned skeleton + Telegram-linked seller access; provisioning/runtime and admin/seller smoke coverage now verify starter bootstrap and shared seller session/access reuse | done |
 | REQ-026 | EP-001 | FT-010 | e2e: `WORKING/NOT_WORKING` visibility and seller store-admin status toggle; runtime/frontend verification now proves owner-only `NOT_WORKING` visibility, public gating, status-only seller-web control, and delete-free narrow scope | done |

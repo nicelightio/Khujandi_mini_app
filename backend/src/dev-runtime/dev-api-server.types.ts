@@ -7,6 +7,7 @@ import type { CheckoutPaymentModule } from "../slices/checkout-payment/presentat
 import type { CatalogRuntimeState } from "./catalog-runtime-state";
 import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 import type { createOperationalRuntimeModules } from "./order-ops-runtime";
+import type { RuntimeCheckoutPaymentProvider } from "./payment-provider-runtime";
 
 export type RuntimeServerOptions = {
   host?: string;
@@ -15,6 +16,8 @@ export type RuntimeServerOptions = {
   adminDatabasePath?: string;
   catalogDatabasePath?: string;
   telegramBotToken?: string;
+  paymentProvider?: string;
+  nodeEnv?: string;
   isDebugEnabled?: boolean;
   passwordHasher?: {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
@@ -48,8 +51,7 @@ export type DevApiRouteContext = {
   catalogState: CatalogRuntimeState;
   operationalModules: ReturnType<typeof createOperationalRuntimeModules>;
   isDebugEnabled: boolean;
-  checkoutPaymentProviderName: string;
-  checkoutPaymentProviderSecret: string;
+  checkoutPaymentProvider: RuntimeCheckoutPaymentProvider;
   resolveProtectedAdminSession: (
     request: IncomingMessage,
     authRequiredMessage: string,

@@ -33,33 +33,64 @@ describe("checkout-payment api scaffold", () => {
   });
 
   it("returns a static checkout bootstrap plus backend-facing auth and checkout helpers", async () => {
-    const fetchMock = jest.fn()
-      .mockResolvedValueOnce({
-        ok: true,
+    const fetchMock = jest.fn(async (...args: Parameters<typeof fetch>) => {
+      const [input] = args;
+      const path = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
+
+      if (path === "/api/v1/orders/checkout/bootstrap") {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            mockPaymentAvailable: true,
+          }),
+        };
+      }
+
+      if (path === "/api/v1/auth/telegram") {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            user: {
+              telegramId: "42",
+            },
+          }),
+        };
+      }
+
+      if (path === "/api/v1/auth/telegram/language") {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            user: {
+              telegramId: "42",
+            },
+          }),
+        };
+      }
+
+      if (path === "/api/v1/orders/checkout") {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            orderId: "order-1",
+            paymentStatus: "PAID",
+            updated_at: "2026-04-26T00:00:00.000Z",
+            revision: "101",
+            confirmationLabel: "Заказ создан после доверенного подтверждения оплаты.",
+          }),
+        };
+      }
+
+      return {
+        ok: false,
         text: async () => JSON.stringify({
-          user: {
-            telegramId: "42",
+          error: {
+            code: "NOT_FOUND",
+            message: "Route not found.",
           },
         }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify({
-          user: {
-            telegramId: "42",
-          },
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        text: async () => JSON.stringify({
-          orderId: "order-1",
-          paymentStatus: "PAID",
-          updated_at: "2026-04-26T00:00:00.000Z",
-          revision: "101",
-          confirmationLabel: "Заказ создан после доверенного подтверждения оплаты.",
-        }),
-      });
+      };
+    });
     global.fetch = fetchMock as unknown as typeof fetch;
 
     await expect(createCheckoutPaymentApi().loadCheckoutBootstrap()).resolves.toEqual({
@@ -70,6 +101,7 @@ describe("checkout-payment api scaffold", () => {
         "Заказ создается только после доверенного серверного подтверждения оплаты.",
       ],
       primaryActionLabel: "Перейти к оплате",
+      mockPaymentAvailable: true,
     });
     await expect(createCheckoutPaymentApi().loadCheckoutBootstrap("ru")).resolves.toEqual({
       headline: "Оформление заказа",
@@ -79,6 +111,7 @@ describe("checkout-payment api scaffold", () => {
         "Заказ создается только после доверенного серверного подтверждения оплаты.",
       ],
       primaryActionLabel: "Перейти к оплате",
+      mockPaymentAvailable: true,
     });
     await expect(createCheckoutPaymentApi().authenticateTelegram("query_id=raw")).resolves.toEqual({
       transport: "httpOnlyCookie",
@@ -98,6 +131,10 @@ describe("checkout-payment api scaffold", () => {
       revision: "101",
       confirmationLabel: "Заказ создан после доверенного подтверждения оплаты.",
     });
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/orders/checkout/bootstrap", expect.objectContaining({
+      credentials: "same-origin",
+      method: "GET",
+    }));
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/auth/telegram", expect.objectContaining({
       credentials: "same-origin",
       method: "POST",
@@ -110,6 +147,23 @@ describe("checkout-payment api scaffold", () => {
       credentials: "same-origin",
       method: "POST",
     }));
+  });
+
+  it("keeps checkout bootstrap mock availability false when backend metadata is unavailable", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      text: async () => JSON.stringify({
+        error: {
+          code: "NOT_FOUND",
+          message: "Route not found.",
+        },
+      }),
+    }) as unknown as typeof fetch;
+
+    await expect(createCheckoutPaymentApi().loadCheckoutBootstrap("en")).resolves.toMatchObject({
+      headline: "Checkout",
+      mockPaymentAvailable: false,
+    });
   });
 
   it("rejects missing Telegram init data before auth is considered complete", async () => {

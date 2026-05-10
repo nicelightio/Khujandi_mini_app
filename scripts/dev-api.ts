@@ -31,6 +31,8 @@ const runtime = await startDevApiServer({
   adminDatabasePath: process.env.ADMIN_DB_PATH ?? resolve(process.cwd(), "backend", "prisma", "dev-admin-access-runtime.sqlite"),
   catalogDatabasePath: process.env.CATALOG_DB_PATH ?? resolve(process.cwd(), "backend", "prisma", "dev-catalog-runtime.sqlite"),
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+  paymentProvider: process.env.PAYMENT_PROVIDER,
+  nodeEnv: process.env.NODE_ENV,
   isDebugEnabled: parseBooleanFlag(process.env.DEBUG),
 });
 

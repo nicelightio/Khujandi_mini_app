@@ -19,6 +19,10 @@ export type CheckoutPaymentViewModel = {
   headline: string;
   statusLabel: string;
   supportingNotes: string[];
+  mockPaymentAffordance: {
+    label: string;
+    body: string;
+  } | null;
   primaryActionLabel: string;
   isLoading: boolean;
   isSubmitting: boolean;
@@ -56,6 +60,7 @@ export const createLoadingCheckoutPaymentViewModel = (
   headline: getCopy(language).checkout.headline,
   statusLabel: getCopy(language).checkout.loadingStatus,
   supportingNotes: [],
+  mockPaymentAffordance: null,
   primaryActionLabel: getCopy(language).checkout.primaryAction,
   isLoading: true,
   isSubmitting: false,
@@ -75,6 +80,7 @@ export const createRecoveryCheckoutPaymentViewModel = (
   headline: bootstrap.headline,
   statusLabel: getCopy(language).checkout.missingCompositionStatus,
   supportingNotes: bootstrap.supportingNotes,
+  mockPaymentAffordance: null,
   primaryActionLabel: getCopy(language).checkout.missingCompositionAction,
   isLoading: false,
   isSubmitting: false,
@@ -96,6 +102,7 @@ export const createErrorCheckoutPaymentViewModel = (
   headline: bootstrap.headline,
   statusLabel: getCopy(language).checkout.unavailableStatus,
   supportingNotes: bootstrap.supportingNotes,
+  mockPaymentAffordance: null,
   primaryActionLabel:
     retryMessage === null ? bootstrap.primaryActionLabel : getCopy(language).checkout.retryAction,
   isLoading: false,
@@ -112,10 +119,17 @@ export const createErrorCheckoutPaymentViewModel = (
 export const createReadyCheckoutPaymentViewModel = (
   bootstrap: CheckoutPaymentBootstrap,
   composition: CheckoutCompositionHandoff,
+  language: SupportedLanguage = defaultLanguage,
 ): CheckoutPaymentViewModel => ({
   headline: bootstrap.headline,
   statusLabel: bootstrap.statusLabel,
   supportingNotes: bootstrap.supportingNotes,
+  mockPaymentAffordance: bootstrap.mockPaymentAvailable
+    ? {
+        label: getCopy(language).checkout.mockPaymentAffordanceLabel,
+        body: getCopy(language).checkout.mockPaymentAffordanceBody,
+      }
+    : null,
   primaryActionLabel: bootstrap.primaryActionLabel,
   isLoading: false,
   isSubmitting: false,
@@ -135,6 +149,7 @@ export const createSubmittingCheckoutPaymentViewModel = (
   headline: bootstrap.headline,
   statusLabel: getCopy(language).checkout.submittingStatus,
   supportingNotes: bootstrap.supportingNotes,
+  mockPaymentAffordance: null,
   primaryActionLabel: getCopy(language).checkout.submittingAction,
   isLoading: false,
   isSubmitting: true,
@@ -155,6 +170,7 @@ export const createSuccessCheckoutPaymentViewModel = (
   headline: bootstrap.headline,
   statusLabel: getCopy(language).checkout.successStatus,
   supportingNotes: bootstrap.supportingNotes,
+  mockPaymentAffordance: null,
   primaryActionLabel: getCopy(language).checkout.successAction,
   isLoading: false,
   isSubmitting: false,

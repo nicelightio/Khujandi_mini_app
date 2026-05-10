@@ -11,5 +11,5 @@ export const buildRuntimePaymentProviderTxId = (userId: string, composition: Che
   });
   const digest = createHash("sha256").update(source).digest("hex").slice(0, 24);
 
-  return `local-runtime-checkout-${digest}`;
+  return `mock-runtime-checkout-${digest}`;
 };

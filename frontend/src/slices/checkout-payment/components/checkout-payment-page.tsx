@@ -62,6 +62,13 @@ export const CheckoutPaymentPage = ({ viewModel, onPrimaryAction }: CheckoutPaym
         </section>
       )}
 
+      {viewModel.mockPaymentAffordance === null ? null : (
+        <section aria-label={viewModel.mockPaymentAffordance.label}>
+          <p>{viewModel.mockPaymentAffordance.label}</p>
+          <p>{viewModel.mockPaymentAffordance.body}</p>
+        </section>
+      )}
+
       {viewModel.isLoading ? null : (
         <section>
           <p>{copy.checkout.backendBoundaryNote}</p>

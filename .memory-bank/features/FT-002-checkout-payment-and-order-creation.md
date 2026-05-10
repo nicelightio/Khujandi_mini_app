@@ -33,10 +33,12 @@ status: active
 - `POST /auth/telegram` принимает raw `initData` string, валидирует `initData` и `auth_date` на backend, включая `secret_key = HMAC_SHA256(key="WebAppData", message=bot_token)` и проверочный `HMAC_SHA256(key=secret_key, message=data_check_string)`; `auth_date` старше 10 минут отклоняется.
 - `/auth/telegram` имеет replay guard для повторного использования того же `initData` в пределах TTL.
 - Payment success становится trusted только после server-side проверки подлинности provider callback или эквивалентного provider status confirmation.
+- Repo-local/e2e mock payment MAY satisfy provider confirmation only when selected server-side by `PAYMENT_PROVIDER=mock` plus explicit non-production/runtime guard; `DEBUG=true` / `__APP_DEBUG__` MAY expose UI/debug affordance but MUST NOT be the only trust gate.
 - Успешная оплата создает один заказ с `payment_status = PAID`.
 - Payment error/timeout не создает запись в `orders`.
 - Клиент получает retry UX при неуспешной оплате.
 - Client-only payment UX signals (`invoiceClosed` и аналоги) не являются основанием для создания заказа.
+- First KISS mock-payment baseline requires only the successful paid outcome; mock failed and timeout/pending outcomes are planned/follow-up unless explicitly included in a future implementation task.
 - Если используется Telegram/Bot payment transport, webhook/update проходит `secret_token`/source verification и идемпотентную обработку до domain side effects.
 - Session transport policy и CSRF/XSS trade-offs для Mini App auth explicitly documented до реализации.
 - Telegram-sensitive verify baseline фиксируется через runtime contract/runbook; для `checkout-payment` в рамках `FT-002` это означает mock/runtime contract tests и transport verification, а real Mini App runtime evidence для customer-facing checkout UI закрывается в `FT-009`.
@@ -55,6 +57,7 @@ status: active
 - `initDataUnsafe` не используется для доверенных решений.
 - Payment callback требует authenticity verification и replay protection по `payment_provider_tx_id` или эквивалентному idempotency key.
 - Payment finalization и order creation должны иметь DB-level uniqueness по trusted payment identity.
+- Mock payment mode is a guarded payment-provider variant of `checkout-payment`, not a catalog/cart capability and not a shared payment business abstraction.
 
 ## Normative inputs
 
@@ -62,6 +65,7 @@ status: active
 - [.memory-bank/contracts/payment-confirmation-contract.md](../contracts/payment-confirmation-contract.md): trusted payment confirmation и anti-replay.
 - [.memory-bank/contracts/mini-app-runtime-contract.md](../contracts/mini-app-runtime-contract.md): session/storage policy и Telegram runtime boundary.
 - [.memory-bank/testing/index.md](../testing/index.md): baseline quality gates для feature verification.
+- [.memory-bank/runbooks/e2e-mock-payment.md](../runbooks/e2e-mock-payment.md): repo-local/e2e mock payment mode, gates and evidence rules.
 - [.memory-bank/runbooks/telegram-mini-app-verification.md](../runbooks/telegram-mini-app-verification.md): Telegram-specific verification scope и evidence rules.
 - [.memory-bank/features/FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md](FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md): mounted customer workflow that consumes cart/order composition and uses this feature's auth/payment boundary.
 
@@ -74,6 +78,8 @@ status: active
 
 - e2e: successful payment creates order.
 - e2e: failed/timeout payment keeps order absent and offers retry.
+- e2e: guarded mock payment success creates exactly one paid `CREATED` order only when `PAYMENT_PROVIDER=mock` and non-production guard are active.
+- negative: `DEBUG=true` without server-side mock provider gate does not create a trusted paid confirmation.
 - integration: idempotency and provider callback handling.
 - unit: auth TTL/signature validation helpers.
 - integration: command responses include `updated_at` and `revision` when needed for downstream polling.

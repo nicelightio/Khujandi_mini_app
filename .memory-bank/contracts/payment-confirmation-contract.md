@@ -10,6 +10,14 @@ status: active
 Checkout MAY start from a customer order composition draft, but that draft is not a trusted payment amount or order creation fact until server-side revalidation and provider confirmation succeed.
 For `FT-013`, the trusted order creation input is the combination of a server-revalidated composition, a valid Mini App auth/session context and a provider-trusted successful payment confirmation.
 
+## Debug/e2e mock provider mode
+
+- Repo-local/e2e payment simulation MAY exist only as a server-side selected mock provider, not as a client-only payment event.
+- Canonical server-side gate: `PAYMENT_PROVIDER=mock` plus an explicit non-production/runtime guard. A generic `DEBUG=true` flag MAY expose UI/debug affordances, but MUST NOT be the only backend trust gate.
+- In mock mode, a successful mock confirmation is treated as provider-trusted only inside the guarded repo-local/e2e runtime and must still produce a canonical payment identity/idempotency key.
+- First KISS baseline requires only the `success/paid` mock outcome for delivery/customer-status e2e. `failed` and `timeout/pending` outcomes are planned/follow-up unless an implementation task explicitly scopes them in.
+- Mock payment mode MUST keep the same order-creation boundary: server-side revalidated composition + valid Mini App auth/session + provider-trusted successful payment confirmation.
+
 ## Required checks
 
 - Проверка подлинности provider callback или server-to-server status confirmation.
@@ -27,6 +35,7 @@ For `FT-013`, the trusted order creation input is the combination of a server-re
 ## Forbidden
 
 - Нельзя создавать заказ на основании client-only сигнала об оплате.
+- Нельзя включать mock payment provider в production runtime или выбирать его из frontend-only state.
 - Нельзя повторным callback-ом создать второй заказ.
 - Нельзя считать `invoiceClosed` или другой client-only payment UX event trusted business confirmation.
 - Нельзя создавать заказ из stale или synthetic composition draft без server-side revalidation текущего catalog state.
@@ -38,3 +47,4 @@ For `FT-013`, the trusted order creation input is the combination of a server-re
 - [doc/API_GUIDELINES.md](../../doc/API_GUIDELINES.md): checkout/payment API boundary.
 - [doc/BRIEF_EXT.md](../../doc/BRIEF_EXT.md): transport-level baseline around checkout/payment flow.
 - [.memory-bank/contracts/customer-order-composition-contract.md](customer-order-composition-contract.md): upstream composition payload consumed before trusted payment confirmation.
+- [.memory-bank/runbooks/e2e-mock-payment.md](../runbooks/e2e-mock-payment.md): repo-local/e2e mock payment guardrails and verification routing.

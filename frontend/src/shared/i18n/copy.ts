@@ -36,6 +36,8 @@ type CopyDictionary = {
     readyStatus: string;
     noteAuth: string;
     noteTrustedPayment: string;
+    mockPaymentAffordanceLabel: string;
+    mockPaymentAffordanceBody: string;
     primaryAction: string;
     loadingStatus: string;
     loadingBody: string;
@@ -149,6 +151,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       noteAuth: "Авторизация через Telegram запрашивается только после начала оформления.",
       noteTrustedPayment:
         "Заказ создается только после доверенного серверного подтверждения оплаты.",
+      mockPaymentAffordanceLabel: "E2E mock-оплата активна.",
+      mockPaymentAffordanceBody:
+        "Backend mock provider доступен. Текущая кнопка оплаты все равно отправляет запрос на backend.",
       primaryAction: "Перейти к оплате",
       loadingStatus: "Подготавливаем сессию оформления заказа...",
       loadingBody: "Подготавливаем безопасное оформление заказа...",
@@ -261,6 +266,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       noteAuth: "Telegram auth is requested only when you start checkout.",
       noteTrustedPayment:
         "Order creation stays locked behind trusted server-side payment confirmation.",
+      mockPaymentAffordanceLabel: "E2E mock payment is active.",
+      mockPaymentAffordanceBody:
+        "The backend mock provider is available. The existing checkout button still submits to the backend.",
       primaryAction: "Continue to payment",
       loadingStatus: "Preparing checkout session...",
       loadingBody: "Preparing secure checkout...",
@@ -372,6 +380,9 @@ const copyByLanguage: Record<SupportedLanguage, CopyDictionary> = {
       noteAuth: "Иҷозати Telegram танҳо ҳангоми оғози пардохт дархост мешавад.",
       noteTrustedPayment:
         "Фармоиш танҳо баъд аз тасдиқи боэътимоди пардохт аз ҷониби сервер сохта мешавад.",
+      mockPaymentAffordanceLabel: "E2E mock-пардохт фаъол аст.",
+      mockPaymentAffordanceBody:
+        "Backend mock provider дастрас аст. Тугмаи пардохт ҳамоно дархостро ба backend мефиристад.",
       primaryAction: "Ба пардохт гузаред",
       loadingStatus: "Сессияи пардохтро омода карда истодаем...",
       loadingBody: "Пардохти бехатарро омода карда истодаем...",

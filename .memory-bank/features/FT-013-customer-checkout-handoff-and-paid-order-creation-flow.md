@@ -21,6 +21,7 @@ status: active
 - Producer side: `catalog` owns customer product selection, single-shop composition state and handoff payload production through `FT-012`.
 - Consumer side: `checkout-payment` owns checkout route entry, composition consumption, server-side catalog revalidation, Mini App auth/session usage, payment start/finalization and paid order creation through this feature plus the existing `FT-002` boundary.
 - Payment trust source: `FT-002` remains the normative owner of raw `initData` validation, replay protection, session transport, provider/source verification, idempotency and paid-only order creation semantics.
+- Debug/e2e payment affordance placement: if present, it belongs only to the `checkout-payment` checkout route/UI after a valid composition handoff and server-side revalidation path; `catalog`/cart must not own or expose payment trust controls.
 - Downstream status handoff: successful paid order creation must return only customer-safe order identity plus `updated_at`/string `revision` or equivalent cursor metadata needed by `FT-014`; delivery assignment/tracking transitions remain outside this feature.
 - Boundary artifacts: [.memory-bank/contracts/customer-order-composition-contract.md](../contracts/customer-order-composition-contract.md), [.memory-bank/contracts/payment-confirmation-contract.md](../contracts/payment-confirmation-contract.md), [.memory-bank/contracts/telegram-mini-app-auth-contract.md](../contracts/telegram-mini-app-auth-contract.md) and [.memory-bank/contracts/api-events-baseline.md](../contracts/api-events-baseline.md) define the cross-boundary shapes; they do not create a shared cart/payment business module.
 
@@ -51,6 +52,7 @@ status: active
 - `checkout-payment` MUST revalidate the composition against current `catalog` state before payment finalization: shop visibility, product existence, quantities, price/currency and checkout eligibility.
 - Telegram auth/session transport remains the `FT-002` boundary: raw `initData` is validated server-side, replay is blocked and session identifiers are not stored in JS-readable persistent storage.
 - Payment success remains trusted only after server-side provider confirmation per `FT-002` and [.memory-bank/contracts/payment-confirmation-contract.md](../contracts/payment-confirmation-contract.md).
+- Debug/e2e mock payment affordance MUST require the server-side `PAYMENT_PROVIDER=mock` plus non-production/runtime guard before any paid confirmation is accepted; `DEBUG=true` / `__APP_DEBUG__` may only control visibility/copy of the affordance.
 - Order creation MUST happen only after trusted paid confirmation and MUST create an order in `CREATED` state with item/shop/customer snapshots derived from the revalidated composition.
 - Payment failure, timeout, canceled flow or invalid composition MUST NOT create an order and MUST keep retry/repair UX explicit.
 - Successful paid order creation MUST expose an order identity and polling cursor/revision information sufficient for `FT-014` customer status visibility.
@@ -67,6 +69,7 @@ status: active
 
 - No order without trusted successful payment.
 - Client-only payment UX events are never trusted order creation signals.
+- Mock payment UI/control is forbidden before composition handoff and must not bypass server-side catalog revalidation.
 - `FT-013` does not own catalog browse, cart composition, delivery assignment or courier status transitions.
 - `FT-013` must use shell/runtime affordances from `FT-009` without moving auth/payment logic into shared shell code.
 
@@ -78,6 +81,7 @@ status: active
 - [.memory-bank/contracts/customer-order-composition-contract.md](../contracts/customer-order-composition-contract.md): checkout handoff payload.
 - [.memory-bank/contracts/telegram-mini-app-auth-contract.md](../contracts/telegram-mini-app-auth-contract.md): Telegram auth boundary.
 - [.memory-bank/contracts/payment-confirmation-contract.md](../contracts/payment-confirmation-contract.md): trusted payment confirmation.
+- [.memory-bank/runbooks/e2e-mock-payment.md](../runbooks/e2e-mock-payment.md): guarded repo-local/e2e mock payment runbook.
 - [.memory-bank/contracts/api-events-baseline.md](../contracts/api-events-baseline.md): event/polling metadata baseline.
 - [.memory-bank/features/FT-009-mini-app-shell-and-webview-ux.md](FT-009-mini-app-shell-and-webview-ux.md): Telegram WebView shell/runtime boundary.
 
@@ -90,9 +94,11 @@ status: active
 ## Test strategy pointers
 
 - e2e: select products -> checkout -> successful payment -> order `CREATED` with expected snapshots.
+- e2e: select products -> checkout -> guarded mock payment success -> order `CREATED` with expected snapshots and customer-safe polling cursor.
 - e2e: direct checkout without composition returns controlled recovery to catalog/cart.
 - integration: stale composition, hidden shop, price drift and unavailable product block order creation.
 - integration: duplicate payment callbacks/submits create at most one order.
+- negative: mock payment affordance cannot create an order from direct `/checkout`, stale composition, missing Mini App auth/session or frontend-only debug state.
 - verify: Telegram-sensitive checkout runtime evidence follows `REQ-023` and `FT-009` shell verification policy; fresh Android Telegram checkout smoke is advisory pre-release evidence, not a repo-local blocking gate.
 - advisory risk: `.memory-bank/bugs/BUG-2026-04-26-task-ft013-07-missing-android-checkout-evidence.md` now tracks residual pre-release Android checkout smoke risk rather than a blocking closure defect.
 - resolved downstream repair: `.memory-bank/bugs/BUG-2026-04-27-ft014-events-runtime-and-cursor-drift.md` is resolved by `TASK-FT014-07`, which mounted `/api/v1/events` and repaired checkout/status cursor compatibility for `FT-014`.

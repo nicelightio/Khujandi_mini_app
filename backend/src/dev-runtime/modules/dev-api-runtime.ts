@@ -23,9 +23,14 @@ import {
   createOperationalRuntimeModules,
   ensureOperationalRuntimeBaseline,
 } from "../order-ops-runtime";
+import { resolveRuntimeCheckoutPaymentProvider } from "../payment-provider-runtime";
 
 export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const allowedOrigins = options.allowedOrigins ?? ["https://admin.example", "http://127.0.0.1:5173", "http://localhost:5173"];
+  const checkoutPaymentProvider = resolveRuntimeCheckoutPaymentProvider({
+    paymentProvider: options.paymentProvider ?? process.env.PAYMENT_PROVIDER,
+    nodeEnv: options.nodeEnv ?? process.env.NODE_ENV,
+  });
   const adminPersistence = resolveAdminDatabasePersistence(options.adminDatabasePath);
   const prisma = createAdminAccessRuntimePrisma(adminPersistence.loadState(), {
     persist: (nextState) => {
@@ -45,16 +50,14 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const checkoutPaymentState = checkoutPaymentPrisma.state;
   ensureOperationalRuntimeBaseline(checkoutPaymentState);
   const isDebugEnabled = options.isDebugEnabled === true;
-  const checkoutPaymentProviderName = "local-runtime-provider";
-  const checkoutPaymentProviderSecret = "local-runtime-provider-secret";
   const checkoutPaymentModule = createCheckoutPaymentModule(
     checkoutPaymentPrisma,
     {
       botToken: options.telegramBotToken ?? "test-bot-token",
       allowedOrigins,
       secureCookies: false,
-      paymentProviderName: checkoutPaymentProviderName,
-      paymentSecretToken: checkoutPaymentProviderSecret,
+      paymentProviderName: checkoutPaymentProvider.enabled ? checkoutPaymentProvider.providerName : undefined,
+      paymentSecretToken: checkoutPaymentProvider.enabled ? checkoutPaymentProvider.secretToken : undefined,
       now: options.now,
     },
     {
@@ -144,8 +147,7 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
       catalogState,
       operationalModules,
       isDebugEnabled,
-      checkoutPaymentProviderName,
-      checkoutPaymentProviderSecret,
+      checkoutPaymentProvider,
       resolveProtectedAdminSession,
       resolveDebugStorefrontAccess,
     },

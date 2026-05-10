@@ -36,6 +36,65 @@ status: active
 - `FT-009` Android keyboard/shell notes remain recommended advisory pre-release risk evidence in `TASK-ANDROID-ADVISORY-PRE-RELEASE`, but they no longer block `FT-013` or `FT-014` repo-local closure.
 - Current scoped follow-up intentionally excludes the broader `high-churn runtime propagation` refactor; that concern remains in the open bug record but is not part of the execution-ready wave below.
 - `FT-016` migration is complete for repo-local scope through `TASK-FT016-19`: documentation and Memory Bank sync verified `PASS` after `TASK-FT016-18` strict verification/docs-only end-to-end operator delivery flow verification passed.
+- `FT-017` guarded e2e mock payment mode is terminal for scoped repo-local success baseline through `TASK-FT017-04`; mock failed/timeout/pending and real production provider design remain out of scope.
+
+### FT-017 guarded e2e mock payment mode
+
+#### TASK-FT017-01 - Guarded mock provider config/boundary
+- TASK-ID: `TASK-FT017-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-017`
+- REQs: `REQ-021`, `REQ-023`
+- Depends on: `none`
+- Touched files: `backend/src/slices/checkout-payment/**/*`, `backend/src/dev-runtime/**/*`, `tests/slices/checkout-payment/**/*`, `.memory-bank/runbooks/e2e-mock-payment.md`, `.memory-bank/testing/index.md`
+- Tests: focused backend/config coverage proving `PAYMENT_PROVIDER=mock` is accepted only when `NODE_ENV !== "production"` and production-like runtime rejects/refuses mock usage.
+- Verify: old implicit local mock behavior is replaced or gated by explicit server-side provider selection; `DEBUG=true` alone is not trusted; no frontend affordance or order creation change is added in this task.
+- Docs: `.memory-bank/tasks/backlog.md`, `.memory-bank/tasks/plans/IMPL-FT-017.md`, `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/runbooks/e2e-mock-payment.md`
+- Source Artifacts: `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/contracts/payment-confirmation-contract.md`, `.memory-bank/runbooks/e2e-mock-payment.md`
+- Constraints: backend runtime/config and payment provider boundary only; no failed/timeout/pending mock outcomes, no checkout UI affordance, no catalog/cart changes, no shared abstraction.
+
+#### TASK-FT017-02 - Mounted checkout mock success integration
+- TASK-ID: `TASK-FT017-02`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-017`
+- REQs: `REQ-005`, `REQ-021`, `REQ-032`
+- Depends on: `TASK-FT017-01`
+- Touched files: `backend/src/slices/checkout-payment/**/*`, `backend/src/dev-runtime/**/*`, `tests/slices/checkout-payment/**/*`
+- Tests: mounted runtime/e2e coverage for valid composition + Mini App session + mock `success/paid` creating exactly one paid `CREATED` order with customer-safe cursor/revision; idempotency coverage for duplicate submit/confirmation.
+- Verify: mock success passes through existing composition revalidation and payment finalization seam; direct checkout, stale composition and missing auth/session remain no-order; production mock remains refused.
+- Docs: `.memory-bank/tasks/backlog.md`, `.memory-bank/tasks/plans/IMPL-FT-017.md`, `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/testing/index.md`
+- Source Artifacts: `.memory-bank/features/FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md`, `.memory-bank/contracts/payment-confirmation-contract.md`
+- Constraints: success/paid only; no failed/timeout/pending mock outcomes, no frontend UI affordance, no delivery lifecycle changes, no shared payment abstraction.
+
+#### TASK-FT017-03 - Checkout-only debug/e2e affordance
+- TASK-ID: `TASK-FT017-03`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-017`
+- REQs: `REQ-023`, `REQ-032`
+- Depends on: `TASK-FT017-02`
+- Touched files: `frontend/src/slices/checkout-payment/**/*`, `frontend/src/tests/slices/checkout-payment/**/*`, optional `backend/src/dev-runtime/**/*` only for exposing non-sensitive mock-availability metadata if needed.
+- Tests: focused checkout frontend tests proving the affordance appears only in checkout context when backend mock mode is available and cannot create trusted payment from frontend-only `DEBUG=true`.
+- Verify: affordance is visible only after valid checkout handoff context; catalog/cart surfaces do not expose payment controls; backend remains the only trust source.
+- Docs: `.memory-bank/tasks/backlog.md`, `.memory-bank/tasks/plans/IMPL-FT-017.md`, `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`
+- Source Artifacts: `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/runbooks/e2e-mock-payment.md`
+- Constraints: frontend checkout presentation only; no backend trust change beyond consuming existing availability metadata, no catalog/cart UI, no shared UI abstraction.
+
+#### TASK-FT017-04 - E2E verification and docs sync
+- TASK-ID: `TASK-FT017-04`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-017`
+- REQs: `REQ-005`, `REQ-021`, `REQ-023`, `REQ-032`
+- Depends on: `TASK-FT017-02`, `TASK-FT017-03`
+- Touched files: `.tasks/TASK-FT017-04/**/*`, `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/runbooks/e2e-mock-payment.md`, `.memory-bank/testing/index.md`, `.memory-bank/tasks/backlog.md`, `.memory-bank/index.md`
+- Tests: final repo-local e2e/mock runtime gates for happy path, production refusal, `DEBUG=true` negative, direct/stale/no-auth no-order cases and idempotency.
+- Verify: `PASS`; final repo-local gates prove guarded mock `success/paid`, production refusal, `DEBUG=true` negative, direct/stale/no-auth no-order cases, idempotency, checkout-only affordance and docs sync without weakening payment trust. Failed/timeout/pending remain documented follow-up.
+- Docs: `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/runbooks/e2e-mock-payment.md`, `.memory-bank/testing/index.md`, `.memory-bank/tasks/backlog.md`, `.memory-bank/index.md`
+- Source Artifacts: `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/tasks/plans/IMPL-FT-017.md`, `.memory-bank/runbooks/e2e-mock-payment.md`
+- Constraints: verification/docs sync only after implementation tasks; do not broaden into real provider integration or mock failure/timeout/pending behavior.
 
 ### FT-016 operator delivery migration preflight
 
