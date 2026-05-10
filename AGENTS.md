@@ -53,6 +53,21 @@ Before meaningful implementation work:
 - Operational artifacts: `.tasks/` (NOT part of Memory Bank)
 - Long-running plans/logs: `.protocols/`
 
+## Server access and deploy boundaries
+- Агент может самостоятельно заходить на production server при необходимости для проверки состояния проекта, деплоя или диагностики TgMeal/Khujandi.
+- Секреты и доступы брать только из локальных ignored-файлов вроде `.env`; не печатать пароли, токены, приватные ключи и `DATABASE_URL` в ответах или логах.
+- Текущий prod deploy выполняется root-SSH входом с запуском `/usr/local/bin/tgmeal-deploy`; само приложение должно жить под app user `tgmeal`.
+- На сервере можно трогать только ресурсы проекта TgMeal/Khujandi:
+  - `/srv/tgmeal`, особенно `/srv/tgmeal/app`;
+  - `/var/log/tgmeal`;
+  - Docker Compose project `tgmeal`;
+  - containers/images/volumes/networks, явно принадлежащие `tgmeal`;
+  - checked-in deploy script `/usr/local/bin/tgmeal-deploy`.
+- Чужие сервисы и shared infrastructure не изменять: не останавливать, не пересоздавать, не чистить и не редактировать PhotoChanger, Traefik, `/opt/photochanger`, `/opt/traefik`, Docker volumes/networks не относящиеся к `tgmeal`.
+- Для shared infrastructure допустимы только read-only health checks, необходимые deploy script/runbook: `docker ps`, `systemctl is-active`, `docker network inspect web`, public HTTPS checks.
+- Запрещены destructive server commands без явной команды тимлида: `docker system prune`, `docker volume rm`, `docker compose down -v`, массовые удаления под `/var/lib/docker`, `rm -rf` вне TgMeal-owned paths.
+- Production deploy должен идти только из GitHub checkout `/srv/tgmeal/app` через fast-forward `origin/main`/approved branch; не копировать локальные файлы разработки на сервер вручную.
+
 ## Where skills live (don’t confuse)
 - Codex CLI reads project skills from `.agents/skills/<name>/SKILL.md` (not from `.codex/`).
 - `.codex/` is only for project configuration (e.g. `.codex/config.toml`).
@@ -61,6 +76,11 @@ Before meaningful implementation work:
 - Orchestrator → workers only (max depth = 2)
 - Workers write details into `.tasks/TASK-XXX/`
 - Orchestrator reads only short summaries
+- Агент — оркестратор: максимально бережет основной контекст для стратегии, scope control и интеграции результатов.
+- Делегируй сабагентам исследование, implementation, review и verification; не делай параллельно то, что может быть поручено сабагенту.
+- Не засоряй главный контекст длинными tool outputs/file dumps; проси у сабагентов короткие информатинвые отчеты с учетом важных деталей.
+- Перед решениями дождись релевантных отчетов сабагентов.
+- Каждому сабагенту задавай узкий ownership, scope, checks и strict out-of-scope.
 
 ## Clean context (recommended)
 - If running in **Codex**: you can run each `TASK-XXX` in a fresh session via `codex exec` (see `/execute`).
