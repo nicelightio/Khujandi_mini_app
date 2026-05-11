@@ -35,6 +35,7 @@ status: active
 ## Recent updates
 
 - `admin-web root route fix`: `/admin/` now normalizes to the canonical `/admin` dashboard/login boundary instead of rendering admin not-found, while unknown `/admin/*` paths still stay explicit not-found.
+- `admin-web scene controls`: production-mounted visual tuning panel removed from the admin shell; scene atmosphere values are now fixed in admin CSS tokens (`spot=0.13`, `blur=25px`, `beam=0.14/1.24`, `mist=0.18`, `vignette=0`, `panelGlow=0.15`, `surfaceLift=0.1`) without introducing shared UI or domain changes.
 - `test-server mock payment env wiring`: compose now passes production-safe `NODE_ENV` and `PAYMENT_PROVIDER` defaults into the api runtime, while `.env.example` and runbooks document the dedicated test-server flags `DEBUG=TRUE`, `PAYMENT_PROVIDER=mock`, `NODE_ENV=development` for guarded checkout mock mode.
 - `TASK-FT017-04`: verified `PASS`; final repo-local guarded e2e mock payment closure passed backend checkout-payment Jest, frontend checkout-payment Jest, frontend build, lint and `git diff --check`. `FT-017` is terminal for the scoped `success/paid` baseline; mock failed/timeout/pending and real production provider design remain out of scope.
 - `TASK-FT017-03`: verified `PASS`; checkout-only debug/e2e affordance depends on backend `mockPaymentAvailable` metadata from the guarded checkout runtime, renders only in ready checkout with composition, keeps the existing submit button as the only action, and preserves backend-only payment trust.
