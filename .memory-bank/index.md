@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `admin-web cancellation Russian labels`: cancellation/refund page now maps order/refund enum values to Russian operator-facing labels and removes leftover English technical copy from default cancellation state text while preserving API contract values.
 - `admin-web Russian localization`: protected admin-web presentation copy for login/session, dashboard, assignment, cancellation/refund and catalog provisioning is now Russian-first; focused admin frontend tests assert the localized operator-visible strings while enum/API identifiers remain technical contract values.
 - `mini-app startup splash repeat timing`: startup splash now records a non-sensitive browser/Mini App marker and keeps the full SVG draw only on first open; repeat page opens use a quick one-second startup mode while preserving the FT-009 shell-owned early overlay boundary.
 - `admin-web root route fix`: `/admin/` now normalizes to the canonical `/admin` dashboard/login boundary instead of rendering admin not-found, while unknown `/admin/*` paths still stay explicit not-found.

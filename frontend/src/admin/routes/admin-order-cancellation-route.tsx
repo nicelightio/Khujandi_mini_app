@@ -48,26 +48,64 @@ type AdminOrderCancellationRouteProps = {
   submitRefundUpdate?: (input: AdminRefundUpdateSubmitInput) => Promise<AdminRefundUpdateSubmitResult>;
 };
 
+const formatOrderStatus = (status: string): string => {
+  switch (status) {
+    case "IN_PROGRESS":
+      return "В доставке";
+    case "CANCELLED_BY_ADMIN":
+      return "Отменен админом";
+    case "CANCELLED_BY_COURIER_UNAVAILABLE":
+      return "Отменен: курьер недоступен";
+    case "CREATED":
+      return "Создан";
+    case "DELAYED":
+      return "Задержан";
+    case "ASSIGNED":
+      return "Назначен";
+    case "PICKED_UP":
+      return "Забран";
+    case "DELIVERED":
+      return "Доставлен";
+    case "COMPLETED":
+      return "Завершен";
+    default:
+      return status.replaceAll("_", " ");
+  }
+};
+
+const formatRefundStatus = (refundStatus: AdminRefundStatus): string => {
+  switch (refundStatus) {
+    case "NOT_REQUIRED":
+      return "не требуется";
+    case "PENDING_MANUAL":
+      return "ожидает ручного возврата";
+    case "DONE":
+      return "выполнен";
+    case "REJECTED":
+      return "отклонен";
+  }
+};
+
 const defaultBootstrap: AdminOrderCancellationBootstrap = {
   orderId: "order-in-progress-2004",
   orderLabel: "Заказ #2004",
-  orderStatusLabel: "Текущее состояние заказа: IN_PROGRESS. Серверная проверка разрешенных ролей остается вне этой оболочки.",
-  statusLabel: "Оболочка отмены готова для подключения команд FT-006 и видимой обратной связи по состоянию возврата.",
+  orderStatusLabel: `Текущее состояние заказа: ${formatOrderStatus("IN_PROGRESS")}. Серверная проверка разрешенных ролей остается вне этой страницы.`,
+  statusLabel: "Страница отмены готова для подключения команд и видимой обратной связи по состоянию возврата.",
   refundStatus: "PENDING_MANUAL",
-  refundStatusLabel: "Платные отмены должны сразу показывать PENDING_MANUAL, пока оператор не запишет ручной результат возврата.",
+  refundStatusLabel: "Платные отмены должны сразу показывать ожидание ручного возврата, пока оператор не запишет результат.",
   refundVisibilityNote:
-    "Состояние возврата отображается здесь, чтобы UI FT-006 показывал явный операторский учет до подключения среды выполнения.",
+    "Состояние возврата отображается здесь, чтобы админка показывала явный операторский учет до подключения среды выполнения.",
   refundNote: null,
   cancellationReasons: [
     {
       code: "OPS_DELAY",
       label: "Операционная задержка",
-      detail: "Admin-only placeholder операционной отмены",
+      detail: "Операционная отмена от администратора",
     },
     {
       code: "COURIER_UNAVAILABLE",
       label: "Курьер недоступен",
-      detail: "Fixture-preview для разрешенного unavailable-case",
+      detail: "Разрешенный сценарий, когда курьер недоступен",
     },
   ],
 };
@@ -79,7 +117,7 @@ const toRefundStatusLabel = (refundStatus: AdminRefundStatus) => {
     case "NOT_REQUIRED":
       return "Возврат явно отмечен как не требующийся для этого отмененного заказа.";
     case "PENDING_MANUAL":
-      return "Платные отмены должны сразу показывать PENDING_MANUAL, пока оператор не запишет ручной результат.";
+      return "Платные отмены должны сразу показывать ожидание ручного возврата, пока оператор не запишет результат.";
     case "DONE":
       return "Ручной возврат записан как выполненный и остается видимым операторам.";
     case "REJECTED":
@@ -92,10 +130,10 @@ const toStatusLabel = (
   refundStatus: AdminRefundStatus,
 ) =>
   refundStatus === "PENDING_MANUAL"
-    ? `Отмена записана как ${status}. Ручной учет возврата остается активным и видимым.`
-    : `Отмена записана как ${status}. Явный результат возврата остается видимым без скрытых побочных эффектов.`;
+    ? `Отмена записана: ${formatOrderStatus(status)}. Ручной учет возврата остается активным и видимым.`
+    : `Отмена записана: ${formatOrderStatus(status)}. Явный результат возврата остается видимым без скрытых побочных эффектов.`;
 
-const toOrderStatusLabel = (status: string) => `Текущее состояние заказа: ${status}.`;
+const toOrderStatusLabel = (status: string) => `Текущее состояние заказа: ${formatOrderStatus(status)}.`;
 
 const applyCancellationResult = (
   bootstrap: AdminOrderCancellationBootstrap,
@@ -124,7 +162,7 @@ const applyRefundUpdateResult = (
   },
 ): AdminOrderCancellationBootstrap => ({
   ...bootstrap,
-  statusLabel: `Результат возврата ${result.refundStatus} записан для отмененного заказа.`,
+  statusLabel: `Результат возврата "${formatRefundStatus(result.refundStatus)}" записан для отмененного заказа.`,
   refundStatus: result.refundStatus,
   refundStatusLabel: toRefundStatusLabel(result.refundStatus),
   refundVisibilityNote:
@@ -138,14 +176,14 @@ const toCancellationConfirmationMessage = (result: {
   refundStatus: AdminRefundStatus;
   revision: string;
 }) =>
-  `Заказ ${result.orderId} переведен в ${result.status}. Состояние возврата ${result.refundStatus} явное. Ревизия ${result.revision} готова для последующего опроса.`;
+  `Заказ ${result.orderId} переведен в состояние "${formatOrderStatus(result.status)}". Состояние возврата: ${formatRefundStatus(result.refundStatus)}. Ревизия ${result.revision} готова для последующего опроса.`;
 
 const toRefundConfirmationMessage = (result: {
   orderId: string;
   refundStatus: Extract<AdminRefundStatus, "DONE" | "REJECTED">;
   revision: string;
 }) =>
-  `Результат возврата ${result.refundStatus} записан для ${result.orderId}. Ревизия ${result.revision} готова для последующего опроса.`;
+  `Результат возврата "${formatRefundStatus(result.refundStatus)}" записан для ${result.orderId}. Ревизия ${result.revision} готова для последующего опроса.`;
 
 export const AdminOrderCancellationRoute = ({
   api,

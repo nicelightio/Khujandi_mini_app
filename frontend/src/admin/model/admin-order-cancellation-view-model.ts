@@ -52,7 +52,7 @@ export type AdminOrderCancellationViewModel = {
 
 const cancellationHeadline = "Отмена заказа и учет возврата";
 const cancellationAuthBoundaryNote =
-  "Логин/сессия админки остаются вне FT-006 и должны приходить из границы admin-access или тестов.";
+  "Логин и сессия админки управляются отдельно через границу admin-access.";
 const defaultCancellationSubmitLabel = "Отправить отмену";
 const defaultRefundSubmitLabel = "Записать результат возврата";
 
@@ -118,7 +118,7 @@ export const createLoadingAdminOrderCancellationViewModel = (): AdminOrderCancel
   selectedReasonCode: "",
   refundStatus: "PENDING_MANUAL",
   refundStatusLabel: "Состояние возврата загружается.",
-  refundVisibilityNote: "Ответственность за состояние возврата остается за runtime-задачами FT-006.",
+  refundVisibilityNote: "Ответственность за состояние возврата остается за задачами среды выполнения.",
   refundNote: null,
   cancellationSubmitLabel: defaultCancellationSubmitLabel,
   isLoading: true,
