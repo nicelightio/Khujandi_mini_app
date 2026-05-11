@@ -34,6 +34,8 @@ status: active
 
 ## Recent updates
 
+- `admin-web Russian localization`: protected admin-web presentation copy for login/session, dashboard, assignment, cancellation/refund and catalog provisioning is now Russian-first; focused admin frontend tests assert the localized operator-visible strings while enum/API identifiers remain technical contract values.
+- `mini-app startup splash repeat timing`: startup splash now records a non-sensitive browser/Mini App marker and keeps the full SVG draw only on first open; repeat page opens use a quick one-second startup mode while preserving the FT-009 shell-owned early overlay boundary.
 - `admin-web root route fix`: `/admin/` now normalizes to the canonical `/admin` dashboard/login boundary instead of rendering admin not-found, while unknown `/admin/*` paths still stay explicit not-found.
 - `admin-web scene controls`: production-mounted visual tuning panel removed from the admin shell; scene atmosphere values are now fixed in admin CSS tokens (`spot=0.13`, `blur=25px`, `beam=0.14/1.24`, `mist=0.18`, `vignette=0`, `panelGlow=0.15`, `surfaceLift=0.1`) without introducing shared UI or domain changes.
 - `test-server mock payment env wiring`: compose now passes production-safe `NODE_ENV` and `PAYMENT_PROVIDER` defaults into the api runtime, while `.env.example` and runbooks document the dedicated test-server flags `DEBUG=TRUE`, `PAYMENT_PROVIDER=mock`, `NODE_ENV=development` for guarded checkout mock mode.

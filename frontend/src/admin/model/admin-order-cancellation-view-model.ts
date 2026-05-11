@@ -50,20 +50,20 @@ export type AdminOrderCancellationViewModel = {
   errorMessage: string | null;
 };
 
-const cancellationHeadline = "Order cancellation and refund tracking";
+const cancellationHeadline = "Отмена заказа и учет возврата";
 const cancellationAuthBoundaryNote =
-  "Admin login/session stays outside FT-006 and must be provided by the admin-access boundary or tests.";
-const defaultCancellationSubmitLabel = "Submit cancellation";
-const defaultRefundSubmitLabel = "Record refund outcome";
+  "Логин/сессия админки остаются вне FT-006 и должны приходить из границы admin-access или тестов.";
+const defaultCancellationSubmitLabel = "Отправить отмену";
+const defaultRefundSubmitLabel = "Записать результат возврата";
 
 const refundOutcomeOptions: AdminOrderCancellationViewModel["refundOutcomeOptions"] = [
   {
     value: "DONE",
-    label: "Refund completed manually",
+    label: "Возврат выполнен вручную",
   },
   {
     value: "REJECTED",
-    label: "Refund rejected after manual review",
+    label: "Возврат отклонен после ручной проверки",
   },
 ];
 
@@ -109,16 +109,16 @@ const buildViewModel = (
 
 export const createLoadingAdminOrderCancellationViewModel = (): AdminOrderCancellationViewModel => ({
   headline: cancellationHeadline,
-  statusLabel: "Loading cancellation workspace...",
+  statusLabel: "Загружаем рабочую область отмены...",
   orderId: "",
-  orderLabel: "Preparing cancellation form",
-  orderStatusLabel: "Resolving order state",
+  orderLabel: "Готовим форму отмены",
+  orderStatusLabel: "Определяем состояние заказа",
   authBoundaryNote: cancellationAuthBoundaryNote,
   cancellationReasons: [],
   selectedReasonCode: "",
   refundStatus: "PENDING_MANUAL",
-  refundStatusLabel: "Refund state is loading.",
-  refundVisibilityNote: "Refund-state ownership remains with FT-006 runtime tasks.",
+  refundStatusLabel: "Состояние возврата загружается.",
+  refundVisibilityNote: "Ответственность за состояние возврата остается за runtime-задачами FT-006.",
   refundNote: null,
   cancellationSubmitLabel: defaultCancellationSubmitLabel,
   isLoading: true,
@@ -153,7 +153,7 @@ export const createSubmittingAdminOrderCancellationViewModel = (
 ): AdminOrderCancellationViewModel =>
   buildViewModel(bootstrap, {
     selectedReasonCode: reasonCode,
-    cancellationSubmitLabel: "Submitting cancellation...",
+    cancellationSubmitLabel: "Отправляем отмену...",
     isCancellationSubmitting: true,
     isCancellationSubmitDisabled: true,
   });
@@ -213,7 +213,7 @@ export const createSubmittingRefundAdminOrderCancellationViewModel = (
   buildViewModel(bootstrap, {
     selectedRefundOutcome,
     refundNoteInput,
-    refundSubmitLabel: "Recording refund outcome...",
+    refundSubmitLabel: "Записываем результат возврата...",
     isRefundSubmitting: true,
     isRefundSubmitDisabled: true,
   });

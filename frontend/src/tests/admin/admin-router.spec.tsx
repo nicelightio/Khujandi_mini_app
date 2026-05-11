@@ -120,9 +120,9 @@ describe("admin router", () => {
     const root = renderer.root.findByProps({ "data-admin-shell": "root" });
 
     expect(root.props["data-admin-contour"]).toBe("admin-web");
-    expect(text).toContain("Admin login");
-    expect(text).toContain("Protected routes redirect here until a valid admin-access session exists.");
-    expect(text).toContain(`Requested path: ${adminRoutePaths.home}`);
+    expect(text).toContain("Вход в админку");
+    expect(text).toContain("Защищенные разделы ведут сюда, пока нет действующей admin-access сессии.");
+    expect(text).toContain(`Запрошенный путь: ${adminRoutePaths.home}`);
     expect(renderer.root.findByProps({ name: "login" }).props.autoComplete).toBe("username");
     expect(renderer.root.findByType("button").props.disabled).toBe(true);
   });
@@ -139,9 +139,9 @@ describe("admin router", () => {
     const root = renderer.root.findByProps({ "data-admin-shell": "root" });
 
     expect(root.props["data-admin-contour"]).toBe("admin-web");
-    expect(text).toContain("Admin page not found");
-    expect(text).not.toContain("Admin login");
-    expect(text).not.toContain("Order assignment");
+    expect(text).toContain("Страница админки не найдена");
+    expect(text).not.toContain("Вход в админку");
+    expect(text).not.toContain("Назначение заказов");
   });
 
   it("does not render not-found for the trailing-slash admin root", async () => {
@@ -154,8 +154,8 @@ describe("admin router", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
 
-    expect(text).toContain("Admin login");
-    expect(text).not.toContain("Admin page not found");
+    expect(text).toContain("Вход в админку");
+    expect(text).not.toContain("Страница админки не найдена");
   });
 
   it("renders the protected admin dashboard with links when authenticated", async () => {
@@ -174,7 +174,7 @@ describe("admin router", () => {
     const text = collectText(renderer.toJSON()).join(" ");
     const hrefs = renderer.root.findAllByType("a").map((link) => link.props.href);
 
-    expect(text).toContain("Admin dashboard");
+    expect(text).toContain("Главная админки");
     expect(text).toContain("Все доступные интерфейсы");
     expect(hrefs).toEqual(
       expect.arrayContaining([
@@ -213,8 +213,8 @@ describe("admin router", () => {
       const text = collectText(renderer.toJSON()).join(" ");
 
       expect(root.props["data-admin-contour"]).toBe("admin-web");
-      expect(text).toContain("Admin login");
-      expect(text).toContain(`Requested path: ${adminRoutePaths.cancellation}`);
+      expect(text).toContain("Вход в админку");
+      expect(text).toContain(`Запрошенный путь: ${adminRoutePaths.cancellation}`);
       expect(authApi.refresh).toHaveBeenCalledTimes(1);
     } finally {
       Object.defineProperty(globalThis, "window", {
@@ -245,9 +245,9 @@ describe("admin router", () => {
     const text = collectText(renderer.toJSON()).join(" ");
 
     expect(authApi.refresh).toHaveBeenCalledTimes(1);
-    expect(text).toContain("Signed in as boss (admin-account-1).");
-    expect(text).toContain("Catalog shop provisioning");
-    expect(text).not.toContain("Admin login");
+    expect(text).toContain("Вход: boss (admin-account-1).");
+    expect(text).toContain("Создание магазинов каталога");
+    expect(text).not.toContain("Вход в админку");
   });
 
   it("renders session-expired feedback for protected routes when the session is no longer valid", async () => {
@@ -271,9 +271,9 @@ describe("admin router", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
 
-    expect(text).toContain("Admin login");
-    expect(text).toContain("Your admin session expired or became unavailable. Sign in again.");
-    expect(text).toContain(`Requested path: ${adminRoutePaths.assignment}`);
+    expect(text).toContain("Вход в админку");
+    expect(text).toContain("Админ-сессия истекла или недоступна. Войдите заново.");
+    expect(text).toContain(`Запрошенный путь: ${adminRoutePaths.assignment}`);
   });
 
   it("renders the protected admin page when an authenticated session placeholder is present", async () => {
@@ -293,8 +293,8 @@ describe("admin router", () => {
     const protectedRoot = renderer.root.findByProps({ "data-admin-auth": "protected" });
 
     expect(protectedRoot).toBeDefined();
-    expect(text).toContain("Signed in as admin (admin-account-demo).");
-    expect(text).toContain("Order cancellation and refund tracking");
+    expect(text).toContain("Вход: admin (admin-account-demo).");
+    expect(text).toContain("Отмена заказа и учет возврата");
   });
 
   it("renders the catalog provisioning scaffold behind the shared admin auth boundary", async () => {
@@ -312,9 +312,9 @@ describe("admin router", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
 
-    expect(text).toContain("Catalog shop provisioning");
-    expect(text).toContain("Signed in as admin (admin-account-demo).");
-    expect(text).toContain("Provision shop");
+    expect(text).toContain("Создание магазинов каталога");
+    expect(text).toContain("Вход: admin (admin-account-demo).");
+    expect(text).toContain("Создать магазин");
   });
 
   it("submits login from a protected route and renders the protected page after success", async () => {
@@ -353,8 +353,8 @@ describe("admin router", () => {
       login: "ops.manager",
       password: "correct-horse-battery",
     });
-    expect(text).toContain("Signed in as manager (admin-account-7).");
-    expect(text).toContain("Operator delivery orders");
+    expect(text).toContain("Вход: manager (admin-account-7).");
+    expect(text).toContain("Операторские заказы доставки");
   });
 
   it("keeps manual sign-in available while protected-route session restore is in progress", async () => {
@@ -390,7 +390,7 @@ describe("admin router", () => {
     const loginButton = renderer.root.findByType("button");
     const textBeforeSubmit = collectText(renderer.toJSON()).join(" ");
 
-    expect(textBeforeSubmit).toContain("Checking for an existing admin session...");
+    expect(textBeforeSubmit).toContain("Проверяем существующую админ-сессию...");
     expect(loginButton.props.disabled).toBe(false);
 
     await act(async () => {
@@ -406,8 +406,8 @@ describe("admin router", () => {
       login: "boss@example.com",
       password: "correct-horse-battery",
     });
-    expect(textAfterSubmit).toContain("Signed in as manager (admin-account-7).");
-    expect(textAfterSubmit).toContain("Catalog shop provisioning");
+    expect(textAfterSubmit).toContain("Вход: manager (admin-account-7).");
+    expect(textAfterSubmit).toContain("Создание магазинов каталога");
 
     await act(async () => {
       resolveRefresh?.({
@@ -422,9 +422,9 @@ describe("admin router", () => {
 
     const textAfterLateRefresh = collectText(renderer.toJSON()).join(" ");
 
-    expect(textAfterLateRefresh).toContain("Signed in as manager (admin-account-7).");
-    expect(textAfterLateRefresh).toContain("Catalog shop provisioning");
-    expect(textAfterLateRefresh).not.toContain("Signed in as admin (ignored-refresh-account).");
+    expect(textAfterLateRefresh).toContain("Вход: manager (admin-account-7).");
+    expect(textAfterLateRefresh).toContain("Создание магазинов каталога");
+    expect(textAfterLateRefresh).not.toContain("Вход: admin (ignored-refresh-account).");
   });
 
   it("logs out through the shared auth boundary and returns to the login route", async () => {
@@ -452,8 +452,8 @@ describe("admin router", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
     expect(authApi.logout).toHaveBeenCalledTimes(1);
-    expect(text).toContain("Admin login");
-    expect(text).toContain("You signed out of the admin session.");
-    expect(text).toContain(`Requested path: ${adminRoutePaths.home}`);
+    expect(text).toContain("Вход в админку");
+    expect(text).toContain("Вы вышли из админ-сессии.");
+    expect(text).toContain(`Запрошенный путь: ${adminRoutePaths.home}`);
   });
 });

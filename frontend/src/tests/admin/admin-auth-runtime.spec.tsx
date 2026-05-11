@@ -91,7 +91,7 @@ describe("admin router runtime auth boundary", () => {
       });
 
       let text = collectText(renderer.toJSON()).join(" ");
-      expect(text).toContain("Admin login");
+      expect(text).toContain("Вход в админку");
 
       await act(async () => {
         const inputs = renderer.root.findAllByType("input");
@@ -109,8 +109,8 @@ describe("admin router runtime auth boundary", () => {
       });
 
       text = collectText(renderer.toJSON()).join(" ");
-      expect(text).toContain("Signed in as boss (admin-account-1).");
-      expect(text).toContain("Operator delivery orders");
+      expect(text).toContain("Вход: boss (admin-account-1).");
+      expect(text).toContain("Операторские заказы доставки");
 
       await expect(authApi.refresh()).resolves.toEqual({
         adminAccountId: "admin-account-1",
@@ -126,8 +126,8 @@ describe("admin router runtime auth boundary", () => {
       });
 
       const loggedOutText = collectText(renderer.toJSON()).join(" ");
-      expect(loggedOutText).toContain("Admin login");
-      expect(loggedOutText).toContain("You signed out of the admin session.");
+      expect(loggedOutText).toContain("Вход в админку");
+      expect(loggedOutText).toContain("Вы вышли из админ-сессии.");
     } finally {
       await runtime.stop();
     }

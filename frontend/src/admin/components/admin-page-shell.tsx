@@ -10,7 +10,7 @@ type AdminPageShellProps = {
 export const AdminPageShell = ({ title, children, layout = "default" }: AdminPageShellProps) => (
   <main data-admin-page="shell">
     <header data-admin-page="header">
-      <p data-admin-page="contour-label">Admin Web</p>
+      <p data-admin-page="contour-label">Веб-админка</p>
       <h1>{title}</h1>
     </header>
     <div data-admin-page="body" data-admin-page-layout={layout}>

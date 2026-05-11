@@ -72,22 +72,87 @@ Before meaningful implementation work:
 - Codex CLI reads project skills from `.agents/skills/<name>/SKILL.md` (not from `.codex/`).
 - `.codex/` is only for project configuration (e.g. `.codex/config.toml`).
 
-## Subagents
-- Orchestrator → workers only (max depth = 2)
-- Workers write details into `.tasks/TASK-XXX/`
-- Orchestrator reads only short summaries
-- Агент — оркестратор: максимально бережет основной контекст для стратегии, scope control и интеграции результатов.
-- Делегируй сабагентам исследование, implementation, review и verification; не делай параллельно то, что может быть поручено сабагенту.
-- Не засоряй главный контекст длинными tool outputs/file dumps; проси у сабагентов короткие информатинвые отчеты с учетом важных деталей.
-- Перед решениями дождись релевантных отчетов сабагентов.
-- Каждому сабагенту задавай узкий ownership, scope, checks и strict out-of-scope.
+## Orchestration protocol
+
+This project uses one top-level orchestrator and delegated subagents.
+
+Every agent task should start with one role header:
+
+```text
+ROLE: ORCHESTRATOR
+```
+
+```text
+ROLE: SUBAGENT
+TYPE: explorer | spec-writer | implementer | tester | reviewer
+```
+
+If no role is supplied, act as `ORCHESTRATOR`.
+
+`ORCHESTRATOR` is the only role that may make final decisions about product behavior, architecture, safety rules, public contracts, scope, and acceptance. The orchestrator owns strategy, scope control, integration of results, and the final answer to the human.
+
+`SUBAGENT` owns only the bounded task in its prompt. It must not make product, architecture, safety, public-contract, or scope decisions. When such a decision is needed, it reports options, risks, and a recommendation to the orchestrator.
+
+`SUBAGENT` must not spawn more agents unless explicitly instructed.
+
+### Orchestrator invariants
+- Orchestrator → subagents only; max agent depth is 2.
+- Delegate work that does not require orchestrator-level judgment: exploration, spec drafting, implementation, testing, review, verification, deploy checks.
+- Do not duplicate subagent work in the main context; use the main context for strategy, decisions, integration, and human-facing coordination.
+- Wait for required subagent results before making dependent decisions.
+- Keep the human in the loop for product, architecture, safety, public-contract, and scope changes.
+- Treat subagent output as input to judgment, not as automatic truth.
+- Do not pollute the main context with long tool outputs or file dumps; request short summaries with important evidence.
+
+### Subagent operating rules
+- Each subagent receives narrow ownership, scope, checks, and strict out-of-scope.
+- Subagents write detailed artifacts into `.tasks/TASK-XXX/`.
+- The orchestrator reads only short summaries unless a blocker requires deeper evidence.
+- Subagents follow this `AGENTS.md`, Memory Bank rules, and the task-specific specs.
+- Subagents stay inside scope and report blockers instead of expanding scope silently.
+
+### Subagent task template
+
+```text
+ROLE: SUBAGENT
+TYPE: <explorer|spec-writer|implementer|tester|reviewer>
+
+Task:
+<bounded task>
+
+Scope:
+<owned files, directories, modules, or spec artifacts>
+
+Rules:
+- Follow this project's AGENTS.md.
+- Read the required Memory Bank/spec context before touching files.
+- Stay inside scope; report blockers instead of expanding scope silently.
+- Do not make product/spec/architecture/safety/public-contract decisions.
+- Do not spawn more agents unless explicitly instructed.
+
+Return:
+- Result
+- Files inspected
+- Files changed
+- Checks run
+- Blockers/risks
+- Recommendation
+```
 
 ## Clean context (recommended)
 - If running in **Codex**: you can run each `TASK-XXX` in a fresh session via `codex exec` (see `/execute`).
 - Sequencing: independent tasks may run in parallel clean sessions; dependent/shared-file tasks must run sequentially.
 
 Codex (fresh session):
-- `codex exec --ephemeral --full-auto -m gpt-5.2-high 'TASK_ID=TASK-123. Read AGENTS.md + doc/ARCHITECTURE.md + .memory-bank/mbb/index.md + .memory-bank/spec-index.md (if exists) + relevant spec files + .protocols/TASK-123/{context,plan,progress}.md. In context.md record owning slice, contour, touched layers, and any shared justification. Keep context.md updated. Implement. Update progress. Report → .tasks/TASK-123/…'`
+```bash
+codex exec --ephemeral --full-auto -m gpt-5.2 -c 'model_reasoning_effort="xhigh"' 'ROLE: SUBAGENT
+TYPE: implementer
+TASK_ID=TASK-123.
+Task: implement the bounded task from .protocols/TASK-123/plan.md.
+Scope: only files allowed by .protocols/TASK-123/context.md and plan.md.
+Rules: Read AGENTS.md + doc/ARCHITECTURE.md + .memory-bank/mbb/index.md + .memory-bank/spec-index.md (if exists) + relevant spec files + .protocols/TASK-123/{context,plan,progress}.md. In context.md record owning slice, contour, touched layers, and any shared justification. Keep context.md updated. Stay inside scope; report blockers instead of expanding scope silently. Do not make product/spec/architecture/safety/public-contract decisions. Update progress.
+Return: short summary + files changed + checks run + blockers/risks + recommendation. Detailed report → .tasks/TASK-123/…'
+```
 
 
 ## Two modes (interactive vs autonomous)

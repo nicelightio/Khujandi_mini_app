@@ -20,6 +20,10 @@
   animation: startup-splash-shell 3.9s ease forwards, startup-splash-breathe 7.5s ease-in-out infinite;
 }
 
+html[data-startup-splash-mode="quick"] [data-startup-splash="root"] {
+  animation-duration: 1s, 1s;
+}
+
 [data-startup-splash="orb"] {
   position: absolute;
   width: min(72vw, 340px);
@@ -28,6 +32,10 @@
   background: radial-gradient(circle, rgba(217, 247, 255, 0.18), rgba(42, 171, 238, 0.16) 44%, transparent 70%);
   transform: scale(0.86);
   animation: startup-splash-orb 3.3s ease-out forwards;
+}
+
+html[data-startup-splash-mode="quick"] [data-startup-splash="orb"] {
+  animation-duration: 0.82s;
 }
 
 [data-startup-splash="mark"] {
@@ -63,6 +71,16 @@
 .startup-splash-branch-4 { animation-delay: 0.66s, 1.92s; }
 .startup-splash-branch-5 { animation-delay: 0.84s, 2.04s; }
 
+html[data-startup-splash-mode="quick"] .startup-splash-branch {
+  animation-duration: 0.58s, 0.34s;
+}
+
+html[data-startup-splash-mode="quick"] .startup-splash-branch-1 { animation-delay: 0.02s, 0.32s; }
+html[data-startup-splash-mode="quick"] .startup-splash-branch-2 { animation-delay: 0.06s, 0.36s; }
+html[data-startup-splash-mode="quick"] .startup-splash-branch-3 { animation-delay: 0.1s, 0.4s; }
+html[data-startup-splash-mode="quick"] .startup-splash-branch-4 { animation-delay: 0.14s, 0.44s; }
+html[data-startup-splash-mode="quick"] .startup-splash-branch-5 { animation-delay: 0.18s, 0.48s; }
+
 .startup-splash-spark {
   fill: #7fe8ff;
   opacity: 0;
@@ -74,6 +92,14 @@
 .startup-splash-spark-2 { animation-delay: 1.62s; }
 .startup-splash-spark-3 { animation-delay: 1.8s; }
 
+html[data-startup-splash-mode="quick"] .startup-splash-spark {
+  animation-duration: 0.42s;
+}
+
+html[data-startup-splash-mode="quick"] .startup-splash-spark-1 { animation-delay: 0.38s; }
+html[data-startup-splash-mode="quick"] .startup-splash-spark-2 { animation-delay: 0.43s; }
+html[data-startup-splash-mode="quick"] .startup-splash-spark-3 { animation-delay: 0.48s; }
+
 [data-startup-splash="brand"] {
   position: absolute;
   top: calc(50% + min(28vw, 118px));
@@ -83,6 +109,11 @@
   opacity: 0;
   transform: translateY(10px);
   animation: startup-splash-brand 2.025s ease-out 1.11s forwards;
+}
+
+html[data-startup-splash-mode="quick"] [data-startup-splash="brand"] {
+  animation-duration: 0.46s;
+  animation-delay: 0.34s;
 }
 
 @keyframes startup-splash-shell {

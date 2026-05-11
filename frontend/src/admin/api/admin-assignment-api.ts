@@ -209,7 +209,7 @@ const toHistoryRow = (value: unknown): AdminOperatorDeliveryHistoryRow => {
   const comments = ensureObject(record?.comments);
 
   if (record === null || actor === null || comments === null) {
-    throw new Error("Operator delivery orders payload is invalid: history.");
+    throw new Error("Некорректный payload операторских заказов доставки: history.");
   }
 
   return {
@@ -247,13 +247,13 @@ const toOperatorOrder = (value: unknown): AdminOperatorDeliveryOrder => {
     (courier.current !== null && currentCourier === null) ||
     !Array.isArray(record.history)
   ) {
-    throw new Error("Operator delivery orders payload is invalid: order.");
+    throw new Error("Некорректный payload операторских заказов доставки: order.");
   }
 
   const marker = ensureString(courier.marker, "courier.marker");
 
   if (marker !== "absent" && marker !== "current") {
-    throw new Error("Operator delivery orders payload is invalid: courier.marker.");
+    throw new Error("Некорректный payload операторских заказов доставки: courier.marker.");
   }
 
   return {
@@ -294,7 +294,7 @@ const toOperatorOrdersResult = (value: unknown): AdminOperatorDeliveryOrdersResu
   const window = ensureObject(record?.window);
 
   if (record === null || window === null || !Array.isArray(record.orders)) {
-    throw new Error("Operator delivery orders payload is invalid.");
+    throw new Error("Некорректный payload операторских заказов доставки.");
   }
 
   return {
@@ -312,7 +312,7 @@ const toManualTargetedOfferResult = (value: unknown): AdminManualTargetedOfferRe
   const record = ensureObject(value);
 
   if (record === null) {
-    throw new Error("Manual targeted offer payload is invalid.");
+    throw new Error("Некорректный payload ручного персонального предложения.");
   }
 
   return {
@@ -331,7 +331,7 @@ const toBroadcastOfferResult = (value: unknown): AdminBroadcastOfferResult => {
   const record = ensureObject(value);
 
   if (record === null || !Array.isArray(record.offers)) {
-    throw new Error("Broadcast offer payload is invalid.");
+    throw new Error("Некорректный payload broadcast-предложения.");
   }
 
   return {
@@ -350,7 +350,7 @@ const toOperatorStatusCommandResult = (value: unknown): AdminOperatorStatusComma
   const record = ensureObject(value);
 
   if (record === null) {
-    throw new Error("Operator status command payload is invalid.");
+    throw new Error("Некорректный payload команды статуса оператора.");
   }
 
   return {
@@ -367,7 +367,7 @@ const toApiError = (payload: unknown, status: number): AdminAssignmentApiError =
   const message =
     typeof record?.error?.message === "string"
       ? record.error.message
-      : "Operator delivery orders are temporarily unavailable.";
+      : "Операторские заказы доставки временно недоступны.";
   const traceId = typeof record?.trace_id === "string" ? record.trace_id : null;
 
   return new AdminAssignmentApiError(code, message, traceId, record?.error?.details ?? null);

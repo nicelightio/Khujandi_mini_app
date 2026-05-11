@@ -27,6 +27,8 @@ type AdminCatalogProvisioningPageProps = {
 };
 
 const buildPublicStorefrontPath = (publicPath: string): string => `/shops/${publicPath}`;
+const formatShopStatus = (status: "WORKING" | "NOT_WORKING"): string =>
+  status === "WORKING" ? "Работает" : "Не работает";
 
 export const AdminCatalogProvisioningPage = ({
   value,
@@ -39,33 +41,33 @@ export const AdminCatalogProvisioningPage = ({
   onChange,
   onSubmit,
 }: AdminCatalogProvisioningPageProps) => (
-  <AdminPageShell title="Catalog shop provisioning" layout="hero">
+  <AdminPageShell title="Создание магазинов каталога" layout="hero">
     <section aria-live="polite" data-admin-provisioning="summary">
-      <span data-admin-ui="micro-label">Provisioning status</span>
-      <h2>Created shops become seller-ready storefronts.</h2>
+      <span data-admin-ui="micro-label">Статус создания</span>
+      <h2>Созданные магазины сразу готовы для продавца.</h2>
       <p>
-        Provisioning creates a durable skeleton storefront, binds one Telegram-linked seller identity, and issues public path aliases.
+        Создание магазина поднимает долговечную витрину-заготовку, привязывает продавца из Telegram и выдает публичные пути.
       </p>
       <div data-admin-ui="fact-list">
         <div>
-          <span>Runtime list</span>
-          <strong>{isLoadingShops ? "Loading provisioned shops..." : `${provisionedShops.length} visible`}</strong>
+          <span>Список из среды выполнения</span>
+          <strong>{isLoadingShops ? "Загружаем созданные магазины..." : `Видно: ${provisionedShops.length}`}</strong>
         </div>
         <div>
-          <span>Initial visibility</span>
+          <span>Начальная видимость</span>
           <strong>
             <span data-admin-ui="status-chip" data-admin-status-tone={value.status === "WORKING" ? "success" : "danger"}>
-              {value.status}
+              {formatShopStatus(value.status)}
             </span>
           </strong>
         </div>
         <div>
-          <span>Seller binding</span>
-          <strong>{value.telegramId.trim().length === 0 ? "Pending" : value.telegramId}</strong>
+          <span>Привязка продавца</span>
+          <strong>{value.telegramId.trim().length === 0 ? "Ожидает" : value.telegramId}</strong>
         </div>
         <div>
-          <span>Starter content</span>
-          <strong>Menu pages and products</strong>
+          <span>Стартовый контент</span>
+          <strong>Страницы меню и товары</strong>
         </div>
       </div>
       {successMessage !== null ? <p role="status">{successMessage}</p> : null}
@@ -81,9 +83,9 @@ export const AdminCatalogProvisioningPage = ({
       }}
       >
       <fieldset disabled={isSubmitting}>
-        <legend>Provisioning workspace</legend>
+        <legend>Рабочая область создания</legend>
         <label>
-          Seller ID
+          ID продавца
           <input
             name="sellerId"
             value={value.sellerId}
@@ -91,7 +93,7 @@ export const AdminCatalogProvisioningPage = ({
           />
         </label>
         <label>
-          Seller Telegram ID
+          Telegram ID продавца
           <input
             name="telegramId"
             value={value.telegramId}
@@ -99,11 +101,11 @@ export const AdminCatalogProvisioningPage = ({
           />
         </label>
         <label>
-          Shop name
+          Название магазина
           <input name="name" value={value.name} onChange={(event) => onChange("name", event.target.value)} />
         </label>
         <label>
-          Description
+          Описание
           <textarea
             name="description"
             value={value.description}
@@ -111,7 +113,7 @@ export const AdminCatalogProvisioningPage = ({
           />
         </label>
         <label>
-          Header image URL
+          URL картинки шапки
           <input
             name="headerImageUrl"
             value={value.headerImageUrl}
@@ -119,7 +121,7 @@ export const AdminCatalogProvisioningPage = ({
           />
         </label>
         <label>
-          Background image URL
+          URL фоновой картинки
           <input
             name="backgroundImageUrl"
             value={value.backgroundImageUrl}
@@ -127,7 +129,7 @@ export const AdminCatalogProvisioningPage = ({
           />
         </label>
         <label>
-          Initial visibility
+          Начальная видимость
           <select value={value.status} onChange={(event) => onChange("status", event.target.value as "WORKING" | "NOT_WORKING")}>
             <option value="WORKING">WORKING</option>
             <option value="NOT_WORKING">NOT_WORKING</option>
@@ -136,23 +138,23 @@ export const AdminCatalogProvisioningPage = ({
       </fieldset>
 
       <button type="submit" data-magnetic="true" disabled={isSubmitting}>
-        {isSubmitting ? "Provisioning shop..." : "Provision shop"}
+        {isSubmitting ? "Создаем магазин..." : "Создать магазин"}
       </button>
     </form>
 
     <section aria-live="polite" data-admin-provisioning="shops-list">
       <div data-admin-provisioning="shops-header">
         <div>
-          <span data-admin-ui="micro-label">Catalog runtime</span>
-          <h2>Provisioned shops</h2>
+          <span data-admin-ui="micro-label">Среда каталога</span>
+          <h2>Созданные магазины</h2>
         </div>
         <span data-admin-ui="status-chip" data-admin-status-tone="accent">
-          {isLoadingShops ? "Loading" : `${provisionedShops.length} shops`}
+          {isLoadingShops ? "Загрузка" : `Магазинов: ${provisionedShops.length}`}
         </span>
       </div>
-      {isLoadingShops ? <p>Loading provisioned shops...</p> : null}
+      {isLoadingShops ? <p>Загружаем созданные магазины...</p> : null}
       {!isLoadingShops && provisionedShops.length === 0 ? (
-        <p>No shops have been provisioned yet. Create the first skeleton storefront from the workspace above.</p>
+        <p>Магазины еще не созданы. Создайте первую витрину-заготовку через форму выше.</p>
       ) : null}
       {provisionedShops.length > 0 ? (
         <ul data-admin-provisioning="shop-cards">
@@ -160,26 +162,26 @@ export const AdminCatalogProvisioningPage = ({
             <li key={shop.shopId} data-admin-provisioning="shop-card">
               <div data-admin-provisioning="shop-card-main">
                 <div>
-                  <span data-admin-ui="micro-label">Shop</span>
+                  <span data-admin-ui="micro-label">Магазин</span>
                   <h3>{shop.shopName}</h3>
                 </div>
                 <span data-admin-ui="status-chip" data-admin-status-tone={shop.status === "WORKING" ? "success" : "danger"}>
-                  {shop.status}
+                  {formatShopStatus(shop.status)}
                 </span>
               </div>
 
               <dl data-admin-provisioning="shop-facts">
                 <div>
-                  <dt>Seller</dt>
+                  <dt>Продавец</dt>
                   <dd>{shop.sellerId}</dd>
                 </div>
                 <div>
                   <dt>Telegram</dt>
-                  <dd>{shop.telegramId === null ? "Unbound" : shop.telegramId}</dd>
+                  <dd>{shop.telegramId === null ? "Не привязан" : shop.telegramId}</dd>
                 </div>
               </dl>
 
-              <div data-admin-provisioning="paths" aria-label={`${shop.shopName} public storefront paths`}>
+              <div data-admin-provisioning="paths" aria-label={`Публичные пути storefront для ${shop.shopName}`}>
                 <a href={buildPublicStorefrontPath(shop.secondaryPublicPath)}>{shop.secondaryPublicPath}</a>
                 <a href={buildPublicStorefrontPath(shop.primaryPublicPath)}>{shop.primaryPublicPath}</a>
               </div>

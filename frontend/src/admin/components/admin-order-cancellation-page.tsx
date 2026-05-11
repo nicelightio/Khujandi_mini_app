@@ -10,6 +10,19 @@ type AdminOrderCancellationPageProps = {
   onRefundSubmit: () => void;
 };
 
+const formatRefundStatus = (status: AdminOrderCancellationViewModel["refundStatus"]): string => {
+  switch (status) {
+    case "NOT_REQUIRED":
+      return "Не требуется";
+    case "PENDING_MANUAL":
+      return "Ожидает ручного возврата";
+    case "DONE":
+      return "Выполнен";
+    case "REJECTED":
+      return "Отклонен";
+  }
+};
+
 export const AdminOrderCancellationPage = ({
   viewModel,
   onReasonChange,
@@ -20,15 +33,15 @@ export const AdminOrderCancellationPage = ({
 }: AdminOrderCancellationPageProps) => (
   <AdminPageShell title={viewModel.headline}>
     <section aria-live="polite" data-admin-panel="context">
-      <span data-admin-ui="micro-label">Cancellation status</span>
+      <span data-admin-ui="micro-label">Статус отмены</span>
       <p>{viewModel.statusLabel}</p>
       <div data-admin-ui="fact-list">
         <div>
-          <span>Order</span>
+          <span>Заказ</span>
           <strong>{viewModel.orderLabel}</strong>
         </div>
         <div>
-          <span>Current state</span>
+          <span>Текущее состояние</span>
           <strong>
             <span data-admin-ui="status-chip" data-admin-status-tone="accent">
               {viewModel.orderStatusLabel}
@@ -36,32 +49,32 @@ export const AdminOrderCancellationPage = ({
           </strong>
         </div>
         <div>
-          <span>Refund state</span>
+          <span>Состояние возврата</span>
           <strong>
             <span
               data-admin-ui="status-chip"
               data-admin-status-tone={viewModel.refundStatus === "DONE" ? "success" : viewModel.refundStatus === "REJECTED" ? "danger" : "neutral"}
             >
-              {viewModel.refundStatus}
+              {formatRefundStatus(viewModel.refundStatus)}
             </span>
           </strong>
         </div>
       </div>
       <p>
-        Refund state:{" "}
+        Состояние возврата:{" "}
         <strong>
           <span
             data-admin-ui="status-chip"
             data-admin-status-tone={viewModel.refundStatus === "DONE" ? "success" : viewModel.refundStatus === "REJECTED" ? "danger" : "neutral"}
           >
-            {viewModel.refundStatus}
+            {formatRefundStatus(viewModel.refundStatus)}
           </span>
         </strong>
       </p>
       <p>{viewModel.refundStatusLabel}</p>
       <p>{viewModel.refundVisibilityNote}</p>
       <p>{viewModel.authBoundaryNote}</p>
-      {viewModel.refundNote !== null ? <p>Latest refund note: {viewModel.refundNote}</p> : null}
+      {viewModel.refundNote !== null ? <p>Последняя заметка по возврату: {viewModel.refundNote}</p> : null}
       {viewModel.successMessage !== null ? <p role="status">{viewModel.successMessage}</p> : null}
       {viewModel.errorMessage !== null ? <p role="alert">{viewModel.errorMessage}</p> : null}
     </section>
@@ -76,7 +89,7 @@ export const AdminOrderCancellationPage = ({
       <fieldset disabled={viewModel.isLoading || viewModel.isCancellationSubmitting}>
         <legend>{viewModel.orderLabel}</legend>
         <label>
-          Cancellation reason
+          Причина отмены
           <select
             value={viewModel.selectedReasonCode}
             onChange={(event) => onReasonChange(event.target.value)}
@@ -115,26 +128,26 @@ export const AdminOrderCancellationPage = ({
       data-admin-panel="workspace"
     >
       <fieldset disabled={viewModel.isLoading || viewModel.isRefundSubmitting}>
-        <legend>Manual refund tracking</legend>
+        <legend>Ручной учет возврата</legend>
         <div data-admin-ui="fact-list">
           <div>
-            <span>Visible state</span>
+            <span>Видимое состояние</span>
             <strong>
               <span
                 data-admin-ui="status-chip"
                 data-admin-status-tone={viewModel.refundStatus === "DONE" ? "success" : viewModel.refundStatus === "REJECTED" ? "danger" : "neutral"}
               >
-                {viewModel.refundStatus}
+                {formatRefundStatus(viewModel.refundStatus)}
               </span>
             </strong>
           </div>
           <div>
-            <span>Operator note</span>
-            <strong>{viewModel.refundNote === null ? "Not recorded" : "Available"}</strong>
+            <span>Заметка оператора</span>
+            <strong>{viewModel.refundNote === null ? "Не записана" : "Есть"}</strong>
           </div>
         </div>
         <label>
-          Refund outcome
+          Результат возврата
           <select
             value={viewModel.selectedRefundOutcome}
             onChange={(event) => onRefundOutcomeChange(event.target.value as "DONE" | "REJECTED")}
@@ -147,7 +160,7 @@ export const AdminOrderCancellationPage = ({
           </select>
         </label>
         <label>
-          Refund note
+          Заметка по возврату
           <textarea
             value={viewModel.refundNoteInput}
             onChange={(event) => onRefundNoteChange(event.target.value)}

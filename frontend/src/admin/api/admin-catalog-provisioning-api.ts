@@ -114,7 +114,7 @@ const toCommandResult = (value: unknown): AdminCatalogProvisioningCommandResult 
     !Array.isArray(record.menuPages) ||
     !Array.isArray(record.products)
   ) {
-    throw new Error("Provisioning response payload is invalid.");
+    throw new Error("Некорректный payload ответа создания магазина.");
   }
 
   return {
@@ -143,7 +143,7 @@ const toProvisionedShopSummary = (value: unknown): AdminProvisionedShopSummary =
     typeof record.secondaryPublicPath !== "string" ||
     (record.telegramId !== null && typeof record.telegramId !== "string")
   ) {
-    throw new Error("Provisioned shops payload is invalid.");
+    throw new Error("Некорректный payload списка созданных магазинов.");
   }
 
   return {
@@ -159,7 +159,7 @@ const toProvisionedShopSummary = (value: unknown): AdminProvisionedShopSummary =
 
 const toProvisionedShops = (value: unknown): AdminProvisionedShopSummary[] => {
   if (!Array.isArray(value)) {
-    throw new Error("Provisioned shops payload is invalid.");
+    throw new Error("Некорректный payload списка созданных магазинов.");
   }
 
   return value.map((shop) => toProvisionedShopSummary(shop));
@@ -171,7 +171,7 @@ const toApiError = (payload: unknown, status: number): AdminCatalogProvisioningA
   const message =
     typeof record?.error?.message === "string"
       ? record.error.message
-      : "Shop provisioning is temporarily unavailable.";
+      : "Создание магазина временно недоступно.";
   const traceId = typeof record?.trace_id === "string" ? record.trace_id : null;
 
   return new AdminCatalogProvisioningApiError(code, message, traceId, record?.error?.details ?? null);

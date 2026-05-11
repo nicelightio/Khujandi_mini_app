@@ -50,24 +50,24 @@ type AdminOrderCancellationRouteProps = {
 
 const defaultBootstrap: AdminOrderCancellationBootstrap = {
   orderId: "order-in-progress-2004",
-  orderLabel: "Order #2004",
-  orderStatusLabel: "Current order state: IN_PROGRESS. Server-side allowed-role validation remains outside this shell.",
-  statusLabel: "Cancellation shell is ready for FT-006 command wiring and visible refund-state feedback.",
+  orderLabel: "Заказ #2004",
+  orderStatusLabel: "Текущее состояние заказа: IN_PROGRESS. Серверная проверка разрешенных ролей остается вне этой оболочки.",
+  statusLabel: "Оболочка отмены готова для подключения команд FT-006 и видимой обратной связи по состоянию возврата.",
   refundStatus: "PENDING_MANUAL",
-  refundStatusLabel: "Paid cancellations must immediately surface PENDING_MANUAL until a later manual refund update is recorded.",
+  refundStatusLabel: "Платные отмены должны сразу показывать PENDING_MANUAL, пока оператор не запишет ручной результат возврата.",
   refundVisibilityNote:
-    "Refund state is rendered here so FT-006 UI can show explicit operator-visible tracking before runtime wiring lands.",
+    "Состояние возврата отображается здесь, чтобы UI FT-006 показывал явный операторский учет до подключения среды выполнения.",
   refundNote: null,
   cancellationReasons: [
     {
       code: "OPS_DELAY",
-      label: "Operational delay",
-      detail: "Admin-only operational cancellation placeholder",
+      label: "Операционная задержка",
+      detail: "Admin-only placeholder операционной отмены",
     },
     {
       code: "COURIER_UNAVAILABLE",
-      label: "Courier unavailable",
-      detail: "Fixture-only preview for allowed unavailable-case handling",
+      label: "Курьер недоступен",
+      detail: "Fixture-preview для разрешенного unavailable-case",
     },
   ],
 };
@@ -77,13 +77,13 @@ const loadDefaultBootstrap = async (): Promise<AdminOrderCancellationBootstrap> 
 const toRefundStatusLabel = (refundStatus: AdminRefundStatus) => {
   switch (refundStatus) {
     case "NOT_REQUIRED":
-      return "Refund is explicitly marked as not required for this cancelled order.";
+      return "Возврат явно отмечен как не требующийся для этого отмененного заказа.";
     case "PENDING_MANUAL":
-      return "Paid cancellations must immediately surface PENDING_MANUAL until an operator records the manual outcome.";
+      return "Платные отмены должны сразу показывать PENDING_MANUAL, пока оператор не запишет ручной результат.";
     case "DONE":
-      return "Manual refund is recorded as completed and remains visible to operators.";
+      return "Ручной возврат записан как выполненный и остается видимым операторам.";
     case "REJECTED":
-      return "Manual refund was reviewed and recorded as rejected with operator context.";
+      return "Ручной возврат проверен и записан как отклоненный с контекстом оператора.";
   }
 };
 
@@ -92,10 +92,10 @@ const toStatusLabel = (
   refundStatus: AdminRefundStatus,
 ) =>
   refundStatus === "PENDING_MANUAL"
-    ? `Cancellation recorded as ${status}. Manual refund tracking remains active and visible.`
-    : `Cancellation recorded as ${status}. Explicit refund outcome remains visible without hidden side effects.`;
+    ? `Отмена записана как ${status}. Ручной учет возврата остается активным и видимым.`
+    : `Отмена записана как ${status}. Явный результат возврата остается видимым без скрытых побочных эффектов.`;
 
-const toOrderStatusLabel = (status: string) => `Current order state: ${status}.`;
+const toOrderStatusLabel = (status: string) => `Текущее состояние заказа: ${status}.`;
 
 const applyCancellationResult = (
   bootstrap: AdminOrderCancellationBootstrap,
@@ -111,8 +111,8 @@ const applyCancellationResult = (
   refundStatusLabel: toRefundStatusLabel(result.refundStatus),
   refundVisibilityNote:
     result.refundStatus === "PENDING_MANUAL"
-      ? "Refund state stays explicit while the operator records the manual outcome in this workflow."
-      : "Refund state stays explicit after cancellation so operators do not rely on hidden side effects.",
+      ? "Состояние возврата остается явным, пока оператор записывает ручной результат в этом процессе."
+      : "Состояние возврата остается явным после отмены, чтобы операторы не полагались на скрытые побочные эффекты.",
   refundNote: null,
 });
 
@@ -124,11 +124,11 @@ const applyRefundUpdateResult = (
   },
 ): AdminOrderCancellationBootstrap => ({
   ...bootstrap,
-  statusLabel: `Refund outcome ${result.refundStatus} is now recorded for the cancelled order.`,
+  statusLabel: `Результат возврата ${result.refundStatus} записан для отмененного заказа.`,
   refundStatus: result.refundStatus,
   refundStatusLabel: toRefundStatusLabel(result.refundStatus),
   refundVisibilityNote:
-    "Refund tracking remains visible after the manual update so later verification can confirm the explicit outcome.",
+    "Учет возврата остается видимым после ручного обновления, чтобы последующая проверка видела явный результат.",
   refundNote: result.refundNote,
 });
 
@@ -138,14 +138,14 @@ const toCancellationConfirmationMessage = (result: {
   refundStatus: AdminRefundStatus;
   revision: string;
 }) =>
-  `Order ${result.orderId} moved to ${result.status}. Refund state ${result.refundStatus} is explicit. Revision ${result.revision} is ready for downstream polling.`;
+  `Заказ ${result.orderId} переведен в ${result.status}. Состояние возврата ${result.refundStatus} явное. Ревизия ${result.revision} готова для последующего опроса.`;
 
 const toRefundConfirmationMessage = (result: {
   orderId: string;
   refundStatus: Extract<AdminRefundStatus, "DONE" | "REJECTED">;
   revision: string;
 }) =>
-  `Refund outcome ${result.refundStatus} recorded for ${result.orderId}. Revision ${result.revision} is ready for downstream polling.`;
+  `Результат возврата ${result.refundStatus} записан для ${result.orderId}. Ревизия ${result.revision} готова для последующего опроса.`;
 
 export const AdminOrderCancellationRoute = ({
   api,
@@ -262,7 +262,7 @@ export const AdminOrderCancellationRoute = ({
       const message =
         error instanceof AdminOrderCancellationApiError || error instanceof Error
           ? error.message
-          : "Cancellation workflow is temporarily unavailable.";
+          : "Workflow отмены временно недоступен.";
       setViewModel(createErrorAdminOrderCancellationViewModel(bootstrap, selectedReasonCode, message));
     } finally {
       cancellationSubmitInFlightRef.current = false;
@@ -321,7 +321,7 @@ export const AdminOrderCancellationRoute = ({
       const message =
         error instanceof AdminOrderCancellationApiError || error instanceof Error
           ? error.message
-          : "Refund tracking is temporarily unavailable.";
+          : "Учет возврата временно недоступен.";
       setViewModel(
         createRefundErrorAdminOrderCancellationViewModel(
           bootstrap,

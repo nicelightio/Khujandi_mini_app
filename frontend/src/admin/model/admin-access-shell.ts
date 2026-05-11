@@ -29,20 +29,20 @@ export type AuthenticatedAdminSessionState = Extract<AdminSessionState, { status
 
 export const createAnonymousAdminSessionState = (): AnonymousAdminSessionState => ({
   status: "anonymous",
-  loginHint: "Use a provisioned admin account. Admin auth stays isolated from Telegram Mini App auth.",
+  loginHint: "Используйте заранее созданную админ-учетку. Авторизация админки отделена от авторизации Telegram Mini App.",
   reason: null,
 });
 
 export const createExpiredAdminSessionState = (): ExpiredAdminSessionState => ({
   status: "expired",
-  loginHint: "Use a provisioned admin account to restore access to protected admin routes.",
-  reason: "Your admin session expired or became unavailable. Sign in again.",
+  loginHint: "Войдите под заранее созданной админ-учеткой, чтобы восстановить доступ к защищенным разделам.",
+  reason: "Админ-сессия истекла или недоступна. Войдите заново.",
 });
 
 export const createRestoringAdminSessionState = (): RestoringAdminSessionState => ({
   status: "restoring",
-  loginHint: "Admin session restore uses the cookie-based auth boundary before protected routes render.",
-  reason: "Checking for an existing admin session...",
+  loginHint: "Перед открытием защищенных разделов сессия восстанавливается через cookie-based auth boundary.",
+  reason: "Проверяем существующую админ-сессию...",
 });
 
 type CreateAuthenticatedAdminSessionStateInput = {
@@ -57,9 +57,9 @@ export const createAuthenticatedAdminSessionState = (
   status: "authenticated",
   adminAccountId: input.adminAccountId ?? "admin-account-demo",
   role: input.role ?? "admin",
-  actorLabel: `Signed in as ${input.role ?? "admin"} (${input.adminAccountId ?? "admin-account-demo"}).`,
+  actorLabel: `Вход: ${input.role ?? "admin"} (${input.adminAccountId ?? "admin-account-demo"}).`,
   idleTimeoutLabel:
     input.idleExpiresAt === undefined
-      ? "Idle timeout stays enforced on the server-side cookie session boundary."
-      : `Idle timeout is enforced on the server-side boundary until ${input.idleExpiresAt}.`,
+      ? "Время простоя контролируется серверной cookie-сессией."
+      : `Время простоя контролируется серверной границей до ${input.idleExpiresAt}.`,
 });

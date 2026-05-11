@@ -22,19 +22,19 @@ export const AdminAssignmentPage = ({
 }: AdminAssignmentPageProps) => (
   <AdminPageShell title={viewModel.headline}>
     <section aria-live="polite" data-admin-panel="context">
-      <span data-admin-ui="micro-label">Read-only operator window</span>
+      <span data-admin-ui="micro-label">Операторское окно только для чтения</span>
       <p>{viewModel.statusLabel}</p>
       <div data-admin-ui="fact-list">
         <div>
-          <span>Window</span>
+          <span>Окно</span>
           <strong>{viewModel.windowLabel}</strong>
         </div>
         <div>
-          <span>Generated</span>
+          <span>Сформировано</span>
           <strong>{viewModel.generatedAtLabel}</strong>
         </div>
         <div>
-          <span>Status cursor</span>
+          <span>Курсор статуса</span>
           <strong>{viewModel.revisionLabel}</strong>
         </div>
       </div>
@@ -42,14 +42,14 @@ export const AdminAssignmentPage = ({
     </section>
 
     <section data-admin-panel="workspace" data-admin-assignment="orders">
-      <span data-admin-ui="micro-label">Delivery operations</span>
+      <span data-admin-ui="micro-label">Операции доставки</span>
       <div
         role="alert"
         data-admin-assignment="courier-alert"
         data-admin-alert-state={viewModel.alertOrders.length === 0 ? "clear" : "active"}
       >
         <strong>{viewModel.alertLabel}</strong>
-        {viewModel.alertOrders.length === 0 ? <span>Clear</span> : null}
+        {viewModel.alertOrders.length === 0 ? <span>Нет проблем</span> : null}
         {viewModel.alertOrders.length > 0 ? (
           <ul>
             {viewModel.alertOrders.map((order) => (
@@ -64,7 +64,7 @@ export const AdminAssignmentPage = ({
           </ul>
         ) : null}
       </div>
-      <div data-admin-assignment="sort-controls" aria-label="Sort operator delivery orders">
+      <div data-admin-assignment="sort-controls" aria-label="Сортировка заказов доставки">
         {viewModel.sortControls.map((control) => (
           <button
             key={control.key}
@@ -85,14 +85,14 @@ export const AdminAssignmentPage = ({
           <table data-admin-ui="table" data-admin-assignment="orders-table">
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Severity</th>
-                <th>Status</th>
-                <th>Courier</th>
-                <th>Assigned / claimed</th>
-                <th>Latest message</th>
-                <th>Actions</th>
-                <th>History</th>
+                <th>Заказ</th>
+                <th>Срочность</th>
+                <th>Статус</th>
+                <th>Курьер</th>
+                <th>Назначен / принят</th>
+                <th>Последнее сообщение</th>
+                <th>Действия</th>
+                <th>История</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@ export const AdminAssignmentPage = ({
                     <td>
                       <strong>{order.publicOrderNumber}</strong>
                       <span>{order.summaryLabel}</span>
-                      <span>Created {order.createdAtLabel}</span>
+                      <span>Создан {order.createdAtLabel}</span>
                     </td>
                     <td>
                       <span
@@ -122,21 +122,21 @@ export const AdminAssignmentPage = ({
                       <strong>{order.courierLabel}</strong>
                       <span
                         data-admin-ui="status-chip"
-                        data-admin-status-tone={order.courierMarkerLabel === "Absent" ? "accent" : "success"}
+                        data-admin-status-tone={order.courierMarkerLabel === "Нет" ? "accent" : "success"}
                       >
                         {order.courierMarkerLabel}
                       </span>
                     </td>
                     <td>
-                      <span>Assigned {order.assignedAtLabel}</span>
-                      <span>Claimed {order.claimedAtLabel}</span>
+                      <span>Назначен {order.assignedAtLabel}</span>
+                      <span>Принят {order.claimedAtLabel}</span>
                     </td>
                     <td>
                       <strong>{order.latestMessageLabel}</strong>
                       <span>{order.latestMessageMetaLabel}</span>
                     </td>
                     <td>
-                      <div data-admin-assignment="action-cells" aria-label={`Guarded actions for ${order.publicOrderNumber}`}>
+                      <div data-admin-assignment="action-cells" aria-label={`Защищенные действия для ${order.publicOrderNumber}`}>
                         {order.actionCells.map((action) => (
                           <button
                             key={action.key}
@@ -167,25 +167,25 @@ export const AdminAssignmentPage = ({
                         aria-expanded={order.isExpanded}
                         onClick={() => onToggleHistory(order.orderId)}
                       >
-                        {order.isExpanded ? "Hide history" : "Show history"}
+                        {order.isExpanded ? "Скрыть историю" : "Показать историю"}
                       </button>
                     </td>
                   </tr>
                   {order.isExpanded ? (
                     <tr key={`${order.orderId}-history`} data-admin-assignment-history={order.orderId}>
                       <td colSpan={8}>
-                        {order.history.length === 0 ? <p>No status history yet.</p> : null}
+                        {order.history.length === 0 ? <p>Истории статусов пока нет.</p> : null}
                         {order.history.length > 0 ? (
                           <table data-admin-ui="table" data-admin-assignment="history-table">
                             <thead>
                               <tr>
-                                <th>Status</th>
-                                <th>Previous</th>
-                                <th>Changed</th>
-                                <th>Actor</th>
-                                <th>Time in status</th>
-                                <th>Since created</th>
-                                <th>Comments</th>
+                                <th>Статус</th>
+                                <th>Предыдущий</th>
+                                <th>Изменен</th>
+                                <th>Автор</th>
+                                <th>В статусе</th>
+                                <th>С создания</th>
+                                <th>Комментарии</th>
                               </tr>
                             </thead>
                             <tbody>

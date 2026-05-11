@@ -95,7 +95,7 @@ describe("root router", () => {
 
       const text = collectText(renderer.toJSON()).join(" ");
 
-      expect(text).toContain("Admin login");
+      expect(text).toContain("Вход в админку");
       expect(text).not.toContain("Каталог");
 
       if (typeof document !== "undefined") {
@@ -135,9 +135,9 @@ describe("root router", () => {
       const root = renderer.root.findByProps({ "data-admin-shell": "root" });
 
       expect(root.props["data-admin-contour"]).toBe("admin-web");
-      expect(text).toContain("Admin page not found");
+      expect(text).toContain("Страница админки не найдена");
       expect(text).not.toContain("Выберите язык");
-      expect(text).not.toContain("Order assignment");
+      expect(text).not.toContain("Назначение заказов");
     } finally {
       Object.defineProperty(globalThis, "window", {
         value: previousWindow,

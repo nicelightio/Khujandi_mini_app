@@ -62,22 +62,22 @@ afterEach(() => {
 
 const bootstrap: AdminOrderCancellationBootstrap = {
   orderId: "order-in-progress-31",
-  orderLabel: "Order #31",
-  orderStatusLabel: "Current order state: IN_PROGRESS.",
-  statusLabel: "Ready to stage cancellation and refund-state UI.",
+  orderLabel: "Заказ #31",
+  orderStatusLabel: "Текущее состояние заказа: IN_PROGRESS.",
+  statusLabel: "Рабочая область отмены и учета возврата готова.",
   refundStatus: "PENDING_MANUAL",
-  refundStatusLabel: "Paid cancellations must remain visible as PENDING_MANUAL.",
-  refundVisibilityNote: "Refund-state rendering is part of the shell contract.",
-  refundNote: "Awaiting operator refund handling.",
+  refundStatusLabel: "Платные отмены должны оставаться видимыми как PENDING_MANUAL.",
+  refundVisibilityNote: "Отображение refund-state является частью shell-контракта.",
+  refundNote: "Ожидает ручной обработки возврата оператором.",
   cancellationReasons: [
     {
       code: "OPS_DELAY",
-      label: "Operational delay",
-      detail: "Admin placeholder",
+      label: "Операционная задержка",
+      detail: "Админский placeholder",
     },
     {
       code: "COURIER_UNAVAILABLE",
-      label: "Courier unavailable",
+      label: "Курьер недоступен",
       detail: "Fixture preview",
     },
   ],
@@ -108,14 +108,14 @@ describe("admin order cancellation route", () => {
     const renderer = await renderRoute();
     const text = collectText(renderer.toJSON()).join(" ");
 
-    expect(text).toContain("Admin Web");
-    expect(text).toContain("Order cancellation and refund tracking");
-    expect(text).toContain("Order #31");
-    expect(text).toContain("Ready to stage cancellation and refund-state UI.");
-    expect(text).toContain("Refund state:");
-    expect(text).toContain("PENDING_MANUAL");
-    expect(text).toContain("Awaiting operator refund handling.");
-    expect(text).toContain("Admin login/session stays outside FT-006");
+    expect(text).toContain("Веб-админка");
+    expect(text).toContain("Отмена заказа и учет возврата");
+    expect(text).toContain("Заказ #31");
+    expect(text).toContain("Рабочая область отмены и учета возврата готова.");
+    expect(text).toContain("Состояние возврата:");
+    expect(text).toContain("Ожидает ручного возврата");
+    expect(text).toContain("Ожидает ручной обработки возврата оператором.");
+    expect(text).toContain("Логин/сессия админки остаются вне FT-006");
     expect(renderer.root.findAllByType("select")[0].props.value).toBe("OPS_DELAY");
     expect(renderer.root.findAllByType("button")[0].props.disabled).toBe(false);
     expect(renderer.root.findAllByType("button")[1].props.disabled).toBe(true);
@@ -138,7 +138,7 @@ describe("admin order cancellation route", () => {
 
   it("renders success feedback after a fixture submit", async () => {
     const submitCancellation = jest.fn().mockResolvedValue({
-      confirmationMessage: "Cancellation recorded without hidden side effects.",
+      confirmationMessage: "Отмена записана без скрытых побочных эффектов.",
     });
     const renderer = await renderRoute(submitCancellation);
 
@@ -159,7 +159,7 @@ describe("admin order cancellation route", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Cancellation recorded without hidden side effects.");
+    expect(text).toContain("Отмена записана без скрытых побочных эффектов.");
     expect(submitCancellation).toHaveBeenCalledWith({
       orderId: "order-in-progress-31",
       reasonCode: "COURIER_UNAVAILABLE",
@@ -170,7 +170,7 @@ describe("admin order cancellation route", () => {
   it("renders a controlled error when submit fails", async () => {
     const submitCancellation = jest
       .fn()
-      .mockRejectedValue(new AdminOrderCancellationApiError("CONFLICT", "Cancellation is forbidden from DELIVERED", "trace-ft006-06"));
+      .mockRejectedValue(new AdminOrderCancellationApiError("CONFLICT", "Отмена запрещена из DELIVERED", "trace-ft006-06"));
     const renderer = await renderRoute(submitCancellation);
 
     await act(async () => {
@@ -181,7 +181,7 @@ describe("admin order cancellation route", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Cancellation is forbidden from DELIVERED (trace: trace-ft006-06)");
+    expect(text).toContain("Отмена запрещена из DELIVERED (trace: trace-ft006-06)");
     expect(renderer.root.findAllByType("button")[0].props.disabled).toBe(false);
   });
 
@@ -218,8 +218,8 @@ describe("admin order cancellation route", () => {
         reasonCode: "OPS_DELAY",
       }),
     });
-    expect(text).toContain("Order order-in-progress-31 moved to CANCELLED_BY_ADMIN. Refund state PENDING_MANUAL is explicit. Revision 211 is ready for downstream polling.");
-    expect(text).toContain("Current order state: CANCELLED_BY_ADMIN.");
+    expect(text).toContain("Заказ order-in-progress-31 переведен в CANCELLED_BY_ADMIN. Состояние возврата PENDING_MANUAL явное. Ревизия 211 готова для последующего опроса.");
+    expect(text).toContain("Текущее состояние заказа: CANCELLED_BY_ADMIN.");
   });
 
   it("renders courier-unavailable cancellation results with explicit no-refund visibility", async () => {
@@ -254,16 +254,16 @@ describe("admin order cancellation route", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Order order-in-progress-31 moved to CANCELLED_BY_COURIER_UNAVAILABLE. Refund state NOT_REQUIRED is explicit. Revision 311 is ready for downstream polling.");
-    expect(text).toContain("Current order state: CANCELLED_BY_COURIER_UNAVAILABLE.");
-    expect(text).toContain("Refund state:");
-    expect(text).toContain("NOT_REQUIRED");
-    expect(text).toContain("Refund is explicitly marked as not required for this cancelled order.");
+    expect(text).toContain("Заказ order-in-progress-31 переведен в CANCELLED_BY_COURIER_UNAVAILABLE. Состояние возврата NOT_REQUIRED явное. Ревизия 311 готова для последующего опроса.");
+    expect(text).toContain("Текущее состояние заказа: CANCELLED_BY_COURIER_UNAVAILABLE.");
+    expect(text).toContain("Состояние возврата:");
+    expect(text).toContain("Не требуется");
+    expect(text).toContain("Возврат явно отмечен как не требующийся для этого отмененного заказа.");
   });
 
   it("records manual refund outcome updates and keeps the final state visible", async () => {
     const submitRefundUpdate = jest.fn().mockResolvedValue({
-      confirmationMessage: "Refund outcome DONE recorded for the cancelled order.",
+      confirmationMessage: "Результат возврата DONE записан для отмененного заказа.",
     });
     const renderer = await renderRoute(undefined, submitRefundUpdate);
 
@@ -279,7 +279,7 @@ describe("admin order cancellation route", () => {
       });
       refundTextarea.props.onChange({
         target: {
-          value: "Cash returned offline",
+        value: "Наличные возвращены офлайн",
         },
       });
       await flushPromises();
@@ -295,9 +295,9 @@ describe("admin order cancellation route", () => {
     expect(submitRefundUpdate).toHaveBeenCalledWith({
       orderId: "order-in-progress-31",
       refundStatus: "DONE",
-      refundNote: "Cash returned offline",
+      refundNote: "Наличные возвращены офлайн",
     });
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Refund outcome DONE recorded for the cancelled order.");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Результат возврата DONE записан для отмененного заказа.");
   });
 
   it("uses the default backend API client for refund updates", async () => {
@@ -321,7 +321,7 @@ describe("admin order cancellation route", () => {
           orderId: "order-in-progress-31",
           status: "CANCELLED_BY_ADMIN",
           refundStatus: "DONE",
-          refundNote: "Cash returned offline",
+          refundNote: "Наличные возвращены офлайн",
           updated_at: "2026-04-03T12:05:00.000Z",
           revision: "212",
         }),
@@ -344,7 +344,7 @@ describe("admin order cancellation route", () => {
       });
       renderer.root.findByType("textarea").props.onChange({
         target: {
-          value: "Cash returned offline",
+          value: "Наличные возвращены офлайн",
         },
       });
       await flushPromises();
@@ -366,13 +366,13 @@ describe("admin order cancellation route", () => {
       credentials: "include",
       body: JSON.stringify({
         refundStatus: "DONE",
-        refundNote: "Cash returned offline",
+        refundNote: "Наличные возвращены офлайн",
       }),
     });
-    expect(text).toContain("Refund outcome DONE recorded for order-in-progress-31. Revision 212 is ready for downstream polling.");
-    expect(text).toContain("Latest refund note:");
-    expect(text).toContain("Cash returned offline");
-    expect(text).toContain("DONE");
+    expect(text).toContain("Результат возврата DONE записан для order-in-progress-31. Ревизия 212 готова для последующего опроса.");
+    expect(text).toContain("Последняя заметка по возврату:");
+    expect(text).toContain("Наличные возвращены офлайн");
+    expect(text).toContain("Выполнен");
   });
 
   it("keeps refund tracking explicit from cancellation through the manual refund outcome", async () => {
@@ -396,7 +396,7 @@ describe("admin order cancellation route", () => {
           orderId: "order-in-progress-31",
           status: "CANCELLED_BY_ADMIN",
           refundStatus: "DONE",
-          refundNote: "Cash returned offline",
+          refundNote: "Наличные возвращены офлайн",
           updated_at: "2026-04-03T12:05:00.000Z",
           revision: "212",
         }),
@@ -412,9 +412,9 @@ describe("admin order cancellation route", () => {
     });
 
     let text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Refund state:");
-    expect(text).toContain("PENDING_MANUAL");
-    expect(text).toContain("Refund state stays explicit while the operator records the manual outcome in this workflow.");
+    expect(text).toContain("Состояние возврата:");
+    expect(text).toContain("Ожидает ручного возврата");
+    expect(text).toContain("Состояние возврата остается явным, пока оператор записывает ручной результат в этом процессе.");
 
     await act(async () => {
       renderer.root.findAllByType("select")[1].props.onChange({
@@ -424,7 +424,7 @@ describe("admin order cancellation route", () => {
       });
       renderer.root.findByType("textarea").props.onChange({
         target: {
-          value: "Cash returned offline",
+          value: "Наличные возвращены офлайн",
         },
       });
       await flushPromises();
@@ -438,12 +438,12 @@ describe("admin order cancellation route", () => {
     });
 
     text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Refund outcome DONE recorded for order-in-progress-31. Revision 212 is ready for downstream polling.");
-    expect(text).toContain("Refund state:");
-    expect(text).toContain("DONE");
-    expect(text).toContain("Refund tracking remains visible after the manual update so later verification can confirm the explicit outcome.");
-    expect(text).toContain("Latest refund note:");
-    expect(text).toContain("Cash returned offline");
+    expect(text).toContain("Результат возврата DONE записан для order-in-progress-31. Ревизия 212 готова для последующего опроса.");
+    expect(text).toContain("Состояние возврата:");
+    expect(text).toContain("Выполнен");
+    expect(text).toContain("Учет возврата остается видимым после ручного обновления, чтобы последующая проверка видела явный результат.");
+    expect(text).toContain("Последняя заметка по возврату:");
+    expect(text).toContain("Наличные возвращены офлайн");
   });
 
   it("renders a controlled backend error for refund updates", async () => {
@@ -452,7 +452,7 @@ describe("admin order cancellation route", () => {
       .mockRejectedValue(
         new AdminOrderCancellationApiError(
           "CONFLICT",
-          "Refund tracking can only progress from PENDING_MANUAL",
+          "Учет возврата может продвигаться только из PENDING_MANUAL",
           "trace-ft006-07",
         ),
       );
@@ -475,7 +475,7 @@ describe("admin order cancellation route", () => {
     });
 
     expect(collectText(renderer.toJSON()).join(" ")).toContain(
-      "Refund tracking can only progress from PENDING_MANUAL (trace: trace-ft006-07)",
+      "Учет возврата может продвигаться только из PENDING_MANUAL (trace: trace-ft006-07)",
     );
   });
 
@@ -506,13 +506,13 @@ describe("admin order cancellation route", () => {
     });
 
     expect(submitRefundUpdate).toHaveBeenCalledTimes(1);
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Recording refund outcome...");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Записываем результат возврата...");
 
     await act(async () => {
-      resolveSubmit({ confirmationMessage: "Refund updated once." });
+      resolveSubmit({ confirmationMessage: "Возврат обновлен один раз." });
       await flushPromises();
     });
 
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Refund updated once.");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Возврат обновлен один раз.");
   });
 });

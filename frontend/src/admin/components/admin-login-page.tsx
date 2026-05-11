@@ -43,48 +43,48 @@ export const AdminLoginPage = ({
       setSubmissionError(
         error instanceof AdminAuthApiError || error instanceof Error
           ? error.message
-          : "Admin login is temporarily unavailable.",
+          : "Вход в админку временно недоступен.",
       );
     }
   };
 
   return (
-    <AdminPageShell title="Admin login" layout="hero">
+    <AdminPageShell title="Вход в админку" layout="hero">
       <section aria-live="polite" data-admin-login="stage">
-        <p data-admin-login="eyebrow">Secure operator entry</p>
+        <p data-admin-login="eyebrow">Защищенный вход для оператора</p>
         <p data-admin-login="lede">
-          Separate login/password auth for the admin contour stays isolated from Telegram Mini App auth.
+          Отдельная авторизация по логину и паролю для админки изолирована от авторизации Telegram Mini App.
         </p>
         <p>{session.loginHint}</p>
         {session.reason !== null ? <p role="status">{session.reason}</p> : null}
         {submissionError === null ? null : <p role="alert">{submissionError}</p>}
-        <p>Protected routes redirect here until a valid admin-access session exists.</p>
-        <p data-admin-auth="redirect-target">{`Requested path: ${redirectPath}`}</p>
+        <p>Защищенные разделы ведут сюда, пока нет действующей admin-access сессии.</p>
+        <p data-admin-auth="redirect-target">{`Запрошенный путь: ${redirectPath}`}</p>
 
         <div data-admin-login="rules">
           <div>
-            <span data-admin-ui="micro-label">Boundary</span>
-            <strong>Cookie-backed admin session</strong>
-            <p>Runtime restores access through the shared admin-access boundary.</p>
+            <span data-admin-ui="micro-label">Граница</span>
+            <strong>Админ-сессия на cookie</strong>
+            <p>Среда выполнения восстанавливает доступ через общую границу admin-access.</p>
           </div>
           <div>
-            <span data-admin-ui="micro-label">Policy</span>
-            <strong>No self-signup</strong>
-            <p>Only provisioned admin accounts can enter the control surface.</p>
+            <span data-admin-ui="micro-label">Политика</span>
+            <strong>Без самостоятельной регистрации</strong>
+            <p>В панель могут войти только заранее созданные админ-аккаунты.</p>
           </div>
           <div>
-            <span data-admin-ui="micro-label">Recovery</span>
-            <strong>Controlled expiry and lockout</strong>
-            <p>Expired or unavailable sessions always return to this entrypoint.</p>
+            <span data-admin-ui="micro-label">Восстановление</span>
+            <strong>Контролируемые сроки и блокировки</strong>
+            <p>Истекшие или недоступные сессии всегда возвращаются на этот вход.</p>
           </div>
         </div>
       </section>
 
       <form onSubmit={(event) => void handleSubmit(event)} data-admin-login="form">
         <fieldset>
-          <legend>Provisioned account sign-in</legend>
+          <legend>Вход под созданной учеткой</legend>
           <label>
-            Login
+            Логин
             <input
               name="login"
               type="text"
@@ -96,7 +96,7 @@ export const AdminLoginPage = ({
             />
           </label>
           <label>
-            Password
+            Пароль
             <input
               name="password"
               type="password"
@@ -113,7 +113,7 @@ export const AdminLoginPage = ({
           data-magnetic="true"
           disabled={isSubmitting || login.trim().length === 0 || password.length === 0}
         >
-          {isSubmitting ? "Signing in..." : "Sign in"}
+          {isSubmitting ? "Входим..." : "Войти"}
         </button>
       </form>
     </AdminPageShell>

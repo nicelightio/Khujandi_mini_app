@@ -74,7 +74,7 @@ export const AdminAssignmentRoute = ({
         const message =
           error instanceof AdminAssignmentApiError || error instanceof Error
             ? error.message
-            : "Operator delivery orders are temporarily unavailable.";
+            : "Операторские заказы доставки временно недоступны.";
         setOrdersResult(null);
         setExpandedOrderIds(new Set<string>());
         setOfferMutation(idleAdminAssignmentOfferMutationState);
@@ -121,7 +121,7 @@ export const AdminAssignmentRoute = ({
       return null;
     }
 
-    const value = window.prompt("Courier ID for pending targeted offer");
+    const value = window.prompt("ID курьера для ожидающего персонального предложения");
     const trimmed = value?.trim() ?? "";
     return trimmed.length === 0 ? null : trimmed;
   };
@@ -138,7 +138,7 @@ export const AdminAssignmentRoute = ({
         orderId,
         kind: "targeted",
         status: "failed",
-        message: "Courier ID is required for a targeted offer.",
+        message: "Для персонального предложения нужен ID курьера.",
       };
       setOfferMutation(nextMutation);
       setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
@@ -165,7 +165,7 @@ export const AdminAssignmentRoute = ({
           orderId,
           kind: "targeted",
           status: "succeeded",
-          message: `Pending offer ${result.offerId} created for ${result.targetCourierId}.`,
+          message: `Ожидающее предложение ${result.offerId} создано для ${result.targetCourierId}.`,
         };
         setOfferMutation(nextMutation);
         setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
@@ -174,7 +174,7 @@ export const AdminAssignmentRoute = ({
         const message =
           error instanceof AdminAssignmentApiError || error instanceof Error
             ? error.message
-            : "Manual targeted offer could not be created.";
+            : "Ручное персональное предложение не удалось создать.";
         const nextMutation: AdminAssignmentOfferMutationState = {
           orderId,
           kind: "targeted",
@@ -213,7 +213,7 @@ export const AdminAssignmentRoute = ({
           orderId,
           kind: "broadcast",
           status: "succeeded",
-          message: `Pending broadcast offers created for ${result.eligibleCourierCount} couriers.`,
+          message: `Ожидающие массовые предложения созданы для курьеров: ${result.eligibleCourierCount}.`,
         };
         setOfferMutation(nextMutation);
         setViewModel(createReadyAdminAssignmentViewModel(ordersResult, expandedOrderIds, sortKey, nextMutation, statusMutation));
@@ -222,7 +222,7 @@ export const AdminAssignmentRoute = ({
         const message =
           error instanceof AdminAssignmentApiError || error instanceof Error
             ? error.message
-            : "Auto-offer broadcast could not be created.";
+            : "Массовое auto-offer действие не удалось создать.";
         const nextMutation: AdminAssignmentOfferMutationState = {
           orderId,
           kind: "broadcast",
@@ -249,7 +249,7 @@ export const AdminAssignmentRoute = ({
       return false;
     }
 
-    return window.confirm(`Write ${nextStatus} to status history for ${orderId}?`);
+    return window.confirm(`Записать ${nextStatus} в историю статусов для ${orderId}?`);
   };
 
   const handleConfirmStatusChange = (
@@ -280,7 +280,7 @@ export const AdminAssignmentRoute = ({
           orderId,
           nextStatus,
           status: "succeeded",
-          message: `${result.status} written to history at revision ${result.revision}.`,
+          message: `${result.status} записан в историю на revision ${result.revision}.`,
         };
         setOrdersResult(refreshedOrdersResult);
         setStatusMutation(nextMutation);
@@ -290,7 +290,7 @@ export const AdminAssignmentRoute = ({
         const message =
           error instanceof AdminAssignmentApiError || error instanceof Error
             ? error.message
-            : "Operator status transition could not be written.";
+            : "Операторский переход статуса не удалось записать.";
         const nextMutation: AdminAssignmentStatusMutationState = {
           orderId,
           nextStatus,

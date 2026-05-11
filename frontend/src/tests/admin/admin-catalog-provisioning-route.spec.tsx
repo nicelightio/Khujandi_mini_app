@@ -72,10 +72,10 @@ describe("admin catalog provisioning route", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
 
-    expect(text).toContain("Catalog shop provisioning");
-    expect(text).toContain("Seller Telegram ID");
-    expect(text).toContain("Initial visibility");
-    expect(text).toContain("Provisioned shops");
+    expect(text).toContain("Создание магазинов каталога");
+    expect(text).toContain("Telegram ID продавца");
+    expect(text).toContain("Начальная видимость");
+    expect(text).toContain("Созданные магазины");
   });
 
   it("loads existing shops on first render and refreshes the list after provisioning", async () => {
@@ -122,7 +122,7 @@ describe("admin catalog provisioning route", () => {
 
     const initialText = collectText(renderer.toJSON()).join(" ");
     expect(initialText).toContain("Old Bakery");
-    expect(initialText).toContain("WORKING");
+    expect(initialText).toContain("Работает");
     expect(initialText).toContain("seller-1");
     expect(initialText).toContain("1001");
 
@@ -158,12 +158,12 @@ describe("admin catalog provisioning route", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Provisioned Night Bakery (NOT_WORKING) for seller seller-42.");
-    expect(text).toContain("Paths: night-bakery / seller-421.");
-    expect(text).toContain("Starter pages: 2. Starter products: 3.");
+    expect(text).toContain("Магазин Night Bakery (NOT_WORKING) создан для продавца seller-42.");
+    expect(text).toContain("Пути: night-bakery / seller-421.");
+    expect(text).toContain("Стартовые страницы: 2. Стартовые товары: 3.");
     expect(text).toContain("Old Bakery");
     expect(text).toContain("Night Bakery");
-    expect(text).toContain("NOT_WORKING");
+    expect(text).toContain("Не работает");
     expect(text).toContain("seller-42");
     expect(text).toContain("1042");
     expect(text).toContain("old-bakery / seller-11");
@@ -174,7 +174,7 @@ describe("admin catalog provisioning route", () => {
   it("renders controlled API failure feedback", async () => {
     const api = createApi({
       submitProvisioning: jest.fn().mockRejectedValue(
-        new AdminCatalogProvisioningApiError("FORBIDDEN", "Admin role cannot provision shops", "trace-admin-7"),
+        new AdminCatalogProvisioningApiError("FORBIDDEN", "Роль админа не может создавать магазины", "trace-admin-7"),
       ),
     });
     let renderer!: ReactTestRenderer;
@@ -197,6 +197,6 @@ describe("admin catalog provisioning route", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Admin role cannot provision shops (trace: trace-admin-7)");
+    expect(text).toContain("Роль админа не может создавать магазины (trace: trace-admin-7)");
   });
 });

@@ -239,6 +239,6 @@ describe("admin catalog provisioning api", () => {
 
     await expect(
       createAdminCatalogProvisioningApi({ fetch: fetchMock }).listProvisionedShops(),
-    ).rejects.toThrow("Provisioned shops payload is invalid.");
+    ).rejects.toThrow("Некорректный payload списка созданных магазинов.");
   });
 });

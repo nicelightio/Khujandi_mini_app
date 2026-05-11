@@ -1,10 +1,10 @@
 import { AdminPageShell } from "./admin-page-shell";
 
 export const AdminUnknownRoute = () => (
-  <AdminPageShell title="Admin page not found">
+  <AdminPageShell title="Страница админки не найдена">
     <section>
-      <p>Unknown admin-web path. Use the explicit admin routes only.</p>
-      <p>Return to assignment, cancellation, provisioning, or the login entrypoint.</p>
+      <p>Неизвестный путь admin-web. Используйте только явные маршруты админки.</p>
+      <p>Вернитесь к назначениям, отменам, созданию магазинов или странице входа.</p>
     </section>
   </AdminPageShell>
 );

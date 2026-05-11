@@ -28,10 +28,10 @@ export const AdminProtectedShell = ({
   onLogout,
 }: AdminProtectedShellProps) => {
   const navigationItems = [
-    { href: adminRoutes.home, label: "Dashboard" },
-    { href: adminRoutes.assignment, label: "Assignment" },
-    { href: adminRoutes.cancellation, label: "Cancellation" },
-    { href: adminRoutes.catalogProvisioning, label: "Provisioning" },
+    { href: adminRoutes.home, label: "Главная" },
+    { href: adminRoutes.assignment, label: "Назначения" },
+    { href: adminRoutes.cancellation, label: "Отмены" },
+    { href: adminRoutes.catalogProvisioning, label: "Магазины" },
   ];
 
   if (isLoginSessionState(session)) {
@@ -55,12 +55,12 @@ export const AdminProtectedShell = ({
             <div>
               <div data-admin-auth="brand">
                 <p data-admin-auth="brand-kicker">Khujandi</p>
-                <h1 data-admin-auth="brand-title">Admin Control Surface</h1>
+                <h1 data-admin-auth="brand-title">Панель управления</h1>
                 <p data-admin-auth="brand-note">
-                  Operational tools for delivery flow, protected sessions, and catalog provisioning.
+                  Операционные инструменты для доставки, защищенных сессий и создания магазинов.
                 </p>
               </div>
-              <nav aria-label="Admin routes" data-admin-auth="nav">
+              <nav aria-label="Разделы админки" data-admin-auth="nav">
                 {navigationItems.map((item) => (
                   <a
                     key={item.href}
@@ -88,7 +88,7 @@ export const AdminProtectedShell = ({
                   }
                 }}
               >
-                {isLogoutSubmitting ? "Signing out..." : "Sign out"}
+                {isLogoutSubmitting ? "Выходим..." : "Выйти"}
               </button>
             </div>
           </header>

@@ -241,38 +241,37 @@ describe("admin assignment route", () => {
     const renderer = await renderRoute(async () => operatorOrders);
     const text = collectText(renderer.toJSON()).join(" ");
 
-    expect(text).toContain("Admin Web");
-    expect(text).toContain("Operator delivery orders");
-    expect(text).toContain("3 orders loaded from the operator read model.");
-    expect(text).toContain("Courier attention");
-    expect(text).toContain("Today plus previous 3 days");
-    expect(text).toContain("Revision 44");
+    expect(text).toContain("Веб-админка");
+    expect(text).toContain("Операторские заказы доставки");
+    expect(text).toContain("Загружено заказов из операторской модели чтения: 3.");
+    expect(text).toContain("Внимание к курьерам");
+    expect(text).toContain("Сегодня и предыдущие 3 дня");
+    expect(text).toContain("Ревизия 44");
     expect(text).toContain("order-delayed-3001");
     expect(text).toContain("Khujandi Plov / 125 TJS");
-    expect(text).toContain("Delayed");
-    expect(text).toContain("No accepted courier");
-    expect(text).toContain("DELAYED");
-    expect(text).toContain("Absent");
-    expect(text).toContain("No messages yet");
-    expect(text).toContain("Message placeholder");
+    expect(text).toContain("Задержан");
+    expect(text).toContain("Нет принявшего курьера");
+    expect(text).toContain("Нет");
+    expect(text).toContain("Сообщений пока нет");
+    expect(text).toContain("Сообщения пока нет");
     expect(text).toContain("order-picked-up-3002");
     expect(text).toContain("order-delivered-3003");
-    expect(text).toContain("Complete order -> COMPLETED");
+    expect(text).toContain("Завершить заказ -> Завершен");
     expect(text).toContain("Courier 7 / tg 70007");
-    expect(text).toContain("Current");
-    expect(text).toContain("Urgency");
-    expect(text).toContain("Created time");
-    expect(text).toContain("Status");
-    expect(text).toContain("Courier");
-    expect(text).toContain("Assigned time");
-    expect(text).toContain("Message presence");
-    expect(text).not.toContain("Last message time");
-    expect(text).toContain("Targeted offer");
-    expect(text).toContain("Broadcast offer");
-    expect(text).toContain("Status control");
-    expect(text).toContain("Bot chat");
-    expect(text).toContain("Create pending offer");
-    expect(text).toContain("Runtime not yet enabled");
+    expect(text).toContain("Текущий");
+    expect(text).toContain("Срочность");
+    expect(text).toContain("Время создания");
+    expect(text).toContain("Статус");
+    expect(text).toContain("Курьер");
+    expect(text).toContain("Время назначения");
+    expect(text).toContain("Сообщения");
+    expect(text).not.toContain("Время последнего сообщения");
+    expect(text).toContain("Персональное предложение");
+    expect(text).toContain("Массовое предложение");
+    expect(text).toContain("Управление статусом");
+    expect(text).toContain("Чат в боте");
+    expect(text).toContain("Создать ожидающее предложение");
+    expect(text).toContain("Среда еще не включена");
   });
 
   it("does not render the old direct assignment CTA as the default action", async () => {
@@ -319,11 +318,11 @@ describe("admin assignment route", () => {
       false,
       true,
     ]);
-    expect(actionButtons[0].props.title).toContain("Creates a pending courier offer");
-    expect(actionButtons[1].props.title).toContain("Auto-offer is otherwise OFF");
-    expect(actionButtons[2].props.title).toContain("No allowed operator/admin next transition");
-    expect(actionButtons[3].props.title).toContain("Bot redirect is not executed");
-    expect(actionButtons[6].props.title).toContain("Requires confirmation");
+    expect(actionButtons[0].props.title).toContain("Создает ожидающее предложение курьеру");
+    expect(actionButtons[1].props.title).toContain("Иначе auto-offer выключен");
+    expect(actionButtons[2].props.title).toContain("нет разрешенного перехода оператора/админа");
+    expect(actionButtons[3].props.title).toContain("Редирект в бот не выполняется");
+    expect(actionButtons[6].props.title).toContain("Требует подтверждения");
   });
 
   it("submits a targeted offer and renders controlled success state", async () => {
@@ -359,12 +358,12 @@ describe("admin assignment route", () => {
       orderId: "order-delayed-3001",
       courierId: "courier-8",
     });
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Offer created");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Предложение создано");
     expect(
       renderer.root.findAllByProps({
         "data-admin-action-cell": "targeted_offer",
       })[0].props.title,
-    ).toBe("Pending offer offer-3001 created for courier-8.");
+    ).toBe("Ожидающее предложение offer-3001 создано для courier-8.");
   });
 
   it("disables same-order offer actions while an offer request is in flight", async () => {
@@ -459,12 +458,12 @@ describe("admin assignment route", () => {
     expect(createBroadcastOffer).toHaveBeenCalledWith({
       orderId: "order-delayed-3001",
     });
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Offers created");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Предложения созданы");
     expect(
       renderer.root.findAllByProps({
         "data-admin-action-cell": "broadcast_offer",
       })[0].props.title,
-    ).toBe("Pending broadcast offers created for 2 couriers.");
+    ).toBe("Ожидающие массовые предложения созданы для курьеров: 2.");
   });
 
   it("confirms DELIVERED to COMPLETED operator closure and refetches the read model", async () => {
@@ -543,9 +542,8 @@ describe("admin assignment route", () => {
       nextStatus: "COMPLETED",
     });
     expect(loadOperatorDeliveryOrders).toHaveBeenCalledTimes(2);
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Status updated");
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("COMPLETED");
-    expect(collectText(renderer.toJSON()).join(" ")).toContain("Completed");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Статус обновлен");
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Завершен");
     const completedRow = renderer.root.findByProps({
       "data-admin-assignment-row": "order-delivered-3003",
     });
@@ -560,7 +558,7 @@ describe("admin assignment route", () => {
     const renderer = await renderRoute(async () => operatorOrders);
     const historyButton = renderer.root
       .findAllByType("button")
-      .find((button) => collectText(button).join(" ").includes("Show history"));
+      .find((button) => collectText(button).join(" ").includes("Показать историю"));
 
     expect(historyButton).toBeDefined();
 
@@ -570,10 +568,10 @@ describe("admin assignment route", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("CREATED");
+    expect(text).toContain("Создан");
     expect(text).toContain("Admin One (admin)");
-    expect(text).toContain("30m");
-    expect(text).toContain("No comments");
+    expect(text).toContain("30 мин");
+    expect(text).toContain("Комментариев нет");
   });
 
   it("sorts rows through deterministic read-side controls", async () => {
@@ -609,7 +607,7 @@ describe("admin assignment route", () => {
       method: "GET",
       credentials: "include",
     });
-    expect(text).toContain("Operator delivery orders");
+    expect(text).toContain("Операторские заказы доставки");
     expect(text).toContain("order-picked-up-3002");
   });
 
@@ -619,7 +617,7 @@ describe("admin assignment route", () => {
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
-    expect(text).toContain("Operator delivery orders could not be loaded.");
+    expect(text).toContain("Операторские заказы доставки не удалось загрузить.");
     expect(text).toContain("Admin session required (trace: trace-ft016-04)");
   });
 });

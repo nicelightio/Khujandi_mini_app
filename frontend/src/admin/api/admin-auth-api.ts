@@ -112,7 +112,7 @@ const toSession = (value: unknown): AdminAuthSession => {
     refreshTokenExpiresAt === null ||
     idleExpiresAt === null
   ) {
-    throw new Error("Admin auth session payload is invalid.");
+    throw new Error("Некорректный payload админ-сессии.");
   }
 
   return {
@@ -154,7 +154,7 @@ export const createAdminAuthApi = (options: AdminAuthApiOptions = {}): AdminAuth
       const payload = await response.json();
 
       if (!response.ok) {
-        throw toApiError(payload, response.status, "Admin login is temporarily unavailable.");
+        throw toApiError(payload, response.status, "Вход в админку временно недоступен.");
       }
 
       return toSession(payload);
@@ -168,7 +168,7 @@ export const createAdminAuthApi = (options: AdminAuthApiOptions = {}): AdminAuth
       const payload = await response.json();
 
       if (!response.ok) {
-        throw toApiError(payload, response.status, "Admin session refresh is temporarily unavailable.");
+        throw toApiError(payload, response.status, "Обновление админ-сессии временно недоступно.");
       }
 
       return toSession(payload);
@@ -182,7 +182,7 @@ export const createAdminAuthApi = (options: AdminAuthApiOptions = {}): AdminAuth
       const payload = await response.json();
 
       if (!response.ok) {
-        throw toApiError(payload, response.status, "Admin logout is temporarily unavailable.");
+        throw toApiError(payload, response.status, "Выход из админки временно недоступен.");
       }
 
       const record = ensureObject(payload);

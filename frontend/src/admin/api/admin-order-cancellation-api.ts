@@ -119,7 +119,7 @@ const toCancellationResult = (value: unknown): AdminOrderCancellationCommandResu
     updatedAt === null ||
     typeof record.revision !== "string"
   ) {
-    throw new Error("Cancellation response payload is invalid.");
+    throw new Error("Некорректный payload ответа отмены.");
   }
 
   return {
@@ -144,7 +144,7 @@ const toRefundUpdateResult = (value: unknown): AdminOrderRefundUpdateCommandResu
     updatedAt === null ||
     typeof record.revision !== "string"
   ) {
-    throw new Error("Refund update response payload is invalid.");
+    throw new Error("Некорректный payload ответа обновления возврата.");
   }
 
   return {
@@ -163,7 +163,7 @@ const toApiError = (payload: unknown, status: number): AdminOrderCancellationApi
   const message =
     typeof record?.error?.message === "string"
       ? record.error.message
-      : "Cancellation workflow is temporarily unavailable.";
+      : "Workflow отмены временно недоступен.";
   const traceId = typeof record?.trace_id === "string" ? record.trace_id : null;
 
   return new AdminOrderCancellationApiError(code, message, traceId, record?.error?.details ?? null);

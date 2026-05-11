@@ -87,7 +87,7 @@ describe("admin assignment view model", () => {
     );
 
     expect(viewModel.alertOrders.map((order) => order.publicOrderNumber)).toEqual(["KHU-1", "KHU-2"]);
-    expect(viewModel.alertOrders.map((order) => order.reasonLabel)).toEqual(["DELAYED", "No accepted courier"]);
+    expect(viewModel.alertOrders.map((order) => order.reasonLabel)).toEqual(["Задержан", "Нет принявшего курьера"]);
   });
 
   it("treats DELAYED status as danger alert copy even when the read severity is stale", () => {
@@ -104,8 +104,8 @@ describe("admin assignment view model", () => {
 
     expect(viewModel.orders[0]).toMatchObject({
       orderId: "delayed-status",
-      statusLabel: "DELAYED",
-      severityLabel: "Delayed",
+      statusLabel: "Задержан",
+      severityLabel: "Задержан",
       severityTone: "danger",
       isDelayedAlert: true,
     });
@@ -113,8 +113,8 @@ describe("admin assignment view model", () => {
       {
         orderId: "delayed-status",
         publicOrderNumber: "KHU-DELAYED",
-        reasonLabel: "DELAYED",
-        severityLabel: "Delayed",
+        reasonLabel: "Задержан",
+        severityLabel: "Задержан",
         severityTone: "danger",
       },
     ]);
@@ -135,30 +135,30 @@ describe("admin assignment view model", () => {
     expect(viewModel.orders[0].actionCells).toEqual([
       {
         key: "targeted_offer",
-        label: "Targeted offer",
-        stateLabel: "Create pending offer",
-        detailLabel: "Creates a pending courier offer. Courier claim is a later step and the order stays unassigned.",
+        label: "Персональное предложение",
+        stateLabel: "Создать ожидающее предложение",
+        detailLabel: "Создает ожидающее предложение курьеру. Подтверждение курьером будет отдельным шагом, заказ пока остается неназначенным.",
         isEnabled: true,
       },
       {
         key: "broadcast_offer",
-        label: "Broadcast offer",
-        stateLabel: "Trigger explicitly",
-        detailLabel: "Explicitly creates pending broadcast offers for active free auto-offer couriers. Auto-offer is otherwise OFF.",
+        label: "Массовое предложение",
+        stateLabel: "Запустить явно",
+        detailLabel: "Явно создает ожидающие массовые предложения для активных свободных auto-offer курьеров. Иначе auto-offer выключен.",
         isEnabled: true,
       },
       {
         key: "status_control",
-        label: "Status control",
-        stateLabel: "Backend not yet enabled",
-        detailLabel: "No allowed operator/admin next transition is available for this order status.",
+        label: "Управление статусом",
+        stateLabel: "Серверная команда еще не включена",
+        detailLabel: "Для текущего статуса заказа нет разрешенного перехода оператора/админа.",
         isEnabled: false,
       },
       {
         key: "bot_chat",
-        label: "Bot chat",
-        stateLabel: "Runtime not yet enabled",
-        detailLabel: "Bot redirect is not executed until order-bound Telegram runtime and message persistence land.",
+        label: "Чат в боте",
+        stateLabel: "Среда еще не включена",
+        detailLabel: "Редирект в бот не выполняется, пока не подключены привязанная к заказу среда Telegram и сохранение сообщений.",
         isEnabled: false,
       },
     ]);
@@ -182,9 +182,9 @@ describe("admin assignment view model", () => {
 
     expect(viewModel.orders[0].actionCells.find((action) => action.key === "status_control")).toEqual({
       key: "status_control",
-      label: "Status control",
-      stateLabel: "Complete order -> COMPLETED",
-      detailLabel: "Requires confirmation and writes the operator/admin actor to status history.",
+      label: "Управление статусом",
+      stateLabel: "Завершить заказ -> Завершен",
+      detailLabel: "Требует подтверждения и записывает оператора/админа в историю статусов.",
       isEnabled: true,
       nextStatus: "COMPLETED",
     });
@@ -215,16 +215,16 @@ describe("admin assignment view model", () => {
     expect(statusActions).toEqual([
       {
         key: "status_control",
-        label: "Status control",
-        stateLabel: "Backend not yet enabled",
-        detailLabel: "No allowed operator/admin next transition is available for this order status.",
+        label: "Управление статусом",
+        stateLabel: "Серверная команда еще не включена",
+        detailLabel: "Для текущего статуса заказа нет разрешенного перехода оператора/админа.",
         isEnabled: false,
       },
       {
         key: "status_control",
-        label: "Status control",
-        stateLabel: "Backend not yet enabled",
-        detailLabel: "No allowed operator/admin next transition is available for this order status.",
+        label: "Управление статусом",
+        stateLabel: "Серверная команда еще не включена",
+        detailLabel: "Для текущего статуса заказа нет разрешенного перехода оператора/админа.",
         isEnabled: false,
       },
     ]);

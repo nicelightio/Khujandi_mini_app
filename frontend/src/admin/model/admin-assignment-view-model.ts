@@ -99,12 +99,12 @@ export type AdminAssignmentViewModel = {
   orders: AdminOperatorDeliveryOrderViewModel[];
 };
 
-const assignmentHeadline = "Operator delivery orders";
-const noMessagesLabel = "No messages yet";
-const emptyWindowLabel = "Today plus previous 3 days";
+const assignmentHeadline = "Операторские заказы доставки";
+const noMessagesLabel = "Сообщений пока нет";
+const emptyWindowLabel = "Сегодня и предыдущие 3 дня";
 export const defaultAdminAssignmentSortKey: AdminAssignmentSortKey = "urgency";
-const pendingBackendLabel = "Backend not yet enabled";
-const pendingRuntimeLabel = "Runtime not yet enabled";
+const pendingBackendLabel = "Серверная команда еще не включена";
+const pendingRuntimeLabel = "Среда еще не включена";
 export const idleAdminAssignmentOfferMutationState: AdminAssignmentOfferMutationState = {
   orderId: null,
   kind: null,
@@ -140,39 +140,39 @@ const statusOrder: Record<string, number> = {
 const sortControlDefinitions: Array<Omit<AdminAssignmentSortControlViewModel, "isActive">> = [
   {
     key: "urgency",
-    label: "Urgency",
-    description: "Delayed, no-courier and attention rows first",
+    label: "Срочность",
+    description: "Сначала задержанные, без курьера и требующие внимания",
   },
   {
     key: "created_at",
-    label: "Created time",
-    description: "Newest orders first",
+    label: "Время создания",
+    description: "Сначала новые заказы",
   },
   {
     key: "status",
-    label: "Status",
-    description: "Lifecycle status order",
+    label: "Статус",
+    description: "Порядок статусов жизненного цикла",
   },
   {
     key: "courier",
-    label: "Courier",
-    description: "Absent courier first, then courier name",
+    label: "Курьер",
+    description: "Сначала без курьера, затем по имени курьера",
   },
   {
     key: "assigned_at",
-    label: "Assigned time",
-    description: "Unassigned first, then earliest assignment",
+    label: "Время назначения",
+    description: "Сначала неназначенные, затем ранние назначения",
   },
   {
     key: "message_presence",
-    label: "Message presence",
-    description: "Rows with a known message preview first; placeholders last",
+    label: "Сообщения",
+    description: "Сначала строки с превью сообщения; пустые записи в конце",
   },
 ];
 
 const formatTimestamp = (value: string | null): string => {
   if (value === null) {
-    return "Not recorded";
+    return "Не записано";
   }
 
   const date = new Date(value);
@@ -181,7 +181,7 @@ const formatTimestamp = (value: string | null): string => {
     return value;
   }
 
-  return date.toLocaleString("en-GB", {
+  return date.toLocaleString("ru-RU", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -194,12 +194,12 @@ const formatWindow = (result: AdminOperatorDeliveryOrdersResult | null): string 
     return emptyWindowLabel;
   }
 
-  return `Today plus previous 3 days / ${formatTimestamp(result.window.from)} - ${formatTimestamp(result.window.to)}`;
+  return `Сегодня и предыдущие 3 дня / ${formatTimestamp(result.window.from)} - ${formatTimestamp(result.window.to)}`;
 };
 
 const formatMoney = (amountMinor: number, currency: string): string => {
   const major = amountMinor / 100;
-  return `${major.toLocaleString("en-US", {
+  return `${major.toLocaleString("ru-RU", {
     minimumFractionDigits: major % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   })} ${currency}`;
@@ -207,44 +207,67 @@ const formatMoney = (amountMinor: number, currency: string): string => {
 
 const formatDuration = (seconds: number | null): string => {
   if (seconds === null) {
-    return "Open";
+    return "Открыт";
   }
 
   const minutes = Math.floor(seconds / 60);
 
   if (minutes < 1) {
-    return `${seconds}s`;
+    return `${seconds} с`;
   }
 
   if (minutes < 60) {
-    return `${minutes}m`;
+    return `${minutes} мин`;
   }
 
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
+  return remainingMinutes === 0 ? `${hours} ч` : `${hours} ч ${remainingMinutes} мин`;
 };
 
-const formatStatus = (status: string): string => status.replaceAll("_", " ");
+const formatStatus = (status: string): string => {
+  switch (status) {
+    case "CREATED":
+      return "Создан";
+    case "DELAYED":
+      return "Задержан";
+    case "ASSIGNED":
+      return "Назначен";
+    case "PICKED_UP":
+      return "Забран";
+    case "IN_PROGRESS":
+      return "В доставке";
+    case "DELIVERED":
+      return "Доставлен";
+    case "COMPLETED":
+      return "Завершен";
+    case "CANCELLED_BY_ADMIN":
+      return "Отменен админом";
+    case "CANCELLED_BY_COURIER_UNAVAILABLE":
+      return "Отменен: курьер недоступен";
+    default:
+      return status.replaceAll("_", " ");
+  }
+};
 
 const toSeverityLabel = (severity: AdminOperatorDeliverySeverity): string => {
   switch (severity) {
     case "active_under_30":
-      return "Active <30m";
+      return "Активен <30 мин";
     case "active_30_60":
-      return "Active 30-60m";
+      return "Активен 30-60 мин";
     case "active_60_plus":
-      return "Active 60m+";
+      return "Активен 60+ мин";
     case "unassigned":
-      return "No courier";
+      return "Без курьера";
     case "delayed":
-      return "Delayed";
+      return "Задержан";
     case "cancelled":
-      return "Cancelled";
+      return "Отменен";
     case "completed":
-      return "Completed";
+      return "Завершен";
     case "attention":
-      return "Needs closure";
+      return "Требует закрытия";
   }
 };
 
@@ -274,7 +297,7 @@ const isDelayedOperatorOrder = (order: Pick<AdminOperatorDeliveryOrder, "status"
   order.status === "DELAYED" || order.severity === "delayed";
 
 const toOrderSeverityLabel = (order: AdminOperatorDeliveryOrder): string =>
-  isDelayedOperatorOrder(order) ? "Delayed" : toSeverityLabel(order.severity);
+  isDelayedOperatorOrder(order) ? "Задержан" : toSeverityLabel(order.severity);
 
 const toOrderSeverityTone = (order: AdminOperatorDeliveryOrder): AdminOperatorDeliveryOrderViewModel["severityTone"] =>
   isDelayedOperatorOrder(order) ? "danger" : toSeverityTone(order.severity);
@@ -313,7 +336,7 @@ const toEpoch = (value: string | null): number | null => {
   return Number.isNaN(date.getTime()) ? null : date.getTime();
 };
 
-const compareStrings = (left: string, right: string): number => left.localeCompare(right, "en");
+const compareStrings = (left: string, right: string): number => left.localeCompare(right, "ru");
 
 const compareNumbers = (left: number, right: number): number => left - right;
 
@@ -392,13 +415,13 @@ const createSortControls = (sortKey: AdminAssignmentSortKey): AdminAssignmentSor
 
 const toCommentsLabel = (comments: AdminOperatorDeliveryOrder["history"][number]["comments"]): string => {
   const values = [
-    comments.courier === null ? null : `Courier: ${comments.courier}`,
-    comments.admin === null ? null : `Admin: ${comments.admin}`,
-    comments.customer === null ? null : `Customer: ${comments.customer}`,
-    comments.shopOwner === null ? null : `Shop: ${comments.shopOwner}`,
+    comments.courier === null ? null : `Курьер: ${comments.courier}`,
+    comments.admin === null ? null : `Админ: ${comments.admin}`,
+    comments.customer === null ? null : `Клиент: ${comments.customer}`,
+    comments.shopOwner === null ? null : `Магазин: ${comments.shopOwner}`,
   ].filter((value): value is string => value !== null);
 
-  return values.length === 0 ? "No comments" : values.join(" / ");
+  return values.length === 0 ? "Комментариев нет" : values.join(" / ");
 };
 
 const toHistoryViewModel = (
@@ -428,9 +451,9 @@ const createTargetedOfferAction = (
   if (isCurrentTargeted && offerMutation.status === "submitting") {
     return {
       key: "targeted_offer",
-      label: "Targeted offer",
-      stateLabel: "Creating offer",
-      detailLabel: "Manual targeted offer creation is in progress.",
+      label: "Персональное предложение",
+      stateLabel: "Создаем предложение",
+      detailLabel: "Создание ручного персонального предложения выполняется.",
       isEnabled: false,
     };
   }
@@ -438,9 +461,9 @@ const createTargetedOfferAction = (
   if (isCurrentOrderSubmitting) {
     return {
       key: "targeted_offer",
-      label: "Targeted offer",
-      stateLabel: "Offer action in progress",
-      detailLabel: "Another offer action is already in progress for this order.",
+      label: "Персональное предложение",
+      stateLabel: "Действие уже выполняется",
+      detailLabel: "Для этого заказа уже выполняется другое действие с предложением.",
       isEnabled: false,
     };
   }
@@ -448,9 +471,9 @@ const createTargetedOfferAction = (
   if (isCurrentTargeted && offerMutation.status === "succeeded") {
     return {
       key: "targeted_offer",
-      label: "Targeted offer",
-      stateLabel: "Offer created",
-      detailLabel: offerMutation.message ?? "Pending courier offer was created.",
+      label: "Персональное предложение",
+      stateLabel: "Предложение создано",
+      detailLabel: offerMutation.message ?? "Ожидающее предложение курьеру создано.",
       isEnabled: canCreateTargetedOffer(order),
     };
   }
@@ -458,21 +481,21 @@ const createTargetedOfferAction = (
   if (isCurrentTargeted && offerMutation.status === "failed") {
     return {
       key: "targeted_offer",
-      label: "Targeted offer",
-      stateLabel: "Offer failed",
-      detailLabel: offerMutation.message ?? "Manual targeted offer could not be created.",
+      label: "Персональное предложение",
+      stateLabel: "Ошибка предложения",
+      detailLabel: offerMutation.message ?? "Ручное персональное предложение не удалось создать.",
       isEnabled: canCreateTargetedOffer(order),
     };
   }
 
   return {
     key: "targeted_offer",
-    label: "Targeted offer",
-    stateLabel: canCreateTargetedOffer(order) ? "Create pending offer" : pendingBackendLabel,
+    label: "Персональное предложение",
+      stateLabel: canCreateTargetedOffer(order) ? "Создать ожидающее предложение" : pendingBackendLabel,
     detailLabel:
       order.courier.current === null
-        ? "Creates a pending courier offer. Courier claim is a later step and the order stays unassigned."
-        : "Courier already accepted; manual offer is unavailable for this order.",
+        ? "Создает ожидающее предложение курьеру. Подтверждение курьером будет отдельным шагом, заказ пока остается неназначенным."
+        : "Курьер уже принял заказ; ручное предложение недоступно.",
     isEnabled: canCreateTargetedOffer(order),
   };
 };
@@ -489,9 +512,9 @@ const createBroadcastOfferAction = (
   if (isCurrentBroadcast && offerMutation.status === "submitting") {
     return {
       key: "broadcast_offer",
-      label: "Broadcast offer",
-      stateLabel: "Creating offers",
-      detailLabel: "Explicit auto-offer broadcast is in progress.",
+      label: "Массовое предложение",
+      stateLabel: "Создаем предложения",
+      detailLabel: "Явное массовое auto-offer действие выполняется.",
       isEnabled: false,
     };
   }
@@ -499,9 +522,9 @@ const createBroadcastOfferAction = (
   if (isCurrentOrderSubmitting) {
     return {
       key: "broadcast_offer",
-      label: "Broadcast offer",
-      stateLabel: "Offer action in progress",
-      detailLabel: "Another offer action is already in progress for this order.",
+      label: "Массовое предложение",
+      stateLabel: "Действие уже выполняется",
+      detailLabel: "Для этого заказа уже выполняется другое действие с предложением.",
       isEnabled: false,
     };
   }
@@ -509,9 +532,9 @@ const createBroadcastOfferAction = (
   if (isCurrentBroadcast && offerMutation.status === "succeeded") {
     return {
       key: "broadcast_offer",
-      label: "Broadcast offer",
-      stateLabel: "Offers created",
-      detailLabel: offerMutation.message ?? "Pending broadcast offers were created.",
+      label: "Массовое предложение",
+      stateLabel: "Предложения созданы",
+      detailLabel: offerMutation.message ?? "Ожидающие массовые предложения созданы.",
       isEnabled: canBroadcast,
     };
   }
@@ -519,21 +542,21 @@ const createBroadcastOfferAction = (
   if (isCurrentBroadcast && offerMutation.status === "failed") {
     return {
       key: "broadcast_offer",
-      label: "Broadcast offer",
-      stateLabel: "Broadcast failed",
-      detailLabel: offerMutation.message ?? "Auto-offer broadcast could not be created.",
+      label: "Массовое предложение",
+      stateLabel: "Ошибка массового предложения",
+      detailLabel: offerMutation.message ?? "Массовое auto-offer действие не удалось создать.",
       isEnabled: canBroadcast,
     };
   }
 
   return {
     key: "broadcast_offer",
-    label: "Broadcast offer",
-    stateLabel: canBroadcast ? "Trigger explicitly" : pendingBackendLabel,
+    label: "Массовое предложение",
+    stateLabel: canBroadcast ? "Запустить явно" : pendingBackendLabel,
     detailLabel:
       order.courier.current === null
-        ? "Explicitly creates pending broadcast offers for active free auto-offer couriers. Auto-offer is otherwise OFF."
-        : "Courier already accepted; broadcast offer is unavailable for this order.",
+        ? "Явно создает ожидающие массовые предложения для активных свободных auto-offer курьеров. Иначе auto-offer выключен."
+        : "Курьер уже принял заказ; массовое предложение недоступно.",
     isEnabled: canBroadcast,
   };
 };
@@ -548,9 +571,9 @@ const createActionCells = (
   createStatusControlAction(order, statusMutation),
   {
     key: "bot_chat",
-    label: "Bot chat",
+    label: "Чат в боте",
     stateLabel: pendingRuntimeLabel,
-    detailLabel: "Bot redirect is not executed until order-bound Telegram runtime and message persistence land.",
+    detailLabel: "Редирект в бот не выполняется, пока не подключены привязанная к заказу среда Telegram и сохранение сообщений.",
     isEnabled: false,
   },
 ];
@@ -561,14 +584,14 @@ const createStatusControlAction = (
 ): AdminOperatorDeliveryActionCellViewModel => {
   const nextStatus = nextOperatorStatusByStatus[order.status] ?? null;
   const isCurrentStatusCommand = statusMutation.orderId === order.orderId;
-  const baseLabel = order.status === "DELIVERED" ? "Complete order" : "Advance status";
+  const baseLabel = order.status === "DELIVERED" ? "Завершить заказ" : "Продвинуть статус";
 
   if (isCurrentStatusCommand && statusMutation.status === "submitting") {
     return {
       key: "status_control",
-      label: "Status control",
-      stateLabel: "Updating status",
-      detailLabel: "Operator status control is writing the allowed next transition.",
+      label: "Управление статусом",
+      stateLabel: "Обновляем статус",
+      detailLabel: "Операторская команда записывает разрешенный следующий переход.",
       isEnabled: false,
       nextStatus: statusMutation.nextStatus ?? undefined,
     };
@@ -577,9 +600,9 @@ const createStatusControlAction = (
   if (isCurrentStatusCommand && statusMutation.status === "succeeded") {
     return {
       key: "status_control",
-      label: "Status control",
-      stateLabel: "Status updated",
-      detailLabel: statusMutation.message ?? "Status transition was written to history.",
+      label: "Управление статусом",
+      stateLabel: "Статус обновлен",
+      detailLabel: statusMutation.message ?? "Переход статуса записан в историю.",
       isEnabled: nextStatus !== null,
       nextStatus: nextStatus ?? undefined,
     };
@@ -588,9 +611,9 @@ const createStatusControlAction = (
   if (isCurrentStatusCommand && statusMutation.status === "failed") {
     return {
       key: "status_control",
-      label: "Status control",
-      stateLabel: "Status failed",
-      detailLabel: statusMutation.message ?? "Status transition could not be written.",
+      label: "Управление статусом",
+      stateLabel: "Ошибка статуса",
+      detailLabel: statusMutation.message ?? "Переход статуса не удалось записать.",
       isEnabled: nextStatus !== null,
       nextStatus: nextStatus ?? undefined,
     };
@@ -598,12 +621,12 @@ const createStatusControlAction = (
 
   return {
     key: "status_control",
-    label: "Status control",
+    label: "Управление статусом",
     stateLabel: nextStatus === null ? pendingBackendLabel : `${baseLabel} -> ${formatStatus(nextStatus)}`,
     detailLabel:
       nextStatus === null
-        ? "No allowed operator/admin next transition is available for this order status."
-        : "Requires confirmation and writes the operator/admin actor to status history.",
+        ? "Для текущего статуса заказа нет разрешенного перехода оператора/админа."
+        : "Требует подтверждения и записывает оператора/админа в историю статусов.",
     isEnabled: nextStatus !== null,
     nextStatus: nextStatus ?? undefined,
   };
@@ -626,13 +649,13 @@ const toOrderViewModel = (
   isDelayedAlert: isDelayedOperatorOrder(order),
   courierLabel:
     order.courier.current === null
-      ? "No accepted courier"
+      ? "Нет принявшего курьера"
       : `${order.courier.current.name}${order.courier.current.telegramId === null ? "" : ` / tg ${order.courier.current.telegramId}`}`,
-  courierMarkerLabel: order.courier.marker === "absent" ? "Absent" : "Current",
+  courierMarkerLabel: order.courier.marker === "absent" ? "Нет" : "Текущий",
   assignedAtLabel: formatTimestamp(order.assignedAt),
   claimedAtLabel: formatTimestamp(order.claimedAt),
   latestMessageLabel: order.latestMessagePreview ?? order.latestMessage ?? noMessagesLabel,
-  latestMessageMetaLabel: order.latestMessageSenderRole === null ? "Message placeholder" : order.latestMessageSenderRole,
+  latestMessageMetaLabel: order.latestMessageSenderRole === null ? "Сообщения пока нет" : order.latestMessageSenderRole,
   statusRevisionLabel: order.statusRevision,
   isExpanded: expandedOrderIds.has(order.orderId),
   actionCells: createActionCells(order, offerMutation, statusMutation),
@@ -641,10 +664,10 @@ const toOrderViewModel = (
 
 const toAlertReasonLabel = (order: AdminOperatorDeliveryOrder): string => {
   if (isDelayedOperatorOrder(order)) {
-    return "DELAYED";
+    return "Задержан";
   }
 
-  return "No accepted courier";
+    return "Нет принявшего курьера";
 };
 
 const toAlertOrders = (orders: readonly AdminOperatorDeliveryOrder[]): AdminAssignmentAlertOrderViewModel[] =>
@@ -661,12 +684,12 @@ const toAlertOrders = (orders: readonly AdminOperatorDeliveryOrder[]): AdminAssi
 
 export const createLoadingAdminAssignmentViewModel = (): AdminAssignmentViewModel => ({
   headline: assignmentHeadline,
-  statusLabel: "Loading operator delivery orders...",
+  statusLabel: "Загружаем операторские заказы доставки...",
   windowLabel: emptyWindowLabel,
-  generatedAtLabel: "Waiting for backend read model",
-  revisionLabel: "No revision",
-  emptyLabel: "No orders in the 4-day operator window.",
-  alertLabel: "No delayed or no-courier orders in the current operator window.",
+  generatedAtLabel: "Ждем backend read model",
+  revisionLabel: "Нет revision",
+  emptyLabel: "В 4-дневном операторском окне заказов нет.",
+  alertLabel: "В текущем окне нет задержанных заказов или заказов без курьера.",
   alertOrders: [],
   sortControls: createSortControls(defaultAdminAssignmentSortKey),
   isLoading: true,
@@ -682,12 +705,12 @@ export const createReadyAdminAssignmentViewModel = (
   statusMutation: AdminAssignmentStatusMutationState = idleAdminAssignmentStatusMutationState,
 ): AdminAssignmentViewModel => ({
   headline: assignmentHeadline,
-  statusLabel: `${result.orders.length} orders loaded from the operator read model.`,
+  statusLabel: `Загружено заказов из операторской модели чтения: ${result.orders.length}.`,
   windowLabel: formatWindow(result),
-  generatedAtLabel: `Generated ${formatTimestamp(result.generatedAt)}`,
-  revisionLabel: `Revision ${result.revision}`,
-  emptyLabel: "No orders in the 4-day operator window.",
-  alertLabel: "Courier attention",
+  generatedAtLabel: `Сформировано ${formatTimestamp(result.generatedAt)}`,
+  revisionLabel: `Ревизия ${result.revision}`,
+  emptyLabel: "В 4-дневном операторском окне заказов нет.",
+  alertLabel: "Внимание к курьерам",
   alertOrders: toAlertOrders(result.orders),
   sortControls: createSortControls(sortKey),
   isLoading: false,
@@ -699,7 +722,7 @@ export const createReadyAdminAssignmentViewModel = (
 
 export const createErrorAdminAssignmentViewModel = (message: string): AdminAssignmentViewModel => ({
   ...createLoadingAdminAssignmentViewModel(),
-  statusLabel: "Operator delivery orders could not be loaded.",
+  statusLabel: "Операторские заказы доставки не удалось загрузить.",
   isLoading: false,
   errorMessage: message,
 });

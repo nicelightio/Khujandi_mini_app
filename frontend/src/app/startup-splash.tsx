@@ -2,6 +2,32 @@ import { useEffect, type ReactNode } from "react";
 
 declare const __APP_DEBUG__: boolean;
 
+export const startupSplashSeenStorageKey = "khujandi.startupSplash.seen";
+
+export type StartupSplashMode = "full" | "quick";
+
+type StartupSplashTimings = {
+  dismissMs: number;
+  removeMs: number;
+};
+
+const startupSplashTimings: Record<StartupSplashMode, StartupSplashTimings> = {
+  full: {
+    dismissMs: 3900,
+    removeMs: 4400,
+  },
+  quick: {
+    dismissMs: 1000,
+    removeMs: 1250,
+  },
+};
+
+export const resolveStartupSplashMode = (value: string | undefined): StartupSplashMode => (
+  value === "quick" ? "quick" : "full"
+);
+
+export const getStartupSplashTimings = (mode: StartupSplashMode): StartupSplashTimings => startupSplashTimings[mode];
+
 type StartupSplashGateProps = {
   children: ReactNode;
 };
@@ -9,11 +35,15 @@ type StartupSplashGateProps = {
 export const StartupSplashGate = ({ children }: StartupSplashGateProps) => {
   useEffect(() => {
     const initialSplash = document.getElementById("initial-splash");
+    const splashMode = resolveStartupSplashMode(document.documentElement.dataset.startupSplashMode);
+    const splashTimings = getStartupSplashTimings(splashMode);
+    const isDebugEnabled = typeof __APP_DEBUG__ !== "undefined" && __APP_DEBUG__;
 
-    if (__APP_DEBUG__) {
+    if (isDebugEnabled) {
       console.info("[startup-splash] react-mounted", {
         initialSplashCount: document.querySelectorAll("#initial-splash").length,
         reactSplashCount: document.querySelectorAll('[data-startup-splash="root"]').length,
+        splashMode,
         time: Math.round(performance.now()),
       });
     }
@@ -25,23 +55,25 @@ export const StartupSplashGate = ({ children }: StartupSplashGateProps) => {
     const dismissTimerId = window.setTimeout(() => {
       initialSplash.classList.add("initial-splash--dismissed");
 
-      if (__APP_DEBUG__) {
+      if (isDebugEnabled) {
         console.info("[startup-splash] dismissed", {
           initialSplashCount: document.querySelectorAll("#initial-splash").length,
+          splashMode,
           time: Math.round(performance.now()),
         });
       }
-    }, 3900);
+    }, splashTimings.dismissMs);
     const removeTimerId = window.setTimeout(() => {
       initialSplash.remove();
 
-      if (__APP_DEBUG__) {
+      if (isDebugEnabled) {
         console.info("[startup-splash] removed", {
           initialSplashCount: document.querySelectorAll("#initial-splash").length,
+          splashMode,
           time: Math.round(performance.now()),
         });
       }
-    }, 4400);
+    }, splashTimings.removeMs);
 
     return () => {
       window.clearTimeout(dismissTimerId);

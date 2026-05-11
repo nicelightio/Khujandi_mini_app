@@ -62,7 +62,7 @@ export const AdminCatalogProvisioningRoute = ({ api }: AdminCatalogProvisioningR
         setShopsErrorMessage(
           error instanceof AdminCatalogProvisioningApiError || error instanceof Error
             ? error.message
-            : "Provisioned shops are temporarily unavailable.",
+            : "Список созданных магазинов временно недоступен.",
         );
       } finally {
         if (isActive) {
@@ -109,7 +109,7 @@ export const AdminCatalogProvisioningRoute = ({ api }: AdminCatalogProvisioningR
       });
 
       setSuccessMessage(
-        `Provisioned ${result.shopName} (${result.shopStatus}) for seller ${result.sellerId}. Paths: ${result.secondaryPublicPath} / ${result.primaryPublicPath}. Starter pages: ${result.menuPagesCount}. Starter products: ${result.productsCount}.`,
+        `Магазин ${result.shopName} (${result.shopStatus}) создан для продавца ${result.sellerId}. Пути: ${result.secondaryPublicPath} / ${result.primaryPublicPath}. Стартовые страницы: ${result.menuPagesCount}. Стартовые товары: ${result.productsCount}.`,
       );
 
       try {
@@ -120,14 +120,14 @@ export const AdminCatalogProvisioningRoute = ({ api }: AdminCatalogProvisioningR
         setShopsErrorMessage(
           refreshError instanceof AdminCatalogProvisioningApiError || refreshError instanceof Error
             ? refreshError.message
-            : "Provisioned shops are temporarily unavailable.",
+            : "Список созданных магазинов временно недоступен.",
         );
       }
     } catch (error) {
       setErrorMessage(
         error instanceof AdminCatalogProvisioningApiError || error instanceof Error
           ? error.message
-          : "Shop provisioning is temporarily unavailable.",
+          : "Создание магазина временно недоступно.",
       );
     } finally {
       setIsSubmitting(false);

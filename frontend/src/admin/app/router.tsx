@@ -196,7 +196,7 @@ export const AdminRouter = ({
       refreshAttemptedPathRef.current = null;
       setActiveSession({
         ...createAnonymousAdminSessionState(),
-        reason: "You signed out of the admin session.",
+        reason: "Вы вышли из админ-сессии.",
       });
       setActivePath(adminRoutePaths.login);
     } finally {
