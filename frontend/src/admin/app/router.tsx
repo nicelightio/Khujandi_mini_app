@@ -51,8 +51,16 @@ export const adminRoutes: AdminRoute[] = [
   },
 ];
 
+const normalizeAdminPathname = (pathname: string): string => {
+  if (pathname === adminRoutePaths.home) {
+    return pathname;
+  }
+
+  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+};
+
 export const resolveAdminRoute = (pathname: string): AdminRoute | null =>
-  adminRoutes.find((route) => route.path === pathname) ?? null;
+  adminRoutes.find((route) => route.path === normalizeAdminPathname(pathname)) ?? null;
 
 const getCurrentPathname = (): string => {
   if (typeof window === "undefined") {

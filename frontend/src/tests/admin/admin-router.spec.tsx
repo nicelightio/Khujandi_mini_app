@@ -88,6 +88,10 @@ describe("admin router", () => {
     expect(resolveAdminRoute(adminRoutePaths.home)?.element.type).toBe(AdminDashboardPage);
   });
 
+  it("resolves the trailing-slash admin root as the main dashboard route", () => {
+    expect(resolveAdminRoute("/admin/")?.element.type).toBe(AdminDashboardPage);
+  });
+
   it("resolves the assignment route for the admin path", () => {
     expect(resolveAdminRoute(adminRoutePaths.assignment)?.element.type).toBe(AdminAssignmentRoute);
   });
@@ -138,6 +142,20 @@ describe("admin router", () => {
     expect(text).toContain("Admin page not found");
     expect(text).not.toContain("Admin login");
     expect(text).not.toContain("Order assignment");
+  });
+
+  it("does not render not-found for the trailing-slash admin root", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(<AdminRouter pathname="/admin/" />);
+      await flushRouterTransitions();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+
+    expect(text).toContain("Admin login");
+    expect(text).not.toContain("Admin page not found");
   });
 
   it("renders the protected admin dashboard with links when authenticated", async () => {
@@ -295,7 +313,7 @@ describe("admin router", () => {
     const text = collectText(renderer.toJSON()).join(" ");
 
     expect(text).toContain("Catalog shop provisioning");
-    expect(text).toContain("Protected admin session is provided by the shared admin-access boundary.");
+    expect(text).toContain("Signed in as admin (admin-account-demo).");
     expect(text).toContain("Provision shop");
   });
 
