@@ -23,6 +23,18 @@ status: active
 - `DEBUG=true` / `__APP_DEBUG__` MAY expose visible checkout debug affordance, but MUST NOT be the only server trust gate.
 - Production runtime MUST reject or refuse to start with `PAYMENT_PROVIDER=mock`.
 
+## Test-server container env
+
+For a dedicated test server, set these non-secret values in `/srv/tgmeal/app/.env` and redeploy through the approved deploy script so both the web build arg and api runtime env are refreshed:
+
+```bash
+DEBUG=TRUE
+PAYMENT_PROVIDER=mock
+NODE_ENV=development
+```
+
+Production-like defaults stay safe: `DEBUG=FALSE`, empty `PAYMENT_PROVIDER`, and `NODE_ENV=production`.
+
 ## KISS first baseline
 
 - Required mock outcome: `success/paid`.

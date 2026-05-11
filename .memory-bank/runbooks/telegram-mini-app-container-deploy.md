@@ -113,6 +113,8 @@ TGMEAL_HOST=tgmeal.natureonzoom.win
 ADMIN_ALLOWED_ORIGINS=https://tgmeal.natureonzoom.win
 ADMIN_DB_PATH=/var/lib/khujandi/admin-access-runtime.sqlite
 CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite
+NODE_ENV=production
+PAYMENT_PROVIDER=
 DEBUG=FALSE
 # DATABASE_URL must point to a dedicated Khujandi database before RUN_MIGRATIONS=1 is used.
 # DATABASE_URL=postgresql://tgmeal:CHANGE_ME@khujandi-db-host:5432/tgmeal?schema=public
@@ -125,6 +127,7 @@ chmod 600 /srv/tgmeal/app/.env
 Important:
 
 - `DEBUG=TRUE` is temporary diagnostic mode only; production-like deploy keeps `FALSE`.
+- Test servers that intentionally use guarded mock checkout must set all three non-secret flags together: `DEBUG=TRUE`, `PAYMENT_PROVIDER=mock`, `NODE_ENV=development`.
 - Runtime SQLite state persists through `tgmeal_catalog_runtime_data` volume.
 - `DATABASE_URL` default in compose is a placeholder. Confirm a dedicated Khujandi DB before migrations.
 

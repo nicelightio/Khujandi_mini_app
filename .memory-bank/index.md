@@ -34,6 +34,7 @@ status: active
 
 ## Recent updates
 
+- `test-server mock payment env wiring`: compose now passes production-safe `NODE_ENV` and `PAYMENT_PROVIDER` defaults into the api runtime, while `.env.example` and runbooks document the dedicated test-server flags `DEBUG=TRUE`, `PAYMENT_PROVIDER=mock`, `NODE_ENV=development` for guarded checkout mock mode.
 - `TASK-FT017-04`: verified `PASS`; final repo-local guarded e2e mock payment closure passed backend checkout-payment Jest, frontend checkout-payment Jest, frontend build, lint and `git diff --check`. `FT-017` is terminal for the scoped `success/paid` baseline; mock failed/timeout/pending and real production provider design remain out of scope.
 - `TASK-FT017-03`: verified `PASS`; checkout-only debug/e2e affordance depends on backend `mockPaymentAvailable` metadata from the guarded checkout runtime, renders only in ready checkout with composition, keeps the existing submit button as the only action, and preserves backend-only payment trust.
 - `TASK-FT017-01`: verified `PASS`; guarded backend mock provider boundary for `checkout-payment` is disabled by default, explicit server-side `PAYMENT_PROVIDER=mock` selects `mock` only outside `NODE_ENV=production`, production-like startup rejects mock, and `DEBUG=true` alone refuses checkout without creating an order. No checkout UI affordance, catalog/cart change, shared abstraction or externally selectable failed/timeout/pending mock outcome was added.
