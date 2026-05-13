@@ -122,9 +122,11 @@ TRAEFIK_ROUTER_PREFIX=tgmeal-staging \
 TGMEAL_RUNTIME_VOLUME=tgmeal_staging_runtime_data \
 TGMEAL_RUNTIME_DIR=/var/lib/khujandi-staging \
 LOG_DIR=/var/log/tgmeal/staging \
-DEPLOY_BRANCH=staging \
+DEPLOY_BRANCH=main \
 /usr/local/bin/tgmeal-deploy
 ```
+
+The current staging target is deployed from GitHub `main`. Use a different `DEPLOY_BRANCH` only after it is explicitly approved for staging.
 
 Implementation must ensure:
 
@@ -140,6 +142,7 @@ Implementation must ensure:
 Required checks:
 
 ```bash
+dig +short staging-tgmeal.natureonzoom.win
 curl -fsS https://staging-tgmeal.natureonzoom.win/api/v1/health
 curl -fsS https://staging-tgmeal.natureonzoom.win/api/v1/shops
 ```
@@ -159,6 +162,12 @@ curl -fsS https://tgmeal.natureonzoom.win/api/v1/health
 ```
 
 Production response must not expose test mode.
+
+DNS note:
+
+- Standard Playwright staging QA expects normal system DNS resolution for `staging-tgmeal.natureonzoom.win`.
+- If local/server DNS still returns stale `NXDOMAIN`, compare public resolvers such as `1.1.1.1`/`8.8.8.8` and record the run as resolver-blocked.
+- Do not count a browser-only host resolver override as full fixture evidence because reset/seed/session setup runs through Node fetch before the browser starts.
 
 ## UI QA Workflow
 
@@ -215,6 +224,17 @@ Recommended UI QA sequence:
 7. Bootstrap `seller_plov`.
 8. Verify seller-owned storefront/status workflow.
 
+Route checklist:
+
+- Customer Mini App: `/`, `/shops`, `/shops/:publicPath`, `/checkout`, `/tracking?orderId=...&cursor=...`.
+- Seller web: `/seller/shops/status`.
+- Admin web: `/admin`, `/admin/login`, `/admin/catalog/shops/provision`, `/admin/orders/assignment`, `/admin/orders/cancellation`.
+
+Persona note:
+
+- Treat `GET /api/v1/test/personas` as the source of truth for the deployed runtime.
+- `operator_manager` is not guaranteed; if the endpoint reports it as unsupported, use `admin_boss` for admin/operator web checks and record operator-specific browser coverage as not applicable for that runtime.
+
 ## Evidence Split
 
 UI QA evidence may prove:
@@ -230,7 +250,7 @@ UI QA evidence does not prove:
 - Telegram raw `initData` signature correctness;
 - `auth_date` expiration/replay handling;
 - real Telegram WebView runtime behavior;
-- real payment provider trust.
+- real payment provider trust, callbacks or settlement.
 
 Those checks remain in:
 

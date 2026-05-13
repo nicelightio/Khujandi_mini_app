@@ -37,7 +37,7 @@ status: active
 - Current scoped follow-up intentionally excludes the broader `high-churn runtime propagation` refactor; that concern remains in the open bug record but is not part of the execution-ready wave below.
 - `FT-016` migration is complete for repo-local scope through `TASK-FT016-19`: documentation and Memory Bank sync verified `PASS` after `TASK-FT016-18` strict verification/docs-only end-to-end operator delivery flow verification passed.
 - `FT-017` guarded e2e mock payment mode is terminal for scoped repo-local success baseline through `TASK-FT017-04`; mock failed/timeout/pending and real production provider design remain out of scope.
-- `FT-018` staging runtime and test auth harness в работе: `TASK-FT018-05` verified `PASS_WITH_BROWSER_SMOKE_BLOCKED` для UI QA fixture/workflow; API reset/seed/persona/session fixture smoke проходит, browser smoke честно заблокирован отсутствующим Playwright runtime и не считается pass. `TASK-FT018-06` остается `PARTIAL`/blocked на обязательных Docker Compose render checks. Следующий шаг — `TASK-FT018-07` security review/final verification closure. `REQ-037` остается `planned`/partial до полной FT-018 closure.
+- `FT-018` staging runtime and test auth harness в работе: server staging развернут на `https://staging-tgmeal.natureonzoom.win` из GitHub `main`, Playwright добавлен как repo `devDependency`, UI QA fixture/workflow готов для public staging через fixed-persona HttpOnly cookie session. Public browser smoke прошел с explicit resolver workaround, но обычная public-URL closure требует runner DNS без workaround; staging Playwright QA намеренно не закрывает Telegram HMAC/WebView и real payment provider trust. `REQ-037` остается partial до полной final verification closure.
 
 ### FT-018 staging runtime and test auth harness
 
@@ -112,36 +112,36 @@ status: active
 - REQs: `REQ-037`, `REQ-023`, `REQ-032`, `REQ-033`, `REQ-035`, `REQ-036`
 - Depends on: `TASK-FT018-04`
 - Touched files: `tests/e2e/**/*` or existing Playwright/ui_qa fixtures if present, `.memory-bank/testing/staging-ui-qa.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/guides/staging-server-usage.md`.
-- Tests: API-level staging fixture smoke uses `UI_QA_BASE_URL`, `E2E_TEST_TOKEN`, reset/seed, fixed-persona session bootstrap and sanitized evidence; browser smoke path is `BLOCKED` because Playwright package/browser runtime is not installed.
-- Verify: `PASS_WITH_BROWSER_SMOKE_BLOCKED`; `ui_qa` fixture can obtain a fixed-persona session without real Telegram, records only cookie names/attributes, separates UI workflow evidence from Telegram/payment trust-boundary evidence, and does not print/store secrets. Full browser checkout happy path remains unverified until Playwright is available and checkout `initData` dependency is addressed through an approved staging-only path.
+- Tests: API-level staging fixture smoke uses `UI_QA_BASE_URL`, `E2E_TEST_TOKEN`, reset/seed, fixed-persona session bootstrap and sanitized evidence; browser smoke uses the repo Playwright devDependency and fixed-persona HttpOnly cookie session.
+- Verify: `PASS_WITH_BROWSER_SMOKE`; `ui_qa` fixture can obtain a fixed-persona session without real Telegram, records only cookie names/attributes, separates UI workflow evidence from Telegram/payment trust-boundary evidence, and does not print/store secrets. Local/public browser checkout happy path can run only when backend bootstrap reports `testSessionAuthAvailable=true`; public evidence passed with an explicit resolver workaround, so ordinary public-URL closure still requires runner DNS without workaround.
 - Docs: testing policy, runbook and usage guide evidence instructions.
 - Source Artifacts: `.memory-bank/testing/staging-ui-qa.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`.
 - Constraints: UI QA does not prove Telegram HMAC/replay/auth-date or real payment provider correctness; no broad UI rewrite.
 
 #### TASK-FT018-06 - Server staging deploy profile
 - TASK-ID: `TASK-FT018-06`
-- Status: `partial`
+- Status: `done`
 - Wave: `W3`
 - Feature: `FT-018`
 - REQs: `REQ-037`, `REQ-023`
 - Depends on: `TASK-FT018-02`
 - Touched files: `docker-compose.yml`, `deploy/scripts/tgmeal-deploy-alma.sh`, `.env.example`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/guides/staging-server-usage.md`, `.memory-bank/runbooks/telegram-mini-app-container-deploy.md`.
 - Tests: `docker compose config` for production defaults and staging env; deploy-script dry/read review; router/service/middleware/volume names do not collide; public health checks target staging host only after explicit rollout.
-- Verify: `PARTIAL`; static/deploy safety evidence is aligned after dirty-checkout fail-closed repair, but required production/staging `docker compose config` render evidence is blocked in the local environment without Docker Compose, so the task is not fully passed.
+- Verify: `PASS_FOR_STAGING_DEPLOY`; staging checkout exists at `/srv/tgmeal/staging/app`, deploy runs from GitHub `main`, Compose project/volume/router prefix are staging-specific, production remains separate, and public health passed through Cloudflare with resolver caveat. Historical local Docker Compose render blocker is superseded by server-side deploy/render evidence.
 - Docs: staging runbook, server usage guide and production deploy runbook if deploy variables change.
 - Source Artifacts: `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/runbooks/telegram-mini-app-container-deploy.md`, `.memory-bank/architecture/deployment-and-runtime-topology.md`.
 - Constraints: do not touch PhotoChanger, Traefik configs or unrelated host infrastructure; no destructive Docker cleanup; no production deploy from dirty local source.
 
 #### TASK-FT018-07 - Security review and final verification
 - TASK-ID: `TASK-FT018-07`
-- Status: `ready`
+- Status: `in_progress`
 - Wave: `W4`
 - Feature: `FT-018`
 - REQs: `REQ-037`, `REQ-004`, `REQ-005`, `REQ-021`, `REQ-022`, `REQ-023`, `REQ-032`, `REQ-033`, `REQ-035`, `REQ-036`
 - Depends on: `TASK-FT018-03`, `TASK-FT018-04`, `TASK-FT018-05`, `TASK-FT018-06`
 - Touched files: `.tasks/TASK-FT018-07/**/*`, `.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md`, `.memory-bank/testing/staging-ui-qa.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/index.md`, `.memory-bank/tasks/backlog.md`.
-- Tests: full FT-018 gate set: production-negative test auth, staging positive test auth, mock payment guards, UI QA workflow, blocked browser smoke follow-up as applicable, required Docker Compose config renders for prod/staging from `TASK-FT018-06`, lint, focused runtime tests, frontend build if UI touched, `git diff --check`.
-- Verify: production cannot mount/use test auth; staging endpoints are token-guarded; fixed personas cannot become arbitrary identities; session/cookie/test token secrets are not logged or returned; UI QA evidence remains separated from Telegram/payment trust-boundary evidence; `TASK-FT018-06` Docker Compose render blocker is resolved before final closure.
+- Tests: full FT-018 gate set: production-negative test auth, staging positive test auth, mock payment guards, UI QA workflow, public browser smoke without resolver workaround, lint, focused runtime tests, frontend build if UI touched, `git diff --check`.
+- Verify: production cannot mount/use test auth; staging endpoints are token-guarded; fixed personas cannot become arbitrary identities; session/cookie/test token secrets are not logged or returned; UI QA evidence remains separated from Telegram HMAC/WebView and real payment provider trust evidence; final closure still needs ordinary runner DNS/public URL verification without workaround.
 - Docs: final Memory Bank summaries and `.tasks/TASK-FT018-07` evidence report.
 - Source Artifacts: all FT-018 feature/contract/runbook/testing docs and implementation reports from prior tasks.
 - Constraints: verification/docs/evidence closure only unless a blocking security bug is found; any new implementation work discovered here should become a follow-up task.

@@ -184,7 +184,7 @@ By default the script:
 10. verifies internal web/api and public HTTPS through Traefik;
 11. writes logs under `/var/log/tgmeal`.
 
-The same checked-in script may render staging only with explicit overrides such as `APP_DIR=/srv/tgmeal/staging/app`, `COMPOSE_PROJECT_NAME=tgmeal-staging`, `TGMEAL_HOST=<staging-host>`, `TRAEFIK_ROUTER_PREFIX=tgmeal-staging`, `TGMEAL_RUNTIME_VOLUME=tgmeal_staging_runtime_data`, `TGMEAL_RUNTIME_DIR=/var/lib/khujandi-staging`, `LOG_DIR=/var/log/tgmeal/staging` and `DEPLOY_BRANCH=staging`; see [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](staging-runtime-and-ui-qa.md).
+The same checked-in script may render staging only with explicit overrides such as `APP_DIR=/srv/tgmeal/staging/app`, `COMPOSE_PROJECT_NAME=tgmeal-staging`, `TGMEAL_HOST=<staging-host>`, `TRAEFIK_ROUTER_PREFIX=tgmeal-staging`, `TGMEAL_RUNTIME_VOLUME=tgmeal_staging_runtime_data`, `TGMEAL_RUNTIME_DIR=/var/lib/khujandi-staging`, `LOG_DIR=/var/log/tgmeal/staging` and `DEPLOY_BRANCH=main` unless another staging branch is explicitly approved; see [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](staging-runtime-and-ui-qa.md).
 
 Optional migrations, only after confirming a dedicated Khujandi DB:
 

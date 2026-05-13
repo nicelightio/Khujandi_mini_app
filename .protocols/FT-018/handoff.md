@@ -8,7 +8,7 @@ status: active
 
 `FT-018` defines a real staging runtime and a staging-only fixed-persona test auth harness for UI QA/Playwright.
 
-Handoff теперь incremental: локальный checkout browser smoke через fixed-persona HttpOnly cookie session проходит при backend bootstrap `testSessionAuthAvailable=true`; Telegram auth на checkout в этом staging/dev harness не вызывается. Server staging checkout создан и deploy запущен из GitHub `main`; containers подняты и отвечают через Traefik. Cloudflare DNS для `staging-tgmeal.natureonzoom.win` уже виден публичным резолверам, public staging browser smoke прошел с explicit resolver workaround, но локальный/серверный resolver еще держит NXDOMAIN.
+Handoff теперь incremental: локальный checkout browser smoke через fixed-persona HttpOnly cookie session проходит при backend bootstrap `testSessionAuthAvailable=true`; Telegram auth на checkout в этом staging/dev harness не вызывается. Server staging checkout создан и deploy запущен из GitHub `main`; containers подняты и отвечают через Traefik. Cloudflare DNS для `staging-tgmeal.natureonzoom.win` уже виден публичным резолверам, public staging browser smoke прошел с explicit resolver workaround, но обычный Playwright staging QA должен сначала пройти DNS preflight без workaround.
 
 ## Canonical Docs
 
@@ -34,6 +34,21 @@ Handoff теперь incremental: локальный checkout browser smoke че
 5. Browser uses returned HttpOnly cookies and runs the workflow.
 6. Checkout may skip Telegram auth only when backend checkout bootstrap exposes `testSessionAuthAvailable=true`; default/production behavior still requires Telegram `initData`.
 
+Preflight:
+
+```bash
+dig +short staging-tgmeal.natureonzoom.win
+curl -fsS https://staging-tgmeal.natureonzoom.win/api/v1/health
+```
+
+Route checklist:
+
+- Customer Mini App: `/`, `/shops`, `/shops/:publicPath`, `/checkout`, `/tracking?orderId=...&cursor=...`.
+- Seller web: `/seller/shops/status`.
+- Admin web: `/admin`, `/admin/login`, `/admin/catalog/shops/provision`, `/admin/orders/assignment`, `/admin/orders/cancellation`.
+
+Treat `GET /api/v1/test/personas` as the deployed-runtime source of truth. `operator_manager` is controlled unsupported unless the endpoint says otherwise; use `admin_boss` for admin/operator web coverage in that case.
+
 ## Hard Boundaries
 
 - No production test auth endpoint.
@@ -42,7 +57,8 @@ Handoff теперь incremental: локальный checkout browser smoke че
 - No production mock payment.
 - No shared production/staging state.
 - No treating UI QA as Telegram auth correctness evidence.
+- No treating staging mock checkout as real payment provider trust evidence.
 
 ## Next Step
 
-Продолжить с resolver-cache closure: дождаться, пока локальный/серверный resolver перестанет возвращать NXDOMAIN для `staging-tgmeal.natureonzoom.win`, затем повторить обычный public HTTPS health/UI QA smoke без explicit resolver workaround. `REQ-037` не закрывать как fully verified до обычного публичного staging URL без workaround.
+Продолжить с resolver-cache closure: убедиться, что обычный runner resolver резолвит `staging-tgmeal.natureonzoom.win`, затем повторить public HTTPS health/UI QA smoke без explicit resolver workaround. `REQ-037` не закрывать как fully verified до обычного публичного staging URL без workaround.

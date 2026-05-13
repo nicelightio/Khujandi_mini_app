@@ -16,13 +16,15 @@ status: active
 
 ## Current Status
 
-`FT-018` реализован локально с оставшимися deploy/render gates:
+`FT-018` реализован и развернут на server staging:
 
 - runtime mode guards, reset/seed endpoints and fixed-persona session endpoints exist;
 - repo-local UI QA fixture exists;
 - Playwright is a repo `devDependency`;
 - checkout browser smoke can use the fixed-persona HttpOnly cookie session without Telegram auth only when backend bootstrap returns `testSessionAuthAvailable=true`;
-- server staging deploy is not closed until staging checkout exists on the host and required Docker Compose render checks pass.
+- staging checkout exists at `/srv/tgmeal/staging/app`, Compose project is `tgmeal-staging`, runtime volume is `tgmeal_staging_runtime_data`;
+- public staging URL is `https://staging-tgmeal.natureonzoom.win`;
+- Cloudflare DNS is configured, but individual local/server resolvers can temporarily keep stale `NXDOMAIN`; run the DNS preflight below before treating public URL failures as application failures.
 
 ## Mode Flags
 
@@ -142,13 +144,22 @@ TRAEFIK_ROUTER_PREFIX=tgmeal-staging \
 TGMEAL_RUNTIME_VOLUME=tgmeal_staging_runtime_data \
 TGMEAL_RUNTIME_DIR=/var/lib/khujandi-staging \
 LOG_DIR=/var/log/tgmeal/staging \
-DEPLOY_BRANCH=staging \
+DEPLOY_BRANCH=main \
 /usr/local/bin/tgmeal-deploy
 ```
 
 Do not run this against production `/srv/tgmeal/app`.
 
-Do not treat the current production checkout as staging render evidence. Staging render should run from `/srv/tgmeal/staging/app` after the staging-aware Compose/deploy changes are landed through the approved GitHub checkout flow.
+Current staging deploy follows the approved GitHub checkout flow from `main`. Use another `DEPLOY_BRANCH` only after the branch is explicitly approved for staging.
+
+DNS/public URL preflight:
+
+```bash
+dig +short staging-tgmeal.natureonzoom.win
+curl -fsS https://staging-tgmeal.natureonzoom.win/api/v1/health
+```
+
+If the local resolver still returns `NXDOMAIN`, compare with public resolvers such as `1.1.1.1`/`8.8.8.8` and record the run as resolver-blocked. The standard UI QA fixture expects normal system DNS because API reset/seed/session setup runs through Node fetch before Playwright opens the browser.
 
 ## Reset And Seed
 
@@ -197,7 +208,7 @@ Available persona keys:
 - `client_alina`: customer Mini App workflow.
 - `seller_plov`: seller-owned storefront/status workflow.
 - `admin_boss`: admin/operator web workflow.
-- `operator_manager`: operator workflow when seeded by runtime.
+- `operator_manager`: controlled unsupported unless the deployed runtime exposes it through `GET /api/v1/test/personas`.
 - `courier_7`: courier runtime workflow, not real Telegram verification.
 
 The response must not include cookie values. Browser/Playwright should keep `Set-Cookie` headers in its context.
@@ -215,6 +226,12 @@ Recommended order:
 7. Check seller-owned shop/status surface.
 8. Bootstrap `admin_boss`.
 9. Check admin/operator panel and allowed operations.
+
+Route checklist:
+
+- Customer Mini App: `/`, `/shops`, `/shops/:publicPath`, `/checkout`, `/tracking?orderId=...&cursor=...`.
+- Seller web: `/seller/shops/status`.
+- Admin web: `/admin`, `/admin/login`, `/admin/catalog/shops/provision`, `/admin/orders/assignment`, `/admin/orders/cancellation`.
 
 ## UI QA Inputs
 
@@ -269,6 +286,7 @@ Staging UI QA cannot prove:
 - replay guard;
 - real Telegram WebView behavior;
 - real payment provider callbacks.
+- real payment provider trust or settlement.
 
 Those checks stay in contract/runtime tests and advisory Android Telegram smoke.
 
