@@ -8,7 +8,7 @@ status: active
 
 `FT-018` defines a real staging runtime and a staging-only fixed-persona test auth harness for UI QA/Playwright.
 
-Handoff теперь incremental: локальный checkout browser smoke через fixed-persona HttpOnly cookie session проходит при backend bootstrap `testSessionAuthAvailable=true`; Telegram auth на checkout в этом staging/dev harness не вызывается. Server staging checkout создан и deploy запущен из GitHub `main` commit `47a4a37`; containers подняты и отвечают через Traefik на host-local TLS route, но публичный hostname `staging-tgmeal.natureonzoom.win` пока не резолвится в DNS.
+Handoff теперь incremental: локальный checkout browser smoke через fixed-persona HttpOnly cookie session проходит при backend bootstrap `testSessionAuthAvailable=true`; Telegram auth на checkout в этом staging/dev harness не вызывается. Server staging checkout создан и deploy запущен из GitHub `main`; containers подняты и отвечают через Traefik. Cloudflare DNS для `staging-tgmeal.natureonzoom.win` уже виден публичным резолверам, public staging browser smoke прошел с explicit resolver workaround, но локальный/серверный resolver еще держит NXDOMAIN.
 
 ## Canonical Docs
 
@@ -45,4 +45,4 @@ Handoff теперь incremental: локальный checkout browser smoke че
 
 ## Next Step
 
-Продолжить с public staging closure: добавить/исправить DNS для `staging-tgmeal.natureonzoom.win`, затем повторить public HTTPS health/UI QA smoke. `REQ-037` не закрывать как fully verified до публичного staging URL и UI QA evidence через него.
+Продолжить с resolver-cache closure: дождаться, пока локальный/серверный resolver перестанет возвращать NXDOMAIN для `staging-tgmeal.natureonzoom.win`, затем повторить обычный public HTTPS health/UI QA smoke без explicit resolver workaround. `REQ-037` не закрывать как fully verified до обычного публичного staging URL без workaround.

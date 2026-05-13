@@ -1,0 +1,34 @@
+{
+  "task": "TASK-FT018-05",
+  "command": "public-browser-smoke",
+  "baseUrl": "https://staging-tgmeal.natureonzoom.win",
+  "dnsWorkaround": "local system resolver had stale NXDOMAIN; browser used explicit Cloudflare IP host-resolver rule",
+  "scenario": "checkout_happy",
+  "persona": "client_alina",
+  "health": {
+    "ok": true,
+    "appEnv": "staging",
+    "nodeEnv": "staging",
+    "debug": true,
+    "paymentProvider": "mock",
+    "e2eTestMode": true,
+    "version": "dev"
+  },
+  "browserSmoke": {
+    "status": "PASS",
+    "openedPath": "/checkout",
+    "title": "Khujandi Mini App",
+    "bodyTextSample": "Каталог\nОформление заказа\n\nЗаказ создан\n\nОформление заказа завершено.\n\nOrder paid and created.\n\nСледить за статусом заказа\n\nЗаказ order-runtime-1 готов к отслеживанию с revision 0.\n\nАвторизация Telegram и подтверждение оплаты остаются на ст"
+  },
+  "cookieSummary": [
+    {
+      "name": "khujandi_mini_app_session",
+      "domain": "staging-tgmeal.natureonzoom.win",
+      "path": "/",
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "trustBoundaryNotice": "Staging UI QA with fixed-persona sessions does not prove Telegram HMAC/replay/WebView correctness or real payment provider trust."
+}

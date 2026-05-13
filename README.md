@@ -26,7 +26,7 @@ Staging runs on the same host as production, but uses a separate checkout, Compo
 - Traefik router/service prefix: `tgmeal-staging`
 - runtime volume: `tgmeal_staging_runtime_data`
 
-Current staging note: the staging containers are deployed and healthy on the host-local Traefik route, but the public hostname requires a Cloudflare DNS record before external browser/QA access works.
+Current staging note: Cloudflare DNS for the public staging hostname is configured and the staging route is healthy. Some local resolvers may temporarily keep the previous NXDOMAIN response; use public resolvers or wait for cache expiry if `staging-tgmeal.natureonzoom.win` does not resolve immediately from a specific network.
 
 Operational docs:
 

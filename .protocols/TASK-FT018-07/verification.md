@@ -6,7 +6,7 @@ status: active
 
 ## Verdict
 
-- Result: `STAGING_DEPLOYED_DNS_BLOCKED`
+- Result: `STAGING_PUBLIC_SMOKE_PASS_RESOLVER_CACHE_PENDING`
 - Date: `2026-05-13`
 - Scope to verify: final FT-018 security review, production-negative/staging-positive guard evidence and closure recommendation.
 
@@ -48,6 +48,14 @@ status: active
   - host-local Traefik TLS health with `--resolve staging-tgmeal.natureonzoom.win:443:127.0.0.1` — PASS; returns `appEnv=staging`, `paymentProvider=mock`, `e2eTestMode=true`.
   - `getent hosts staging-tgmeal.natureonzoom.win` — FAIL; DNS status `2`.
   - production `/api/v1/shops` — PASS.
+- DNS after Cloudflare record creation:
+  - `dig @1.1.1.1 staging-tgmeal.natureonzoom.win A/AAAA` — PASS; returns Cloudflare proxied addresses.
+  - `dig @8.8.8.8 staging-tgmeal.natureonzoom.win A/AAAA` — PASS; returns Cloudflare proxied addresses.
+  - local `getent hosts staging-tgmeal.natureonzoom.win` — still NXDOMAIN at check time.
+  - server `getent hosts staging-tgmeal.natureonzoom.win` — still NXDOMAIN at check time.
+- Public staging checks with explicit resolver workaround:
+  - `curl --resolve staging-tgmeal.natureonzoom.win:443:<cloudflare-ip> https://staging-tgmeal.natureonzoom.win/api/v1/health` — PASS.
+  - public staging browser checkout smoke with browser host-resolver rule — PASS; evidence `.tasks/TASK-FT018-05/ui-qa-public-fixture-2026-05-13T11-45-44-088Z.json`.
 
 ## Evidence Matrix
 
@@ -60,15 +68,17 @@ status: active
 | Fixed-persona sessions | `PASS_WITH_LIMITATION` | Focused tests cover fixed personas, arbitrary identity rejection, Mini App/admin cookie session primitives, no cookie value in JSON; `operator_manager` is controlled unsupported. |
 | Sanitized UI QA fixture | `PASS_LOCAL` | API fixture evidence from TASK-FT018-05 is sanitized and trust-boundary-labeled; `node --check` passes; local browser smoke passes. |
 | Full checkout browser path | `PASS_LOCAL` | Checkout uses fixed-persona HttpOnly cookie session only when backend bootstrap exposes `testSessionAuthAvailable=true`; fixture does not forge Telegram `initData`. |
-| Compose/deploy isolation | `DEPLOYED_DNS_BLOCKED` | Server deploy used `tgmeal-staging` project, `tgmeal_staging_runtime_data` volume, `tgmeal-staging` Traefik labels and `/srv/tgmeal/staging/app` checkout. Staging containers are running; public DNS is missing. |
+| Compose/deploy isolation | `DEPLOYED` | Server deploy used `tgmeal-staging` project, `tgmeal_staging_runtime_data` volume, `tgmeal-staging` Traefik labels and `/srv/tgmeal/staging/app` checkout. Staging containers are running. |
+| Public staging DNS | `PARTIAL` | Public resolvers have Cloudflare records; local/server resolvers still return stale NXDOMAIN. |
+| Public browser smoke | `PASS_WITH_RESOLVER_WORKAROUND` | Browser checkout happy path passed against the public hostname using a host-resolver rule to bypass stale local DNS cache. |
 | Secrets/session leakage | `PASS_WITH_SCOPE_LIMIT` | Reviewed evidence stores cookie names/attributes only. Static search found no tracked token/cookie/session values in reviewed FT-018 evidence; code symbols/placeholders remain expected. |
 | Trust-boundary evidence split | `PASS` | Specs, runbooks, fixture reports and task evidence state UI QA/mock payment do not prove Telegram HMAC/replay/WebView or real payment provider correctness. |
 
 ## Closure Recommendation Placeholder
 
 - `REQ-037`: keep `planned` or at most `partial/implemented`, not verified.
-- FT-018: terminal status recommendation is `STAGING_DEPLOYED_DNS_BLOCKED`, not full `PASS`.
-- Public staging is not usable until DNS resolves; repeat public HTTPS health/UI QA smoke after DNS is fixed.
+- FT-018: terminal status recommendation is `STAGING_PUBLIC_SMOKE_PASS_RESOLVER_CACHE_PENDING`, not full `PASS`.
+- Repeat public HTTPS health/UI QA smoke without resolver workaround after local/server DNS caches pick up the new Cloudflare record.
 
 ## Scope Guard
 
@@ -77,5 +87,5 @@ status: active
 
 ## Blockers
 
-- Public hostname `staging-tgmeal.natureonzoom.win` does not resolve in DNS, so external browser/UI QA cannot reach staging yet.
-- The deploy script returned non-zero at the final public HTTPS gate for that DNS reason, after containers had already been built and started successfully.
+- Local and server resolvers still return stale NXDOMAIN for `staging-tgmeal.natureonzoom.win`, although Cloudflare/public resolvers already return records.
+- The original deploy script returned non-zero at the final public HTTPS gate for that DNS reason, after containers had already been built and started successfully.
