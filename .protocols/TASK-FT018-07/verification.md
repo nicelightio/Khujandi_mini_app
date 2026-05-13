@@ -6,7 +6,7 @@ status: active
 
 ## Verdict
 
-- Result: `PASS_WITH_SERVER_RENDER_DEPLOY_BLOCKERS`
+- Result: `STAGING_DEPLOYED_DNS_BLOCKED`
 - Date: `2026-05-13`
 - Scope to verify: final FT-018 security review, production-negative/staging-positive guard evidence and closure recommendation.
 
@@ -37,6 +37,17 @@ status: active
 - Local browser smoke:
   - `node tests/e2e/staging-ui-qa-fixture.mjs browser-smoke` against local host-OS staging — `PASS`; evidence `.tasks/TASK-FT018-05/ui-qa-fixture-2026-05-13T11-15-41-115Z.json`.
 - `npm run build:frontend` — `PASS`.
+- Server staging deploy from GitHub:
+  - commit `47a4a37` pushed to `origin/main`;
+  - `/srv/tgmeal/staging/app` clean checkout on `main`;
+  - `/usr/local/bin/tgmeal-deploy` installed from checked-in script;
+  - `APP_DIR=/srv/tgmeal/staging/app COMPOSE_PROJECT_NAME=tgmeal-staging ... DEPLOY_BRANCH=main /usr/local/bin/tgmeal-deploy` — containers built/started, internal checks PASS, final public HTTPS gate FAIL because DNS does not resolve.
+- Server post-deploy checks:
+  - `tgmeal-staging-api-1` — healthy.
+  - `tgmeal-staging-web-1` — running.
+  - host-local Traefik TLS health with `--resolve staging-tgmeal.natureonzoom.win:443:127.0.0.1` — PASS; returns `appEnv=staging`, `paymentProvider=mock`, `e2eTestMode=true`.
+  - `getent hosts staging-tgmeal.natureonzoom.win` — FAIL; DNS status `2`.
+  - production `/api/v1/shops` — PASS.
 
 ## Evidence Matrix
 
@@ -49,15 +60,15 @@ status: active
 | Fixed-persona sessions | `PASS_WITH_LIMITATION` | Focused tests cover fixed personas, arbitrary identity rejection, Mini App/admin cookie session primitives, no cookie value in JSON; `operator_manager` is controlled unsupported. |
 | Sanitized UI QA fixture | `PASS_LOCAL` | API fixture evidence from TASK-FT018-05 is sanitized and trust-boundary-labeled; `node --check` passes; local browser smoke passes. |
 | Full checkout browser path | `PASS_LOCAL` | Checkout uses fixed-persona HttpOnly cookie session only when backend bootstrap exposes `testSessionAuthAvailable=true`; fixture does not forge Telegram `initData`. |
-| Compose/deploy isolation | `PARTIAL` | Static evidence and deploy dirty-check safety pass; production/staging `docker compose config` renders are blocked because Docker Compose is unavailable. |
+| Compose/deploy isolation | `DEPLOYED_DNS_BLOCKED` | Server deploy used `tgmeal-staging` project, `tgmeal_staging_runtime_data` volume, `tgmeal-staging` Traefik labels and `/srv/tgmeal/staging/app` checkout. Staging containers are running; public DNS is missing. |
 | Secrets/session leakage | `PASS_WITH_SCOPE_LIMIT` | Reviewed evidence stores cookie names/attributes only. Static search found no tracked token/cookie/session values in reviewed FT-018 evidence; code symbols/placeholders remain expected. |
 | Trust-boundary evidence split | `PASS` | Specs, runbooks, fixture reports and task evidence state UI QA/mock payment do not prove Telegram HMAC/replay/WebView or real payment provider correctness. |
 
 ## Closure Recommendation Placeholder
 
 - `REQ-037`: keep `planned` or at most `partial/implemented`, not verified.
-- FT-018: terminal status recommendation is `PASS_WITH_SERVER_RENDER_DEPLOY_BLOCKERS`, not full `PASS`.
-- Do not deploy or expose public staging until branch/GitHub checkout, Compose render and staging secrets/environment gates are complete.
+- FT-018: terminal status recommendation is `STAGING_DEPLOYED_DNS_BLOCKED`, not full `PASS`.
+- Public staging is not usable until DNS resolves; repeat public HTTPS health/UI QA smoke after DNS is fixed.
 
 ## Scope Guard
 
@@ -66,6 +77,5 @@ status: active
 
 ## Blockers
 
-- Docker Compose render unavailable locally: `docker`/`docker-compose` are not installed in this environment.
-- Server staging render is blocked because `/srv/tgmeal/staging/app` does not exist as a clean GitHub checkout containing the staging-aware Compose/deploy changes.
-- Staging deploy is not allowed until branch/GitHub checkout, Compose render, isolated env/secret configuration and approved deploy gates are complete.
+- Public hostname `staging-tgmeal.natureonzoom.win` does not resolve in DNS, so external browser/UI QA cannot reach staging yet.
+- The deploy script returned non-zero at the final public HTTPS gate for that DNS reason, after containers had already been built and started successfully.
