@@ -7,6 +7,10 @@ services:
       HOST: 0.0.0.0
       PORT: 3001
       NODE_ENV: ${NODE_ENV:-production}
+      APP_ENV: ${APP_ENV:-production}
+      DEBUG: ${DEBUG:-FALSE}
+      E2E_TEST_MODE: ${E2E_TEST_MODE:-FALSE}
+      E2E_TEST_TOKEN: ${E2E_TEST_TOKEN:-}
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
       ADMIN_ALLOWED_ORIGINS: ${ADMIN_ALLOWED_ORIGINS:-https://tgmeal.natureonzoom.win}
       DATABASE_URL: ${DATABASE_URL:-postgresql://tgmeal:CHANGE_ME@host.docker.internal:5432/tgmeal?schema=public}
@@ -16,7 +20,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - catalog_runtime_data:/var/lib/khujandi
+      - catalog_runtime_data:${TGMEAL_RUNTIME_DIR:-/var/lib/khujandi}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/shops"]
@@ -35,16 +39,16 @@ services:
       api:
         condition: service_healthy
     labels:
-      traefik.enable: "true"
-      traefik.docker.network: web
-      traefik.http.routers.tgmeal-http.rule: Host(`${TGMEAL_HOST:-tgmeal.natureonzoom.win}`)
-      traefik.http.routers.tgmeal-http.entrypoints: web
-      traefik.http.routers.tgmeal-http.middlewares: tgmeal-https-redirect
-      traefik.http.middlewares.tgmeal-https-redirect.redirectscheme.scheme: https
-      traefik.http.routers.tgmeal.rule: Host(`${TGMEAL_HOST:-tgmeal.natureonzoom.win}`)
-      traefik.http.routers.tgmeal.entrypoints: websecure
-      traefik.http.routers.tgmeal.tls: "true"
-      traefik.http.services.tgmeal.loadbalancer.server.port: "80"
+      - traefik.enable=true
+      - traefik.docker.network=web
+      - traefik.http.routers.${TRAEFIK_ROUTER_PREFIX:-tgmeal}-http.rule=Host(`${TGMEAL_HOST:-tgmeal.natureonzoom.win}`)
+      - traefik.http.routers.${TRAEFIK_ROUTER_PREFIX:-tgmeal}-http.entrypoints=web
+      - traefik.http.routers.${TRAEFIK_ROUTER_PREFIX:-tgmeal}-http.middlewares=${TRAEFIK_ROUTER_PREFIX:-tgmeal}-https-redirect
+      - traefik.http.middlewares.${TRAEFIK_ROUTER_PREFIX:-tgmeal}-https-redirect.redirectscheme.scheme=https
+      - traefik.http.routers.${TRAEFIK_ROUTER_PREFIX:-tgmeal}.rule=Host(`${TGMEAL_HOST:-tgmeal.natureonzoom.win}`)
+      - traefik.http.routers.${TRAEFIK_ROUTER_PREFIX:-tgmeal}.entrypoints=websecure
+      - traefik.http.routers.${TRAEFIK_ROUTER_PREFIX:-tgmeal}.tls=true
+      - traefik.http.services.${TRAEFIK_ROUTER_PREFIX:-tgmeal}.loadbalancer.server.port=80
     networks:
       - default
       - web
@@ -52,6 +56,7 @@ services:
 
 volumes:
   catalog_runtime_data:
+    name: ${TGMEAL_RUNTIME_VOLUME:-tgmeal_catalog_runtime_data}
 
 networks:
   web:

@@ -19,7 +19,7 @@ status: active
 ## Required gates
 
 - Canonical server-side gate: `PAYMENT_PROVIDER=mock`.
-- The backend MUST also enforce an explicit non-production/runtime guard before accepting mock provider confirmation.
+- The backend MUST also enforce an explicit runtime/test guard (`APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE`) before accepting mock provider confirmation.
 - `DEBUG=true` / `__APP_DEBUG__` MAY expose visible checkout debug affordance, but MUST NOT be the only server trust gate.
 - Production runtime MUST reject or refuse to start with `PAYMENT_PROVIDER=mock`.
 
@@ -30,10 +30,13 @@ For a dedicated test server, set these non-secret values in `/srv/tgmeal/app/.en
 ```bash
 DEBUG=TRUE
 PAYMENT_PROVIDER=mock
-NODE_ENV=development
+APP_ENV=staging
+E2E_TEST_MODE=TRUE
 ```
 
 Production-like defaults stay safe: `DEBUG=FALSE`, empty `PAYMENT_PROVIDER`, and `NODE_ENV=production`.
+
+For `FT-018` staging UI QA, this mock payment mode is only one part of the staging guard set. The server staging profile must also use `APP_ENV=staging`, `E2E_TEST_MODE=TRUE`, isolated staging state/volumes, and the guarded fixed-persona test auth contract from [.memory-bank/contracts/staging-test-auth-harness-contract.md](../contracts/staging-test-auth-harness-contract.md).
 
 ## KISS first baseline
 
@@ -79,4 +82,5 @@ Production-like defaults stay safe: `DEBUG=FALSE`, empty `PAYMENT_PROVIDER`, and
 - [.memory-bank/features/FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md](../features/FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md): checkout route placement and composition handoff.
 - [.memory-bank/contracts/payment-confirmation-contract.md](../contracts/payment-confirmation-contract.md): trusted payment confirmation boundary.
 - [.memory-bank/contracts/customer-order-composition-contract.md](../contracts/customer-order-composition-contract.md): upstream composition payload.
+- [.memory-bank/contracts/staging-test-auth-harness-contract.md](../contracts/staging-test-auth-harness-contract.md): staging-only fixed-persona session bootstrap for UI QA.
 - [.memory-bank/testing/index.md](../testing/index.md): verification and anti-cheat baseline.

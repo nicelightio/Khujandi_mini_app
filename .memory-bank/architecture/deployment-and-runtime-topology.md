@@ -57,7 +57,26 @@ status: active
 Operational rollout docs:
 
 - [.memory-bank/runbooks/telegram-mini-app-container-deploy.md](../runbooks/telegram-mini-app-container-deploy.md): canonical prod runbook для AlmaLinux + Traefik.
+- [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](../runbooks/staging-runtime-and-ui-qa.md): staging-specific runtime, server deploy outline and UI QA workflow.
 - [.memory-bank/guides/server-deploy-and-rollout.md](../guides/server-deploy-and-rollout.md): короткий HOW guide.
+
+## Staging topology target
+
+`FT-018` introduces a separate staging target for UI QA and non-production verification. It must not share production state.
+
+Target staging shape:
+
+- Repo checkout: `/srv/tgmeal/staging/app`.
+- Compose project: `tgmeal-staging`.
+- Public host: `staging-tgmeal.natureonzoom.win` or another explicit staging-only host.
+- Runtime volume: `tgmeal_staging_runtime_data`.
+- Logs: `/var/log/tgmeal/staging`.
+- Env mode: `APP_ENV=staging`, `NODE_ENV=staging`, `DEBUG=TRUE`, `PAYMENT_PROVIDER=mock`, `E2E_TEST_MODE=TRUE`.
+- Compose isolation variables: `TRAEFIK_ROUTER_PREFIX=tgmeal-staging`, `TGMEAL_RUNTIME_VOLUME=tgmeal_staging_runtime_data`, `TGMEAL_RUNTIME_DIR=/var/lib/khujandi-staging`.
+
+Staging may use the same existing Traefik public edge and external Docker network `web`, but router/service/middleware names must be parameterized so they cannot collide with production `tgmeal` labels.
+
+Staging deploy may use the same GitHub-only safety model as production, but with an explicit approved non-production branch and separate `APP_DIR`, `COMPOSE_PROJECT_NAME`, `TGMEAL_HOST`, `TRAEFIK_ROUTER_PREFIX`, `LOG_DIR`, runtime volume and runtime mount path.
 
 ## Critical co-tenancy constraints
 
@@ -78,6 +97,7 @@ MUST NOT без отдельного подтверждения:
 ## Persistence and database note
 
 - Runtime SQLite state для checked-in dev/runtime API хранится в named volume `tgmeal_catalog_runtime_data` по `/var/lib/khujandi` внутри `api` container.
+- Staging runtime state must use a separate named volume and/or paths, for example `tgmeal_staging_runtime_data` and `/var/lib/khujandi-staging`.
 - `DATABASE_URL` должен указывать только на отдельную Khujandi database, если включаются Prisma migrations.
 - PhotoChanger PostgreSQL (`photochanger-pg`, host port `5432`) нельзя использовать как implicit target для Khujandi без явного создания отдельной database/user и backup/permission plan.
 
@@ -85,4 +105,5 @@ MUST NOT без отдельного подтверждения:
 
 - [.memory-bank/guides/server-deploy-and-rollout.md](../guides/server-deploy-and-rollout.md): practical update/troubleshooting guide.
 - [.memory-bank/runbooks/telegram-mini-app-container-deploy.md](../runbooks/telegram-mini-app-container-deploy.md): canonical AlmaLinux prod rollout.
+- [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](../runbooks/staging-runtime-and-ui-qa.md): staging topology and UI QA workflow.
 - [.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md](../runbooks/telegram-mini-app-test-server-deploy.md): deprecated Ubuntu non-container reference.

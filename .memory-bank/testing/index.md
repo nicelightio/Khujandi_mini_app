@@ -20,6 +20,7 @@ status: active
 - In Memory Bank keep only links + short conclusions
 - Browser-only Playwright не считается достаточным единственным evidence для Telegram-sensitive flows; для repo-local closure нужен отдельный Telegram runtime verification layer через contract/runtime tests, а real Android Telegram smoke остается advisory pre-release risk check.
 - Для customer-facing Mini App motion/effect-heavy changes и новых тяжелых UI/runtime layers browser-only desktop smoke недостаточен: verify должен явно учитывать поведение в Telegram WebView и, где применимо, weak Android baseline.
+- Staging UI QA uses [.memory-bank/testing/staging-ui-qa.md](staging-ui-qa.md): Playwright may obtain fixed-persona sessions only through the guarded staging test auth harness and does not replace Telegram auth/payment trust-boundary tests.
 
 ## Slice-based baseline
 
@@ -60,3 +61,11 @@ status: active
 - `npm run test:catalog:integration` runs `tests/slices/catalog/catalog.integration.spec.ts`.
 - `npm run test:catalog:runtime` runs `tests/slices/catalog/catalog.runtime.integration.spec.ts` for the mounted repo-local runtime regressions, including restart-safe durability/conflict coverage.
 - `npm run test:catalog` runs the checked-in backend catalog specs plus frontend catalog API/view-model and route/page smoke specs through the root Jest config.
+
+## Staging UI QA
+
+- `FT-018` introduces a staging-only UI QA runtime with fixed personas and explicit reset/seed workflow.
+- UI QA base URL and test token are operational inputs, not Memory Bank secrets.
+- Production-like runtime must prove `/api/v1/test/*` is absent or `404`.
+- Staging test routes require `E2E_TEST_MODE=TRUE`, `NODE_ENV !== "production"` and `X-E2E-Test-Token`.
+- Browser UI QA evidence must be recorded separately from Telegram raw `initData`, replay, expired `auth_date`, WebView and real payment provider evidence.

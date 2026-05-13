@@ -20,6 +20,7 @@ status: active
 - На host НЕ ставим и НЕ используем nginx для TgMeal: `80/443` уже принадлежат Traefik.
 - Compose stack подключается к existing Docker network `web` и публикуется через Docker labels.
 - Старый Ubuntu/non-container deploy path deprecated; см. historical reference в [.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md](telegram-mini-app-test-server-deploy.md).
+- Staging deploy is a separate `FT-018` profile and must follow [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](staging-runtime-and-ui-qa.md); do not repurpose production `/srv/tgmeal/app`, production Compose project or production volume for staging.
 - Скрипт deploy не делает destructive cleanup и не трогает PhotoChanger/Traefik configs.
 - Production deploy NEVER runs from the active development/source folder. Единственный путь: branch -> GitHub PR -> merge/push в GitHub -> server deploy pulls the merged GitHub commit into `/srv/tgmeal/app`.
 
@@ -110,12 +111,17 @@ Create `/srv/tgmeal/app/.env` with only non-secret defaults first. Add real secr
 ```bash
 cat >/srv/tgmeal/app/.env <<'EOF'
 TGMEAL_HOST=tgmeal.natureonzoom.win
+TRAEFIK_ROUTER_PREFIX=tgmeal
+TGMEAL_RUNTIME_VOLUME=tgmeal_catalog_runtime_data
+TGMEAL_RUNTIME_DIR=/var/lib/khujandi
 ADMIN_ALLOWED_ORIGINS=https://tgmeal.natureonzoom.win
 ADMIN_DB_PATH=/var/lib/khujandi/admin-access-runtime.sqlite
 CATALOG_DB_PATH=/var/lib/khujandi/catalog-runtime.sqlite
+APP_ENV=production
 NODE_ENV=production
 PAYMENT_PROVIDER=
 DEBUG=FALSE
+E2E_TEST_MODE=FALSE
 # DATABASE_URL must point to a dedicated Khujandi database before RUN_MIGRATIONS=1 is used.
 # DATABASE_URL=postgresql://tgmeal:CHANGE_ME@khujandi-db-host:5432/tgmeal?schema=public
 # TELEGRAM_BOT_TOKEN=replace-with-real-token-outside-chat
@@ -127,8 +133,10 @@ chmod 600 /srv/tgmeal/app/.env
 Important:
 
 - `DEBUG=TRUE` is temporary diagnostic mode only; production-like deploy keeps `FALSE`.
-- Test servers that intentionally use guarded mock checkout must set all three non-secret flags together: `DEBUG=TRUE`, `PAYMENT_PROVIDER=mock`, `NODE_ENV=development`.
+- Test servers that intentionally use guarded mock checkout must set explicit runtime/test guards together: `DEBUG=TRUE`, `PAYMENT_PROVIDER=mock`, `APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE`; `NODE_ENV=production` remains forbidden.
+- `FT-018` staging servers that expose UI QA test auth must additionally set `APP_ENV=staging`, `E2E_TEST_MODE=TRUE` and a secret `E2E_TEST_TOKEN` outside docs/logs; production deploy must never enable this combination.
 - Runtime SQLite state persists through `tgmeal_catalog_runtime_data` volume.
+- `TRAEFIK_ROUTER_PREFIX`, `TGMEAL_RUNTIME_VOLUME` and `TGMEAL_RUNTIME_DIR` are parameterized for staging, but production defaults remain `tgmeal`, `tgmeal_catalog_runtime_data` and `/var/lib/khujandi`.
 - `DATABASE_URL` default in compose is a placeholder. Confirm a dedicated Khujandi DB before migrations.
 
 ## 5. Install deploy script
@@ -175,6 +183,8 @@ By default the script:
 9. builds and starts `tgmeal` containers;
 10. verifies internal web/api and public HTTPS through Traefik;
 11. writes logs under `/var/log/tgmeal`.
+
+The same checked-in script may render staging only with explicit overrides such as `APP_DIR=/srv/tgmeal/staging/app`, `COMPOSE_PROJECT_NAME=tgmeal-staging`, `TGMEAL_HOST=<staging-host>`, `TRAEFIK_ROUTER_PREFIX=tgmeal-staging`, `TGMEAL_RUNTIME_VOLUME=tgmeal_staging_runtime_data`, `TGMEAL_RUNTIME_DIR=/var/lib/khujandi-staging`, `LOG_DIR=/var/log/tgmeal/staging` and `DEPLOY_BRANCH=staging`; see [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](staging-runtime-and-ui-qa.md).
 
 Optional migrations, only after confirming a dedicated Khujandi DB:
 
@@ -284,6 +294,7 @@ runuser -u tgmeal -- git -C /srv/tgmeal/app checkout main
 - `deploy/scripts/tgmeal-deploy-alma.sh`: deploy script template.
 - [.memory-bank/architecture/deployment-and-runtime-topology.md](../architecture/deployment-and-runtime-topology.md): topology WHY/WHAT.
 - [.memory-bank/guides/server-deploy-and-rollout.md](../guides/server-deploy-and-rollout.md): short HOW guide.
+- [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](staging-runtime-and-ui-qa.md): staging server and UI QA workflow.
 
 ## Useful app URLs
 

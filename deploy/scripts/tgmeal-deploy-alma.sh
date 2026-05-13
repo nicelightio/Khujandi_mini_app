@@ -5,6 +5,9 @@ APP_USER="${APP_USER:-tgmeal}"
 APP_DIR="${APP_DIR:-/srv/tgmeal/app}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-tgmeal}"
 PUBLIC_HOST="${TGMEAL_HOST:-tgmeal.natureonzoom.win}"
+TRAEFIK_ROUTER_PREFIX="${TRAEFIK_ROUTER_PREFIX:-tgmeal}"
+TGMEAL_RUNTIME_VOLUME="${TGMEAL_RUNTIME_VOLUME:-tgmeal_catalog_runtime_data}"
+TGMEAL_RUNTIME_DIR="${TGMEAL_RUNTIME_DIR:-/var/lib/khujandi}"
 LOG_DIR="${LOG_DIR:-/var/log/tgmeal}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-0}"
 EXPECTED_REMOTE="${EXPECTED_REMOTE:-https://github.com/nicelightio/Khujandi_mini_app.git}"
@@ -28,16 +31,34 @@ run_as_app() {
   runuser -u "${APP_USER}" -- "$@"
 }
 
+require_clean_git_checkout() {
+  local git_status
+
+  git_status="$(run_as_app git -C "${APP_DIR}" status --porcelain --untracked-files=all)"
+  if [ -n "${git_status}" ]; then
+    log "ERROR: ${APP_DIR} is not a clean Git checkout. Docker build context must come only from GitHub-tracked artifacts."
+    printf '%s\n' "${git_status}"
+    log "ERROR: commit through a branch + PR, merge to ${DEPLOY_BRANCH}, then deploy from origin/${DEPLOY_BRANCH}."
+    log "ERROR: remove or intentionally ignore untracked files before deploy."
+    exit 1
+  fi
+}
+
 compose() {
-  run_as_app bash -lc "cd \"${APP_DIR}\" && unset DATABASE_URL TELEGRAM_BOT_TOKEN && exec docker compose --project-name \"${COMPOSE_PROJECT_NAME}\" -f \"${APP_DIR}/docker-compose.yml\" \"\$@\"" bash "$@"
+  run_as_app env \
+    TGMEAL_HOST="${PUBLIC_HOST}" \
+    TRAEFIK_ROUTER_PREFIX="${TRAEFIK_ROUTER_PREFIX}" \
+    TGMEAL_RUNTIME_VOLUME="${TGMEAL_RUNTIME_VOLUME}" \
+    TGMEAL_RUNTIME_DIR="${TGMEAL_RUNTIME_DIR}" \
+    bash -lc "cd \"${APP_DIR}\" && unset DATABASE_URL TELEGRAM_BOT_TOKEN E2E_TEST_TOKEN && exec docker compose --project-name \"${COMPOSE_PROJECT_NAME}\" -f \"${APP_DIR}/docker-compose.yml\" \"\$@\"" bash "$@"
 }
 
 require_root
 install -d -m 0755 "${LOG_DIR}"
 exec > >(tee -a "${log_file}") 2>&1
 
-log "Starting Khujandi/TgMeal deploy on AlmaLinux prod"
-log "APP_DIR=${APP_DIR} APP_USER=${APP_USER} PUBLIC_HOST=${PUBLIC_HOST} COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME} DEPLOY_BRANCH=${DEPLOY_BRANCH}"
+log "Starting Khujandi/TgMeal deploy on AlmaLinux host"
+log "APP_DIR=${APP_DIR} APP_USER=${APP_USER} PUBLIC_HOST=${PUBLIC_HOST} COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME} DEPLOY_BRANCH=${DEPLOY_BRANCH} TRAEFIK_ROUTER_PREFIX=${TRAEFIK_ROUTER_PREFIX} TGMEAL_RUNTIME_VOLUME=${TGMEAL_RUNTIME_VOLUME} TGMEAL_RUNTIME_DIR=${TGMEAL_RUNTIME_DIR}"
 
 if [ ! -d "${APP_DIR}/.git" ]; then
   log "ERROR: ${APP_DIR} is not a git checkout. Clone the repo first as ${APP_USER}."
@@ -77,6 +98,7 @@ fi
 
 log "Current git state before pull:"
 run_as_app git -C "${APP_DIR}" status --short --branch
+require_clean_git_checkout
 if ! run_as_app git -C "${APP_DIR}" diff --quiet || ! run_as_app git -C "${APP_DIR}" diff --cached --quiet; then
   log "ERROR: ${APP_DIR} has local changes. Production deploy must use GitHub-only artifacts."
   log "ERROR: commit through a branch + PR, merge to ${DEPLOY_BRANCH}, then deploy from origin/${DEPLOY_BRANCH}."
@@ -94,12 +116,14 @@ if [ "${local_head}" != "${origin_head}" ]; then
   exit 1
 fi
 log "Deploying GitHub commit ${local_head} from origin/${DEPLOY_BRANCH}"
+require_clean_git_checkout
 
 log "Validating compose config"
 compose config >/tmp/tgmeal-compose-${stamp}.yml
 sed -E \
   -e 's#(DATABASE_URL: ).*#\1[REDACTED]#' \
   -e 's#(TELEGRAM_BOT_TOKEN: ).*#\1[REDACTED]#' \
+  -e 's#(E2E_TEST_TOKEN: ).*#\1[REDACTED]#' \
   -e 's#(PROD_SSH_KEY: ).*#\1[REDACTED]#' \
   -e 's#(PROD_SSH_HOST: ).*#\1[REDACTED]#' \
   -e 's#(PROD_SSH_USER: ).*#\1[REDACTED]#' \

@@ -1,0 +1,62 @@
+{
+  "task": "TASK-FT018-05",
+  "command": "browser-smoke",
+  "baseUrl": "http://127.0.0.1:3019/",
+  "scenario": "checkout_happy",
+  "persona": "client_alina",
+  "apiWorkflow": {
+    "health": {
+      "ok": true,
+      "appEnv": "staging",
+      "nodeEnv": "staging",
+      "debug": true,
+      "paymentProvider": "mock",
+      "e2eTestMode": true,
+      "version": "dev"
+    },
+    "reset": {
+      "ok": true
+    },
+    "seed": {
+      "scenario": "checkout_happy",
+      "summaryKeys": [
+        "catalog",
+        "checkoutPayment",
+        "ok",
+        "operational",
+        "scenario"
+      ]
+    },
+    "personas": {
+      "keys": [
+        "client_alina",
+        "seller_plov",
+        "admin_boss",
+        "courier_7"
+      ]
+    },
+    "session": {
+      "persona": "client_alina",
+      "contour": "mini-app",
+      "role": "client",
+      "transport": "httpOnlyCookie",
+      "expiresAt": "2026-05-16T10:30:08.743Z",
+      "cookieSummary": [
+        {
+          "name": "khujandi_mini_app_session",
+          "domain": "127.0.0.1",
+          "path": "/",
+          "httpOnly": true,
+          "secure": false,
+          "sameSite": "Lax"
+        }
+      ]
+    }
+  },
+  "browserSmoke": {
+    "status": "BLOCKED",
+    "reason": "Playwright package is not installed in this repo/runtime.",
+    "missingPrerequisite": "Install/provide Playwright browser runtime before running browser smoke."
+  },
+  "trustBoundaryNotice": "Staging UI QA with fixed-persona sessions does not prove Telegram HMAC/replay/WebView correctness or real payment provider trust."
+}

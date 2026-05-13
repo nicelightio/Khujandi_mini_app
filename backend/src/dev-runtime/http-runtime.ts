@@ -40,7 +40,7 @@ export const json = (
     "cache-control": "no-store",
     "access-control-allow-origin": "*",
     "access-control-allow-methods": methods,
-    "access-control-allow-headers": "content-type",
+    "access-control-allow-headers": "content-type,x-e2e-test-token",
   },
   body: JSON.stringify(payload),
 });

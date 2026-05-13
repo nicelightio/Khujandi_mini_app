@@ -8,6 +8,7 @@ import type { CatalogRuntimeState } from "./catalog-runtime-state";
 import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 import type { createOperationalRuntimeModules } from "./order-ops-runtime";
 import type { RuntimeCheckoutPaymentProvider } from "./payment-provider-runtime";
+import type { RuntimeMode } from "./runtime-mode";
 
 export type RuntimeServerOptions = {
   host?: string;
@@ -18,6 +19,9 @@ export type RuntimeServerOptions = {
   telegramBotToken?: string;
   paymentProvider?: string;
   nodeEnv?: string;
+  appEnv?: string;
+  isE2eTestModeEnabled?: boolean;
+  e2eTestToken?: string;
   isDebugEnabled?: boolean;
   passwordHasher?: {
     verify: (secret: string, secretHash: string) => Promise<boolean>;
@@ -51,7 +55,43 @@ export type DevApiRouteContext = {
   catalogState: CatalogRuntimeState;
   operationalModules: ReturnType<typeof createOperationalRuntimeModules>;
   isDebugEnabled: boolean;
+  runtimeMode: RuntimeMode;
   checkoutPaymentProvider: RuntimeCheckoutPaymentProvider;
+  stagingTestHarness: {
+    reset: (input: { scope?: string }) => {
+      ok: true;
+      scope: "all";
+      catalog: {
+        shops: number;
+        products: number;
+        bindings: number;
+      };
+      checkoutPayment: {
+        users: number;
+        orders: number;
+        sessions: number;
+      };
+    };
+    seed: (input: { scenario: string }) => {
+      ok: true;
+      scenario: string;
+      catalog: {
+        shops: number;
+        products: number;
+        bindings: number;
+        showcaseProducts: number;
+        favoriteShops: number;
+      };
+      checkoutPayment: {
+        users: number;
+        orders: number;
+        sessions: number;
+      };
+      operational: {
+        eventCursor: string;
+      };
+    };
+  };
   resolveProtectedAdminSession: (
     request: IncomingMessage,
     authRequiredMessage: string,

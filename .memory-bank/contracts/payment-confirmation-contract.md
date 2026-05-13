@@ -13,7 +13,8 @@ For `FT-013`, the trusted order creation input is the combination of a server-re
 ## Debug/e2e mock provider mode
 
 - Repo-local/e2e payment simulation MAY exist only as a server-side selected mock provider, not as a client-only payment event.
-- Canonical server-side gate: `PAYMENT_PROVIDER=mock` plus an explicit non-production/runtime guard. A generic `DEBUG=true` flag MAY expose UI/debug affordances, but MUST NOT be the only backend trust gate.
+- Canonical server-side gate: `PAYMENT_PROVIDER=mock` plus an explicit runtime/test guard such as `APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE`; `NODE_ENV=production` MUST still fail closed. A generic `DEBUG=true` flag MAY expose UI/debug affordances, but MUST NOT be the only backend trust gate.
+- `FT-018` staging UI QA may combine `PAYMENT_PROVIDER=mock` with staging-only fixed-persona test auth, but this does not change the payment trust boundary: mock success still requires server-side provider selection, non-production guard, valid session and server-side composition revalidation.
 - In mock mode, a successful mock confirmation is treated as provider-trusted only inside the guarded repo-local/e2e runtime and must still produce a canonical payment identity/idempotency key.
 - First KISS baseline requires only the `success/paid` mock outcome for delivery/customer-status e2e. `failed` and `timeout/pending` outcomes are planned/follow-up unless an implementation task explicitly scopes them in.
 - Mock payment mode MUST keep the same order-creation boundary: server-side revalidated composition + valid Mini App auth/session + provider-trusted successful payment confirmation.
@@ -48,3 +49,4 @@ For `FT-013`, the trusted order creation input is the combination of a server-re
 - [doc/BRIEF_EXT.md](../../doc/BRIEF_EXT.md): transport-level baseline around checkout/payment flow.
 - [.memory-bank/contracts/customer-order-composition-contract.md](customer-order-composition-contract.md): upstream composition payload consumed before trusted payment confirmation.
 - [.memory-bank/runbooks/e2e-mock-payment.md](../runbooks/e2e-mock-payment.md): repo-local/e2e mock payment guardrails and verification routing.
+- [.memory-bank/contracts/staging-test-auth-harness-contract.md](staging-test-auth-harness-contract.md): staging-only session bootstrap used by UI QA.

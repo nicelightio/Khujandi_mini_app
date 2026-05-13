@@ -38,6 +38,7 @@ const createFallbackBootstrap = (language: SupportedLanguage = "ru"): CheckoutPa
   supportingNotes: [getCopy(language).checkout.noteAuth, getCopy(language).checkout.noteTrustedPayment],
   primaryActionLabel: getCopy(language).checkout.primaryAction,
   mockPaymentAvailable: false,
+  testSessionAuthAvailable: false,
 });
 
 export const useCheckoutPaymentViewModel = (
@@ -100,8 +101,10 @@ export const useCheckoutPaymentViewModel = (
     const telegramBridge = bridge ?? createTelegramWebAppBridge();
     const currentBootstrap = bootstrap ?? createFallbackBootstrap(language);
     const initData = telegramBridge.getInitData()?.trim() ?? "";
+    const canUseStagingTestSession =
+      currentBootstrap.testSessionAuthAvailable === true;
 
-    if (initData.length === 0) {
+    if (initData.length === 0 && !canUseStagingTestSession) {
       setViewModel(
         createErrorCheckoutPaymentViewModel(
           currentBootstrap,
@@ -116,13 +119,15 @@ export const useCheckoutPaymentViewModel = (
     setViewModel(createSubmittingCheckoutPaymentViewModel(currentBootstrap, language));
 
     try {
-      const authResult = await checkoutApi.authenticateTelegram(initData);
+      if (initData.length > 0) {
+        const authResult = await checkoutApi.authenticateTelegram(initData);
 
-      if (language !== undefined) {
-        await checkoutApi.syncLanguagePreference({
-          telegramId: authResult.telegramId,
-          language,
-        });
+        if (language !== undefined) {
+          await checkoutApi.syncLanguagePreference({
+            telegramId: authResult.telegramId,
+            language,
+          });
+        }
       }
 
       const checkoutResult = await checkoutApi.submitCheckout(composition);

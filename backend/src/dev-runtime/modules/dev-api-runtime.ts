@@ -24,12 +24,23 @@ import {
   ensureOperationalRuntimeBaseline,
 } from "../order-ops-runtime";
 import { resolveRuntimeCheckoutPaymentProvider } from "../payment-provider-runtime";
+import { parseRuntimeBooleanFlag, resolveRuntimeMode } from "../runtime-mode";
+import { createStagingTestHarness } from "../staging-test-harness";
 
 export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const allowedOrigins = options.allowedOrigins ?? ["https://admin.example", "http://127.0.0.1:5173", "http://localhost:5173"];
-  const checkoutPaymentProvider = resolveRuntimeCheckoutPaymentProvider({
+  const runtimeMode = resolveRuntimeMode({
     paymentProvider: options.paymentProvider ?? process.env.PAYMENT_PROVIDER,
     nodeEnv: options.nodeEnv ?? process.env.NODE_ENV,
+    appEnv: options.appEnv ?? process.env.APP_ENV,
+    e2eTestMode: options.isE2eTestModeEnabled ?? parseRuntimeBooleanFlag(process.env.E2E_TEST_MODE),
+    debug: options.isDebugEnabled ?? parseRuntimeBooleanFlag(process.env.DEBUG),
+  });
+  const checkoutPaymentProvider = resolveRuntimeCheckoutPaymentProvider({
+    paymentProvider: options.paymentProvider ?? process.env.PAYMENT_PROVIDER,
+    nodeEnv: runtimeMode.nodeEnv,
+    appEnv: options.appEnv ?? process.env.APP_ENV,
+    e2eTestMode: runtimeMode.e2eTestMode,
   });
   const adminPersistence = resolveAdminDatabasePersistence(options.adminDatabasePath);
   const prisma = createAdminAccessRuntimePrisma(adminPersistence.loadState(), {
@@ -49,7 +60,7 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const catalogModule = createCatalogModule(catalogPrisma);
   const checkoutPaymentState = checkoutPaymentPrisma.state;
   ensureOperationalRuntimeBaseline(checkoutPaymentState);
-  const isDebugEnabled = options.isDebugEnabled === true;
+  const isDebugEnabled = runtimeMode.debug;
   const checkoutPaymentModule = createCheckoutPaymentModule(
     checkoutPaymentPrisma,
     {
@@ -106,6 +117,14 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const operationalModules = createOperationalRuntimeModules(checkoutPaymentState, {
     now: options.now,
   });
+  const stagingTestHarness = createStagingTestHarness({
+    adminAccessState: prisma.state,
+    saveAdminAccessState: adminPersistence.saveState,
+    catalogState,
+    saveCatalogState: catalogPersistence.saveState,
+    checkoutPaymentState,
+    operationalRuntime: operationalModules,
+  });
 
   const resolveProtectedAdminSession = (request: IncomingMessage, authRequiredMessage: string) =>
     resolveProtectedAdminRouteSession(request, {
@@ -147,7 +166,9 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
       catalogState,
       operationalModules,
       isDebugEnabled,
+      runtimeMode,
       checkoutPaymentProvider,
+      stagingTestHarness,
       resolveProtectedAdminSession,
       resolveDebugStorefrontAccess,
     },

@@ -9,7 +9,10 @@ import type { RuntimeServerOptions } from "./dev-api-server.types";
 import { createDevApiRuntime } from "./modules/dev-api-runtime";
 import { handleAdminOrderOperationRoutes } from "./routes/admin-order-operations.routes";
 import { handleCatalogRoutes } from "./routes/catalog.routes";
+import { handleHealthRoutes } from "./routes/health.routes";
 import { handleMiniAppRoutes } from "./routes/mini-app.routes";
+import { handleTestSessionRoutes } from "./routes/test-session.routes";
+import { handleTestStateRoutes } from "./routes/test-state.routes";
 
 export { createRuntimeCookieSessionClient };
 export type { RuntimeCookieSessionClient } from "./http-runtime";
@@ -47,6 +50,9 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
 
     const routeInput = { request, url, method, context: runtime.routeContext };
     const result =
+      (await handleHealthRoutes(routeInput)) ??
+      (await handleTestStateRoutes(routeInput)) ??
+      (await handleTestSessionRoutes(routeInput)) ??
       (await handleMiniAppRoutes(routeInput)) ??
       (await handleCatalogRoutes(routeInput)) ??
       (await handleAdminOrderOperationRoutes(routeInput)) ??

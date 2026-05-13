@@ -10,3 +10,4 @@ status: active
 - [.memory-bank/guides/events-polling-and-bot-integration.md](events-polling-and-bot-integration.md): HOW-гайд по polling consumers, event publication и bot flows.
 - [.memory-bank/guides/storage-and-state-implementation.md](storage-and-state-implementation.md): HOW-гайд по persistence boundaries, soft-delete, snapshots и state journals.
 - [.memory-bank/guides/server-deploy-and-rollout.md](server-deploy-and-rollout.md): HOW-гайд по текущему VPS deploy, update flow и operational checks.
+- [.memory-bank/guides/staging-server-usage.md](staging-server-usage.md): Практический guide по local/server staging, fixed personas, reset/seed и UI QA workflow.

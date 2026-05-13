@@ -16,4 +16,5 @@ status: active
 - [.memory-bank/contracts/mini-app-runtime-contract.md](mini-app-runtime-contract.md): Контракт shell/runtime adapter для Telegram WebView, storage policy и feature detection.
 - [.memory-bank/contracts/admin-auth-contract.md](admin-auth-contract.md): Контракт admin auth, lockout и session behavior.
 - [.memory-bank/contracts/payment-confirmation-contract.md](payment-confirmation-contract.md): Trust boundary для подтверждения успешной оплаты и anti-replay.
+- [.memory-bank/contracts/staging-test-auth-harness-contract.md](staging-test-auth-harness-contract.md): Staging-only fixed-persona test auth harness для UI QA без реального Telegram login.
 - [.memory-bank/contracts/telegram-bot-contract.md](telegram-bot-contract.md): Контракт inbound/outbound Telegram-бота для assignment, status и review alerts.

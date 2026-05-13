@@ -105,6 +105,11 @@ export const handleMiniAppRoutes: DevApiRouteHandler = async ({ request, url, me
       {
         mockPaymentAvailable:
           checkoutPaymentProvider.enabled && checkoutPaymentProvider.provider === "mock",
+        testSessionAuthAvailable:
+          context.runtimeMode.debug &&
+          context.runtimeMode.e2eTestMode &&
+          context.runtimeMode.nodeEnv !== "production" &&
+          ["local", "staging", "test"].includes(context.runtimeMode.appEnv),
       },
       "GET,OPTIONS",
     );

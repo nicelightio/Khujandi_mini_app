@@ -7,7 +7,7 @@ status: active
 ## Goals
 
 - Replace or gate the old implicit repo-local local-runtime-provider with explicit `PAYMENT_PROVIDER=mock` provider selection.
-- Enforce a non-production guard with baseline `NODE_ENV !== "production"`.
+- Enforce explicit runtime/test guard (`APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE`) while keeping `NODE_ENV=production` as an absolute refusal.
 - Refuse mock provider usage in production before any paid confirmation is trusted.
 - Support first-baseline mock `success/paid` only.
 - Keep the checkout flow on the existing `FT-013` mounted runtime: valid composition, server-side revalidation, Mini App auth/session and idempotent paid order creation.
@@ -27,7 +27,7 @@ status: active
 ## Normative Inputs
 
 - `PAYMENT_PROVIDER=mock` is the canonical server-side provider selector.
-- `NODE_ENV !== "production"` is the baseline non-production guard.
+- `NODE_ENV=production` is an absolute refusal; non-production mock usage also requires `APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE`.
 - `DEBUG=true` / `__APP_DEBUG__` controls presentation affordance only and is not a trust gate.
 - First baseline supports only `success/paid`; failed, timeout and pending are follow-up.
 - Mock success must still pass through composition revalidation, valid Mini App auth/session and payment idempotency.
@@ -63,7 +63,7 @@ status: active
 
 ## Tests
 
-- Backend/config: `PAYMENT_PROVIDER=mock` is accepted only outside production.
+- Backend/config: `PAYMENT_PROVIDER=mock` is accepted only with explicit runtime/test guard and never in production.
 - Backend/config negative: production-like runtime rejects/refuses mock provider usage.
 - Runtime/e2e: valid composition plus mock `success/paid` creates exactly one paid `CREATED` order with customer-safe cursor/revision.
 - Negative: `DEBUG=true` without `PAYMENT_PROVIDER=mock` cannot produce trusted paid confirmation.
@@ -81,7 +81,7 @@ status: active
 
 ## UAT Steps
 
-1. Start repo-local runtime with `PAYMENT_PROVIDER=mock` and non-production `NODE_ENV`.
+1. Start repo-local runtime with `PAYMENT_PROVIDER=mock` and explicit `APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE`.
 2. Select a product from a `WORKING` storefront and enter checkout through a valid composition.
 3. Use the checkout e2e affordance to complete mock `success/paid`.
 4. Verify exactly one paid `CREATED` order is created and customer-safe tracking metadata is returned.

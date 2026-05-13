@@ -43,12 +43,13 @@ const stalePriceComposition = {
 };
 
 describe("checkout-payment mounted runtime", () => {
-  it("accepts explicit PAYMENT_PROVIDER=mock outside production and keeps checkout idempotent", async () => {
+  it("accepts explicit PAYMENT_PROVIDER=mock with staging guard and keeps checkout idempotent", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",
       port: 0,
       paymentProvider: "mock",
-      nodeEnv: "development",
+      nodeEnv: "test",
+      appEnv: "staging",
     });
 
     try {
@@ -62,6 +63,7 @@ describe("checkout-payment mounted runtime", () => {
       expect(bootstrapResponse.status).toBe(200);
       expect(bootstrapResponse.body).toEqual({
         mockPaymentAvailable: true,
+        testSessionAuthAvailable: false,
       });
       expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
 
@@ -180,7 +182,8 @@ describe("checkout-payment mounted runtime", () => {
       host: "127.0.0.1",
       port: 0,
       paymentProvider: "mock",
-      nodeEnv: "development",
+      nodeEnv: "test",
+      appEnv: "staging",
     });
 
     try {
@@ -194,6 +197,7 @@ describe("checkout-payment mounted runtime", () => {
       expect(bootstrapResponse.status).toBe(200);
       expect(bootstrapResponse.body).toEqual({
         mockPaymentAvailable: true,
+        testSessionAuthAvailable: false,
       });
       expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
 
@@ -261,6 +265,8 @@ describe("checkout-payment mounted runtime", () => {
       resolveRuntimeCheckoutPaymentProvider({
         paymentProvider: "mock",
         nodeEnv: "production",
+        appEnv: "staging",
+        e2eTestMode: true,
       }),
     ).toThrow("Mock payment provider is not allowed in production");
 
@@ -270,8 +276,40 @@ describe("checkout-payment mounted runtime", () => {
         port: 0,
         paymentProvider: "mock",
         nodeEnv: "production",
+        appEnv: "staging",
       }),
     ).rejects.toThrow("Mock payment provider is not allowed in production");
+  });
+
+  it("rejects PAYMENT_PROVIDER=mock without an explicit staging or e2e guard", async () => {
+    expect(() =>
+      resolveRuntimeCheckoutPaymentProvider({
+        paymentProvider: "mock",
+        nodeEnv: "development",
+      }),
+    ).toThrow("Mock payment provider requires APP_ENV=local|test|staging or E2E_TEST_MODE=TRUE");
+
+    await expect(
+      startDevApiServer({
+        host: "127.0.0.1",
+        port: 0,
+        paymentProvider: "mock",
+        nodeEnv: "development",
+      }),
+    ).rejects.toThrow("Mock payment provider requires APP_ENV=local|test|staging or E2E_TEST_MODE=TRUE");
+  });
+
+  it("accepts PAYMENT_PROVIDER=mock with explicit e2e guard without NODE_ENV=development semantics", () => {
+    expect(
+      resolveRuntimeCheckoutPaymentProvider({
+        paymentProvider: "mock",
+        nodeEnv: "test",
+        e2eTestMode: true,
+      }),
+    ).toMatchObject({
+      enabled: true,
+      provider: "mock",
+    });
   });
 
   it("does not trust DEBUG=true without explicit PAYMENT_PROVIDER=mock", async () => {
@@ -293,6 +331,7 @@ describe("checkout-payment mounted runtime", () => {
       expect(bootstrapResponse.status).toBe(200);
       expect(bootstrapResponse.body).toEqual({
         mockPaymentAvailable: false,
+        testSessionAuthAvailable: false,
       });
       expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount);
 
@@ -344,7 +383,8 @@ describe("checkout-payment mounted runtime", () => {
       host: "127.0.0.1",
       port: 0,
       paymentProvider: "mock",
-      nodeEnv: "development",
+      nodeEnv: "test",
+      appEnv: "staging",
       checkoutPaymentProviderStatusResolver: () => status,
     });
 
@@ -397,7 +437,8 @@ describe("checkout-payment mounted runtime", () => {
       host: "127.0.0.1",
       port: 0,
       paymentProvider: "mock",
-      nodeEnv: "development",
+      nodeEnv: "test",
+      appEnv: "staging",
     });
 
     try {

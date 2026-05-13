@@ -42,6 +42,7 @@ describe("checkout-payment api scaffold", () => {
           ok: true,
           text: async () => JSON.stringify({
             mockPaymentAvailable: true,
+            testSessionAuthAvailable: true,
           }),
         };
       }
@@ -102,6 +103,7 @@ describe("checkout-payment api scaffold", () => {
       ],
       primaryActionLabel: "Перейти к оплате",
       mockPaymentAvailable: true,
+      testSessionAuthAvailable: true,
     });
     await expect(createCheckoutPaymentApi().loadCheckoutBootstrap("ru")).resolves.toEqual({
       headline: "Оформление заказа",
@@ -112,6 +114,7 @@ describe("checkout-payment api scaffold", () => {
       ],
       primaryActionLabel: "Перейти к оплате",
       mockPaymentAvailable: true,
+      testSessionAuthAvailable: true,
     });
     await expect(createCheckoutPaymentApi().authenticateTelegram("query_id=raw")).resolves.toEqual({
       transport: "httpOnlyCookie",
@@ -163,6 +166,7 @@ describe("checkout-payment api scaffold", () => {
     await expect(createCheckoutPaymentApi().loadCheckoutBootstrap("en")).resolves.toMatchObject({
       headline: "Checkout",
       mockPaymentAvailable: false,
+      testSessionAuthAvailable: false,
     });
   });
 

@@ -12,6 +12,7 @@ status: active
 - [.memory-bank/features/FT-002-checkout-payment-and-order-creation.md](FT-002-checkout-payment-and-order-creation.md): Checkout, Telegram auth и создание заказа после подтвержденной оплаты.
 - [.memory-bank/features/FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md](FT-013-customer-checkout-handoff-and-paid-order-creation-flow.md): Customer-facing handoff из cart/order composition в checkout и paid order creation.
 - [.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md](FT-017-guarded-e2e-mock-payment-mode.md): Guarded repo-local/e2e mock payment mode через `PAYMENT_PROVIDER=mock` для checkout runtime verification.
+- [.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md](FT-018-staging-runtime-and-test-auth-harness.md): Настоящий staging runtime и staging-only fixed-persona test auth harness для UI QA/Playwright.
 - [.memory-bank/features/FT-003-language-selection-and-localization.md](FT-003-language-selection-and-localization.md): Обязательный first-run language overlay и базовая локализация MVP.
 - [.memory-bank/features/FT-004-courier-assignment.md](FT-004-courier-assignment.md): Ручное назначение курьера администратором.
 - [.memory-bank/features/FT-005-order-tracking-and-events-polling.md](FT-005-order-tracking-and-events-polling.md): State machine заказа, history и polling событий.

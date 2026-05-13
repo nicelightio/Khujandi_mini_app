@@ -17,7 +17,7 @@ status: active
 
 ## Current Implementation State
 
-- `TASK-FT017-01` verified `PASS` for the backend runtime/config guard: repo-local checkout payment provider is disabled by default, explicit server-side `PAYMENT_PROVIDER=mock` selects the mock provider only when `NODE_ENV !== "production"`, production-like startup rejects mock, and `DEBUG=true` alone returns controlled no-order checkout refusal.
+- `TASK-FT017-01` verified `PASS` for the backend runtime/config guard baseline: repo-local checkout payment provider is disabled by default, explicit server-side `PAYMENT_PROVIDER=mock` selects the mock provider only behind a non-production guard, production-like startup rejects mock, and `DEBUG=true` alone returns controlled no-order checkout refusal.
 - `TASK-FT017-02` verified `PASS`: mounted checkout mock `success/paid` requires valid Mini App session and valid `FT-012` composition, runs through server-side revalidation and the existing checkout payment finalization seam, creates exactly one paid `CREATED` order, and preserves no-order forbidden cases plus duplicate-submit idempotency.
 - `TASK-FT017-03` verified `PASS`: checkout runtime exposes non-sensitive `mockPaymentAvailable` bootstrap metadata, and the checkout page shows a small e2e/mock note only in ready checkout context when that backend availability is true. The existing submit button remains backend-driven; `DEBUG=true` / `__APP_DEBUG__` alone does not make the UI claim mock mode is active.
 - `TASK-FT017-04` verified `PASS` for final repo-local closure: backend checkout-payment suite, frontend checkout-payment suite, frontend build, lint and `git diff --check` passed. `FT-017` is closed for scoped repo-local guarded mock `success/paid`; mock failed/timeout/pending and real production provider design remain out of scope.
@@ -32,7 +32,7 @@ status: active
 
 - The current hard-coded repo-local local-runtime-provider is treated as old implicit mock behavior and must be replaced or gated by explicit provider selection.
 - Canonical provider selection is server-side `PAYMENT_PROVIDER=mock`.
-- The backend must also enforce non-production guard. Baseline guard: `NODE_ENV !== "production"`.
+- The backend must also enforce an explicit runtime/test guard. Guard baseline: `NODE_ENV=production` is an absolute refusal, and mock provider selection also requires `APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE`.
 - Production runtime must reject/refuse `PAYMENT_PROVIDER=mock`; either fail startup or refuse checkout requests with a controlled error before payment confirmation is trusted.
 - `DEBUG=true` / `__APP_DEBUG__` may expose visible checkout-only e2e affordance, but must not be the backend trust gate.
 - The first baseline supports only mock `success/paid`; failed, timeout and pending outcomes are follow-up scope.
@@ -41,7 +41,7 @@ status: active
 ## Acceptance Criteria
 
 - Backend config exposes an explicit payment provider boundary where `PAYMENT_PROVIDER=mock` is the only way to select the mock provider.
-- `PAYMENT_PROVIDER=mock` is accepted only when the non-production guard passes; production rejects/refuses mock usage.
+- `PAYMENT_PROVIDER=mock` is accepted only when the explicit runtime/test guard passes; production rejects/refuses mock usage.
 - Mock `success/paid` produces a provider-trusted confirmation only after the same payment finalization seam used by the checkout runtime.
 - Mock success creates at most one paid `CREATED` order from a server-revalidated composition and valid Mini App session.
 - Duplicate mock submit/confirmation reuses or preserves the same paid order and does not create a second order.
@@ -70,7 +70,7 @@ status: active
 
 ## Verification Targets
 
-- Config/runtime: `PAYMENT_PROVIDER=mock` selects mock only outside production.
+- Config/runtime: `PAYMENT_PROVIDER=mock` selects mock only with explicit `APP_ENV=staging|test|local` or `E2E_TEST_MODE=TRUE` guard and never in production.
 - Negative config: production-like runtime rejects/refuses `PAYMENT_PROVIDER=mock`.
 - Happy e2e: valid composition -> checkout -> mock `success/paid` -> exactly one paid `CREATED` order -> customer-safe cursor/revision.
 - Negative trust: `DEBUG=true` without `PAYMENT_PROVIDER=mock` does not create trusted payment confirmation.

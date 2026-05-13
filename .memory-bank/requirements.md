@@ -46,6 +46,7 @@ status: active
 - `REQ-034` Стартовая Витрина и курирование: после выбора языка клиент попадает на стартовую Витрину с catalog-owned списком актуальных product references "Сегодня популярны", до 3 избранных `WORKING` магазинов и ссылкой "весь Худжанд" к общему browse/list магазинов; platform admin с валидной admin session и ролью `BOSS`/`ADMIN` может курировать ссылки через storefront long-press, а seller не получает эти права; Витрина хранит references, не snapshots, и публично скрывает `NOT_WORKING`/deleted shops/products.
 - `REQ-035` Operator orders monitoring panel: desktop-first operator/admin panel показывает заказы за сегодня и предыдущие 3 дня, severity colors, unassigned/delayed alert сверху, сортировки, courier assignment/claim state, последнее сообщение и раскрываемую историю статусов с комментариями по ролям.
 - `REQ-036` Courier availability and auto-offer: courier bot имеет меню `Курьер` с active/stop-after-5-min и auto-offer participation ON/OFF; при включенной настройке панели новый заказ предлагается всем активным свободным курьерам, первый successful claim получает заказ, а отсутствие принятия переводит заказ в `DELAYED` и уведомляет operators.
+- `REQ-037` Staging runtime and test auth harness: проект должен иметь настоящий staging runtime, запускаемый локально в host OS и на staging/dev server через Docker/Compose/Traefik/current deploy path, с отдельными state/volumes/db от production, guarded `PAYMENT_PROVIDER=mock`, `DEBUG=TRUE`, explicit non-production mode и staging-only fixed-persona test auth harness для UI QA/Playwright. Test auth harness MUST работать только при `E2E_TEST_MODE=TRUE` и `NODE_ENV !== production`, MUST быть невозможен в production, MUST использовать нормальные cookie/session primitives owning auth contours, MUST NOT принимать arbitrary production identities и MUST отделять UI workflow QA от Telegram auth/payment trust-boundary tests.
 
 ## Out of scope
 - Сложное авто-назначение курьеров по геолокации/маршрутам/сменам.
@@ -101,6 +102,7 @@ status: active
 | REQ-034 | EP-001 | FT-015 | e2e/integration: выбор языка ведет на стартовую Витрину; public read резолвит live catalog references; admin-only long-press curation add/remove и cap избранных магазинов enforced | verified |
 | REQ-035 | EP-002 | FT-016 | e2e/frontend: operator panel list, severity, delayed alert, status history and chat redirect; verified by `TASK-FT016-18` repo-local flow except real bot chat execution remains MVP redirect scope | verified |
 | REQ-036 | EP-002 | FT-016, FT-004 | integration/bot: courier active/free auto-offer, atomic claim, delayed timeout and operator notification; verified by `TASK-FT016-18` repo-local flow | verified |
+| REQ-037 | runtime/testing | FT-018 | staging/ui-qa: local and server staging profiles, guarded fixed-persona test sessions, reset/seed lifecycle, production-negative guard tests, and UI QA evidence split from Telegram/payment trust-boundary tests | planned |
 
 ## Source artifacts
 

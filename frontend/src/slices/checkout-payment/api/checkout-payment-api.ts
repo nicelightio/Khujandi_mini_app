@@ -8,6 +8,7 @@ export type CheckoutPaymentBootstrap = {
   supportingNotes: string[];
   primaryActionLabel: string;
   mockPaymentAvailable: boolean;
+  testSessionAuthAvailable?: boolean;
 };
 
 export type CheckoutPaymentAuthResult = {
@@ -110,13 +111,22 @@ const getJson = async (path: string): Promise<unknown> => {
   return payload;
 };
 
-const loadMockPaymentAvailability = async (): Promise<boolean> => {
+const loadCheckoutRuntimeMetadata = async (): Promise<{
+  mockPaymentAvailable: boolean;
+  testSessionAuthAvailable: boolean;
+}> => {
   try {
     const payload = await getJson("/api/v1/orders/checkout/bootstrap");
 
-    return isRecord(payload) && payload.mockPaymentAvailable === true;
+    return {
+      mockPaymentAvailable: isRecord(payload) && payload.mockPaymentAvailable === true,
+      testSessionAuthAvailable: isRecord(payload) && payload.testSessionAuthAvailable === true,
+    };
   } catch {
-    return false;
+    return {
+      mockPaymentAvailable: false,
+      testSessionAuthAvailable: false,
+    };
   }
 };
 
@@ -130,6 +140,7 @@ export type CheckoutPaymentApi = {
 export const createCheckoutPaymentApi = (): CheckoutPaymentApi => ({
   loadCheckoutBootstrap: async (language) => {
     const copy = getCopy(language).checkout;
+    const runtimeMetadata = await loadCheckoutRuntimeMetadata();
 
     return {
       headline: copy.headline,
@@ -139,7 +150,8 @@ export const createCheckoutPaymentApi = (): CheckoutPaymentApi => ({
         copy.noteTrustedPayment,
       ],
       primaryActionLabel: copy.primaryAction,
-      mockPaymentAvailable: await loadMockPaymentAvailability(),
+      mockPaymentAvailable: runtimeMetadata.mockPaymentAvailable,
+      testSessionAuthAvailable: runtimeMetadata.testSessionAuthAvailable,
     };
   },
   authenticateTelegram: async (initData: string) => {

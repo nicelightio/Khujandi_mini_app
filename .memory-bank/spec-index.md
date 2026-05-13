@@ -18,6 +18,12 @@ status: active
 - [.memory-bank/runbooks/index.md](runbooks/index.md): Operational procedures.
 - [.memory-bank/testing/index.md](testing/index.md): Verification basis и quality gates.
 
+## Runtime/testing extensions
+- [.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md](features/FT-018-staging-runtime-and-test-auth-harness.md): Staging runtime и test auth harness как runtime/testing capability.
+- [.memory-bank/contracts/staging-test-auth-harness-contract.md](contracts/staging-test-auth-harness-contract.md): Guarded fixed-persona test session contract.
+- [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](runbooks/staging-runtime-and-ui-qa.md): Local/server staging workflow и UI QA handoff.
+- [.memory-bank/testing/staging-ui-qa.md](testing/staging-ui-qa.md): Playwright/UI QA evidence policy и trust-boundary split.
+
 ## Compatibility note
 - Duo docs в `architecture/` и `guides/` остаются валидными.
 - [.memory-bank/diagrams/index.md](diagrams/index.md): derived visual layer для быстрой навигации; нормативным источником остаются связанные spec docs.

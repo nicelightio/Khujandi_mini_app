@@ -44,7 +44,7 @@ type AdminAuthAuditRecord = {
   createdAt: Date;
 };
 
-type AdminAccessRuntimeState = {
+export type AdminAccessRuntimeState = {
   account: AdminAccountRecord;
   sessions: AdminSessionRecord[];
   audits: AdminAuthAuditRecord[];
@@ -58,7 +58,7 @@ type AdminAccessStatePersistence = {
   cleanup: () => void;
 };
 
-const createAdminAccessRuntimeState = (): AdminAccessRuntimeState => ({
+export const createAdminAccessRuntimeState = (): AdminAccessRuntimeState => ({
   account: {
     id: "admin-account-1",
     login: "boss@example.com",

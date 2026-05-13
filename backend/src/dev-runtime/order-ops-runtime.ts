@@ -349,6 +349,27 @@ const createRuntimeAssignmentOffer = (
   return offer;
 };
 
+const resetOperationalRuntimeState = (
+  runtimeState: OperationalRuntimeState,
+  state: CheckoutPaymentRuntimeState,
+  nowFactory: () => Date,
+): void => {
+  runtimeState.orderMetadata.clear();
+  runtimeState.courierAvailability.clear();
+  runtimeState.assignmentOffers.splice(0, runtimeState.assignmentOffers.length);
+  runtimeState.statusHistory.splice(0, runtimeState.statusHistory.length);
+  runtimeState.events.splice(0, runtimeState.events.length);
+  runtimeState.nextAssignmentOfferId = 1n;
+  runtimeState.nextStatusHistoryId = 1n;
+  runtimeState.nextAssignmentAuditId = 1n;
+  runtimeState.nextCancellationAuditId = 1n;
+  runtimeState.nextEventId = 1n;
+
+  for (const order of state.orders) {
+    ensureOrderMetadata(runtimeState, state, order.id, nowFactory);
+  }
+};
+
 const startOfLocalDay = (value: Date): Date => {
   const start = new Date(value);
   start.setHours(0, 0, 0, 0);
@@ -926,6 +947,9 @@ export const createOperationalRuntimeModules = (
     orderCancellationModule: createOrderCancellationModule({
       client: orderCancellationClient,
     }),
+    resetRuntimeState: () => {
+      resetOperationalRuntimeState(runtimeState, state, nowFactory);
+    },
     getCurrentEventCursor: () => (runtimeState.nextEventId - 1n).toString(),
     listOperatorDeliveryOrders,
   };

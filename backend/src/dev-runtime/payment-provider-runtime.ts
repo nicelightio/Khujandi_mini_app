@@ -22,6 +22,8 @@ const normalizeOptionalValue = (value: string | undefined): string | undefined =
 export const resolveRuntimeCheckoutPaymentProvider = (input: {
   paymentProvider?: string;
   nodeEnv?: string;
+  appEnv?: string;
+  e2eTestMode?: boolean;
 }): RuntimeCheckoutPaymentProvider => {
   const paymentProvider = normalizeOptionalValue(input.paymentProvider);
 
@@ -38,12 +40,29 @@ export const resolveRuntimeCheckoutPaymentProvider = (input: {
   }
 
   const nodeEnv = normalizeOptionalValue(input.nodeEnv);
+  const appEnv = normalizeOptionalValue(input.appEnv);
 
   if (nodeEnv === "production") {
     throw new AppError("PAYMENT_PROVIDER_CONFIG_INVALID", "Mock payment provider is not allowed in production", 500, {
       paymentProvider: "mock",
       nodeEnv: "production",
     });
+  }
+
+  const isExplicitRuntimeGuard = appEnv === "local" || appEnv === "test" || appEnv === "staging" || input.e2eTestMode === true;
+
+  if (!isExplicitRuntimeGuard) {
+    throw new AppError(
+      "PAYMENT_PROVIDER_CONFIG_INVALID",
+      "Mock payment provider requires APP_ENV=local|test|staging or E2E_TEST_MODE=TRUE",
+      500,
+      {
+        paymentProvider: "mock",
+        nodeEnv: nodeEnv ?? null,
+        appEnv: appEnv ?? null,
+        e2eTestMode: input.e2eTestMode === true,
+      },
+    );
   }
 
   return {

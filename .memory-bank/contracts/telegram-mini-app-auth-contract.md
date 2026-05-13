@@ -41,9 +41,20 @@ status: active
 - Missing/invalid payload -> `400 VALIDATION_ERROR`.
 - Replay-detected `initData` -> controlled security rejection по deploy policy.
 
+## Staging test auth exception
+
+`FT-018` may add a staging-only fixed-persona session bootstrap for UI QA. This is not a replacement for `POST /auth/telegram` and must obey [.memory-bank/contracts/staging-test-auth-harness-contract.md](staging-test-auth-harness-contract.md):
+
+- only when `E2E_TEST_MODE=TRUE` and `NODE_ENV !== "production"`;
+- absent or `404` in production;
+- fixed personas only, no arbitrary Telegram identities;
+- same Mini App HttpOnly cookie/session primitives where applicable;
+- UI QA evidence remains separate from raw `initData` validation, replay and expired `auth_date` tests.
+
 ## Source artifacts
 
 - [doc/PRD.md](../../doc/PRD.md): Mini App auth как обязательный MVP контур.
 - [doc/API_GUIDELINES.md](../../doc/API_GUIDELINES.md): endpoint и error baseline.
 - [doc/BRIEF_EXT.md](../../doc/BRIEF_EXT.md): HMAC validation details.
 - [.memory-bank/contracts/catalog-seller-access-and-session.md](catalog-seller-access-and-session.md): seller capability resolution on top of Telegram-linked auth.
+- [.memory-bank/contracts/staging-test-auth-harness-contract.md](staging-test-auth-harness-contract.md): staging-only test session exception.

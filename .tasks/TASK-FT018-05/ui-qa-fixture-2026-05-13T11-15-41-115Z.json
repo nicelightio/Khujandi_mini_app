@@ -1,0 +1,63 @@
+{
+  "task": "TASK-FT018-05",
+  "command": "browser-smoke",
+  "baseUrl": "http://127.0.0.1:5173/",
+  "scenario": "checkout_happy",
+  "persona": "client_alina",
+  "apiWorkflow": {
+    "health": {
+      "ok": true,
+      "appEnv": "staging",
+      "nodeEnv": "staging",
+      "debug": true,
+      "paymentProvider": "mock",
+      "e2eTestMode": true,
+      "version": "dev"
+    },
+    "reset": {
+      "ok": true
+    },
+    "seed": {
+      "scenario": "checkout_happy",
+      "summaryKeys": [
+        "catalog",
+        "checkoutPayment",
+        "ok",
+        "operational",
+        "scenario"
+      ]
+    },
+    "personas": {
+      "keys": [
+        "client_alina",
+        "seller_plov",
+        "admin_boss",
+        "courier_7"
+      ]
+    },
+    "session": {
+      "persona": "client_alina",
+      "contour": "mini-app",
+      "role": "client",
+      "transport": "httpOnlyCookie",
+      "expiresAt": "2026-05-16T11:15:35.093Z",
+      "cookieSummary": [
+        {
+          "name": "khujandi_mini_app_session",
+          "domain": "127.0.0.1",
+          "path": "/",
+          "httpOnly": true,
+          "secure": false,
+          "sameSite": "Lax"
+        }
+      ]
+    }
+  },
+  "browserSmoke": {
+    "status": "PASS",
+    "openedPath": "/checkout",
+    "title": "Khujandi Mini App",
+    "bodyTextSample": "Каталог\nОформление заказа\n\nЗаказ создан\n\nОформление заказа завершено.\n\nOrder paid and created.\n\nСледить за статусом заказа\n\nЗаказ order-runtime-1 готов к отслеживанию с revision 0.\n\nАвторизация Telegram и подтверждение оплаты остаются на ст"
+  },
+  "trustBoundaryNotice": "Staging UI QA with fixed-persona sessions does not prove Telegram HMAC/replay/WebView correctness or real payment provider trust."
+}

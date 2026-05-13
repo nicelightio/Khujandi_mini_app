@@ -413,6 +413,72 @@ describe("checkout-payment route", () => {
     expect(api.submitCheckout).not.toHaveBeenCalled();
   });
 
+  it("does not use the cookie-session checkout harness from mock payment metadata alone", async () => {
+    const api = {
+      loadCheckoutBootstrap: async () => ({
+        headline: "Checkout",
+        statusLabel: "Secure checkout is ready.",
+        supportingNotes: ["Order creation stays server-side only."],
+        primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: true,
+        testSessionAuthAvailable: false,
+      }),
+      authenticateTelegram: jest.fn(),
+      syncLanguagePreference: jest.fn(),
+      submitCheckout: jest.fn(),
+    };
+
+    const renderer = await renderRoute({ api, bridge: createBridge(null) });
+
+    await act(async () => {
+      renderer.root.findByType("button").props.onClick();
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Open this checkout from Telegram to continue securely.");
+    expect(api.authenticateTelegram).not.toHaveBeenCalled();
+    expect(api.syncLanguagePreference).not.toHaveBeenCalled();
+    expect(api.submitCheckout).not.toHaveBeenCalled();
+  });
+
+  it("uses the staging test-session checkout harness without Telegram initData when backend enables it", async () => {
+    const api = {
+      loadCheckoutBootstrap: async () => ({
+        headline: "Checkout",
+        statusLabel: "Secure checkout is ready.",
+        supportingNotes: ["Order creation stays server-side only."],
+        primaryActionLabel: "Continue to payment",
+        mockPaymentAvailable: true,
+        testSessionAuthAvailable: true,
+      }),
+      authenticateTelegram: jest.fn(),
+      syncLanguagePreference: jest.fn(),
+      submitCheckout: jest.fn().mockResolvedValue({
+        orderId: "order-cookie-session-1",
+        paymentStatus: "PAID",
+        updatedAt: "2026-05-13T00:00:00.000Z",
+        revision: "202",
+        confirmationLabel: "Checkout completed through staging test session.",
+      }),
+    };
+
+    const renderer = await renderRoute({ api, bridge: createBridge(null) });
+
+    await act(async () => {
+      renderer.root.findByType("button").props.onClick();
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    expect(text).toContain("Checkout completed through staging test session.");
+    expect(text).toContain("Order order-cookie-session-1 is ready for tracking from revision 202.");
+    expect(api.authenticateTelegram).not.toHaveBeenCalled();
+    expect(api.syncLanguagePreference).not.toHaveBeenCalled();
+    expect(api.submitCheckout).toHaveBeenCalledWith(composition);
+    expect(api.submitCheckout).toHaveBeenCalledTimes(1);
+  });
+
   it("does not show mock affordance or bypass backend from frontend-only debug state", async () => {
     const debugGlobal = globalThis as typeof globalThis & { __APP_DEBUG__?: boolean };
     const previousDebugValue = debugGlobal.__APP_DEBUG__;

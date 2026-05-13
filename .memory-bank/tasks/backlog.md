@@ -37,6 +37,114 @@ status: active
 - Current scoped follow-up intentionally excludes the broader `high-churn runtime propagation` refactor; that concern remains in the open bug record but is not part of the execution-ready wave below.
 - `FT-016` migration is complete for repo-local scope through `TASK-FT016-19`: documentation and Memory Bank sync verified `PASS` after `TASK-FT016-18` strict verification/docs-only end-to-end operator delivery flow verification passed.
 - `FT-017` guarded e2e mock payment mode is terminal for scoped repo-local success baseline through `TASK-FT017-04`; mock failed/timeout/pending and real production provider design remain out of scope.
+- `FT-018` staging runtime and test auth harness в работе: `TASK-FT018-05` verified `PASS_WITH_BROWSER_SMOKE_BLOCKED` для UI QA fixture/workflow; API reset/seed/persona/session fixture smoke проходит, browser smoke честно заблокирован отсутствующим Playwright runtime и не считается pass. `TASK-FT018-06` остается `PARTIAL`/blocked на обязательных Docker Compose render checks. Следующий шаг — `TASK-FT018-07` security review/final verification closure. `REQ-037` остается `planned`/partial до полной FT-018 closure.
+
+### FT-018 staging runtime and test auth harness
+
+- Status: `in_progress`
+- Implementation handoff: [.memory-bank/tasks/plans/IMPL-FT-018.md](plans/IMPL-FT-018.md)
+- Feature spec: [.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md](../features/FT-018-staging-runtime-and-test-auth-harness.md)
+- Contract: [.memory-bank/contracts/staging-test-auth-harness-contract.md](../contracts/staging-test-auth-harness-contract.md)
+- Runbook: [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](../runbooks/staging-runtime-and-ui-qa.md)
+- Testing policy: [.memory-bank/testing/staging-ui-qa.md](../testing/staging-ui-qa.md)
+
+#### TASK-FT018-01 - Spec freeze and handoff
+- TASK-ID: `TASK-FT018-01`
+- Status: `done`
+- Wave: `W0`
+- Feature: `FT-018`
+- REQs: `REQ-037`
+- Depends on: `none`
+- Touched files: `.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md`, `.memory-bank/contracts/staging-test-auth-harness-contract.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/testing/staging-ui-qa.md`, `.memory-bank/guides/staging-server-usage.md`, `.memory-bank/tasks/plans/IMPL-FT-018.md`, `.protocols/FT-018/**/*`, indexes.
+- Tests: docs consistency checks, stale `NODE_ENV=development` guard wording search, `git diff --check`.
+- Verify: FT-018 has feature spec, contract, operational runbook, testing policy, human usage guide, protocol handoff and implementation plan; production auth/payment boundaries and fixed-persona-only harness rules are explicit.
+- Docs: all FT-018 Memory Bank source artifacts and indexes listed above.
+- Source Artifacts: `.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md`, `.memory-bank/tasks/plans/IMPL-FT-018.md`, `.protocols/FT-018/handoff.md`.
+- Constraints: docs-only closure; do not implement runtime endpoints or deploy staging in this task.
+
+#### TASK-FT018-02 - Runtime mode guards and health endpoint
+- TASK-ID: `TASK-FT018-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-018`
+- REQs: `REQ-037`, `REQ-021`, `REQ-023`
+- Depends on: `TASK-FT018-01`
+- Touched files: `backend/src/dev-runtime/**/*`, `scripts/dev-api.ts`, `.env.example`, `tests/slices/**/*`, optional `.memory-bank/runbooks/staging-runtime-and-ui-qa.md` if implementation reveals doc drift.
+- Tests: focused runtime/config tests for `NODE_ENV`, `APP_ENV`, `DEBUG`, `PAYMENT_PROVIDER`, `E2E_TEST_MODE`; health endpoint response tests; production-negative unsafe-combination tests.
+- Verify: `PASS`; `/api/v1/health` возвращает только non-secret mode facts; `NODE_ENV=production` отказывает mock payment и test auth mode; `DEBUG=TRUE` сам по себе не создает trusted payment/test behavior; secrets/session values не раскрываются; reset/seed/persona/test-session endpoints остаются отсутствующими для downstream tasks.
+- Docs: `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/guides/staging-server-usage.md`, `.memory-bank/testing/staging-ui-qa.md` only if behavior changes.
+- Source Artifacts: `.memory-bank/contracts/staging-test-auth-harness-contract.md`, `.memory-bank/contracts/payment-confirmation-contract.md`, `.memory-bank/tasks/plans/IMPL-FT-018.md`.
+- Constraints: backend runtime/config only; no reset/seed, no test session endpoint, no server deploy parameterization.
+
+#### TASK-FT018-03 - Local staging profile, reset and seed
+- TASK-ID: `TASK-FT018-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-018`
+- REQs: `REQ-037`, `REQ-023`, `REQ-032`, `REQ-033`
+- Depends on: `TASK-FT018-02`
+- Touched files: `backend/src/dev-runtime/**/*`, `scripts/dev-api.ts`, `tests/slices/**/*`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/guides/staging-server-usage.md`.
+- Tests: focused runtime tests for `POST /api/v1/test/reset` and `POST /api/v1/test/seed`; local staging smoke proving isolated `.runtime/staging/*` state; production/disabled mode returns `404`; wrong token returns `403`.
+- Verify: `PASS`; local host-OS staging starts with documented flags and isolated `.runtime/staging/*` paths; guarded reset/seed touches only dev-runtime staging state; baseline scenarios are deterministic and do not depend on production identities or volumes; fixed-persona session/personas remain downstream `TASK-FT018-04` scope.
+- Docs: staging runbook and usage guide if command shape or scenario names change.
+- Source Artifacts: `.memory-bank/contracts/staging-test-auth-harness-contract.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`.
+- Constraints: no arbitrary identities; no production state deletion; no Docker/system cleanup; no test session cookies yet unless required by seed verification.
+
+#### TASK-FT018-04 - Fixed-persona test session endpoint
+- TASK-ID: `TASK-FT018-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-018`
+- REQs: `REQ-037`, `REQ-004`, `REQ-022`, `REQ-023`
+- Depends on: `TASK-FT018-03`
+- Touched files: `backend/src/dev-runtime/**/*`, `tests/slices/**/*`, optional auth/session contract docs if implementation reveals drift.
+- Tests: focused auth/runtime tests for `GET /api/v1/test/personas` and `POST /api/v1/test/session`; production/disabled `404`; missing/wrong token `403`; unknown persona `400`; arbitrary identity fields rejected/ignored; cookie values absent from JSON/log assertions.
+- Verify: `PASS`; fixed personas create the normal cookie/session primitives for their owning auth contours; seller capability comes from seeded `catalog` binding; `admin_boss` session uses `admin-access`; `operator_manager` returns controlled unsupported `400` instead of faking identity; no production backdoor or arbitrary identity injection exists.
+- Docs: `.memory-bank/contracts/staging-test-auth-harness-contract.md`, `.memory-bank/testing/staging-ui-qa.md`, runbook only if endpoint shape changes.
+- Source Artifacts: `.memory-bank/contracts/staging-test-auth-harness-contract.md`, `.memory-bank/contracts/telegram-mini-app-auth-contract.md`, `.memory-bank/contracts/catalog-seller-access-and-session.md`, `.memory-bank/contracts/admin-auth-contract.md`.
+- Constraints: test-only backend presentation/application surface; no weakening raw Telegram `initData` validation; no JS-readable session storage.
+
+#### TASK-FT018-05 - UI QA fixtures and workflow docs
+- TASK-ID: `TASK-FT018-05`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-018`
+- REQs: `REQ-037`, `REQ-023`, `REQ-032`, `REQ-033`, `REQ-035`, `REQ-036`
+- Depends on: `TASK-FT018-04`
+- Touched files: `tests/e2e/**/*` or existing Playwright/ui_qa fixtures if present, `.memory-bank/testing/staging-ui-qa.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/guides/staging-server-usage.md`.
+- Tests: API-level staging fixture smoke uses `UI_QA_BASE_URL`, `E2E_TEST_TOKEN`, reset/seed, fixed-persona session bootstrap and sanitized evidence; browser smoke path is `BLOCKED` because Playwright package/browser runtime is not installed.
+- Verify: `PASS_WITH_BROWSER_SMOKE_BLOCKED`; `ui_qa` fixture can obtain a fixed-persona session without real Telegram, records only cookie names/attributes, separates UI workflow evidence from Telegram/payment trust-boundary evidence, and does not print/store secrets. Full browser checkout happy path remains unverified until Playwright is available and checkout `initData` dependency is addressed through an approved staging-only path.
+- Docs: testing policy, runbook and usage guide evidence instructions.
+- Source Artifacts: `.memory-bank/testing/staging-ui-qa.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`.
+- Constraints: UI QA does not prove Telegram HMAC/replay/auth-date or real payment provider correctness; no broad UI rewrite.
+
+#### TASK-FT018-06 - Server staging deploy profile
+- TASK-ID: `TASK-FT018-06`
+- Status: `partial`
+- Wave: `W3`
+- Feature: `FT-018`
+- REQs: `REQ-037`, `REQ-023`
+- Depends on: `TASK-FT018-02`
+- Touched files: `docker-compose.yml`, `deploy/scripts/tgmeal-deploy-alma.sh`, `.env.example`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/guides/staging-server-usage.md`, `.memory-bank/runbooks/telegram-mini-app-container-deploy.md`.
+- Tests: `docker compose config` for production defaults and staging env; deploy-script dry/read review; router/service/middleware/volume names do not collide; public health checks target staging host only after explicit rollout.
+- Verify: `PARTIAL`; static/deploy safety evidence is aligned after dirty-checkout fail-closed repair, but required production/staging `docker compose config` render evidence is blocked in the local environment without Docker Compose, so the task is not fully passed.
+- Docs: staging runbook, server usage guide and production deploy runbook if deploy variables change.
+- Source Artifacts: `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/runbooks/telegram-mini-app-container-deploy.md`, `.memory-bank/architecture/deployment-and-runtime-topology.md`.
+- Constraints: do not touch PhotoChanger, Traefik configs or unrelated host infrastructure; no destructive Docker cleanup; no production deploy from dirty local source.
+
+#### TASK-FT018-07 - Security review and final verification
+- TASK-ID: `TASK-FT018-07`
+- Status: `ready`
+- Wave: `W4`
+- Feature: `FT-018`
+- REQs: `REQ-037`, `REQ-004`, `REQ-005`, `REQ-021`, `REQ-022`, `REQ-023`, `REQ-032`, `REQ-033`, `REQ-035`, `REQ-036`
+- Depends on: `TASK-FT018-03`, `TASK-FT018-04`, `TASK-FT018-05`, `TASK-FT018-06`
+- Touched files: `.tasks/TASK-FT018-07/**/*`, `.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md`, `.memory-bank/testing/staging-ui-qa.md`, `.memory-bank/runbooks/staging-runtime-and-ui-qa.md`, `.memory-bank/index.md`, `.memory-bank/tasks/backlog.md`.
+- Tests: full FT-018 gate set: production-negative test auth, staging positive test auth, mock payment guards, UI QA workflow, blocked browser smoke follow-up as applicable, required Docker Compose config renders for prod/staging from `TASK-FT018-06`, lint, focused runtime tests, frontend build if UI touched, `git diff --check`.
+- Verify: production cannot mount/use test auth; staging endpoints are token-guarded; fixed personas cannot become arbitrary identities; session/cookie/test token secrets are not logged or returned; UI QA evidence remains separated from Telegram/payment trust-boundary evidence; `TASK-FT018-06` Docker Compose render blocker is resolved before final closure.
+- Docs: final Memory Bank summaries and `.tasks/TASK-FT018-07` evidence report.
+- Source Artifacts: all FT-018 feature/contract/runbook/testing docs and implementation reports from prior tasks.
+- Constraints: verification/docs/evidence closure only unless a blocking security bug is found; any new implementation work discovered here should become a follow-up task.
 
 ### FT-017 guarded e2e mock payment mode
 
@@ -48,7 +156,7 @@ status: active
 - REQs: `REQ-021`, `REQ-023`
 - Depends on: `none`
 - Touched files: `backend/src/slices/checkout-payment/**/*`, `backend/src/dev-runtime/**/*`, `tests/slices/checkout-payment/**/*`, `.memory-bank/runbooks/e2e-mock-payment.md`, `.memory-bank/testing/index.md`
-- Tests: focused backend/config coverage proving `PAYMENT_PROVIDER=mock` is accepted only when `NODE_ENV !== "production"` and production-like runtime rejects/refuses mock usage.
+- Tests: focused backend/config coverage proving `PAYMENT_PROVIDER=mock` is accepted only with explicit runtime/test guard and production-like runtime rejects/refuses mock usage.
 - Verify: old implicit local mock behavior is replaced or gated by explicit server-side provider selection; `DEBUG=true` alone is not trusted; no frontend affordance or order creation change is added in this task.
 - Docs: `.memory-bank/tasks/backlog.md`, `.memory-bank/tasks/plans/IMPL-FT-017.md`, `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/runbooks/e2e-mock-payment.md`
 - Source Artifacts: `.memory-bank/features/FT-017-guarded-e2e-mock-payment-mode.md`, `.memory-bank/contracts/payment-confirmation-contract.md`, `.memory-bank/runbooks/e2e-mock-payment.md`
