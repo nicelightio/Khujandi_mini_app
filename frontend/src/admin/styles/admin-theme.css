@@ -803,24 +803,37 @@ body[data-root-contour="admin-web"] textarea {
 
 [data-admin-assignment="courier-alert"] {
   display: grid;
-  gap: 12px;
-  margin: 16px 0;
-  padding: 16px;
+  gap: 10px;
+  margin: 10px 0 14px;
+  padding: 12px 14px;
   border: 1px solid rgba(163, 188, 255, 0.08);
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.025);
 }
 
 [data-admin-assignment="courier-alert"][data-admin-alert-state="active"] {
   border-color: rgba(255, 143, 159, 0.28);
   background: rgba(255, 143, 159, 0.07);
-  animation: adminDelayedBlink 1.35s ease-in-out infinite;
+}
+
+[data-admin-assignment="courier-alert-head"] {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+[data-admin-assignment="courier-alert-head"] span,
+[data-admin-assignment="courier-alert-clear"] {
+  color: var(--admin-text-soft);
+  font-size: 0.84rem;
 }
 
 [data-admin-assignment="courier-alert"] ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   padding: 0;
   margin: 0;
   list-style: none;
@@ -828,10 +841,10 @@ body[data-root-contour="admin-web"] textarea {
 
 [data-admin-assignment="courier-alert"] li {
   display: inline-flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  min-height: 40px;
-  padding: 6px 10px;
+  min-height: 34px;
+  padding: 4px 8px;
   border: 1px solid rgba(163, 188, 255, 0.08);
   border-radius: 999px;
   background: rgba(6, 10, 22, 0.34);
@@ -851,36 +864,96 @@ body[data-root-contour="admin-web"] textarea {
 }
 
 [data-admin-assignment="table-wrap"] {
-  overflow-x: auto;
+  overflow-x: visible;
+}
+
+[data-admin-assignment="orders-table"] {
+  table-layout: fixed;
+}
+
+[data-admin-assignment="orders-table"] th:nth-child(1) {
+  width: 28%;
+}
+
+[data-admin-assignment="orders-table"] th:nth-child(2) {
+  width: 22%;
+}
+
+[data-admin-assignment="orders-table"] th:nth-child(3) {
+  width: 24%;
+}
+
+[data-admin-assignment="orders-table"] th:nth-child(4) {
+  width: 26%;
 }
 
 [data-admin-assignment="orders-table"] td {
-  min-width: 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-[data-admin-assignment="orders-table"] td > span,
-[data-admin-assignment="orders-table"] td > strong {
+[data-admin-assignment-cell] > strong,
+[data-admin-assignment-cell] > span,
+[data-admin-assignment="order-main"],
+[data-admin-assignment="order-meta"],
+[data-admin-assignment="order-secondary"],
+[data-admin-assignment="courier-main"],
+[data-admin-assignment="courier-times"] {
+  min-width: 0;
+}
+
+[data-admin-assignment="order-main"],
+[data-admin-assignment="courier-main"] {
+  display: grid;
+  gap: 6px;
+}
+
+[data-admin-assignment="order-main"] strong,
+[data-admin-assignment="courier-main"] strong,
+[data-admin-assignment-cell="message"] strong {
   display: block;
+  color: var(--admin-text);
 }
 
-[data-admin-assignment="orders-table"] td > span {
-  margin-top: 6px;
+[data-admin-assignment="order-main"] span,
+[data-admin-assignment="order-secondary"] span,
+[data-admin-assignment="courier-times"] span,
+[data-admin-assignment-cell="message"] span {
   color: var(--admin-text-soft);
+}
+
+[data-admin-assignment="order-meta"],
+[data-admin-assignment="order-secondary"],
+[data-admin-assignment="courier-times"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 0.86rem;
+}
+
+[data-admin-assignment="courier-main"] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
 }
 
 [data-admin-assignment="action-cells"] {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  min-width: 180px;
+  min-width: 0;
 }
 
 [data-admin-assignment="action-cells"] button {
   display: grid;
   gap: 3px;
   justify-items: start;
-  min-height: 46px;
+  min-width: 0;
+  min-height: 48px;
   padding: 8px 10px;
   text-align: left;
+  white-space: normal;
 }
 
 [data-admin-assignment="action-cells"] button:disabled {
@@ -892,6 +965,10 @@ body[data-root-contour="admin-web"] textarea {
   color: var(--admin-text-soft);
   font-size: 0.74rem;
   font-weight: 700;
+}
+
+[data-admin-assignment="history-toggle"] {
+  grid-column: 1 / -1;
 }
 
 [data-admin-assignment="history-table"] {
@@ -1260,6 +1337,85 @@ body[data-root-contour="admin-web"] textarea {
   [data-admin-ui="table"] {
     display: block;
     overflow-x: auto;
+  }
+
+  [data-admin-assignment="table-wrap"],
+  [data-admin-assignment="orders-table"] {
+    overflow: visible;
+  }
+
+  [data-admin-assignment="orders-table"],
+  [data-admin-assignment="orders-table"] tbody,
+  [data-admin-assignment="orders-table"] tr,
+  [data-admin-assignment="orders-table"] td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  [data-admin-assignment="orders-table"] thead {
+    display: none;
+  }
+
+  [data-admin-assignment="orders-table"] tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  [data-admin-assignment-row] {
+    padding: 14px;
+    border: 1px solid rgba(163, 188, 255, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  [data-admin-assignment="orders-table"] [data-admin-assignment-cell] {
+    display: grid;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(163, 188, 255, 0.06);
+  }
+
+  [data-admin-assignment="orders-table"] [data-admin-assignment-cell]:first-child {
+    padding-top: 0;
+  }
+
+  [data-admin-assignment="orders-table"] [data-admin-assignment-cell]:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  [data-admin-assignment="orders-table"] [data-admin-assignment-cell]::before {
+    content: attr(data-cell-label);
+    color: var(--admin-text-dim);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  [data-admin-assignment="courier-main"],
+  [data-admin-assignment="action-cells"] {
+    grid-template-columns: 1fr;
+  }
+
+  [data-admin-assignment="action-cells"] button {
+    min-height: 50px;
+  }
+
+  [data-admin-assignment-history] {
+    margin-top: -12px;
+    padding: 0 14px 14px;
+    border-right: 1px solid rgba(163, 188, 255, 0.08);
+    border-bottom: 1px solid rgba(163, 188, 255, 0.08);
+    border-left: 1px solid rgba(163, 188, 255, 0.08);
+    border-radius: 0 0 16px 16px;
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  [data-admin-assignment-history] > td {
+    padding: 0;
+    border-bottom: 0;
   }
 
 }

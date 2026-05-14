@@ -48,14 +48,20 @@ export const AdminAssignmentPage = ({
         data-admin-assignment="courier-alert"
         data-admin-alert-state={viewModel.alertOrders.length === 0 ? "clear" : "active"}
       >
-        <strong>{viewModel.alertLabel}</strong>
-        {viewModel.alertOrders.length === 0 ? <span>Нет проблем</span> : null}
+        <div data-admin-assignment="courier-alert-head">
+          <strong>{viewModel.alertLabel}</strong>
+          <span>Заказов: {viewModel.alertOrders.length}</span>
+        </div>
+        {viewModel.alertOrders.length === 0 ? <span data-admin-assignment="courier-alert-clear">Нет проблем</span> : null}
         {viewModel.alertOrders.length > 0 ? (
           <ul>
             {viewModel.alertOrders.map((order) => (
-              <li key={order.orderId}>
+              <li
+                key={order.orderId}
+                aria-label={`${order.publicOrderNumber}: ${order.reasonLabel}, ${order.severityLabel}`}
+                title={order.reasonLabel}
+              >
                 <strong>{order.publicOrderNumber}</strong>
-                <span>{order.reasonLabel}</span>
                 <span data-admin-ui="status-chip" data-admin-status-tone={order.severityTone}>
                   {order.severityLabel}
                 </span>
@@ -86,56 +92,56 @@ export const AdminAssignmentPage = ({
             <thead>
               <tr>
                 <th>Заказ</th>
-                <th>Срочность</th>
-                <th>Статус</th>
                 <th>Курьер</th>
-                <th>Назначен / принят</th>
                 <th>Последнее сообщение</th>
                 <th>Действия</th>
-                <th>История</th>
               </tr>
             </thead>
             <tbody>
               {viewModel.orders.map((order) => (
                 <Fragment key={order.orderId}>
-                  <tr key={order.orderId} data-admin-assignment-row={order.orderId}>
-                    <td>
-                      <strong>{order.publicOrderNumber}</strong>
-                      <span>{order.summaryLabel}</span>
-                      <span>Создан {order.createdAtLabel}</span>
+                  <tr data-admin-assignment-row={order.orderId}>
+                    <td data-admin-assignment-cell="order" data-cell-label="Заказ">
+                      <div data-admin-assignment="order-main">
+                        <strong>{order.publicOrderNumber}</strong>
+                        <span>{order.summaryLabel}</span>
+                      </div>
+                      <div data-admin-assignment="order-meta">
+                        <span>Создан {order.createdAtLabel}</span>
+                        <span
+                          data-admin-ui="status-chip"
+                          data-admin-status-tone={order.severityTone}
+                          data-admin-severity={order.severityLabel}
+                          data-admin-delayed-alert={order.isDelayedAlert ? "true" : "false"}
+                        >
+                          {order.severityLabel}
+                        </span>
+                      </div>
+                      <div data-admin-assignment="order-secondary">
+                        <span>{order.statusLabel}</span>
+                        <span>Ревизия {order.statusRevisionLabel}</span>
+                      </div>
                     </td>
-                    <td>
-                      <span
-                        data-admin-ui="status-chip"
-                        data-admin-status-tone={order.severityTone}
-                        data-admin-severity={order.severityLabel}
-                        data-admin-delayed-alert={order.isDelayedAlert ? "true" : "false"}
-                      >
-                        {order.severityLabel}
-                      </span>
+                    <td data-admin-assignment-cell="courier" data-cell-label="Курьер">
+                      <div data-admin-assignment="courier-main">
+                        <strong>{order.courierLabel}</strong>
+                        <span
+                          data-admin-ui="status-chip"
+                          data-admin-status-tone={order.courierMarkerLabel === "Нет" ? "accent" : "success"}
+                        >
+                          {order.courierMarkerLabel}
+                        </span>
+                      </div>
+                      <div data-admin-assignment="courier-times">
+                        <span>Назначен {order.assignedAtLabel}</span>
+                        <span>Принят {order.claimedAtLabel}</span>
+                      </div>
                     </td>
-                    <td>
-                      <strong>{order.statusLabel}</strong>
-                      <span>{order.statusRevisionLabel}</span>
-                    </td>
-                    <td>
-                      <strong>{order.courierLabel}</strong>
-                      <span
-                        data-admin-ui="status-chip"
-                        data-admin-status-tone={order.courierMarkerLabel === "Нет" ? "accent" : "success"}
-                      >
-                        {order.courierMarkerLabel}
-                      </span>
-                    </td>
-                    <td>
-                      <span>Назначен {order.assignedAtLabel}</span>
-                      <span>Принят {order.claimedAtLabel}</span>
-                    </td>
-                    <td>
+                    <td data-admin-assignment-cell="message" data-cell-label="Последнее сообщение">
                       <strong>{order.latestMessageLabel}</strong>
                       <span>{order.latestMessageMetaLabel}</span>
                     </td>
-                    <td>
+                    <td data-admin-assignment-cell="actions" data-cell-label="Действия">
                       <div data-admin-assignment="action-cells" aria-label={`Защищенные действия для ${order.publicOrderNumber}`}>
                         {order.actionCells.map((action) => (
                           <button
@@ -158,22 +164,21 @@ export const AdminAssignmentPage = ({
                             <strong>{action.stateLabel}</strong>
                           </button>
                         ))}
+                        <button
+                          type="button"
+                          data-magnetic="true"
+                          data-admin-assignment="history-toggle"
+                          aria-expanded={order.isExpanded}
+                          onClick={() => onToggleHistory(order.orderId)}
+                        >
+                          {order.isExpanded ? "Скрыть историю" : "Показать историю"}
+                        </button>
                       </div>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        data-magnetic="true"
-                        aria-expanded={order.isExpanded}
-                        onClick={() => onToggleHistory(order.orderId)}
-                      >
-                        {order.isExpanded ? "Скрыть историю" : "Показать историю"}
-                      </button>
                     </td>
                   </tr>
                   {order.isExpanded ? (
                     <tr key={`${order.orderId}-history`} data-admin-assignment-history={order.orderId}>
-                      <td colSpan={8}>
+                      <td colSpan={4}>
                         {order.history.length === 0 ? <p>Истории статусов пока нет.</p> : null}
                         {order.history.length > 0 ? (
                           <table data-admin-ui="table" data-admin-assignment="history-table">

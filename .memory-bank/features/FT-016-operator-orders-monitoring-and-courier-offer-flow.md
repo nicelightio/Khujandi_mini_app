@@ -115,6 +115,7 @@ status: active
 4. Existing orders remain readable and operational during rollout; new v2 behavior should apply to newly created/claimed orders after the relevant phase is enabled.
 5. The panel repair task must preserve working admin features unrelated to delivery operations.
 6. Rollback must be possible by disabling auto-offer/offer creation while leaving legacy order list and old assigned orders readable.
+7. Operator delivery list UI baseline is a 4-column table-card hybrid (`Заказ`, `Курьер`, `Последнее сообщение`, `Действия`) rather than the older 8-column grid, so delivery operations remain scannable around 1024px and narrow layouts can collapse into per-order cards.
 
 ## Out of scope
 
