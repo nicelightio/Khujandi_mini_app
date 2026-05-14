@@ -17,7 +17,8 @@ status: active
 ## Acceptance criteria
 
 - Self-signup отсутствует.
-- Только `boss` provision admin accounts; в MVP provisioning остается out-of-band (`seed`/manual operator flow) и не требует отдельного self-service UI.
+- `admin`/`boss` accounts не создаются через runtime UI; они bootstrap/env-managed.
+- `Staff panel` может создавать только `OPERATOR` accounts по `FT-019`; создание `ADMIN`/`BOSS` через Staff panel запрещено.
 - Пароль минимум 12 символов.
 - После 5 неудачных попыток за 15 минут учетная запись блокируется на 30 минут.
 - Access token живет 15 минут, refresh/session lifetime 3 дня, idle timeout 30 минут.
@@ -33,7 +34,8 @@ status: active
 
 - Временная блокировка логина использует `429 TOO_MANY_REQUESTS`.
 - Admin auth отделен от Mini App auth.
-- Boss-controlled provisioning остается отдельной operational procedure и не расширяет `FT-007` до provisioning UI/API.
+- Admin/boss bootstrap остается отдельной operational procedure и не расширяет `FT-007` до admin/boss provisioning UI/API.
+- Operator account creation принадлежит `FT-019` and consumes this auth contract without changing password/session rules.
 - Session transport фиксируется как cookie-based: access/refresh tokens передаются только через HTTPS-only HttpOnly cookies; frontend не владеет bearer-token storage.
 
 ## Normative inputs

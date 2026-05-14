@@ -1,12 +1,21 @@
 import type {
+  AdjustDeliveryAssignmentCourierStaffRatingCommandInput,
+  AdjustDeliveryAssignmentCourierStaffRatingCommandResult,
   AssignDeliveryOrderOverrideInput,
+  CreateDeliveryAssignmentCourierStaffCommandInput,
+  CreateDeliveryAssignmentCourierStaffCommandResult,
   CreateBroadcastDeliveryAssignmentOfferInput,
   ClaimDeliveryAssignmentOfferInput,
+  DeactivateDeliveryAssignmentCourierStaffCommandInput,
+  DeactivateDeliveryAssignmentCourierStaffCommandResult,
   CreateManualDeliveryAssignmentOfferInput,
   DeliveryAssignmentBroadcastOfferCommandResult,
   DeliveryAssignmentCommandResult,
   DeliveryAssignmentCourierAvailabilityRecord,
   DeliveryAssignmentCourierRecord,
+  DeliveryAssignmentCourierStaffIdentityRecord,
+  DeliveryAssignmentCourierStaffRecord,
+  DeliveryAssignmentCourierStaffRepository,
   DeliveryAssignmentOfferRepeatRecord,
   DeliveryAssignmentOfferTimeoutEvaluationResult,
   DeliveryAssignmentOfferTimeoutRecord,
@@ -15,15 +24,19 @@ import type {
   DeliveryAssignmentOrderId,
   DeliveryAssignmentOrderRecord,
   DeliveryAssignmentRepository,
+  DeliveryAssignmentStaffPanelActor,
   DeliveryAssignmentUserId,
+  ReactivateDeliveryAssignmentCourierStaffCommandInput,
+  ReactivateDeliveryAssignmentCourierStaffCommandResult,
 } from "../domain/delivery-assignment.types";
 import { AppError } from "../../../shared/errors/app-error";
 
-const ALLOWED_ASSIGNMENT_OVERRIDE_ROLES = new Set(["admin", "operator"]);
+const ALLOWED_ASSIGNMENT_OVERRIDE_ROLES = new Set(["boss", "admin", "operator"]);
+const ALLOWED_STAFF_PANEL_ROLES = new Set(["boss", "admin"]);
 const ASSIGNABLE_ORDER_STATUS = "CREATED";
 const CLAIMABLE_ORDER_STATUSES = new Set(["CREATED", "DELAYED"]);
 const MANUAL_OFFER_ORDER_STATUSES = new Set(["CREATED", "DELAYED"]);
-const ALLOWED_OFFER_ROLES = new Set(["admin", "operator"]);
+const ALLOWED_OFFER_ROLES = new Set(["boss", "admin", "operator"]);
 const STOP_AFTER_MS = 5 * 60 * 1000;
 const OFFER_REPEAT_AFTER_MS = 3 * 60 * 1000;
 const OFFER_EXPIRE_AFTER_MS = 6 * 60 * 1000;
@@ -34,10 +47,16 @@ const NOOP_DELIVERY_ASSIGNMENT_NOTIFIER: DeliveryAssignmentNotifier = {
 };
 
 export class DeliveryAssignmentService {
+  private readonly courierStaffRepository: DeliveryAssignmentCourierStaffRepository;
+
   constructor(
     private readonly repository: DeliveryAssignmentRepository,
     private readonly notifier: DeliveryAssignmentNotifier = NOOP_DELIVERY_ASSIGNMENT_NOTIFIER,
-  ) {}
+    courierStaffRepository?: DeliveryAssignmentCourierStaffRepository,
+  ) {
+    this.courierStaffRepository =
+      courierStaffRepository ?? (repository as unknown as DeliveryAssignmentCourierStaffRepository);
+  }
 
   findOrderById(orderId: DeliveryAssignmentOrderId) {
     return this.repository.findOrderById(orderId);
@@ -47,18 +66,194 @@ export class DeliveryAssignmentService {
     return this.repository.findCourierById(courierId);
   }
 
+  async createCourierStaff(
+    input: CreateDeliveryAssignmentCourierStaffCommandInput,
+  ): Promise<CreateDeliveryAssignmentCourierStaffCommandResult> {
+    const now = input.now ?? new Date();
+    const actor = this.assertStaffPanelActor(input.actor);
+    const telegramId = normalizeRequiredValue(input.telegramUserId, "telegram_user_id");
+    const nickname = normalizeRequiredValue(input.nickname, "courier nickname");
+    const repository = this.getCourierStaffRepository();
+    const existing = await repository.findCourierStaffByTelegramUserId(telegramId);
+
+    if (existing !== null) {
+      if (existing.role !== "courier") {
+        throw new AppError(
+          "TELEGRAM_USER_CONFLICT",
+          "Telegram user id already belongs to a non-courier account",
+          409,
+          {
+            telegram_user_id: telegramId,
+            role: existing.role,
+          },
+        );
+      }
+
+      if (existing.lifecycle.staffDeactivatedAt !== null) {
+        throw new AppError(
+          "COURIER_STAFF_DEACTIVATED",
+          "Courier staff is deactivated; use boss reactivation",
+          409,
+          {
+            courierUserId: existing.id,
+          },
+        );
+      }
+
+      throw new AppError("DUPLICATE_COURIER_STAFF", "Courier staff already exists", 409, {
+        telegram_user_id: telegramId,
+        courierUserId: existing.id,
+      });
+    }
+
+    const courier = await repository.createCourierStaff({
+      telegramId,
+      nickname,
+      actorAdminAccountId: actor.adminAccountId,
+      createdAt: now,
+    });
+
+    await repository.recordCourierStaffLifecycleEvent({
+      courierUserId: courier.id,
+      actorAdminAccountId: actor.adminAccountId,
+      action: "created",
+      previousNickname: null,
+      newNickname: nickname,
+      reason: null,
+      createdAt: now,
+    });
+
+    return {
+      courier,
+    };
+  }
+
+  async deactivateCourierStaff(
+    input: DeactivateDeliveryAssignmentCourierStaffCommandInput,
+  ): Promise<DeactivateDeliveryAssignmentCourierStaffCommandResult> {
+    const now = input.now ?? new Date();
+    const actor = this.assertStaffPanelActor(input.actor);
+    const repository = this.getCourierStaffRepository();
+    const target = this.assertCourierStaffTarget(
+      await repository.findCourierStaffById(input.courierUserId),
+      input.courierUserId,
+    );
+
+    if (target.lifecycle.staffDeactivatedAt !== null) {
+      throw new AppError("COURIER_STAFF_INACTIVE", "Courier staff is already deactivated", 409, {
+        courierUserId: target.id,
+      });
+    }
+
+    const courier = await repository.deactivateCourierStaff({
+      courierUserId: target.id,
+      actorAdminAccountId: actor.adminAccountId,
+      deactivatedAt: now,
+    });
+
+    await repository.recordCourierStaffLifecycleEvent({
+      courierUserId: target.id,
+      actorAdminAccountId: actor.adminAccountId,
+      action: "deactivated",
+      previousNickname: target.nickname,
+      newNickname: target.nickname,
+      reason: normalizeOptionalReason(input.reason),
+      createdAt: now,
+    });
+
+    return {
+      courier,
+    };
+  }
+
+  async reactivateCourierStaff(
+    input: ReactivateDeliveryAssignmentCourierStaffCommandInput,
+  ): Promise<ReactivateDeliveryAssignmentCourierStaffCommandResult> {
+    const now = input.now ?? new Date();
+    const actor = this.assertBossStaffPanelActor(input.actor);
+    const repository = this.getCourierStaffRepository();
+    const target = this.assertCourierStaffTarget(
+      await repository.findCourierStaffById(input.courierUserId),
+      input.courierUserId,
+    );
+
+    if (target.lifecycle.staffDeactivatedAt === null) {
+      throw new AppError("COURIER_STAFF_ACTIVE", "Courier staff is already active", 409, {
+        courierUserId: target.id,
+      });
+    }
+
+    const courier = await repository.reactivateCourierStaff({
+      courierUserId: target.id,
+      actorAdminAccountId: actor.adminAccountId,
+      reactivatedAt: now,
+    });
+
+    await repository.recordCourierStaffLifecycleEvent({
+      courierUserId: target.id,
+      actorAdminAccountId: actor.adminAccountId,
+      action: "reactivated",
+      previousNickname: target.nickname,
+      newNickname: target.nickname,
+      reason: normalizeOptionalReason(input.reason),
+      createdAt: now,
+    });
+
+    return {
+      courier,
+    };
+  }
+
+  async adjustCourierStaffRating(
+    input: AdjustDeliveryAssignmentCourierStaffRatingCommandInput,
+  ): Promise<AdjustDeliveryAssignmentCourierStaffRatingCommandResult> {
+    const now = input.now ?? new Date();
+    const actor = this.assertStaffPanelActor(input.actor);
+    const repository = this.getCourierStaffRepository();
+    const target = this.assertCourierStaffTarget(
+      await repository.findCourierStaffById(input.courierUserId),
+      input.courierUserId,
+    );
+
+    if (target.lifecycle.staffDeactivatedAt !== null) {
+      throw new AppError("COURIER_STAFF_INACTIVE", "Courier staff is deactivated", 409, {
+        courierUserId: target.id,
+      });
+    }
+
+    if (input.delta !== 1 && input.delta !== -1) {
+      throw new AppError("VALIDATION_ERROR", "Courier staff rating adjustment must be +1 or -1", 400, {
+        delta: input.delta,
+      });
+    }
+
+    const adjustment = await repository.recordCourierStaffRatingAdjustment({
+      courierUserId: target.id,
+      actorAdminAccountId: actor.adminAccountId,
+      delta: input.delta,
+      reason: normalizeOptionalReason(input.reason),
+      createdAt: now,
+    });
+
+    return {
+      adjustment,
+    };
+  }
+
   async startCourierWork(
     courierId: DeliveryAssignmentUserId,
     now = new Date(),
   ): Promise<DeliveryAssignmentCourierAvailabilityRecord> {
     const existingCourier = await this.repository.findCourierById(courierId);
     this.assertCourierExists(existingCourier, courierId);
+    this.assertCourierStaffOperational(existingCourier, courierId);
 
     const courier =
       existingCourier.isActive && existingCourier.acceptingOrdersUntil === null
         ? existingCourier
         : await this.repository.startCourierWork(courierId);
     this.assertCourierExists(courier, courierId);
+    this.assertCourierStaffOperational(courier, courierId);
 
     return this.toAvailability(courier, await this.repository.hasBusyCourierOrder(courierId), now);
   }
@@ -69,6 +264,7 @@ export class DeliveryAssignmentService {
   ): Promise<DeliveryAssignmentCourierAvailabilityRecord> {
     const courier = await this.repository.findCourierById(courierId);
     this.assertCourierExists(courier, courierId);
+    this.assertCourierStaffOperational(courier, courierId);
 
     const existingCutoff = courier.acceptingOrdersUntil;
     const cutoff =
@@ -81,6 +277,7 @@ export class DeliveryAssignmentService {
         ? courier
         : await this.repository.stopCourierWorkAfter(courierId, cutoff);
     this.assertCourierExists(updatedCourier, courierId);
+    this.assertCourierStaffOperational(updatedCourier, courierId);
 
     return this.toAvailability(
       updatedCourier,
@@ -96,12 +293,14 @@ export class DeliveryAssignmentService {
   ): Promise<DeliveryAssignmentCourierAvailabilityRecord> {
     const courier = await this.repository.findCourierById(courierId);
     this.assertCourierExists(courier, courierId);
+    this.assertCourierStaffOperational(courier, courierId);
 
     const updatedCourier =
       courier.autoOfferEnabled === enabled
         ? courier
         : await this.repository.setCourierAutoOfferParticipation(courierId, enabled);
     this.assertCourierExists(updatedCourier, courierId);
+    this.assertCourierStaffOperational(updatedCourier, courierId);
 
     return this.toAvailability(
       updatedCourier,
@@ -147,7 +346,12 @@ export class DeliveryAssignmentService {
 
     const courier = await this.repository.findCourierById(input.courierId);
 
-    if (courier === null || courier.role !== "courier" || !courier.isActive) {
+    if (
+      courier === null ||
+      courier.role !== "courier" ||
+      !courier.isActive ||
+      this.isCourierStaffDeactivated(courier)
+    ) {
       throw new AppError("COURIER_INVALID", "Courier is not eligible for assignment", 400, {
         courierId: input.courierId,
       });
@@ -614,12 +818,70 @@ export class DeliveryAssignmentService {
     }
   }
 
+  private assertCourierStaffOperational(
+    courier: DeliveryAssignmentCourierRecord,
+    courierId: DeliveryAssignmentUserId,
+  ): void {
+    if (this.isCourierStaffDeactivated(courier)) {
+      throw new AppError("COURIER_STAFF_INACTIVE", "Courier staff is deactivated", 409, {
+        courierId,
+        staffDeactivatedAt: courier.staffDeactivatedAt,
+      });
+    }
+  }
+
+  private isCourierStaffDeactivated(courier: DeliveryAssignmentCourierRecord): boolean {
+    return courier.staffDeactivatedAt != null;
+  }
+
+  private getCourierStaffRepository(): DeliveryAssignmentCourierStaffRepository {
+    return this.courierStaffRepository;
+  }
+
+  private assertStaffPanelActor(
+    actor: DeliveryAssignmentStaffPanelActor,
+  ): DeliveryAssignmentStaffPanelActor {
+    if (!ALLOWED_STAFF_PANEL_ROLES.has(actor.role)) {
+      throw new AppError("FORBIDDEN", "Staff panel courier command requires admin or boss access", 403);
+    }
+
+    return actor;
+  }
+
+  private assertBossStaffPanelActor(
+    actor: DeliveryAssignmentStaffPanelActor,
+  ): DeliveryAssignmentStaffPanelActor {
+    if (actor.role !== "boss") {
+      throw new AppError("FORBIDDEN", "Courier staff reactivation requires boss access", 403);
+    }
+
+    return actor;
+  }
+
+  private assertCourierStaffTarget(
+    courier: DeliveryAssignmentCourierStaffIdentityRecord | null,
+    courierUserId: DeliveryAssignmentUserId,
+  ): DeliveryAssignmentCourierStaffRecord {
+    if (courier === null || courier.role !== "courier") {
+      throw new AppError("COURIER_STAFF_NOT_FOUND", "Courier staff was not found", 404, {
+        courierUserId,
+      });
+    }
+
+    return {
+      ...courier,
+      role: "courier",
+    };
+  }
+
   private toAvailability(
     courier: DeliveryAssignmentCourierRecord,
     hasBusyOrder: boolean,
     now: Date,
   ): DeliveryAssignmentCourierAvailabilityRecord {
+    const staffActive = !this.isCourierStaffDeactivated(courier);
     const active =
+      staffActive &&
       courier.isActive &&
       (courier.acceptingOrdersUntil === null ||
         courier.acceptingOrdersUntil.getTime() > now.getTime());
@@ -628,9 +890,27 @@ export class DeliveryAssignmentService {
       courierId: courier.id,
       active,
       free: !hasBusyOrder,
-      autoOfferEnabled: courier.autoOfferEnabled,
+      autoOfferEnabled: staffActive && courier.autoOfferEnabled,
       acceptingOrdersUntil: courier.acceptingOrdersUntil,
       ratingScore: courier.ratingScore,
     };
   }
 }
+
+const normalizeRequiredValue = (value: string, fieldName: string): string => {
+  const normalized = value.trim();
+
+  if (normalized.length === 0) {
+    throw new AppError("VALIDATION_ERROR", `${fieldName} is required`, 400, {
+      field: fieldName,
+    });
+  }
+
+  return normalized;
+};
+
+const normalizeOptionalReason = (reason?: string | null): string | null => {
+  const normalized = reason?.trim() ?? "";
+
+  return normalized.length === 0 ? null : normalized;
+};

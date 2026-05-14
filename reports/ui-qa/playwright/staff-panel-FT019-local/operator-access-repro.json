@@ -1,0 +1,12 @@
+{
+  "operatorLoginReachedProtectedShell": true,
+  "operatorForbidden": true,
+  "staffWorkspaceVisible": false,
+  "navContainsStaff": false,
+  "pageBodyExcerpt": " KhujandiПанель управленияОперационные инструменты для доставки, защищенных сессий и создания магазинов.ГлавнаяНазначенияОтменыМагазиныВход: operator (operator-account-1).Время простоя контролируется серверной границей до 2026-05-14T05:28:23.216Z.ВыйтиВеб-админкаStaff panel недоступенRBACStaff panel доступен только ролям admin и boss. Operator-сессия не может открыть этот раздел.DEBUG MODEPath: /a",
+  "screenshots": [
+    "reports/ui-qa/playwright/staff-panel-FT019-local/06-operator-access-repro.png",
+    "reports/ui-qa/playwright/staff-panel-FT019-local/07-mobile-staff-panel.png"
+  ],
+  "mobileOverflowX": 0
+}

@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
@@ -12,9 +13,16 @@ type AdminAccountRecord = {
   id: string;
   login: string;
   passwordHash: string;
-  role: "BOSS" | "MANAGER" | "ADMIN";
+  role: "BOSS" | "OPERATOR" | "ADMIN";
+  nickname: string | null;
   isActive: boolean;
   lockedUntil: Date | null;
+  staffCreatedAt: Date | null;
+  staffCreatedByAdminAccountId: string | null;
+  staffDeactivatedAt: Date | null;
+  staffDeactivatedByAdminAccountId: string | null;
+  staffReactivatedAt: Date | null;
+  staffReactivatedByAdminAccountId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -44,10 +52,46 @@ type AdminAuthAuditRecord = {
   createdAt: Date;
 };
 
+type OperatorStaffLifecycleEventRecord = {
+  id: bigint;
+  operatorAdminAccountId: string;
+  actorAdminAccountId: string;
+  action: "CREATED" | "DEACTIVATED" | "REACTIVATED" | "NICKNAME_UPDATED";
+  previousNickname: string | null;
+  newNickname: string | null;
+  reason: string | null;
+  createdAt: Date;
+};
+
+type OperatorStaffRatingAdjustmentRecord = {
+  id: bigint;
+  operatorAdminAccountId: string;
+  actorAdminAccountId: string;
+  delta: -1 | 1;
+  reason: string | null;
+  createdAt: Date;
+};
+
 export type AdminAccessRuntimeState = {
   account: AdminAccountRecord;
+  operatorAccounts: AdminAccountRecord[];
   sessions: AdminSessionRecord[];
   audits: AdminAuthAuditRecord[];
+  operatorStaffLifecycleEvents: OperatorStaffLifecycleEventRecord[];
+  operatorStaffRatingAdjustments: OperatorStaffRatingAdjustmentRecord[];
+};
+
+const SEEDED_BOSS_DEV_PASSWORD = "super-secret-01";
+const SEEDED_BOSS_DEV_PASSWORD_HASH = "stored-hash";
+
+const createDevRuntimeAdminPasswordHash = (secret: string): string =>
+  createHash("sha256").update(secret).digest("hex");
+
+export const devRuntimeAdminPasswordHashing = {
+  hash: async (secret: string): Promise<string> => createDevRuntimeAdminPasswordHash(secret),
+  verify: async (secret: string, secretHash: string): Promise<boolean> =>
+    secretHash === createDevRuntimeAdminPasswordHash(secret) ||
+    (secret === SEEDED_BOSS_DEV_PASSWORD && secretHash === SEEDED_BOSS_DEV_PASSWORD_HASH),
 };
 
 type AdminAccessStatePersistence = {
@@ -64,13 +108,23 @@ export const createAdminAccessRuntimeState = (): AdminAccessRuntimeState => ({
     login: "boss@example.com",
     passwordHash: "stored-hash",
     role: "BOSS",
+    nickname: "Boss",
     isActive: true,
     lockedUntil: null,
+    staffCreatedAt: null,
+    staffCreatedByAdminAccountId: null,
+    staffDeactivatedAt: null,
+    staffDeactivatedByAdminAccountId: null,
+    staffReactivatedAt: null,
+    staffReactivatedByAdminAccountId: null,
     createdAt: new Date("2026-04-06T08:00:00.000Z"),
     updatedAt: new Date("2026-04-06T08:00:00.000Z"),
   },
+  operatorAccounts: [],
   sessions: [],
   audits: [],
+  operatorStaffLifecycleEvents: [],
+  operatorStaffRatingAdjustments: [],
 });
 
 const cloneDate = (value: Date | null): Date | null => (value === null ? null : new Date(value));
@@ -78,6 +132,9 @@ const cloneDate = (value: Date | null): Date | null => (value === null ? null : 
 const toAccountRecord = (account: AdminAccountRecord) => ({
   ...account,
   lockedUntil: cloneDate(account.lockedUntil),
+  staffCreatedAt: cloneDate(account.staffCreatedAt),
+  staffDeactivatedAt: cloneDate(account.staffDeactivatedAt),
+  staffReactivatedAt: cloneDate(account.staffReactivatedAt),
   createdAt: new Date(account.createdAt),
   updatedAt: new Date(account.updatedAt),
 });
@@ -99,10 +156,29 @@ const toAuditRecord = (audit: AdminAuthAuditRecord) => ({
   createdAt: new Date(audit.createdAt),
 });
 
+const toLifecycleEventRecord = (
+  event: OperatorStaffLifecycleEventRecord,
+): OperatorStaffLifecycleEventRecord => ({
+  ...event,
+  id: BigInt(event.id),
+  createdAt: new Date(event.createdAt),
+});
+
+const toRatingAdjustmentRecord = (
+  adjustment: OperatorStaffRatingAdjustmentRecord,
+): OperatorStaffRatingAdjustmentRecord => ({
+  ...adjustment,
+  id: BigInt(adjustment.id),
+  createdAt: new Date(adjustment.createdAt),
+});
+
 const cloneAdminAccessState = (state: AdminAccessRuntimeState): AdminAccessRuntimeState => ({
   account: toAccountRecord(state.account),
+  operatorAccounts: (state.operatorAccounts ?? []).map(toAccountRecord),
   sessions: state.sessions.map(toSessionRecord),
   audits: state.audits.map(toAuditRecord),
+  operatorStaffLifecycleEvents: (state.operatorStaffLifecycleEvents ?? []).map(toLifecycleEventRecord),
+  operatorStaffRatingAdjustments: (state.operatorStaffRatingAdjustments ?? []).map(toRatingAdjustmentRecord),
 });
 
 const createAdminAccessStatePersistence = (
@@ -147,8 +223,11 @@ const createAdminAccessStatePersistence = (
 
     return {
       account: toAccountRecord(parsed.account),
+      operatorAccounts: (parsed.operatorAccounts ?? []).map(toAccountRecord),
       sessions: parsed.sessions.map(toSessionRecord),
       audits: parsed.audits.map(toAuditRecord),
+      operatorStaffLifecycleEvents: (parsed.operatorStaffLifecycleEvents ?? []).map(toLifecycleEventRecord),
+      operatorStaffRatingAdjustments: (parsed.operatorStaffRatingAdjustments ?? []).map(toRatingAdjustmentRecord),
     };
   };
 
@@ -186,36 +265,84 @@ export const createAdminAccessRuntimePrisma = (
   const persistState = (): void => {
     options.persist?.(cloneAdminAccessState(state));
   };
+  const accounts = (): AdminAccountRecord[] => [state.account, ...state.operatorAccounts];
+  const findAccount = (where: { login?: string; id?: string }): AdminAccountRecord | null => {
+    if (where.login !== undefined) {
+      return accounts().find((candidate) => candidate.login === where.login) ?? null;
+    }
+
+    if (where.id !== undefined) {
+      return accounts().find((candidate) => candidate.id === where.id) ?? null;
+    }
+
+    return null;
+  };
+  const updateAccount = (
+    where: { id: string },
+    data: Partial<AdminAccountRecord>,
+  ): AdminAccountRecord => {
+    const account = findAccount(where);
+
+    if (account === null) {
+      throw new Error("Unknown account id");
+    }
+
+    Object.assign(account, data, {
+      updatedAt:
+        data.lockedUntil ??
+        data.staffDeactivatedAt ??
+        data.staffReactivatedAt ??
+        new Date(),
+    });
+    persistState();
+
+    return toAccountRecord(account);
+  };
 
   return {
     state,
     client: {
       adminAccount: {
         findUnique: async ({ where }) => {
-          if (where.login !== undefined && where.login === state.account.login) {
-            return toAccountRecord(state.account);
-          }
+          const account = findAccount(where);
 
-          if (where.id !== undefined && where.id === state.account.id) {
-            return toAccountRecord(state.account);
-          }
-
-          return null;
+          return account === null ? null : toAccountRecord(account);
         },
-        update: async ({ where, data }) => {
-          if (where.id !== state.account.id) {
-            throw new Error("Unknown account id");
+        findMany: async ({ where }) => {
+          if (where.role !== "OPERATOR") {
+            return [];
           }
 
-          const lockedUntil = new Date(data.lockedUntil);
-          state.account = {
-            ...state.account,
-            lockedUntil,
-            updatedAt: lockedUntil,
+          return state.operatorAccounts
+            .filter((account) => account.role === "OPERATOR")
+            .map(toAccountRecord);
+        },
+        create: async ({ data }) => {
+          const createdAt = new Date(data.staffCreatedAt);
+          const account: AdminAccountRecord = {
+            id: `operator-account-${state.operatorAccounts.length + 1}`,
+            login: data.login,
+            passwordHash: data.passwordHash,
+            role: data.role,
+            nickname: data.nickname,
+            isActive: data.isActive,
+            lockedUntil: data.lockedUntil,
+            staffCreatedAt: new Date(data.staffCreatedAt),
+            staffCreatedByAdminAccountId: data.staffCreatedByAdminAccountId,
+            staffDeactivatedAt: data.staffDeactivatedAt,
+            staffDeactivatedByAdminAccountId: data.staffDeactivatedByAdminAccountId,
+            staffReactivatedAt: data.staffReactivatedAt,
+            staffReactivatedByAdminAccountId: data.staffReactivatedByAdminAccountId,
+            createdAt,
+            updatedAt: createdAt,
           };
+          state.operatorAccounts.push(account);
           persistState();
 
-          return toAccountRecord(state.account);
+          return toAccountRecord(account);
+        },
+        update: async ({ where, data }) => {
+          return updateAccount(where, data);
         },
       },
       adminSession: {
@@ -316,6 +443,49 @@ export const createAdminAccessRuntimePrisma = (
               audit.action === where.action &&
               audit.createdAt.getTime() >= where.createdAt.gte.getTime(),
           ).length,
+      },
+      operatorStaffLifecycleEvent: {
+        create: async ({ data }) => {
+          const record: OperatorStaffLifecycleEventRecord = {
+            id: BigInt(state.operatorStaffLifecycleEvents.length + 1),
+            operatorAdminAccountId: data.operatorAdminAccountId,
+            actorAdminAccountId: data.actorAdminAccountId,
+            action: data.action,
+            previousNickname: data.previousNickname,
+            newNickname: data.newNickname,
+            reason: data.reason,
+            createdAt: new Date(data.createdAt),
+          };
+          state.operatorStaffLifecycleEvents.push(record);
+          persistState();
+
+          return toLifecycleEventRecord(record);
+        },
+        findMany: async ({ where }) =>
+          state.operatorStaffLifecycleEvents
+            .filter((event) => where.operatorAdminAccountId.in.includes(event.operatorAdminAccountId))
+            .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+            .map(toLifecycleEventRecord),
+      },
+      operatorStaffRatingAdjustment: {
+        create: async ({ data }) => {
+          const record: OperatorStaffRatingAdjustmentRecord = {
+            id: BigInt(state.operatorStaffRatingAdjustments.length + 1),
+            operatorAdminAccountId: data.operatorAdminAccountId,
+            actorAdminAccountId: data.actorAdminAccountId,
+            delta: data.delta,
+            reason: data.reason,
+            createdAt: new Date(data.createdAt),
+          };
+          state.operatorStaffRatingAdjustments.push(record);
+          persistState();
+
+          return toRatingAdjustmentRecord(record);
+        },
+        findMany: async ({ where }) =>
+          state.operatorStaffRatingAdjustments
+            .filter((adjustment) => where.operatorAdminAccountId.in.includes(adjustment.operatorAdminAccountId))
+            .map(toRatingAdjustmentRecord),
       },
     },
   };

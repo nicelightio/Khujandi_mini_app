@@ -5,7 +5,6 @@ export type DeliveryTrackingCursor = string;
 export type DeliveryTrackingActionStatus = "PICKED_UP" | "IN_PROGRESS" | "DELIVERED";
 export type DeliveryTrackingUserRole =
   | "boss"
-  | "manager"
   | "operator"
   | "admin"
   | "seller"
@@ -118,6 +117,32 @@ export type DeliveryTrackingCommandResult = {
   status: DeliveryTrackingOrderStatus;
   updatedAt: Date;
   revision: DeliveryTrackingRevision;
+};
+
+export type DeliveryTrackingOperatorProcessedOrderMetric = {
+  operatorAdminAccountId: DeliveryTrackingUserId;
+  processedOrdersCount: number;
+};
+
+export type DeliveryTrackingOperatorStaffOrderHistoryProblemReason =
+  | "future_failed"
+  | "not_personally_completed";
+
+export type DeliveryTrackingOperatorStaffOrderHistoryItem = {
+  orderId: DeliveryTrackingOrderId;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastWriteAt: Date;
+  actionTypes: string[];
+  personallyCompleted: boolean;
+  problemReasons: DeliveryTrackingOperatorStaffOrderHistoryProblemReason[];
+};
+
+export type DeliveryTrackingOperatorStaffOrderHistory = {
+  operatorAdminAccountId: DeliveryTrackingUserId;
+  lastProcessedOrders: DeliveryTrackingOperatorStaffOrderHistoryItem[];
+  problemOrders: DeliveryTrackingOperatorStaffOrderHistoryItem[];
 };
 
 export type DeliveryTrackingNotificationInput = {

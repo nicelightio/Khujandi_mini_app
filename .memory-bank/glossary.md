@@ -44,6 +44,9 @@ status: active
 - `Order Cancellation`: capability операционной отмены заказа и ручного refund workflow.
 - `Reviews Feedback`: capability двусторонних отзывов и негативных alert-ов.
 - `Admin Access`: отдельный login/password auth-контур веб-админки.
+- `Staff Panel`: admin-web панель для управления operator/courier staff profiles, soft delete, ratings and work-history cards; доступна только `admin`/`boss`.
+- `Staff soft delete`: деактивация сотрудника без удаления historical order/review/audit references; `admin` не видит archived staff, `boss` может видеть archive and reactivate.
+- `Staff rating`: order/processed-order рейтинг сотрудника, отделенный от courier average review rating; ручная корректировка применяется только к staff rating.
 - `Event`: неизменяемая запись о доменном факте; читается через `GET /events?since=<cursor>`.
 - `Domain Event`: событие, отражающее бизнес-смысл изменения (`order.created`, `order.status_changed` и т.п.).
 - `Cursor` / `Revision`: строковое значение позиции в event stream; на базе `events.id` (`bigint`).
@@ -55,6 +58,7 @@ status: active
 - `Shop Name Snapshot`: имя магазина, зафиксированное в заказе и не обновляемое при последующих переименованиях.
 
 ## Notes
-- Канонические технические роли: `boss`, `operator`, `admin`, `seller`, `courier`, `client`; business label `manager` соответствует `operator`.
+- Канонические технические роли: `boss`, `operator`, `admin`, `seller`, `courier`, `client`; отдельной роли `manager` нет.
+- `boss` является admin-equivalent для admin-web capability checks и дополнительно владеет boss-only provisioning там, где это явно указано.
 - UI-лейблы типа `худБосс`, `худКур`, `худПотр` допустимы только как business-facing labels, не как API/DB contracts.
 - Основной язык Memory Bank: русский; устойчивые технические термины допускаются на английском.

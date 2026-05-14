@@ -40,7 +40,6 @@ enum ShopStatus {
 
 enum UserRole {
   BOSS
-  MANAGER
   OPERATOR
   ADMIN
   SELLER
@@ -75,6 +74,13 @@ enum AssignmentOfferStatus {
   CLAIMED
   EXPIRED
   CANCELLED
+}
+
+enum StaffLifecycleAction {
+  CREATED
+  DEACTIVATED
+  REACTIVATED
+  NICKNAME_UPDATED
 }
 
 model Shop {
@@ -295,12 +301,22 @@ model User {
   acceptingOrdersUntil DateTime?
   autoOfferEnabled Boolean         @default(false)
   ratingScore     Int              @default(0)
+  staffNickname   String?
+  staffCreatedAt  DateTime?
+  staffCreatedByAdminAccountId String?
+  staffDeactivatedAt DateTime?
+  staffDeactivatedByAdminAccountId String?
+  staffReactivatedAt DateTime?
+  staffReactivatedByAdminAccountId String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   miniAppSessions MiniAppSession[]
   authoredReviews Review[]         @relation("ReviewAuthor")
   targetedReviews Review[]         @relation("ReviewTarget")
   targetedAssignmentOffers AssignmentOffer[] @relation("AssignmentOfferTargetCourier")
+
+  @@index([role, staffDeactivatedAt])
+  @@index([staffCreatedByAdminAccountId])
 }
 
 model Review {
@@ -375,14 +391,23 @@ model AdminAccount {
   login        String           @unique
   passwordHash String
   role         UserRole
+  nickname     String?
   isActive     Boolean          @default(true)
   lockedUntil  DateTime?
+  staffCreatedAt DateTime?
+  staffCreatedByAdminAccountId String?
+  staffDeactivatedAt DateTime?
+  staffDeactivatedByAdminAccountId String?
+  staffReactivatedAt DateTime?
+  staffReactivatedByAdminAccountId String?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   sessions     AdminSession[]
   authAudits   AdminAuthAudit[]
 
   @@index([role])
+  @@index([role, staffDeactivatedAt])
+  @@index([staffCreatedByAdminAccountId])
   @@index([lockedUntil])
 }
 
@@ -416,4 +441,58 @@ model AdminAuthAudit {
   adminAccount   AdminAccount         @relation(fields: [adminAccountId], references: [id])
 
   @@index([adminAccountId, action, createdAt])
+}
+
+model OperatorStaffLifecycleEvent {
+  id                     BigInt               @id @default(autoincrement())
+  operatorAdminAccountId String
+  actorAdminAccountId    String
+  action                 StaffLifecycleAction
+  previousNickname       String?
+  newNickname            String?
+  reason                 String?
+  createdAt              DateTime             @default(now())
+
+  @@index([operatorAdminAccountId, createdAt])
+  @@index([actorAdminAccountId, createdAt])
+  @@index([action, createdAt])
+}
+
+model CourierStaffLifecycleEvent {
+  id                  BigInt               @id @default(autoincrement())
+  courierUserId       String
+  actorAdminAccountId String
+  action              StaffLifecycleAction
+  previousNickname    String?
+  newNickname         String?
+  reason              String?
+  createdAt           DateTime             @default(now())
+
+  @@index([courierUserId, createdAt])
+  @@index([actorAdminAccountId, createdAt])
+  @@index([action, createdAt])
+}
+
+model OperatorStaffRatingAdjustment {
+  id                     BigInt   @id @default(autoincrement())
+  operatorAdminAccountId String
+  actorAdminAccountId    String
+  delta                  Int
+  reason                 String?
+  createdAt              DateTime @default(now())
+
+  @@index([operatorAdminAccountId, createdAt])
+  @@index([actorAdminAccountId, createdAt])
+}
+
+model CourierStaffRatingAdjustment {
+  id                  BigInt   @id @default(autoincrement())
+  courierUserId       String
+  actorAdminAccountId String
+  delta               Int
+  reason              String?
+  createdAt           DateTime @default(now())
+
+  @@index([courierUserId, createdAt])
+  @@index([actorAdminAccountId, createdAt])
 }

@@ -24,7 +24,7 @@ status: active
 - `REQ-012` Manual refund tracking: при отмене возврат средств выполняется вручную и должен отражаться явным refund-состоянием/полем и аудитом.
 - `REQ-013` Reviews: после `COMPLETED` запускается двусторонний сбор отзывов; клиент и курьер оставляют отзыв через Telegram-бота.
 - `REQ-014` Negative alerts: low rating (`<=2`) с любой стороны MUST порождать негативный alert через Telegram-бота.
-- `REQ-015` Admin access: веб-админка использует отдельный login/password контур без self-signup; provisioning админ-аккаунтов выполняет только `boss`.
+- `REQ-015` Admin access: веб-админка использует отдельный login/password контур без self-signup; `admin`/`boss` accounts являются bootstrap/env-managed и не создаются через runtime UI.
 - `REQ-016` Admin security: пароль админки >= 12 символов; 5 неудачных попыток за 15 минут блокируют вход на 30 минут; входы и блокировки аудируются.
 - `REQ-017` Admin sessions: access token 15 минут, refresh/session lifetime 3 дня, auto-logout после 30 минут неактивности.
 - `REQ-018` Audit and error contract: критичные действия аудируются; ошибки имеют формат `{ error: { code, message, details }, trace_id }`; raw `initData`, payment secrets и другие чувствительные Telegram/payment payloads не логируются целиком.
@@ -47,6 +47,7 @@ status: active
 - `REQ-035` Operator orders monitoring panel: desktop-first operator/admin panel показывает заказы за сегодня и предыдущие 3 дня, severity colors, unassigned/delayed alert сверху, сортировки, courier assignment/claim state, последнее сообщение и раскрываемую историю статусов с комментариями по ролям.
 - `REQ-036` Courier availability and auto-offer: courier bot имеет меню `Курьер` с active/stop-after-5-min и auto-offer participation ON/OFF; при включенной настройке панели новый заказ предлагается всем активным свободным курьерам, первый successful claim получает заказ, а отсутствие принятия переводит заказ в `DELAYED` и уведомляет operators.
 - `REQ-037` Staging runtime and test auth harness: проект должен иметь настоящий staging runtime, запускаемый локально в host OS и на staging/dev server через Docker/Compose/Traefik/current deploy path, с отдельными state/volumes/db от production, guarded `PAYMENT_PROVIDER=mock`, `DEBUG=TRUE`, explicit non-production mode и staging-only fixed-persona test auth harness для UI QA/Playwright. Test auth harness MUST работать только при `E2E_TEST_MODE=TRUE` и `NODE_ENV !== production`, MUST быть невозможен в production, MUST использовать нормальные cookie/session primitives owning auth contours, MUST NOT принимать arbitrary production identities и MUST отделять UI workflow QA от Telegram auth/payment trust-boundary tests.
+- `REQ-038` Staff panel: `admin-web` должен иметь `Staff panel` только для `admin` и `boss`, с отдельными таблицами операторов и курьеров, добавлением operator accounts только с ролью `OPERATOR`, добавлением couriers по Telegram user id, soft delete/deactivate, boss-only reactivation, staff cards, рабочей историей и рейтингами по правилам `FT-019`; `operator` не имеет доступа к Staff panel, hard delete не входит в требования.
 
 ## Out of scope
 - Сложное авто-назначение курьеров по геолокации/маршрутам/сменам.
@@ -103,6 +104,7 @@ status: active
 | REQ-035 | EP-002 | FT-016 | e2e/frontend: operator panel list, severity, delayed alert, status history and chat redirect; verified by `TASK-FT016-18` repo-local flow except real bot chat execution remains MVP redirect scope | verified |
 | REQ-036 | EP-002 | FT-016, FT-004 | integration/bot: courier active/free auto-offer, atomic claim, delayed timeout and operator notification; verified by `TASK-FT016-18` repo-local flow | verified |
 | REQ-037 | runtime/testing | FT-018 | staging/ui-qa: local and server staging profiles, guarded fixed-persona test sessions, reset/seed lifecycle, production-negative guard tests, and UI QA evidence split from Telegram/payment trust-boundary tests | planned |
+| REQ-038 | EP-003, EP-002 | FT-019 | e2e/integration: Staff panel access, operator/courier creation, soft delete visibility, boss reactivation/reset, rating metrics and staff cards; verified by `TASK-FT019-10` plus post-review P1 repairs `TASK-FT019-POSTREVIEW-FIX-01/02` | verified |
 
 ## Source artifacts
 

@@ -1,0 +1,111 @@
+{
+  "verdict": "FAIL",
+  "browser": "Chromium / Chrome for Testing 148.0.7778.96 via Playwright",
+  "url": "http://127.0.0.1:5173/admin/staff",
+  "health": {
+    "ok": true,
+    "appEnv": "staging",
+    "nodeEnv": "staging",
+    "paymentProvider": "mock",
+    "e2eTestMode": true,
+    "version": "dev"
+  },
+  "observations": {
+    "archiveToggleVisible": true,
+    "bossResetVisible": true,
+    "bossNicknameVisible": true,
+    "operatorPasswordVisibleOnCreate": true,
+    "resetPasswordVisibleOneTime": true,
+    "oneTimeDismissed": true,
+    "operatorForbidden": false,
+    "mobileOverflowX": 0,
+    "consoleErrorCount": 3,
+    "requestFailedCount": 1,
+    "badResponseCount": 0
+  },
+  "checks": [
+    {
+      "name": "health and reset",
+      "status": "PASS",
+      "health": {
+        "ok": true,
+        "appEnv": "staging",
+        "nodeEnv": "staging",
+        "paymentProvider": "mock",
+        "e2eTestMode": true,
+        "version": "dev"
+      }
+    },
+    {
+      "name": "boss UI login and Staff route",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard/nav exposes Staff panel",
+      "status": "PASS"
+    },
+    {
+      "name": "courier create form has only telegram id and nickname",
+      "status": "PASS"
+    },
+    {
+      "name": "courier rating adjust +1/-1",
+      "status": "PASS"
+    },
+    {
+      "name": "courier soft deactivate/archive/reactivate/detail",
+      "status": "PASS"
+    },
+    {
+      "name": "operator create form has no role selector/admin/boss path",
+      "status": "PASS"
+    },
+    {
+      "name": "operator rating/reset/copy/dismiss/nickname",
+      "status": "PASS"
+    },
+    {
+      "name": "operator soft deactivate/archive/reactivate/detail",
+      "status": "PASS"
+    },
+    {
+      "name": "sensitive/UI drift scan",
+      "status": "PASS"
+    },
+    {
+      "name": "operator denial via created operator login",
+      "status": "FAIL",
+      "error": "operator session can access Staff panel or did not show forbidden state"
+    }
+  ],
+  "screenshots": [
+    "reports/ui-qa/playwright/staff-panel-FT019-local/01-staff-loaded-boss.png",
+    "reports/ui-qa/playwright/staff-panel-FT019-local/02-courier-created.png",
+    "reports/ui-qa/playwright/staff-panel-FT019-local/03-courier-detail.png",
+    "reports/ui-qa/playwright/staff-panel-FT019-local/04-operator-created-one-time-password.png",
+    "reports/ui-qa/playwright/staff-panel-FT019-local/05-operator-detail.png"
+  ],
+  "events": {
+    "console": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "requestFailed": [
+      {
+        "url": "http://127.0.0.1:5173/api/v1/admin/auth/logout",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "badResponses": []
+  }
+}

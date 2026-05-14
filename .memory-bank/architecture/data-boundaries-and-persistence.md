@@ -36,15 +36,29 @@ status: active
 - Product showcase unlink удаляет только showcase reference и MUST NOT удалять или мутировать underlying product.
 - Favorite shop references ограничены 3 active public items; public reads скрывают references, у которых shop/product deleted, missing или not publicly visible (`NOT_WORKING`).
 
+## Staff panel persistence boundaries
+
+- `Staff panel` является admin-web surface над двумя разными identity sources, а не новым shared user abstraction.
+- Courier staff profile опирается на `User` с ролью `COURIER`, `telegram_user_id`, nickname/display name and delivery-assignment state fields.
+- Operator staff profile опирается на `AdminAccount` с ролью `OPERATOR`, email/login, `password_hash`, session policy and staff metadata.
+- Admin/boss accounts остаются bootstrap/env-managed и не создаются через Staff panel.
+- Soft delete/deactivate не удаляет historical order/review/audit references; `admin` не видит archived staff, `boss` видит archive and can reactivate.
+- Staff rating adjustments and staff lifecycle commands require explicit actor/timestamp metadata; они не должны записываться как неструктурированные comments only.
+- Staff panel metrics are read models over source-of-truth data:
+  - courier delivered order count derives from assigned orders reaching `DELIVERED`;
+  - courier average review rating derives from `reviews-feedback`;
+  - operator processed order count derives from unique order write-actions by the operator.
+- `FAILED` остается future lifecycle decision; Staff panel may name the business bucket, but must not introduce `OrderStatus.FAILED` without updating [.memory-bank/states/order-lifecycle.md](../states/order-lifecycle.md).
+
 ## Slice to data ownership
 
 - `catalog`: `shops`, shop description/media/status, immutable public routing paths, menu pages, products, product description/media, seller ownership rules, seller Telegram binding read-model needs, public visibility rules, start showcase references/favorite shop references, and the durable runtime persistence boundary for provisioning/storefront resolution.
 - `checkout-payment`: paid order creation, payment transaction identity, order snapshots.
-- `delivery-assignment`: `orders` read/update touchpoints for `CREATED -> ASSIGNED`, `order_status_history`, slice-owned `delivery_assignment_audit`, `events`.
-- `delivery-tracking`: post-assignment order lifecycle and its `order_status_history`/`events` writes.
+- `delivery-assignment`: `orders` read/update touchpoints for `CREATED -> ASSIGNED`, courier roster fields (`isActive`, `acceptingOrdersUntil`, `autoOfferEnabled`, rating penalty baseline), `order_status_history`, slice-owned `delivery_assignment_audit`, `events`.
+- `delivery-tracking`: post-assignment order lifecycle, operator/courier status write evidence and its `order_status_history`/`events` writes.
 - `order-cancellation`: cancellation reason, actor, refund state.
-- `reviews-feedback`: `reviews` model и negative alert semantics.
-- `admin-access`: credentials, sessions, auth audit.
+- `reviews-feedback`: `reviews` model, courier average review rating source data и negative alert semantics.
+- `admin-access`: credentials, sessions, auth audit, operator `AdminAccount` auth semantics and password hash baseline consumed by Staff panel.
 
 ## Related guide
 

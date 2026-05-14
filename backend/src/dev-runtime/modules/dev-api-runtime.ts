@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { createAdminAccessModule } from "../../slices/admin-access/presentation/admin-access.module";
+import { PrismaAdminAccessOperatorStaffMetricsReader } from "../../slices/admin-access/infrastructure/prisma-operator-staff-metrics.reader";
 import {
   createAdminAuthHttpHandler,
   resolveProtectedAdminRouteSession,
@@ -8,6 +9,7 @@ import { createCatalogModule } from "../../slices/catalog/presentation/catalog.m
 import { createCheckoutPaymentModule } from "../../slices/checkout-payment/presentation/checkout-payment.module";
 import {
   createAdminAccessRuntimePrisma,
+  devRuntimeAdminPasswordHashing,
   resolveAdminDatabasePersistence,
 } from "../admin-access-runtime";
 import {
@@ -50,6 +52,7 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   });
   const checkoutPaymentPrisma = createInMemoryCheckoutPaymentPrisma();
   const adminAccessModule = createAdminAccessModule(prisma);
+  const adminAccessOperatorStaffMetricsReader = new PrismaAdminAccessOperatorStaffMetricsReader(prisma as never);
   const catalogPersistence = resolveCatalogDatabasePersistence(options.catalogDatabasePath);
   const catalogState = catalogPersistence.loadState();
   const catalogPrisma = createInMemoryCatalogPrisma(catalogState, {
@@ -106,10 +109,7 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   );
   const adminAuthHandler = createAdminAuthHttpHandler({
     controller: adminAccessModule.controller,
-    passwordHasher:
-      options.passwordHasher ?? {
-        verify: async (secret, secretHash) => secret === "super-secret-01" && secretHash === "stored-hash",
-      },
+    passwordHasher: options.passwordHasher ?? devRuntimeAdminPasswordHashing,
     allowedOrigins,
     traceIdFactory: () => "trace-admin-runtime",
     now: options.now,
@@ -165,6 +165,12 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
       checkoutPaymentState,
       catalogState,
       operationalModules,
+      staffPanelReaders: {
+        adminAccessOperatorStaffMetricsReader,
+        courierStaffMetricsReader: operationalModules.staffMetrics.courierStaffMetricsReader,
+        operatorStaffMetricsReader: operationalModules.staffMetrics.operatorStaffMetricsReader,
+        reviewsFeedbackStaffMetricsReader: operationalModules.staffMetrics.reviewsFeedbackStaffMetricsReader,
+      },
       isDebugEnabled,
       runtimeMode,
       checkoutPaymentProvider,

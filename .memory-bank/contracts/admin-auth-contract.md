@@ -13,8 +13,10 @@ status: active
 ## Provisioning baseline
 
 - Self-signup отсутствует.
-- Provisioning admin accounts делает только `boss`.
-- В MVP provisioning остается out-of-band (`seed`/manual operator procedure) и не требует отдельного runtime UI/API внутри `FT-007`.
+- `admin`/`boss` accounts не создаются через runtime UI; они bootstrap/env-managed.
+- `Staff panel` может создавать только `OPERATOR` accounts по [.memory-bank/features/FT-019-staff-panel.md](../features/FT-019-staff-panel.md).
+- Создание `ADMIN`/`BOSS` через Staff panel или self-service API запрещено.
+- Operator account provisioning consumes this auth contract but does not change login/session/lockout rules.
 
 ## Rules
 

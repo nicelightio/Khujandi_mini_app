@@ -9,6 +9,7 @@ import {
 } from "../model/admin-access-shell";
 import { AdminLoginPage } from "../components/admin-login-page";
 import { AdminDashboardPage } from "../components/admin-dashboard-page";
+import { AdminForbiddenRoute } from "../components/admin-forbidden-route";
 import { AdminProtectedShell } from "../components/admin-protected-shell";
 import { AdminShell } from "../components/admin-shell";
 import { AdminUnknownRoute } from "../components/admin-unknown-route";
@@ -16,11 +17,15 @@ import { adminRoutes as adminRoutePaths } from "../lib/routes";
 import { AdminAssignmentRoute } from "../routes/admin-assignment-route";
 import { AdminCatalogProvisioningRoute } from "../routes/admin-catalog-provisioning-route";
 import { AdminOrderCancellationRoute } from "../routes/admin-order-cancellation-route";
+import { AdminStaffRoute } from "../routes/admin-staff-route";
+
+type AdminRouteRole = Extract<AdminSessionState, { status: "authenticated" }>["role"];
 
 export type AdminRoute = {
   path: string;
   element: ReactElement;
   requiresAuth: boolean;
+  allowedRoles?: readonly AdminRouteRole[];
 };
 
 export const adminRoutes: AdminRoute[] = [
@@ -49,18 +54,50 @@ export const adminRoutes: AdminRoute[] = [
     element: <AdminOrderCancellationRoute />,
     requiresAuth: true,
   },
+  {
+    path: adminRoutePaths.staff,
+    element: <AdminStaffRoute role="admin" />,
+    requiresAuth: true,
+    allowedRoles: ["admin", "boss"],
+  },
 ];
 
 const normalizeAdminPathname = (pathname: string): string => {
-  if (pathname === adminRoutePaths.home) {
-    return pathname;
+  const [pathOnly = adminRoutePaths.home] = pathname.split(/[?#]/u);
+
+  if (pathOnly === adminRoutePaths.home) {
+    return pathOnly;
   }
 
-  return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  return pathOnly.endsWith("/") ? pathOnly.slice(0, -1) : pathOnly;
 };
 
 export const resolveAdminRoute = (pathname: string): AdminRoute | null =>
   adminRoutes.find((route) => route.path === normalizeAdminPathname(pathname)) ?? null;
+
+export const resolveAdminOrderCancellationOrderId = (search: string): string | null => {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const orderId = params.get("orderId") ?? params.get("order_id");
+  const trimmed = orderId?.trim() ?? "";
+
+  return trimmed.length === 0 ? null : trimmed;
+};
+
+const resolveSearchInput = (pathname: string, search = ""): string => {
+  if (search.trim().length > 0) {
+    return search;
+  }
+
+  const queryStart = pathname.indexOf("?");
+
+  if (queryStart === -1) {
+    return "";
+  }
+
+  const hashStart = pathname.indexOf("#", queryStart);
+
+  return pathname.slice(queryStart, hashStart === -1 ? undefined : hashStart);
+};
 
 const getCurrentPathname = (): string => {
   if (typeof window === "undefined") {
@@ -70,14 +107,24 @@ const getCurrentPathname = (): string => {
   return window.location.pathname;
 };
 
+const getCurrentSearch = (): string => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return typeof window.location.search === "string" ? window.location.search : "";
+};
+
 type AdminRouterProps = {
   pathname?: string;
+  search?: string;
   session?: AdminSessionState;
   authApi?: AdminAuthApi;
 };
 
 export const AdminRouter = ({
   pathname = getCurrentPathname(),
+  search = getCurrentSearch(),
   session: sessionProp,
   authApi,
 }: AdminRouterProps) => {
@@ -85,6 +132,7 @@ export const AdminRouter = ({
   const refreshAttemptedPathRef = useRef<string | null>(null);
   const refreshRequestIdRef = useRef(0);
   const [activePath, setActivePath] = useState(() => pathname);
+  const [activeSearch, setActiveSearch] = useState(() => search);
   const [activeSession, setActiveSession] = useState<AdminSessionState>(() =>
     sessionProp ?? createAnonymousAdminSessionState(),
   );
@@ -98,6 +146,10 @@ export const AdminRouter = ({
   useEffect(() => {
     setActivePath(pathname);
   }, [pathname]);
+
+  useEffect(() => {
+    setActiveSearch(search);
+  }, [search]);
 
   useEffect(() => {
     if (sessionProp !== undefined) {
@@ -114,7 +166,10 @@ export const AdminRouter = ({
   const route = resolveAdminRoute(activePath);
 
   useEffect(() => {
-    if (route === null || route.requiresAuth === false) {
+    const shouldRestoreSession =
+      route !== null && (route.requiresAuth || route.path === adminRoutePaths.login);
+
+    if (!shouldRestoreSession) {
       refreshAttemptedPathRef.current = null;
       refreshRequestIdRef.current += 1;
       return;
@@ -193,7 +248,7 @@ export const AdminRouter = ({
     try {
       await authApiRef.current.logout();
       refreshRequestIdRef.current += 1;
-      refreshAttemptedPathRef.current = null;
+      refreshAttemptedPathRef.current = adminRoutePaths.login;
       setActiveSession({
         ...createAnonymousAdminSessionState(),
         reason: "Вы вышли из админ-сессии.",
@@ -211,6 +266,30 @@ export const AdminRouter = ({
       </AdminShell>
     );
   }
+
+  const isForbiddenRoute =
+    activeSession.status === "authenticated" &&
+    route.allowedRoles !== undefined &&
+    !route.allowedRoles.includes(activeSession.role);
+
+  const routeElement = isForbiddenRoute ? (
+    <AdminForbiddenRoute
+      title="Staff panel недоступен"
+      message="Staff panel доступен только ролям admin и boss. Operator-сессия не может открыть этот раздел."
+    />
+  ) : route.path === adminRoutePaths.home ? (
+    <AdminDashboardPage role={activeSession.status === "authenticated" ? activeSession.role : undefined} />
+  ) : route.path === adminRoutePaths.staff ? (
+    <AdminStaffRoute
+      role={activeSession.status === "authenticated" && activeSession.role === "boss" ? "boss" : "admin"}
+    />
+  ) : route.path === adminRoutePaths.cancellation ? (
+    <AdminOrderCancellationRoute
+      orderId={resolveAdminOrderCancellationOrderId(resolveSearchInput(activePath, activeSearch))}
+    />
+  ) : (
+    route.element
+  );
 
   if (!route.requiresAuth) {
     return (
@@ -236,7 +315,7 @@ export const AdminRouter = ({
       onLogin={handleLogin}
       onLogout={handleLogout}
     >
-      {route.element}
+      {routeElement}
     </AdminProtectedShell>
   );
 };

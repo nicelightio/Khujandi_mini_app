@@ -11,17 +11,20 @@ status: active
 ## Included features
 
 - `FT-007` admin auth and session security
+- `FT-019` Staff panel account-management boundary for operator staff
 
 ## Success metrics
 
-- Вход доступен только provisioned admin accounts.
+- Вход доступен только provisioned admin/operator accounts.
 - Политики lockout, TTL access token, refresh lifetime и idle timeout работают предсказуемо.
 - Аудит auth-событий пригоден для операционного контроля.
+- Staff panel может создавать только operator-level web accounts; admin/boss accounts остаются bootstrap/env-managed.
 
 ## Acceptance criteria
 
 - Login/password flow работает без self-signup.
-- Только `boss` может provision админ-аккаунты.
+- `admin`/`boss` accounts не создаются через runtime UI; они bootstrap/env-managed.
+- `Staff panel` может создавать только `operator` accounts по rules из `FT-019`.
 - После 5 неудачных попыток за 15 минут вход блокируется на 30 минут.
 - Login success, failure, lockout и logout аудируются.
 

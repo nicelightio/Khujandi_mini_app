@@ -1,12 +1,21 @@
 import type {
   AdminAccessCredentialVerificationResult,
+  AdminAccessOperatorStaffRecord,
+  AdminAccessOperatorStaffRepository,
+  AdminAccessPasswordHashing,
   AdminAccessPasswordHasher,
   AdminAccessRepository,
   AdminAccessSessionRecord,
   AdminAccessSessionTimeline,
   AdminAccessTokenFactory,
   AdminAccessTokenHasher,
+  AdjustAdminAccessOperatorStaffRatingCommandInput,
+  AdjustAdminAccessOperatorStaffRatingCommandResult,
   CreateAdminSessionBaselineInput,
+  CreateAdminAccessOperatorStaffAccountInput,
+  CreateAdminAccessOperatorStaffAccountResult,
+  DeactivateAdminAccessOperatorStaffCommandInput,
+  DeactivateAdminAccessOperatorStaffCommandResult,
   LoginAdminAccessInput,
   LoginAdminAccessResult,
   LockAdminAccountBaselineInput,
@@ -15,8 +24,14 @@ import type {
   RefreshAdminAccessInput,
   RefreshAdminAccessResult,
   RecordAdminAuditBaselineInput,
+  ReactivateAdminAccessOperatorStaffCommandInput,
+  ReactivateAdminAccessOperatorStaffCommandResult,
   ResolveProtectedAdminSessionInput,
   ResolveProtectedAdminSessionResult,
+  ResetAdminAccessOperatorStaffPasswordInput,
+  ResetAdminAccessOperatorStaffPasswordResult,
+  UpdateAdminAccessOperatorStaffNicknameCommandInput,
+  UpdateAdminAccessOperatorStaffNicknameCommandResult,
   VerifyAdminCredentialsInput,
 } from "../domain/admin-access.types";
 import {
@@ -61,6 +76,12 @@ export const resolveAdminAccessLockoutUntil = (now: Date): Date =>
 
 const normalizeLogin = (login: string): string => login.trim().toLowerCase();
 
+const normalizeNickname = (nickname: string): string => nickname.trim();
+
+const OPERATOR_PASSWORD_RESET_LIFECYCLE_REASON = "password_reset";
+
+const isStaffPanelActorRole = (role: string): boolean => role === "admin" || role === "boss";
+
 const toLockedError = (lockedUntil: Date): AppError =>
   new AppError("TOO_MANY_REQUESTS", "Admin account is temporarily locked", 429, {
     locked_until: lockedUntil.toISOString(),
@@ -73,6 +94,32 @@ const toExpiredSessionError = (reason: "refresh_expired" | "idle_timeout"): AppE
   new AppError("SESSION_EXPIRED", "Admin session has expired", 401, {
     reason,
   });
+
+const toForbiddenStaffPanelError = (): AppError =>
+  new AppError("FORBIDDEN", "Staff panel requires admin or boss access", 403);
+
+const toBossOnlyError = (): AppError =>
+  new AppError("FORBIDDEN", "This operator staff action requires boss access", 403);
+
+const assertStrongAdminPassword = (password: string): void => {
+  if (password.length < ADMIN_ACCESS_PASSWORD_MIN_LENGTH) {
+    throw new AppError("WEAK_PASSWORD", "Operator password does not meet admin auth policy", 400, {
+      min_length: ADMIN_ACCESS_PASSWORD_MIN_LENGTH,
+    });
+  }
+};
+
+const assertValidOperatorNickname = (nickname: string): void => {
+  if (nickname.length === 0) {
+    throw new AppError("VALIDATION_ERROR", "Operator nickname is required", 400);
+  }
+};
+
+const normalizeOptionalReason = (reason?: string | null): string | null => {
+  const normalized = reason?.trim() ?? "";
+
+  return normalized.length === 0 ? null : normalized;
+};
 
 const resolveSessionExpiryReason = (
   session: AdminAccessSessionRecord,
@@ -90,7 +137,66 @@ const resolveSessionExpiryReason = (
 };
 
 export class AdminAccessService {
-  constructor(private readonly repository: AdminAccessRepository) {}
+  constructor(
+    private readonly repository: AdminAccessRepository,
+    private readonly operatorStaffRepository?: AdminAccessOperatorStaffRepository,
+  ) {}
+
+  private getOperatorStaffRepository(): AdminAccessOperatorStaffRepository {
+    if (this.operatorStaffRepository === undefined) {
+      throw new Error("AdminAccessService requires an operator staff repository for staff commands.");
+    }
+
+    return this.operatorStaffRepository;
+  }
+
+  private async requireStaffPanelActor(actorAdminAccountId: string) {
+    const actor = await this.repository.findAccountById(actorAdminAccountId);
+
+    if (actor === null || !actor.isActive || !isStaffPanelActorRole(actor.role)) {
+      throw toForbiddenStaffPanelError();
+    }
+
+    return actor;
+  }
+
+  private async requireBossActor(actorAdminAccountId: string) {
+    const actor = await this.repository.findAccountById(actorAdminAccountId);
+
+    if (actor === null || !actor.isActive) {
+      throw toForbiddenStaffPanelError();
+    }
+
+    if (actor.role !== "boss") {
+      throw toBossOnlyError();
+    }
+
+    return actor;
+  }
+
+  private async requireActiveOperatorStaff(
+    operatorAdminAccountId: string,
+  ): Promise<AdminAccessOperatorStaffRecord> {
+    const operator = await this.requireOperatorStaffTarget(operatorAdminAccountId);
+
+    if (!operator.authActive || operator.lifecycle.staffDeactivatedAt !== null) {
+      throw new AppError("OPERATOR_INACTIVE", "Operator staff account is inactive", 409);
+    }
+
+    return operator;
+  }
+
+  private async requireOperatorStaffTarget(
+    operatorAdminAccountId: string,
+  ): Promise<AdminAccessOperatorStaffRecord> {
+    const operator = await this.getOperatorStaffRepository().findOperatorStaffById(operatorAdminAccountId);
+
+    if (operator === null) {
+      throw new AppError("OPERATOR_NOT_FOUND", "Operator staff account was not found", 404);
+    }
+
+    return operator;
+  }
 
   findAccountByLogin(login: string) {
     return this.repository.findAccountByLogin(normalizeLogin(login));
@@ -207,6 +313,240 @@ export class AdminAccessService {
     });
 
     return account;
+  }
+
+  async createOperatorStaffAccount(
+    input: CreateAdminAccessOperatorStaffAccountInput,
+    dependencies: {
+      passwordHashing: AdminAccessPasswordHashing;
+    },
+  ): Promise<CreateAdminAccessOperatorStaffAccountResult> {
+    const now = input.now ?? new Date();
+    const role = input.role ?? "operator";
+
+    await this.requireStaffPanelActor(input.actorAdminAccountId);
+
+    if (role !== "operator") {
+      throw new AppError("INVALID_OPERATOR_ROLE", "Staff panel can create only operator accounts", 400, {
+        requested_role: role,
+      });
+    }
+
+    const login = normalizeLogin(input.login);
+    const nickname = normalizeNickname(input.nickname);
+
+    if (login.length === 0) {
+      throw new AppError("VALIDATION_ERROR", "Operator login is required", 400);
+    }
+
+    assertValidOperatorNickname(nickname);
+    assertStrongAdminPassword(input.password);
+
+    const existingAccount = await this.repository.findAccountByLogin(login);
+
+    if (existingAccount !== null) {
+      throw new AppError("DUPLICATE_LOGIN", "Operator login already exists", 409);
+    }
+
+    const passwordHash = await dependencies.passwordHashing.hash(input.password);
+    const operatorStaffRepository = this.getOperatorStaffRepository();
+    const operator = await operatorStaffRepository.createOperatorStaff({
+      login,
+      nickname,
+      passwordHash,
+      actorAdminAccountId: input.actorAdminAccountId,
+      createdAt: now,
+    });
+
+    await operatorStaffRepository.recordOperatorStaffLifecycleEvent({
+      operatorAdminAccountId: operator.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      action: "created",
+      previousNickname: null,
+      newNickname: nickname,
+      reason: null,
+      createdAt: now,
+    });
+
+    return {
+      operator,
+      oneTimePassword: input.password,
+    };
+  }
+
+  async deactivateOperatorStaff(
+    input: DeactivateAdminAccessOperatorStaffCommandInput,
+  ): Promise<DeactivateAdminAccessOperatorStaffCommandResult> {
+    const now = input.now ?? new Date();
+
+    await this.requireStaffPanelActor(input.actorAdminAccountId);
+    const target = await this.requireOperatorStaffTarget(input.operatorAdminAccountId);
+
+    if (target.lifecycle.staffDeactivatedAt !== null || !target.authActive) {
+      throw new AppError("OPERATOR_INACTIVE", "Operator staff account is already inactive", 409, {
+        operatorAdminAccountId: target.id,
+      });
+    }
+
+    const operatorStaffRepository = this.getOperatorStaffRepository();
+    const operator = await operatorStaffRepository.deactivateOperatorStaff({
+      operatorAdminAccountId: target.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      deactivatedAt: now,
+    });
+    const revokedSessionCount = await this.repository.revokeSessionsByAccount({
+      adminAccountId: target.id,
+      revokedAt: now,
+    });
+
+    await operatorStaffRepository.recordOperatorStaffLifecycleEvent({
+      operatorAdminAccountId: target.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      action: "deactivated",
+      previousNickname: target.nickname,
+      newNickname: target.nickname,
+      reason: normalizeOptionalReason(input.reason),
+      createdAt: now,
+    });
+
+    return {
+      operator,
+      revokedSessionCount,
+    };
+  }
+
+  async reactivateOperatorStaff(
+    input: ReactivateAdminAccessOperatorStaffCommandInput,
+  ): Promise<ReactivateAdminAccessOperatorStaffCommandResult> {
+    const now = input.now ?? new Date();
+
+    await this.requireBossActor(input.actorAdminAccountId);
+    const target = await this.requireOperatorStaffTarget(input.operatorAdminAccountId);
+
+    if (target.lifecycle.staffDeactivatedAt === null && target.authActive) {
+      throw new AppError("OPERATOR_ACTIVE", "Operator staff account is already active", 409, {
+        operatorAdminAccountId: target.id,
+      });
+    }
+
+    const operatorStaffRepository = this.getOperatorStaffRepository();
+    const operator = await operatorStaffRepository.reactivateOperatorStaff({
+      operatorAdminAccountId: target.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      reactivatedAt: now,
+    });
+
+    await operatorStaffRepository.recordOperatorStaffLifecycleEvent({
+      operatorAdminAccountId: target.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      action: "reactivated",
+      previousNickname: target.nickname,
+      newNickname: target.nickname,
+      reason: normalizeOptionalReason(input.reason),
+      createdAt: now,
+    });
+
+    return {
+      operator,
+    };
+  }
+
+  async adjustOperatorStaffRating(
+    input: AdjustAdminAccessOperatorStaffRatingCommandInput,
+  ): Promise<AdjustAdminAccessOperatorStaffRatingCommandResult> {
+    const now = input.now ?? new Date();
+
+    await this.requireStaffPanelActor(input.actorAdminAccountId);
+    const target = await this.requireActiveOperatorStaff(input.operatorAdminAccountId);
+
+    if (input.delta !== 1 && input.delta !== -1) {
+      throw new AppError("VALIDATION_ERROR", "Operator staff rating adjustment must be +1 or -1", 400, {
+        delta: input.delta,
+      });
+    }
+
+    const adjustment = await this.getOperatorStaffRepository().recordOperatorStaffRatingAdjustment({
+      operatorAdminAccountId: target.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      delta: input.delta,
+      reason: normalizeOptionalReason(input.reason),
+      createdAt: now,
+    });
+
+    return {
+      adjustment,
+    };
+  }
+
+  async resetOperatorStaffPassword(
+    input: ResetAdminAccessOperatorStaffPasswordInput,
+    dependencies: {
+      passwordHashing: AdminAccessPasswordHashing;
+    },
+  ): Promise<ResetAdminAccessOperatorStaffPasswordResult> {
+    const now = input.now ?? new Date();
+
+    await this.requireBossActor(input.actorAdminAccountId);
+    const target = await this.requireActiveOperatorStaff(input.operatorAdminAccountId);
+    assertStrongAdminPassword(input.password);
+
+    const passwordHash = await dependencies.passwordHashing.hash(input.password);
+    const operatorStaffRepository = this.getOperatorStaffRepository();
+    const operator = await operatorStaffRepository.updateOperatorStaffPassword({
+      operatorAdminAccountId: target.id,
+      passwordHash,
+    });
+    const revokedSessionCount = await this.repository.revokeSessionsByAccount({
+      adminAccountId: target.id,
+      revokedAt: now,
+    });
+    // TASK-FT019-01 has no PASSWORD_RESET action; reason carries reset type.
+    await operatorStaffRepository.recordOperatorStaffLifecycleEvent({
+      operatorAdminAccountId: target.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      action: "nickname_updated",
+      previousNickname: target.nickname,
+      newNickname: target.nickname,
+      reason: OPERATOR_PASSWORD_RESET_LIFECYCLE_REASON,
+      createdAt: now,
+    });
+
+    return {
+      operator,
+      revokedSessionCount,
+      oneTimePassword: input.password,
+    };
+  }
+
+  async updateOperatorStaffNickname(
+    input: UpdateAdminAccessOperatorStaffNicknameCommandInput,
+  ): Promise<UpdateAdminAccessOperatorStaffNicknameCommandResult> {
+    const now = input.now ?? new Date();
+    const nickname = normalizeNickname(input.nickname);
+
+    await this.requireBossActor(input.actorAdminAccountId);
+    assertValidOperatorNickname(nickname);
+
+    const target = await this.requireActiveOperatorStaff(input.operatorAdminAccountId);
+    const operatorStaffRepository = this.getOperatorStaffRepository();
+    const operator = await operatorStaffRepository.updateOperatorStaffNickname({
+      operatorAdminAccountId: target.id,
+      nickname,
+    });
+
+    await operatorStaffRepository.recordOperatorStaffLifecycleEvent({
+      operatorAdminAccountId: target.id,
+      actorAdminAccountId: input.actorAdminAccountId,
+      action: "nickname_updated",
+      previousNickname: target.nickname,
+      newNickname: nickname,
+      reason: null,
+      createdAt: now,
+    });
+
+    return {
+      operator,
+    };
   }
 
   private async getActiveSessionByRefreshToken(

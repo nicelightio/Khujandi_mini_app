@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { AdminSessionState } from "../model/admin-access-shell";
+import type { AdminSessionState, AuthenticatedAdminSessionState } from "../model/admin-access-shell";
 import { adminRoutes } from "../lib/routes";
 import { AdminLoginPage } from "./admin-login-page";
 import { AdminShell } from "./admin-shell";
@@ -18,6 +18,12 @@ type AdminProtectedShellProps = {
   onLogout?: () => Promise<void>;
 };
 
+type AdminNavigationItem = {
+  href: string;
+  label: string;
+  allowedRoles?: readonly AuthenticatedAdminSessionState["role"][];
+};
+
 export const AdminProtectedShell = ({
   session,
   pathname,
@@ -27,11 +33,12 @@ export const AdminProtectedShell = ({
   onLogin,
   onLogout,
 }: AdminProtectedShellProps) => {
-  const navigationItems = [
+  const navigationItems: readonly AdminNavigationItem[] = [
     { href: adminRoutes.home, label: "Главная" },
     { href: adminRoutes.assignment, label: "Назначения" },
     { href: adminRoutes.cancellation, label: "Отмены" },
     { href: adminRoutes.catalogProvisioning, label: "Магазины" },
+    { href: adminRoutes.staff, label: "Staff panel", allowedRoles: ["admin", "boss"] as const },
   ];
 
   if (isLoginSessionState(session)) {
@@ -47,6 +54,10 @@ export const AdminProtectedShell = ({
     );
   }
 
+  const visibleNavigationItems = navigationItems.filter(
+    (item) => item.allowedRoles === undefined || item.allowedRoles.includes(session.role),
+  );
+
   return (
     <AdminShell>
       <div data-admin-auth="protected">
@@ -61,7 +72,7 @@ export const AdminProtectedShell = ({
                 </p>
               </div>
               <nav aria-label="Разделы админки" data-admin-auth="nav">
-                {navigationItems.map((item) => (
+                {visibleNavigationItems.map((item) => (
                   <a
                     key={item.href}
                     href={item.href}

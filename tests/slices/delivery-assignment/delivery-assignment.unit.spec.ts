@@ -1038,6 +1038,49 @@ describe("delivery-assignment service", () => {
     expect(createManualOffer).not.toHaveBeenCalled();
   });
 
+  it("rejects direct assignment override for staff-deactivated courier", async () => {
+    const assignCourier = jest.fn();
+    const service = new DeliveryAssignmentService({
+      ...createRepository(),
+      findOrderById: jest.fn().mockResolvedValue({
+        id: "order-1",
+        courierId: null,
+        status: "CREATED",
+        updatedAt: new Date("2026-04-03T09:55:00.000Z"),
+        isDeleted: false,
+      }),
+      findCourierById: jest.fn().mockResolvedValue({
+        id: "courier-1",
+        telegramId: "10001",
+        role: "courier",
+        isActive: true,
+        acceptingOrdersUntil: null,
+        autoOfferEnabled: true,
+        ratingScore: 0,
+        name: "Courier One",
+        staffDeactivatedAt: new Date("2026-05-14T10:00:00.000Z"),
+      }),
+      assignCourier,
+    });
+
+    await expect(
+      service.assignCourierOverride({
+        orderId: "order-1",
+        courierId: "courier-1",
+        actor: {
+          userId: "boss-1",
+          role: "boss",
+        },
+        override: { confirmed: true },
+      }),
+    ).rejects.toEqual(
+      new AppError("COURIER_INVALID", "Courier is not eligible for assignment", 400, {
+        courierId: "courier-1",
+      }),
+    );
+    expect(assignCourier).not.toHaveBeenCalled();
+  });
+
   it("directly assigns a courier only as a confirmed operator override", async () => {
     const findOrderById = jest.fn().mockResolvedValue({
       id: "order-1",
@@ -1069,13 +1112,13 @@ describe("delivery-assignment service", () => {
         orderId: "order-1",
         oldStatus: "CREATED",
         newStatus: "ASSIGNED",
-        changedByUserId: "admin-1",
+        changedByUserId: "boss-1",
         changedAt: new Date("2026-04-03T10:00:00.000Z"),
       },
       audit: {
         id: 2n,
         orderId: "order-1",
-        adminUserId: "admin-1",
+        adminUserId: "boss-1",
         courierUserId: "courier-1",
         action: "override_assigned",
         createdAt: new Date("2026-04-03T10:00:00.000Z"),
@@ -1088,7 +1131,7 @@ describe("delivery-assignment service", () => {
         payload: {
           orderId: "order-1",
           courierId: "courier-1",
-          assignedByUserId: "admin-1",
+          assignedByUserId: "boss-1",
           status: "ASSIGNED",
           updatedAt: "2026-04-03T10:00:00.000Z",
         },
@@ -1111,8 +1154,8 @@ describe("delivery-assignment service", () => {
         orderId: "order-1",
         courierId: "courier-1",
         actor: {
-          userId: "admin-1",
-          role: "admin",
+          userId: "boss-1",
+          role: "boss",
         },
         override: { confirmed: true },
       }),
@@ -1127,7 +1170,7 @@ describe("delivery-assignment service", () => {
       expect.objectContaining({
         orderId: "order-1",
         courierId: "courier-1",
-        adminUserId: "admin-1",
+        adminUserId: "boss-1",
         auditAction: "override_assigned",
       }),
     );
@@ -1136,7 +1179,7 @@ describe("delivery-assignment service", () => {
       courierId: "courier-1",
       courierTelegramId: "10001",
       courierName: "Courier One",
-      assignedByUserId: "admin-1",
+      assignedByUserId: "boss-1",
       status: "ASSIGNED",
       updatedAt: new Date("2026-04-03T10:00:00.000Z"),
       revision: "3",
@@ -1299,13 +1342,13 @@ describe("delivery-assignment service", () => {
         orderId: "order-1",
         courierId: "courier-1",
         actor: {
-          userId: "boss-1",
-          role: "boss",
+          userId: "seller-1",
+          role: "seller",
         },
       }),
     ).rejects.toEqual(
       new AppError("FORBIDDEN", "User role cannot directly assign couriers", 403, {
-        role: "boss",
+        role: "seller",
       }),
     );
     expect(findOrderById).not.toHaveBeenCalled();

@@ -4,7 +4,6 @@ export type ReviewsFeedbackRevision = string;
 
 export type ReviewsFeedbackUserRole =
   | "boss"
-  | "manager"
   | "operator"
   | "admin"
   | "seller"
@@ -47,7 +46,7 @@ export type ReviewsFeedbackUserRecord = {
 export type ReviewsFeedbackAdminUserRecord = {
   id: ReviewsFeedbackUserId;
   telegramId: string;
-  role: Extract<ReviewsFeedbackUserRole, "boss" | "manager" | "admin">;
+  role: Extract<ReviewsFeedbackUserRole, "boss" | "operator" | "admin">;
   isActive: boolean;
   name: string;
 };
@@ -62,6 +61,19 @@ export type ReviewsFeedbackReviewRecord = {
   reasonCode: string;
   comment: string | null;
   source: ReviewsFeedbackSource;
+  createdAt: Date;
+};
+
+export type ReviewsFeedbackCourierAverageClientReviewRatingMetric = {
+  courierUserId: ReviewsFeedbackUserId;
+  averageRating: number | null;
+  reviewCount: number;
+};
+
+export type ReviewsFeedbackCourierClientProblemReviewMetric = {
+  courierUserId: ReviewsFeedbackUserId;
+  orderId: ReviewsFeedbackOrderId;
+  rating: number;
   createdAt: Date;
 };
 

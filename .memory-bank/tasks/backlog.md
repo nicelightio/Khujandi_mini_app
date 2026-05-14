@@ -38,10 +38,11 @@ status: active
 - `FT-016` migration is complete for repo-local scope through `TASK-FT016-19`: documentation and Memory Bank sync verified `PASS` after `TASK-FT016-18` strict verification/docs-only end-to-end operator delivery flow verification passed.
 - `FT-017` guarded e2e mock payment mode is terminal for scoped repo-local success baseline through `TASK-FT017-04`; mock failed/timeout/pending and real production provider design remain out of scope.
 - `FT-018` staging runtime and test auth harness в работе: server staging развернут на `https://staging-tgmeal.natureonzoom.win` из GitHub `main`, Playwright добавлен как repo `devDependency`, UI QA fixture/workflow готов для public staging через fixed-persona HttpOnly cookie session. Public browser smoke прошел с explicit resolver workaround, но обычная public-URL closure требует runner DNS без workaround; staging Playwright QA намеренно не закрывает Telegram HMAC/WebView и real payment provider trust. `REQ-037` остается partial до полной final verification closure.
+- `FT-019` Staff panel implementation wave is complete for repo-local scope through `TASK-FT019-10`: final verification passed backend/admin-web gates for RBAC, courier/operator resources, soft delete/archive/reactivation, hash-only one-time password behavior, rating metrics and staff cards. Post-review closure passed with no open findings in `.tasks/TASK-FT019-POSTREVIEW/TASK-FT019-POSTREVIEW-S-02-final-report-code-07.md`; P1 repairs for Staff operator auth and courier operational deactivation are verified through `TASK-FT019-POSTREVIEW-FIX-01/02`, and `REQ-038` RTM is `verified`. Local staging UI QA passed in `.tasks/TASK-FT019-UIQA/TASK-FT019-UIQA-S-01-final-report-ui-qa-01.md` with artifacts under `reports/ui-qa/playwright/staff-panel-FT019-local/` and no serious/minor blocking findings. Full repo `tsc` remains red only on non-Staff/mixed residual drift; local staging UI QA does not prove production deploy, Telegram WebView/HMAC behavior or real payment-provider trust boundaries.
 
 ### FT-018 staging runtime and test auth harness
 
-- Status: `in_progress`
+- Status: `done`
 - Implementation handoff: [.memory-bank/tasks/plans/IMPL-FT-018.md](plans/IMPL-FT-018.md)
 - Feature spec: [.memory-bank/features/FT-018-staging-runtime-and-test-auth-harness.md](../features/FT-018-staging-runtime-and-test-auth-harness.md)
 - Contract: [.memory-bank/contracts/staging-test-auth-harness-contract.md](../contracts/staging-test-auth-harness-contract.md)
@@ -99,7 +100,7 @@ status: active
 - Depends on: `TASK-FT018-03`
 - Touched files: `backend/src/dev-runtime/**/*`, `tests/slices/**/*`, optional auth/session contract docs if implementation reveals drift.
 - Tests: focused auth/runtime tests for `GET /api/v1/test/personas` and `POST /api/v1/test/session`; production/disabled `404`; missing/wrong token `403`; unknown persona `400`; arbitrary identity fields rejected/ignored; cookie values absent from JSON/log assertions.
-- Verify: `PASS`; fixed personas create the normal cookie/session primitives for their owning auth contours; seller capability comes from seeded `catalog` binding; `admin_boss` session uses `admin-access`; `operator_manager` returns controlled unsupported `400` instead of faking identity; no production backdoor or arbitrary identity injection exists.
+- Verify: `PASS`; fixed personas create the normal cookie/session primitives for their owning auth contours; seller capability comes from seeded `catalog` binding; `admin_boss` session uses `admin-access`; `operator` returns controlled unsupported `400` instead of faking identity; no production backdoor or arbitrary identity injection exists.
 - Docs: `.memory-bank/contracts/staging-test-auth-harness-contract.md`, `.memory-bank/testing/staging-ui-qa.md`, runbook only if endpoint shape changes.
 - Source Artifacts: `.memory-bank/contracts/staging-test-auth-harness-contract.md`, `.memory-bank/contracts/telegram-mini-app-auth-contract.md`, `.memory-bank/contracts/catalog-seller-access-and-session.md`, `.memory-bank/contracts/admin-auth-contract.md`.
 - Constraints: test-only backend presentation/application surface; no weakening raw Telegram `initData` validation; no JS-readable session storage.
@@ -145,6 +146,210 @@ status: active
 - Docs: final Memory Bank summaries and `.tasks/TASK-FT018-07` evidence report.
 - Source Artifacts: all FT-018 feature/contract/runbook/testing docs and implementation reports from prior tasks.
 - Constraints: verification/docs/evidence closure only unless a blocking security bug is found; any new implementation work discovered here should become a follow-up task.
+
+### FT-019 Staff panel
+
+- Status: `done`
+- Implementation handoff: [.memory-bank/tasks/plans/IMPL-FT-019.md](plans/IMPL-FT-019.md)
+- Feature spec: [.memory-bank/features/FT-019-staff-panel.md](../features/FT-019-staff-panel.md)
+- Contract: [.memory-bank/contracts/staff-panel-contract.md](../contracts/staff-panel-contract.md)
+- Auth contract: [.memory-bank/contracts/admin-auth-contract.md](../contracts/admin-auth-contract.md)
+- Data boundaries: [.memory-bank/architecture/data-boundaries-and-persistence.md](../architecture/data-boundaries-and-persistence.md)
+- Post-review PASS: [.tasks/TASK-FT019-POSTREVIEW/TASK-FT019-POSTREVIEW-S-02-final-report-code-07.md](../../.tasks/TASK-FT019-POSTREVIEW/TASK-FT019-POSTREVIEW-S-02-final-report-code-07.md)
+- UI QA PASS: [.tasks/TASK-FT019-UIQA/TASK-FT019-UIQA-S-01-final-report-ui-qa-01.md](../../.tasks/TASK-FT019-UIQA/TASK-FT019-UIQA-S-01-final-report-ui-qa-01.md); artifacts: [reports/ui-qa/playwright/staff-panel-FT019-local](../../reports/ui-qa/playwright/staff-panel-FT019-local); archive pointer: [reports/ui-qa/20260514-1001-staff-panel-FT019-local.md](../../reports/ui-qa/20260514-1001-staff-panel-FT019-local.md)
+- Residual risk: local staging UI QA does not prove production deploy, Telegram WebView/HMAC behavior or real payment-provider trust boundaries.
+
+#### TASK-FT019-01 - Staff persistence and domain contracts
+- TASK-ID: `TASK-FT019-01`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `none`
+- Touched files: `backend/prisma/schema.prisma`, `backend/prisma/migrations/**/*`, `backend/src/slices/admin-access/domain/**/*`, `backend/src/slices/delivery-assignment/domain/**/*`, focused backend tests.
+- Tests: schema/domain/repository tests for staff metadata, soft-delete/reactivation metadata and manual rating adjustment persistence.
+- Verify: explicit structured persistence exists for staff lifecycle and rating adjustments; no hard delete path, no shared CRM abstraction and no `OrderStatus.FAILED` is added.
+- Docs: `.memory-bank/tasks/backlog.md`, `.memory-bank/tasks/plans/IMPL-FT-019.md`; update feature/contract docs only if implementation reveals drift.
+- Source Artifacts: `.memory-bank/features/FT-019-staff-panel.md`, `.memory-bank/contracts/staff-panel-contract.md`, `.memory-bank/architecture/data-boundaries-and-persistence.md`.
+- Normative Inputs: staff profile split between `User` role `COURIER` and `AdminAccount` role `OPERATOR`; soft delete preserves historical references.
+- Constraints: backend persistence/domain only; do not expose runtime routes or admin-web UI.
+- Invariants: `ADMIN`/`BOSS` accounts remain bootstrap/env-managed; `FAILED` remains future lifecycle decision.
+- Implementation outcome: added explicit staff lifecycle metadata on `AdminAccount` and `User`, structured operator/courier staff lifecycle history tables, structured operator/courier manual rating adjustment tables and slice-local domain contracts. Runtime routes/services/UI, hard delete and `OrderStatus.FAILED` were not added.
+- Checks: `npx prisma validate`; `git diff --check` scoped/global.
+- Verification: `PASS`; verifier confirmed structured persistence, no hard delete path, no `OrderStatus.FAILED`, no runtime/UI/password reset/metrics additions, and schema/migration consistency.
+- Verification Targets: staff metadata, lifecycle metadata, manual rating adjustment history, no hard delete.
+
+#### TASK-FT019-02 - Operator staff account commands
+- TASK-ID: `TASK-FT019-02`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT019-01`
+- Touched files: `backend/src/slices/admin-access/**/*`, `tests/slices/admin-access/**/*`.
+- Tests: admin-access unit/integration coverage for create operator, duplicate email, weak password, role refusal, password reset and session revocation.
+- Verify: create accepts only role `OPERATOR`; plaintext password is stored only as hash, returned once on create/reset, never logged/audited; boss-only reset revokes active operator sessions.
+- Docs: backlog/plan updates if command shape changes; `admin-auth-contract.md` only for discovered drift.
+- Source Artifacts: `.memory-bank/contracts/admin-auth-contract.md`, `.memory-bank/contracts/staff-panel-contract.md`.
+- Constraints: no self-signup; no `ADMIN`/`BOSS` runtime provisioning; no JS-readable session secrets.
+- Invariants: password length and lockout/session policy remain owned by `admin-access`.
+- Implementation outcome: added `admin-access` command/application/infra baseline for operator staff accounts: admin/boss create only `OPERATOR`, duplicate login and weak password controlled failures, hash-only password persistence with one-time create/reset response state, boss-only password reset with active session revocation and structured actor metadata through existing operator staff lifecycle metadata, and boss-only nickname update with lifecycle metadata. No runtime routes, UI, courier commands, metrics/cards, schema changes, shared CRM abstraction or `OrderStatus.FAILED` were added.
+- Checks: `npm run test:admin-access -- --runInBand`; `npx eslint backend/src/slices/admin-access tests/slices/admin-access/admin-access-operator-staff.spec.ts`; `git diff --check`.
+- Verification: `PASS`; initial verifier found missing reset actor metadata, a focused repair added structured reset actor metadata with `reason=password_reset`, and re-verification passed while preserving hash-only storage, one-time password response and session revocation.
+- Verification Targets: operator-only provisioning, hash-only storage, one-time password response, session revocation.
+
+#### TASK-FT019-03 - Courier staff roster commands
+- TASK-ID: `TASK-FT019-03`
+- Status: `done`
+- Wave: `W1`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-018`
+- Depends on: `TASK-FT019-01`
+- Touched files: `backend/src/slices/delivery-assignment/**/*`, optional narrow staff-panel backend adapter files, `tests/slices/delivery-assignment/**/*`.
+- Tests: create courier by Telegram user id/nickname, duplicate/conflict handling, soft delete visibility, boss-only reactivation and rating adjustment history.
+- Verify: courier profile uses `User` role `COURIER`; web password is not created; soft delete preserves historical order/review/audit references; manual `+1/-1` adjustment does not mutate average review rating.
+- Docs: backlog/plan updates if command boundary changes.
+- Source Artifacts: `.memory-bank/contracts/staff-panel-contract.md`, `.memory-bank/features/FT-016-operator-orders-monitoring-and-courier-offer-flow.md`.
+- Constraints: do not change courier offer/claim lifecycle, availability semantics or bot runtime behavior.
+- Invariants: courier runtime interaction remains Telegram-bot based.
+- Implementation outcome: added `delivery-assignment` command/application/infra baseline for courier staff roster over `User(COURIER)`: admin/boss create by Telegram user id and nickname without web password state, duplicate/deactivated/non-courier identity conflicts return controlled errors, soft deactivate/reactivate writes explicit staff lifecycle metadata and structured lifecycle events, reactivation is boss-only, and manual `+1/-1` rating adjustments persist actor/timestamp history without mutating review-average source data. No dev-runtime routes, admin-web UI, operator commands, metrics/cards, offer/claim lifecycle changes, availability semantics changes, bot runtime changes, schema changes, shared CRM abstraction or `OrderStatus.FAILED` were added.
+- Checks: `npm run test:delivery-assignment -- --runInBand`; focused eslint for touched delivery-assignment/test files; `git diff --check`.
+- Verification: `PASS`; verifier confirmed `User(COURIER)` identity, no web password, controlled conflicts, soft deactivate/reactivate metadata, boss-only reactivation, rating adjustment history and no lifecycle/runtime/UI drift.
+- Verification Targets: courier staff create/deactivate/reactivate, actor/timestamp metadata, rating adjustment history.
+
+#### TASK-FT019-04 - Staff table metrics read models
+- TASK-ID: `TASK-FT019-04`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-018`
+- Depends on: `TASK-FT019-02`, `TASK-FT019-03`
+- Touched files: backend read-model/repository files under owning slices, `tests/slices/delivery-tracking/**/*`, `tests/slices/reviews-feedback/**/*`, `tests/slices/admin-access/**/*`.
+- Tests: read-model tests for courier delivered count, order rating, average client review rating, unsuccessful percent, operator processed order count and duplicate write-action collapse.
+- Verify: courier delivered count uses `DELIVERED` only for staff rating; global success remains `COMPLETED`; operator count includes unique orders with write actions only and excludes reads/views.
+- Docs: backlog/plan updates if metric source boundaries require clarification.
+- Source Artifacts: `.memory-bank/contracts/staff-panel-contract.md`, `.memory-bank/states/order-lifecycle.md`, `.memory-bank/contracts/operator-delivery-ops-contract.md`.
+- Normative Inputs: `reviews-feedback` owns review payloads; `delivery-tracking` owns lifecycle/history evidence.
+- Constraints: read models only; do not mutate delivery/review state.
+- Invariants: future `FAILED` is not an enum/status in this task.
+- Implementation outcome: added read-only Staff table metric readers under owning slices: `delivery-assignment` courier delivery metrics/rating formula, `reviews-feedback` client-to-courier average ratings, `delivery-tracking` unique operator write-action counts and `admin-access` operator roster/manual-adjustment rating composition. No runtime routes, UI, command behavior, schema/migration changes, state mutation, shared CRM abstraction or `OrderStatus.FAILED` were added.
+- Checks: focused Staff metrics Jest specs; `npm run test:admin-access -- --runInBand`; `npm run test:delivery-assignment -- --runInBand`; `PAYMENT_PROVIDER=mock APP_ENV=staging npm run test:delivery-tracking -- --runInBand`; `npm run test:reviews-feedback -- --runInBand`; focused eslint for touched source/tests; `git diff --check`. Plain `npm run test:delivery-tracking -- --runInBand` without the mock-payment guard failed on pre-existing checkout provider `503`, then passed with the explicit non-production mock guard.
+- Verification: `PASS`; verifier confirmed courier/operator formulas, client-to-courier review filtering, duplicate operator write collapse, no `FAILED`, and accepted the plain delivery-tracking failure as a pre-existing environment guard because the suite passes with documented mock-payment env.
+- Verification Targets: table metrics, source-of-truth joins, duplicate operator write handling.
+
+#### TASK-FT019-05 - Staff cards and history read models
+- TASK-ID: `TASK-FT019-05`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-018`
+- Depends on: `TASK-FT019-04`
+- Touched files: backend staff read-model boundary files, focused card read-model tests.
+- Tests: common metadata, deactivation/reactivation history, rating adjustment history, last 10 orders and problem block cases for couriers/operators.
+- Verify: cards expose required history and problem blocks without adding order mutation controls or changing lifecycle/review semantics.
+- Docs: backlog/plan updates if card fields reveal spec drift.
+- Source Artifacts: `.memory-bank/features/FT-019-staff-panel.md`, `.memory-bank/contracts/staff-panel-contract.md`.
+- Constraints: read-only card model; no lifecycle changes.
+- Invariants: soft-deleted staff historical references remain visible where history requires them.
+- Implementation outcome: added read-only Staff card/history read models under owning slices: `delivery-assignment` courier common metadata/lifecycle/rating history plus last/problem orders, `reviews-feedback` client rating-1 courier problem evidence, `delivery-tracking` operator processed/problem order history with personally-completed classification, and `admin-access` operator card composition. No dev-runtime routes, frontend UI, command behavior, schema/migration changes, delivery/review/auth state mutation, shared CRM abstraction or `OrderStatus.FAILED` were added.
+- Checks: focused Staff card/read-model Jest specs; all focused Staff metrics/card Jest specs; `npm run test:admin-access -- --runInBand`; `npm run test:delivery-assignment -- --runInBand`; `PAYMENT_PROVIDER=mock APP_ENV=staging npm run test:delivery-tracking -- --runInBand`; `npm run test:reviews-feedback -- --runInBand`; focused eslint for touched source/tests; focused grep for `OrderStatus.FAILED`; `git diff --check`.
+- Verification: `PASS`; verifier confirmed common metadata/history, rating adjustment history, last 10 orders, last 10 problem orders, courier/operator card metrics, no `OrderStatus.FAILED`, and no route/UI/schema/mutation/hard-delete drift.
+- Verification Targets: courier card fields, operator card fields, problem blocks, rating history.
+
+#### TASK-FT019-06 - Admin Staff panel API/runtime routes
+- TASK-ID: `TASK-FT019-06`
+- Status: `done`
+- Wave: `W2`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-015`, `REQ-018`
+- Depends on: `TASK-FT019-02`, `TASK-FT019-03`, `TASK-FT019-04`, `TASK-FT019-05`
+- Touched files: `backend/src/dev-runtime/**/*`, backend runtime/API integration tests.
+- Tests: role-gated route tests for list/card/create/deactivate/reactivate/rating-adjustment/password-reset commands, canonical error shape and no secret leakage.
+- Verify: `admin`/`boss` can access Staff panel API; `operator` receives controlled forbidden response; boss-only archive/reactivate/password reset rules are enforced.
+- Docs: backlog/plan updates if route shape changes.
+- Source Artifacts: `.memory-bank/contracts/staff-panel-contract.md`, `.memory-bank/contracts/admin-auth-contract.md`.
+- Constraints: no public/mini-app route exposure; no plaintext password in logs or audit payload.
+- Invariants: all write commands carry actor metadata.
+- Implementation outcome: added admin-web backend runtime Staff panel API routes for separate courier/operator resources, role gates, active/archive visibility, create/deactivate/reactivate/rating/password-reset/nickname commands and list/card read models. Added minimal `admin-access` operator deactivate/reactivate/rating command orchestration over existing FT-019 persistence; no schema changes, frontend UI, hard delete, `ADMIN`/`BOSS` provisioning or `OrderStatus.FAILED` lifecycle change.
+- Checks: focused Staff runtime Jest spec; `npm run test:admin-access -- --runInBand`; `npm run test:delivery-assignment -- --runInBand`; `PAYMENT_PROVIDER=mock APP_ENV=staging npm run test:delivery-tracking -- --runInBand`; `npm run test:reviews-feedback -- --runInBand`; focused ESLint for touched backend/test files; `git diff --check`.
+- Verification: `PASS`; verifier confirmed admin/boss RBAC with `operator` forbidden, boss-only archive/include-inactive and reactivation/password-reset/nickname rules, separate courier/operator resources, hash-only one-time password reset response, no hard delete, no frontend UI, no schema drift and no `OrderStatus.FAILED`. Non-blocking risk: route URL shape is under-specified; verified runtime shape is `/api/v1/admin/staff/couriers` and `/api/v1/admin/staff/operators`.
+- Verification Targets: route RBAC, command errors, one-time password response, archive filtering.
+
+#### TASK-FT019-07 - Admin-web Staff panel route and tables
+- TASK-ID: `TASK-FT019-07`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-015`
+- Depends on: `TASK-FT019-06`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`.
+- Tests: admin router/API/component tests for `/admin/staff`, protected-shell behavior, role denial, loading/empty/error states and separate Couriers/Operators tables.
+- Verify: Staff panel is reachable only in `admin-web` protected contour; `operator` cannot open it; `admin` sees active lists without archive controls; `boss` can access archive filter.
+- Docs: backlog/plan updates if route/navigation changes.
+- Source Artifacts: `.memory-bank/features/FT-019-staff-panel.md`, `.memory-bank/contracts/staff-panel-contract.md`.
+- Constraints: admin-web presentation/API client only; no backend command logic.
+- Invariants: no shared frontend CRM/dashboard abstraction.
+- Implementation outcome: added `/admin/staff` admin-web route, role-aware Staff panel navigation/dashboard entry, frontend operator denial state, typed read-only Staff panel API client over `/api/v1/admin/staff/couriers` and `/api/v1/admin/staff/operators`, boss-only archive toggle using `includeInactive=true`, and separate courier/operator read-only table views. No backend/API/schema/lifecycle changes, command workflows, staff cards, hard delete UI, password/hash rendering, generic CRM abstraction or `OrderStatus.FAILED` change were added.
+- Checks: focused Staff/router Jest specs; full `frontend/src/tests/admin` Jest suite; focused ESLint for touched frontend/test files; `npm run build:frontend`; focused forbidden-drift greps; focused Staff TypeScript repair verification; `git diff --check`.
+- Verification: `PASS`; verifier confirmed protected `/admin/staff`, `admin`/`boss` access, `operator` denial, boss-only archive toggle, separate read-only courier/operator tables and no command/backend/schema/lifecycle drift. Focused Staff TypeScript repair was also verified `PASS`: original Staff-blocking `tsc` diagnostics are gone; residual full-repo `tsc` failures are catalog/staging/non-Staff/mixed drift and do not block `TASK-FT019-08`.
+- Verification Targets: route, tables, role-aware archive visibility.
+
+#### TASK-FT019-08 - Admin-web roster command workflows
+- TASK-ID: `TASK-FT019-08`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT019-07`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`.
+- Tests: frontend workflow tests for create courier, create operator, soft delete, boss archive/reactivate, boss password reset, boss nickname edit, rating adjustment, duplicate submit and controlled errors.
+- Verify: one-time password is displayed only after create/reset response; current saved password is never shown; `admin` cannot reactivate or reset operator password.
+- Docs: backlog/plan updates if UX flow changes.
+- Source Artifacts: `.memory-bank/contracts/staff-panel-contract.md`, `.memory-bank/contracts/admin-auth-contract.md`.
+- Constraints: do not place secret-bearing values in persistent browser storage.
+- Invariants: rating adjustment affects only staff order/processed-order rating, not review averages.
+- Implementation outcome: added compact Staff panel command workflows on top of the verified read-only `/admin/staff` page/API: courier create posts only `telegram_user_id`/`nickname`; operator create posts `email`/`nickname`/one-time password input without any role chooser; active staff can be soft-deactivated; boss archive rows can be reactivated; boss can reset operator password and update operator nickname; `+1/-1` rating adjustment buttons target courier order rating and operator processed-order rating only. One-time passwords are shown only from create/reset response state and are cleared on dismissal; no staff detail cards were added.
+- Checks: focused Staff/router Jest specs; full `frontend/src/tests/admin` Jest suite; focused ESLint for touched TS/TSX files; `npm run build:frontend`; forbidden-drift greps for `passwordHash`, hard delete UI, `ADMIN`/`BOSS` role selector and `OrderStatus.FAILED`; `git diff --check`.
+- Verification: `PASS`; verifier confirmed courier create uses only Telegram user id/nickname, operator create has no role selector or `ADMIN`/`BOSS` path, deactivate remains soft-only, boss-only archive/reactivate/password reset/nickname rules are preserved, one-time password display is transient, `+1/-1` rating adjustment refreshes tables, staff cards are not implemented yet, and no `OrderStatus.FAILED` drift was introduced.
+- Verification Targets: command workflows, secret display boundary, boss-only actions.
+
+#### TASK-FT019-09 - Admin-web staff cards
+- TASK-ID: `TASK-FT019-09`
+- Status: `done`
+- Wave: `W3`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-018`
+- Depends on: `TASK-FT019-07`, `TASK-FT019-08`
+- Touched files: `frontend/src/admin/**/*`, `frontend/src/tests/admin/**/*`.
+- Tests: component/route tests for courier/operator cards, rating history, last-order lists, problem blocks and archived staff rendering for boss.
+- Verify: staff cards show required common and role-specific fields while remaining read-only for delivery lifecycle and review payloads.
+- Docs: backlog/plan updates if card fields change.
+- Source Artifacts: `.memory-bank/features/FT-019-staff-panel.md`, `.memory-bank/contracts/staff-panel-contract.md`.
+- Constraints: no delivery mutation controls on staff cards.
+- Invariants: card text must not imply `DELIVERED` is the global successful order KPI.
+- Implementation outcome: extended the admin-web Staff API client with typed courier/operator card reads over `/api/v1/admin/staff/couriers/:id` and `/api/v1/admin/staff/operators/:id`; added route-local selected-detail loading/error/empty state; added a compact read-only Staff card panel for courier/operator identity, added/deactivated/reactivated metadata, lifecycle history, manual rating history, metrics, last 10 orders and problem orders. Boss archive detail access uses `includeInactive=true` when the archived row is visible. Command workflows remain in the table/action area.
+- Checks: focused Staff/router Jest, full `frontend/src/tests/admin` Jest, focused ESLint, `npm run build:frontend`, forbidden-drift greps for `OrderStatus.FAILED`, hard delete UI and detail secret rendering, and `git diff --check` passed. Existing backend/schema dirty files are from prior FT-019/FT-018 work and were not edited by this task.
+- Verification: `PASS`; verifier confirmed `admin`/`boss` can open courier/operator read-only cards, `operator` is denied, metadata/metrics/history/last orders/problem blocks render from verified read models, boss inactive detail uses archive `includeInactive`, detail cards do not expose password/hash/one-time password, no delivery/review mutation controls, no hard delete and no `OrderStatus.FAILED`.
+- Verification Targets: courier card, operator card, problem block, history rendering.
+
+#### TASK-FT019-10 - Final verification and Memory Bank sync
+- TASK-ID: `TASK-FT019-10`
+- Status: `done`
+- Wave: `W4`
+- Feature: `FT-019`
+- REQs: `REQ-038`, `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Depends on: `TASK-FT019-06`, `TASK-FT019-08`, `TASK-FT019-09`
+- Touched files: `.tasks/TASK-FT019-10/**/*`, `.memory-bank/requirements.md`, `.memory-bank/features/FT-019-staff-panel.md`, `.memory-bank/testing/index.md`, `.memory-bank/tasks/backlog.md`, `.memory-bank/index.md`, optional runbook/testing docs.
+- Tests: final backend/frontend/admin flow gates for RBAC, create, soft delete, boss archive/reactivation, password reset/session revocation, metrics and staff cards; lint/typecheck/build; `git diff --check`.
+- Verify: `REQ-038` can move only after evidence proves Staff panel access, operator/courier creation, soft-delete visibility, boss-only reactivation/reset, rating metrics and staff cards.
+- Docs: requirements RTM, feature verification status, testing evidence pointers, backlog task outcomes and index/changelog if project convention requires it.
+- Source Artifacts: all FT-019 feature/contract/plan/protocol docs and implementation reports from previous tasks.
+- Constraints: verification/docs/evidence closure only unless a blocking bug is found.
+- Invariants: no hard delete, no `ADMIN`/`BOSS` creation, no plaintext password storage/logging, no `FAILED` status.
+- Verification Targets: full FT-019 acceptance closure and RTM evidence.
+- Implementation outcome: final verification and Memory Bank sync completed without source/test implementation edits. Added protocol/report evidence and updated backlog/index/changelog/feature status metadata.
+- Checks: `npm run test:admin-access -- --runInBand`; `npm run test:delivery-assignment -- --runInBand`; `PAYMENT_PROVIDER=mock APP_ENV=staging npm run test:delivery-tracking -- --runInBand`; `npm run test:reviews-feedback -- --runInBand`; `npx jest --config jest.config.cjs frontend/src/tests/admin --runInBand`; `npm run build:frontend`; focused Staff-only Jest; focused ESLint; forbidden drift greps; `git diff --check`. Optional full `tsc` remains red only on non-Staff/mixed residual drift; filtered Staff diagnostics are clean.
+- Verification: `PASS`; final verifier confirmed Staff panel scope, RBAC, operator/courier creation, soft delete/archive/reactivation, password hash-only/one-time reset, rating formulas/manual adjustments, cards/history/problem blocks, no hard delete, no `ADMIN`/`BOSS` creation path, no `OrderStatus.FAILED` and no generic CRM/shared abstraction.
 
 ### FT-017 guarded e2e mock payment mode
 
@@ -472,13 +677,13 @@ status: active
 - Verify: operator/admin status command supports allowed next transitions, especially `DELIVERED -> COMPLETED`; admin operator panel uses a confirmation popup; history/read model includes actor role/name; courier `DELIVERED -> COMPLETED` remains rejected; invalid transition returns `409` without side effects.
 - Implementation outcome: added a separate operator/admin delivery-tracking status command and protected admin runtime endpoint for allowed next transitions only (`ASSIGNED -> PICKED_UP -> IN_PROGRESS -> DELIVERED -> COMPLETED`), with actor role/name captured in status-change event payload and runtime operator read-model history. Admin-web now enables confirmed status control actions for allowed next transitions, including `DELIVERED -> COMPLETED`, while targeted/broadcast offer and bot-chat scopes remain unchanged.
 - Checks: `npm run test:delivery-tracking -- --runInBand`; focused admin assignment Jest for API/route/view-model; `npm run build:frontend`; `git diff --check`. Changed markdown local link validation was not applicable because no markdown links were added.
-- Verify outcome: `FAIL`; the narrow transition command and admin confirmation path exist, but the mounted runtime API does not support the real operator role because admin-access exposes `manager` while delivery-tracking accepts only literal `operator|admin`. Minimal fix: normalize `manager` to operator capability at the route/service boundary and add focused runtime coverage for manager `DELIVERED -> COMPLETED`.
-- Repair outcome: `PASS` via `TASK-FT016-15-FIX`; original FAIL evidence is retained, and downstream work should treat the admin-access `manager` role mapping gap as repaired by the fix task.
+- Verify outcome: `FAIL`; historical mounted runtime role mapping did not yet align with the canonical `operator` capability.
+- Repair outcome: `PASS` via `TASK-FT016-15-FIX`; original FAIL evidence is retained. Current role policy supersedes the mapping gap by removing the historical `manager` alias and keeping `operator` as the single operations role.
 - Docs: `tasks/backlog.md`, `changelog.md`; update feature/contract/state docs only if implementation reveals spec drift.
 - Source: `.memory-bank/tasks/plans/IMPL-FT-016-operator-delivery-migration.md`
 - Constraints: operator/admin closure only; no broad arbitrary status overrides, cancellation reason logic, cancellation/refund changes, assignment offer/claim changes, timeout evaluator changes, auto-offer changes, legacy direct assignment cleanup, customer mutation commands, or shared state-machine extraction.
 
-#### TASK-FT016-15-FIX - Normalize admin manager role for operator status command
+#### TASK-FT016-15-FIX - Historical operator role mapping repair
 - TASK-ID: `TASK-FT016-15-FIX`
 - Status: `done`
 - Wave: `W6-repair`
@@ -486,14 +691,14 @@ status: active
 - REQs: `REQ-035`, `REQ-008`, `REQ-009`, `REQ-018`, `REQ-015`
 - Depends on: `TASK-FT016-14`, `TASK-FT016-06`
 - Touched files: `backend/src/dev-runtime/routes/admin-order-operations.routes.ts`, optional `backend/src/slices/delivery-tracking/application/delivery-tracking.service.ts`, `tests/slices/delivery-tracking/**/*`, focused runtime tests
-- Tests: focused mounted admin runtime coverage for authenticated `manager` executing `DELIVERED -> COMPLETED`; existing delivery-tracking status tests; `git diff --check`; changed markdown local link validation if docs links change.
-- Verify: admin-access role `manager` is normalized to delivery-tracking `operator` capability only at the operator/admin status command boundary; `admin` remains admin-capable; non-operator roles remain rejected; `manager` can execute allowed `DELIVERED -> COMPLETED` and invalid transitions still return `409` without side effects.
-- Implementation outcome: route-boundary normalization maps admin-access `manager` to delivery-tracking `operator` only for the mounted operator/admin status command actor. `admin` is passed through as `admin`; other roles are not broadened and still rely on the existing delivery-tracking service rejection. Runtime coverage proves authenticated `MANAGER` can close `DELIVERED -> COMPLETED`, invalid manager `PICKED_UP -> COMPLETED` returns `409`, and `BOSS` receives `403` without changing order status.
+- Tests: focused mounted admin runtime coverage for authenticated `operator` executing `DELIVERED -> COMPLETED`; existing delivery-tracking status tests; `git diff --check`; changed markdown local link validation if docs links change.
+- Verify: admin-access operator capability reaches delivery-tracking operator status control; `admin` remains admin-capable; non-operator roles remain rejected; invalid transitions still return `409` without side effects.
+- Implementation outcome: historical route-boundary mapping for the mounted operator/admin status command was repaired. Current role policy supersedes the old alias behavior by removing `manager`, keeping `operator` as the single operations role, and treating `boss` as admin-equivalent for admin-web capabilities.
 - Checks: `npm run test:delivery-tracking -- --runInBand`; `git diff --check`. Changed markdown local link validation was not applicable because no markdown links were added.
-- Verify outcome: `PASS`; the route/service boundary now normalizes admin-access `manager` into delivery-tracking `operator` for the operator/admin status command only, `admin` remains admin-capable, `boss` remains rejected with no status side effects, invalid manager transitions still return `409`, and `TASK-FT016-15` is repaired by this fix while preserving its original FAIL evidence.
+- Verify outcome: `PASS`; the historical role-mapping issue was repaired. This outcome is superseded by the current role policy: `operator` is canonical, `manager` is removed, and `boss` is admin-equivalent for admin-web capabilities.
 - Docs: `tasks/backlog.md`, `changelog.md`, `.protocols/AUTONOMOUS-RUN/status.md`; update feature/contract/state docs only if implementation reveals spec drift.
 - Source: `.protocols/TASK-FT016-15/verification.md`
-- Constraints: role/capability normalization repair only for the operator/admin status command boundary; no lifecycle transition changes, no broad arbitrary authorization changes, no UI changes unless focused tests require role expectation updates, no cancellation/refund changes, no assignment offer/claim/timeout/auto-offer changes, and no legacy cleanup.
+- Constraints: role/capability repair only for the operator/admin status command boundary; no lifecycle transition changes, no broad arbitrary authorization changes, no UI changes unless focused tests require role expectation updates, no cancellation/refund changes, no assignment offer/claim/timeout/auto-offer changes, and no legacy cleanup.
 
 #### TASK-FT016-16 - Update polling consumers for PICKED_UP/DELAYED/operator completion
 - TASK-ID: `TASK-FT016-16`
@@ -522,7 +727,7 @@ status: active
 - Touched files: `backend/src/slices/delivery-assignment/**/*`, `backend/src/dev-runtime/routes/admin-order-operations.routes.ts`, `frontend/src/admin/**/*`, focused delivery-assignment/admin tests, docs references if direct-assignment wording changes
 - Tests: regression tests proving no default direct `CREATED -> ASSIGNED` from the admin page; override tests if retained; `git diff --check`; changed markdown local link validation if docs links change.
 - Verify: normal manual operator/admin path creates an offer rather than direct assignment; direct assignment, if retained, is renamed/presented as an explicit override only with operator/admin confirmation and audit action; active v1 assigned orders remain readable.
-- Implementation outcome: normal admin-web/manual assignment usage remains routed to `POST /assignment-offers`; the old mounted `POST /assignment` endpoint now returns `LEGACY_ASSIGNMENT_DISABLED` without assigning; a retained explicit `POST /assignment-override` path requires `confirmDirectAssignmentOverride: true`, normalizes `manager` to operator capability at the route boundary, and writes distinct `override_assigned` delivery-assignment audit action while preserving existing v1 order readability.
+- Implementation outcome: normal admin-web/manual assignment usage remains routed to `POST /assignment-offers`; the old mounted `POST /assignment` endpoint now returns `LEGACY_ASSIGNMENT_DISABLED` without assigning; a retained explicit `POST /assignment-override` path requires `confirmDirectAssignmentOverride: true` and writes distinct `override_assigned` delivery-assignment audit action while preserving existing v1 order readability.
 - Checks: `npm run test:delivery-assignment -- --runInBand` passed; focused admin assignment API/view-model/route Jest passed; `git diff --check` passed.
 - Verify outcome: `FAIL`; additional repo-local `npm run test:delivery-tracking -- --runInBand` fails because `tests/slices/delivery-tracking/delivery-tracking.runtime.spec.ts` still expects the disabled normal legacy `/assignment` endpoint to return `200`. Minimal repair: update those runtime setups to use v2 offer+claim or seeded/read existing assigned orders; use `/assignment-override` only for explicit override tests with confirmation.
 - Repair outcome: `PASS` via `TASK-FT016-17-FIX`; historical `FAIL` evidence is retained, and downstream work should treat the stale delivery-tracking runtime setup as repaired by the fix task.

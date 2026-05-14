@@ -1,6 +1,10 @@
 import { createDeliveryAssignmentModule } from "../slices/delivery-assignment/presentation/delivery-assignment.module";
+import { PrismaCourierStaffMetricsReader } from "../slices/delivery-assignment/infrastructure/prisma-courier-staff-metrics.reader";
+import type { DeliveryAssignmentOrderStatus } from "../slices/delivery-assignment/domain/delivery-assignment.types";
 import { createDeliveryTrackingModule } from "../slices/delivery-tracking/presentation/delivery-tracking.module";
+import { PrismaOperatorStaffMetricsReader } from "../slices/delivery-tracking/infrastructure/prisma-operator-staff-metrics.reader";
 import { createOrderCancellationModule } from "../slices/order-cancellation/presentation/order-cancellation.module";
+import { PrismaReviewsFeedbackStaffMetricsReader } from "../slices/reviews-feedback/infrastructure/prisma-staff-metrics.reader";
 import type { CheckoutPaymentOrderRecord, CheckoutPaymentUserRecord } from "../slices/checkout-payment/domain/checkout-payment.types";
 import type { DeliveryAssignmentPrismaProvider } from "../slices/delivery-assignment/infrastructure/prisma-delivery-assignment.repository";
 import type { DeliveryTrackingPrismaProvider } from "../slices/delivery-tracking/infrastructure/prisma-delivery-tracking.repository";
@@ -22,17 +26,45 @@ type OperationalRuntimeState = {
   assignmentOffers: RuntimeAssignmentOfferRecord[];
   statusHistory: RuntimeStatusHistoryRecord[];
   events: RuntimeEventRecord[];
+  courierStaffLifecycleEvents: RuntimeCourierStaffLifecycleEventRecord[];
+  courierStaffRatingAdjustments: RuntimeCourierStaffRatingAdjustmentRecord[];
   nextAssignmentOfferId: bigint;
   nextStatusHistoryId: bigint;
   nextAssignmentAuditId: bigint;
   nextCancellationAuditId: bigint;
   nextEventId: bigint;
+  nextCourierStaffLifecycleEventId: bigint;
+  nextCourierStaffRatingAdjustmentId: bigint;
+};
+
+type RuntimeStatusHistorySeed = Omit<RuntimeStatusHistoryRecord, "id" | "changedAt"> & {
+  changedAtOffsetMs: number;
+};
+
+type RuntimeOrderStatusHistorySeed = {
+  orderId: string;
+  createdAtOffsetMs: number;
+  updatedAtOffsetMs: number;
+  assignedAtOffsetMs?: number | null;
+  history: RuntimeStatusHistorySeed[];
 };
 
 type RuntimeCourierAvailabilityRecord = {
   acceptingOrdersUntil: Date | null;
   autoOfferEnabled: boolean;
   ratingScore: number;
+};
+
+type RuntimeStaffUserRecord = CheckoutPaymentUserRecord & {
+  staffNickname?: string | null;
+  staffCreatedAt?: Date | null;
+  staffCreatedByAdminAccountId?: string | null;
+  staffDeactivatedAt?: Date | null;
+  staffDeactivatedByAdminAccountId?: string | null;
+  staffReactivatedAt?: Date | null;
+  staffReactivatedByAdminAccountId?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type RuntimeEventRecord = {
@@ -63,6 +95,26 @@ type RuntimeAssignmentOfferRecord = {
   status: "PENDING" | "CLAIMED" | "EXPIRED" | "CANCELLED";
   createdAt: Date;
   updatedAt: Date;
+};
+
+type RuntimeCourierStaffLifecycleEventRecord = {
+  id: bigint;
+  courierUserId: string;
+  actorAdminAccountId: string;
+  action: "CREATED" | "DEACTIVATED" | "REACTIVATED" | "NICKNAME_UPDATED";
+  previousNickname: string | null;
+  newNickname: string | null;
+  reason: string | null;
+  createdAt: Date;
+};
+
+type RuntimeCourierStaffRatingAdjustmentRecord = {
+  id: bigint;
+  courierUserId: string;
+  actorAdminAccountId: string;
+  delta: -1 | 1;
+  reason: string | null;
+  createdAt: Date;
 };
 
 type OperatorDeliverySeverity =
@@ -149,6 +201,54 @@ const DEFAULT_OPERATIONAL_ORDERS: CheckoutPaymentOrderRecord[] = [
 ];
 
 const cloneDate = (value: Date | null): Date | null => (value === null ? null : new Date(value));
+
+const toRuntimeStaffUser = (user: CheckoutPaymentUserRecord): RuntimeStaffUserRecord =>
+  user as RuntimeStaffUserRecord;
+
+const userCreatedAt = (user: RuntimeStaffUserRecord): Date =>
+  user.createdAt ?? new Date("2026-05-14T00:00:00.000Z");
+
+const userUpdatedAt = (user: RuntimeStaffUserRecord): Date =>
+  user.updatedAt ?? userCreatedAt(user);
+
+const toRuntimeCourierUserPrismaRecord = (
+  user: CheckoutPaymentUserRecord,
+  availability: RuntimeCourierAvailabilityRecord,
+) => {
+  const runtimeUser = toRuntimeStaffUser(user);
+  const lifecycle = {
+    staffCreatedAt: cloneDate(runtimeUser.staffCreatedAt ?? null),
+    staffCreatedByAdminAccountId: runtimeUser.staffCreatedByAdminAccountId ?? null,
+    staffDeactivatedAt: cloneDate(runtimeUser.staffDeactivatedAt ?? null),
+    staffDeactivatedByAdminAccountId: runtimeUser.staffDeactivatedByAdminAccountId ?? null,
+    staffReactivatedAt: cloneDate(runtimeUser.staffReactivatedAt ?? null),
+    staffReactivatedByAdminAccountId: runtimeUser.staffReactivatedByAdminAccountId ?? null,
+  };
+
+  return {
+    id: user.id,
+    telegramId: user.telegramId,
+    role: user.role.toUpperCase(),
+    isActive: user.isActive,
+    acceptingOrdersUntil: cloneDate(availability.acceptingOrdersUntil),
+    autoOfferEnabled: availability.autoOfferEnabled,
+    ratingScore: availability.ratingScore,
+    name: user.name,
+    staffNickname: runtimeUser.staffNickname ?? null,
+    staffCreatedAt: lifecycle.staffCreatedAt,
+    staffCreatedByAdminAccountId: lifecycle.staffCreatedByAdminAccountId,
+    staffDeactivatedAt: lifecycle.staffDeactivatedAt,
+    staffDeactivatedByAdminAccountId: lifecycle.staffDeactivatedByAdminAccountId,
+    staffReactivatedAt: lifecycle.staffReactivatedAt,
+    staffReactivatedByAdminAccountId: lifecycle.staffReactivatedByAdminAccountId,
+    nickname: runtimeUser.staffNickname ?? null,
+    fallbackDisplayName: user.name,
+    workActive: user.isActive,
+    lifecycle,
+    createdAt: cloneDate(userCreatedAt(runtimeUser)) as Date,
+    updatedAt: cloneDate(userUpdatedAt(runtimeUser)) as Date,
+  };
+};
 
 const ensureOperationalUser = (state: CheckoutPaymentRuntimeState, user: CheckoutPaymentUserRecord) => {
   if (state.users.some((candidate) => candidate.id === user.id)) {
@@ -273,11 +373,15 @@ const createOperationalRuntimeState = (
     assignmentOffers: [],
     statusHistory: [],
     events: [],
+    courierStaffLifecycleEvents: [],
+    courierStaffRatingAdjustments: [],
     nextAssignmentOfferId: 1n,
     nextStatusHistoryId: 1n,
     nextAssignmentAuditId: 1n,
     nextCancellationAuditId: 1n,
     nextEventId: 1n,
+    nextCourierStaffLifecycleEventId: 1n,
+    nextCourierStaffRatingAdjustmentId: 1n,
   };
 
   for (const order of state.orders) {
@@ -359,14 +463,63 @@ const resetOperationalRuntimeState = (
   runtimeState.assignmentOffers.splice(0, runtimeState.assignmentOffers.length);
   runtimeState.statusHistory.splice(0, runtimeState.statusHistory.length);
   runtimeState.events.splice(0, runtimeState.events.length);
+  runtimeState.courierStaffLifecycleEvents.splice(0, runtimeState.courierStaffLifecycleEvents.length);
+  runtimeState.courierStaffRatingAdjustments.splice(0, runtimeState.courierStaffRatingAdjustments.length);
   runtimeState.nextAssignmentOfferId = 1n;
   runtimeState.nextStatusHistoryId = 1n;
   runtimeState.nextAssignmentAuditId = 1n;
   runtimeState.nextCancellationAuditId = 1n;
   runtimeState.nextEventId = 1n;
+  runtimeState.nextCourierStaffLifecycleEventId = 1n;
+  runtimeState.nextCourierStaffRatingAdjustmentId = 1n;
 
   for (const order of state.orders) {
     ensureOrderMetadata(runtimeState, state, order.id, nowFactory);
+  }
+};
+
+const seedRuntimeOrderStatusHistory = (
+  runtimeState: OperationalRuntimeState,
+  state: CheckoutPaymentRuntimeState,
+  nowFactory: () => Date,
+  seeds: RuntimeOrderStatusHistorySeed[],
+): void => {
+  const now = nowFactory();
+  const seededOrderIds = new Set(seeds.map((seed) => seed.orderId));
+
+  for (let index = runtimeState.statusHistory.length - 1; index >= 0; index -= 1) {
+    if (seededOrderIds.has(runtimeState.statusHistory[index]?.orderId ?? "")) {
+      runtimeState.statusHistory.splice(index, 1);
+    }
+  }
+
+  for (const seed of seeds) {
+    const metadata = ensureOrderMetadata(runtimeState, state, seed.orderId, nowFactory);
+
+    if (metadata === null) {
+      throw new Error(`Cannot seed status history for unknown order ${seed.orderId}`);
+    }
+
+    metadata.createdAt = new Date(now.getTime() + seed.createdAtOffsetMs);
+    metadata.updatedAt = new Date(now.getTime() + seed.updatedAtOffsetMs);
+    metadata.assignedAt =
+      seed.assignedAtOffsetMs === undefined
+        ? metadata.assignedAt
+        : seed.assignedAtOffsetMs === null
+          ? null
+          : new Date(now.getTime() + seed.assignedAtOffsetMs);
+
+    for (const history of seed.history) {
+      createRuntimeStatusHistory(runtimeState, {
+        orderId: history.orderId,
+        oldStatus: history.oldStatus,
+        newStatus: history.newStatus,
+        changedByUserId: history.changedByUserId,
+        changedByRole: history.changedByRole,
+        changedByName: history.changedByName,
+        changedAt: new Date(now.getTime() + history.changedAtOffsetMs),
+      });
+    }
   }
 };
 
@@ -546,6 +699,25 @@ export const createOperationalRuntimeModules = (
   const deliveryAssignmentClient: DeliveryAssignmentPrismaProvider["client"] = {
     order: {
       findUnique: async ({ where }) => toAssignmentOrderRecord(state, runtimeState, where.id, nowFactory),
+      findMany: async ({ where }) =>
+        state.orders
+          .filter(
+            (order) =>
+              where.courierId.in.includes(order.courierId ?? "") &&
+              order.isDeleted === where.isDeleted,
+          )
+          .map((order) => {
+            const metadata = ensureOrderMetadata(runtimeState, state, order.id, nowFactory);
+
+            return {
+              id: order.id,
+              courierId: order.courierId,
+              status: order.status,
+              isDeleted: order.isDeleted,
+              createdAt: cloneDate(metadata?.createdAt ?? nowFactory()) as Date,
+              updatedAt: cloneDate(metadata?.updatedAt ?? nowFactory()) as Date,
+            };
+          }),
       findFirst: async ({ where }) => {
         const order = state.orders.find(
           (candidate) =>
@@ -608,7 +780,11 @@ export const createOperationalRuntimeModules = (
     },
     user: {
       findUnique: async ({ where }) => {
-        const user = state.users.find((candidate) => candidate.id === where.id);
+        const user = state.users.find(
+          (candidate) =>
+            (where.id !== undefined && candidate.id === where.id) ||
+            (where.telegramId !== undefined && candidate.telegramId === where.telegramId),
+        );
 
         if (user === undefined) {
           return null;
@@ -616,28 +792,25 @@ export const createOperationalRuntimeModules = (
 
         const availability = ensureCourierAvailability(runtimeState, user.id);
 
-        return {
-          id: user.id,
-          telegramId: user.telegramId,
-          role: user.role,
-          isActive: user.isActive,
-          acceptingOrdersUntil: cloneDate(availability.acceptingOrdersUntil),
-          autoOfferEnabled: availability.autoOfferEnabled,
-          ratingScore: availability.ratingScore,
-          name: user.name,
-        };
+        return toRuntimeCourierUserPrismaRecord(user, availability);
       },
-      findMany: async ({ where }) =>
-        state.users
+      findMany: async ({ where }) => {
+        const roleFilter = where.role;
+
+        return state.users
           .filter((user) => {
-            if (typeof where.role === "object") {
+            if (roleFilter === "COURIER" && where.isActive === undefined) {
+              return user.role === "courier";
+            }
+
+            if (typeof roleFilter === "object") {
               return (
-                where.role.in.map((role) => role.toLowerCase()).includes(user.role) &&
+                roleFilter.in.map((role) => role.toLowerCase()).includes(user.role) &&
                 user.isActive === where.isActive
               );
             }
 
-            if (user.role !== where.role.toLowerCase()) {
+            if (user.role !== roleFilter.toLowerCase()) {
               return false;
             }
 
@@ -660,17 +833,34 @@ export const createOperationalRuntimeModules = (
           .map((user) => {
             const availability = ensureCourierAvailability(runtimeState, user.id);
 
-            return {
-              id: user.id,
-              telegramId: user.telegramId,
-              role: user.role,
-              isActive: user.isActive,
-              acceptingOrdersUntil: cloneDate(availability.acceptingOrdersUntil),
-              autoOfferEnabled: availability.autoOfferEnabled,
-              ratingScore: availability.ratingScore,
-              name: user.name,
-            };
-          }),
+            return toRuntimeCourierUserPrismaRecord(user, availability);
+          });
+      },
+      create: async ({ data }) => {
+        const createdAt = new Date(data.staffCreatedAt);
+        const user: RuntimeStaffUserRecord = {
+          id: `courier-staff-${state.nextUserId++}`,
+          telegramId: data.telegramId,
+          role: data.role.toLowerCase() as "courier",
+          name: data.name,
+          username: null,
+          language: "ru",
+          isActive: data.isActive,
+          staffNickname: data.staffNickname,
+          staffCreatedAt: new Date(data.staffCreatedAt),
+          staffCreatedByAdminAccountId: data.staffCreatedByAdminAccountId,
+          staffDeactivatedAt: data.staffDeactivatedAt,
+          staffDeactivatedByAdminAccountId: data.staffDeactivatedByAdminAccountId,
+          staffReactivatedAt: data.staffReactivatedAt,
+          staffReactivatedByAdminAccountId: data.staffReactivatedByAdminAccountId,
+          createdAt,
+          updatedAt: createdAt,
+        };
+        state.users.push(user);
+        const availability = ensureCourierAvailability(runtimeState, user.id);
+
+        return toRuntimeCourierUserPrismaRecord(user, availability);
+      },
       update: async ({ where, data }) => {
         const user = state.users.find((candidate) => candidate.id === where.id);
 
@@ -682,6 +872,7 @@ export const createOperationalRuntimeModules = (
           user.isActive = data.isActive;
         }
 
+        const runtimeUser = toRuntimeStaffUser(user);
         const availability = ensureCourierAvailability(runtimeState, user.id);
 
         if ("acceptingOrdersUntil" in data) {
@@ -696,16 +887,21 @@ export const createOperationalRuntimeModules = (
           availability.ratingScore -= data.ratingScore.decrement;
         }
 
-        return {
-          id: user.id,
-          telegramId: user.telegramId,
-          role: user.role,
-          isActive: user.isActive,
-          acceptingOrdersUntil: cloneDate(availability.acceptingOrdersUntil),
-          autoOfferEnabled: availability.autoOfferEnabled,
-          ratingScore: availability.ratingScore,
-          name: user.name,
-        };
+        if ("staffDeactivatedAt" in data) {
+          runtimeUser.staffDeactivatedAt = cloneDate(data.staffDeactivatedAt ?? null);
+        }
+        if ("staffDeactivatedByAdminAccountId" in data) {
+          runtimeUser.staffDeactivatedByAdminAccountId = data.staffDeactivatedByAdminAccountId ?? null;
+        }
+        if ("staffReactivatedAt" in data) {
+          runtimeUser.staffReactivatedAt = cloneDate(data.staffReactivatedAt ?? null);
+        }
+        if ("staffReactivatedByAdminAccountId" in data) {
+          runtimeUser.staffReactivatedByAdminAccountId = data.staffReactivatedByAdminAccountId ?? null;
+        }
+        runtimeUser.updatedAt = nowFactory();
+
+        return toRuntimeCourierUserPrismaRecord(user, availability);
       },
     },
     assignmentOffer: {
@@ -776,6 +972,32 @@ export const createOperationalRuntimeModules = (
     },
     orderStatusHistory: {
       create: async ({ data }) => createRuntimeStatusHistory(runtimeState, data),
+      findMany: async ({ where }) =>
+        runtimeState.statusHistory
+          .filter((history) => {
+            if (where.orderId !== undefined && !where.orderId.in.includes(history.orderId)) {
+              return false;
+            }
+
+            if (
+              where.changedByUserId !== undefined &&
+              !where.changedByUserId.in.includes(history.changedByUserId)
+            ) {
+              return false;
+            }
+
+            if (where.newStatus !== undefined && history.newStatus !== where.newStatus) {
+              return false;
+            }
+
+            return true;
+          })
+          .map((history) => ({
+            orderId: history.orderId,
+            changedByUserId: history.changedByUserId,
+            newStatus: history.newStatus as DeliveryAssignmentOrderStatus,
+            changedAt: cloneDate(history.changedAt) as Date,
+          })),
     },
     deliveryAssignmentAudit: {
       create: async ({ data }) => ({
@@ -787,7 +1009,7 @@ export const createOperationalRuntimeModules = (
       create: async ({ data }) => createRuntimeEvent(runtimeState, nowFactory, data),
       findMany: async ({ where }) =>
         runtimeState.events.filter((event) => {
-          if (event.entity !== where.entity) {
+          if (where.entity !== undefined && event.entity !== where.entity) {
             return false;
           }
 
@@ -801,6 +1023,47 @@ export const createOperationalRuntimeModules = (
 
           return true;
         }) as never,
+    },
+    courierStaffLifecycleEvent: {
+      create: async ({ data }) => {
+        const record: RuntimeCourierStaffLifecycleEventRecord = {
+          id: runtimeState.nextCourierStaffLifecycleEventId++,
+          courierUserId: data.courierUserId,
+          actorAdminAccountId: data.actorAdminAccountId,
+          action: data.action,
+          previousNickname: data.previousNickname,
+          newNickname: data.newNickname,
+          reason: data.reason,
+          createdAt: new Date(data.createdAt),
+        };
+        runtimeState.courierStaffLifecycleEvents.push(record);
+
+        return { ...record };
+      },
+      findMany: async ({ where }) =>
+        runtimeState.courierStaffLifecycleEvents
+          .filter((event) => where.courierUserId.in.includes(event.courierUserId))
+          .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+          .map((event) => ({ ...event })),
+    },
+    courierStaffRatingAdjustment: {
+      create: async ({ data }) => {
+        const record: RuntimeCourierStaffRatingAdjustmentRecord = {
+          id: runtimeState.nextCourierStaffRatingAdjustmentId++,
+          courierUserId: data.courierUserId,
+          actorAdminAccountId: data.actorAdminAccountId,
+          delta: data.delta,
+          reason: data.reason,
+          createdAt: new Date(data.createdAt),
+        };
+        runtimeState.courierStaffRatingAdjustments.push(record);
+
+        return { ...record };
+      },
+      findMany: async ({ where }) =>
+        runtimeState.courierStaffRatingAdjustments
+          .filter((adjustment) => where.courierUserId.in.includes(adjustment.courierUserId))
+          .map((adjustment) => ({ ...adjustment })),
     },
     $transaction: async (callback) => callback(deliveryAssignmentClient),
   };
@@ -936,6 +1199,61 @@ export const createOperationalRuntimeModules = (
     },
     $transaction: async (callback) => callback(deliveryTrackingClient),
   };
+  const courierStaffMetricsReader = new PrismaCourierStaffMetricsReader({
+    client: deliveryAssignmentClient,
+  } as never);
+  const operatorStaffMetricsReader = new PrismaOperatorStaffMetricsReader({
+    client: {
+      order: {
+        findMany: async ({ where }) =>
+          state.orders
+            .filter((order) => where.id.in.includes(order.id) && order.isDeleted === where.isDeleted)
+            .map((order) => {
+              const metadata = ensureOrderMetadata(runtimeState, state, order.id, nowFactory);
+
+              return {
+                id: order.id,
+                status: order.status,
+                createdAt: cloneDate(metadata?.createdAt ?? nowFactory()) as Date,
+                updatedAt: cloneDate(metadata?.updatedAt ?? nowFactory()) as Date,
+                isDeleted: order.isDeleted,
+              };
+            }),
+      },
+      orderStatusHistory: {
+        findMany: async ({ where }) =>
+          runtimeState.statusHistory
+            .filter((history) => where.changedByUserId.in.includes(history.changedByUserId))
+            .map((history) => ({
+              orderId: history.orderId,
+              changedByUserId: history.changedByUserId,
+              newStatus: history.newStatus,
+              changedAt: cloneDate(history.changedAt) as Date,
+            })),
+      },
+      event: {
+        findMany: async ({ where }) =>
+          runtimeState.events
+            .filter((event) => where.type.in.includes(event.type))
+            .map((event) => ({
+              type: event.type,
+              entityId: event.entityId,
+              payload: event.payload,
+              createdAt: cloneDate(event.createdAt) as Date,
+            })),
+      },
+      orderCancellationAudit: {
+        findMany: async () => [],
+      },
+    },
+  });
+  const reviewsFeedbackStaffMetricsReader = new PrismaReviewsFeedbackStaffMetricsReader({
+    client: {
+      review: {
+        findMany: async () => [],
+      },
+    },
+  });
 
   return {
     deliveryAssignmentModule: createDeliveryAssignmentModule({
@@ -950,7 +1268,15 @@ export const createOperationalRuntimeModules = (
     resetRuntimeState: () => {
       resetOperationalRuntimeState(runtimeState, state, nowFactory);
     },
+    seedOrderStatusHistory: (seeds: RuntimeOrderStatusHistorySeed[]) => {
+      seedRuntimeOrderStatusHistory(runtimeState, state, nowFactory, seeds);
+    },
     getCurrentEventCursor: () => (runtimeState.nextEventId - 1n).toString(),
     listOperatorDeliveryOrders,
+    staffMetrics: {
+      courierStaffMetricsReader,
+      operatorStaffMetricsReader,
+      reviewsFeedbackStaffMetricsReader,
+    },
   };
 };

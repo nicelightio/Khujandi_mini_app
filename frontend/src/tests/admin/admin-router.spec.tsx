@@ -1,6 +1,10 @@
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { AdminAuthApiError } from "../../admin/api/admin-auth-api";
-import { AdminRouter, resolveAdminRoute } from "../../admin/app/router";
+import {
+  AdminRouter,
+  resolveAdminOrderCancellationOrderId,
+  resolveAdminRoute,
+} from "../../admin/app/router";
 import { adminRoutes as adminRoutePaths } from "../../admin/lib/routes";
 import {
   createAuthenticatedAdminSessionState,
@@ -12,6 +16,7 @@ import { AdminCatalogProvisioningRoute } from "../../admin/routes/admin-catalog-
 import { AdminDashboardPage } from "../../admin/components/admin-dashboard-page";
 import { AdminLoginPage } from "../../admin/components/admin-login-page";
 import { AdminOrderCancellationRoute } from "../../admin/routes/admin-order-cancellation-route";
+import { AdminStaffRoute } from "../../admin/routes/admin-staff-route";
 
 const reactActEnvironment = globalThis as typeof globalThis & {
   IS_REACT_ACT_ENVIRONMENT?: boolean;
@@ -68,7 +73,7 @@ describe("admin router", () => {
   const createAuthApi = (overrides: Partial<AdminAuthApi> = {}): AdminAuthApi => ({
     login: jest.fn().mockResolvedValue({
       adminAccountId: "admin-account-7",
-      role: "manager",
+      role: "operator",
       accessTokenExpiresAt: "2026-04-05T10:15:00.000Z",
       refreshTokenExpiresAt: "2026-04-08T10:00:00.000Z",
       idleExpiresAt: "2026-04-05T10:30:00.000Z",
@@ -104,16 +109,33 @@ describe("admin router", () => {
     expect(resolveAdminRoute(adminRoutePaths.cancellation)?.element.type).toBe(AdminOrderCancellationRoute);
   });
 
+  it("resolves the Staff panel route for the admin path", () => {
+    expect(resolveAdminRoute(adminRoutePaths.staff)?.element.type).toBe(AdminStaffRoute);
+  });
+
+  it("resolves the cancellation route and order id from query input", () => {
+    expect(
+      resolveAdminRoute(`${adminRoutePaths.cancellation}?orderId=test-order-cancellable-3001`)?.element.type,
+    ).toBe(AdminOrderCancellationRoute);
+    expect(resolveAdminOrderCancellationOrderId("?orderId=test-order-cancellable-3001")).toBe(
+      "test-order-cancellable-3001",
+    );
+    expect(resolveAdminOrderCancellationOrderId("?order_id=test-order-cancellable-3001")).toBe(
+      "test-order-cancellable-3001",
+    );
+  });
+
   it("does not resolve an implicit admin fallback when pathname is unknown", () => {
     expect(resolveAdminRoute("/admin/missing")).toBeNull();
   });
 
   it("renders the login page for the explicit login route", async () => {
+    const authApi = createAuthApi();
     let renderer!: ReactTestRenderer;
 
     await act(async () => {
-      renderer = create(<AdminRouter pathname={adminRoutePaths.login} />);
-      await flushPromises();
+      renderer = create(<AdminRouter pathname={adminRoutePaths.login} authApi={authApi} />);
+      await flushRouterTransitions();
     });
 
     const text = collectText(renderer.toJSON()).join(" ");
@@ -125,6 +147,32 @@ describe("admin router", () => {
     expect(text).toContain(`Запрошенный путь: ${adminRoutePaths.home}`);
     expect(renderer.root.findByProps({ name: "login" }).props.autoComplete).toBe("username");
     expect(renderer.root.findByType("button").props.disabled).toBe(true);
+    expect(authApi.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores an authenticated cookie session from the explicit login route", async () => {
+    const authApi = createAuthApi({
+      refresh: jest.fn().mockResolvedValue({
+        adminAccountId: "admin-account-1",
+        role: "boss",
+        accessTokenExpiresAt: "2026-04-19T09:30:40.775Z",
+        refreshTokenExpiresAt: "2026-04-22T09:15:40.000Z",
+        idleExpiresAt: "2026-04-19T09:37:21.778Z",
+      }),
+    });
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(<AdminRouter pathname={adminRoutePaths.login} authApi={authApi} />);
+      await flushRouterTransitions();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+
+    expect(authApi.refresh).toHaveBeenCalledTimes(1);
+    expect(text).toContain("Вход: boss (admin-account-1).");
+    expect(text).toContain("Главная админки");
+    expect(text).not.toContain("Вход в админку");
   });
 
   it("renders explicit unknown admin path feedback for unsupported admin-web routes", async () => {
@@ -183,8 +231,77 @@ describe("admin router", () => {
         adminRoutePaths.catalogProvisioning,
         "/tracking",
         "/seller/shops/status",
+        adminRoutePaths.staff,
       ]),
     );
+  });
+
+  it("hides Staff panel navigation from operator sessions and blocks direct operator access", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <AdminRouter
+          pathname={adminRoutePaths.staff}
+          session={createAuthenticatedAdminSessionState({
+            role: "operator",
+            adminAccountId: "operator-account-1",
+          })}
+        />,
+      );
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    const hrefs = renderer.root.findAllByType("a").map((link) => link.props.href);
+
+    expect(text).toContain("Staff panel недоступен");
+    expect(text).toContain("Operator-сессия не может открыть этот раздел.");
+    expect(text).not.toContain("Курьеры и операторы управляются отдельными командами Staff panel.");
+    expect(hrefs).not.toContain(adminRoutePaths.staff);
+  });
+
+  it("hides the Staff panel dashboard entry from operator sessions", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <AdminRouter
+          pathname={adminRoutePaths.home}
+          session={createAuthenticatedAdminSessionState({
+            role: "operator",
+            adminAccountId: "operator-account-1",
+          })}
+        />,
+      );
+      await flushPromises();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+    const hrefs = renderer.root.findAllByType("a").map((link) => link.props.href);
+
+    expect(text).toContain("Главная админки");
+    expect(text).not.toContain("Таблицы курьеров и операторов");
+    expect(hrefs).not.toContain(adminRoutePaths.staff);
+  });
+
+  it("passes the cancellation order id query into the protected cancellation page", async () => {
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <AdminRouter
+          pathname={`${adminRoutePaths.cancellation}?orderId=test-order-cancellable-3001`}
+          session={createAuthenticatedAdminSessionState()}
+        />,
+      );
+      await flushRouterTransitions();
+    });
+
+    const text = collectText(renderer.toJSON()).join(" ");
+
+    expect(text).toContain("Отмена заказа и учет возврата");
+    expect(text).toContain("Заказ #3001");
   });
 
   it("renders login fallback when a protected route is requested without a session", async () => {
@@ -330,7 +447,7 @@ describe("admin router", () => {
       const inputs = renderer.root.findAllByType("input");
       inputs[0].props.onChange({
         target: {
-          value: "ops.manager",
+          value: "ops.operator",
         },
       });
       inputs[1].props.onChange({
@@ -350,17 +467,17 @@ describe("admin router", () => {
 
     const text = collectText(renderer.toJSON()).join(" ");
     expect(authApi.login).toHaveBeenCalledWith({
-      login: "ops.manager",
+      login: "ops.operator",
       password: "correct-horse-battery",
     });
-    expect(text).toContain("Вход: manager (admin-account-7).");
+    expect(text).toContain("Вход: operator (admin-account-7).");
     expect(text).toContain("Операторские заказы доставки");
   });
 
   it("keeps manual sign-in available while protected-route session restore is in progress", async () => {
     let resolveRefresh: ((value: {
       adminAccountId: string;
-      role: "boss" | "manager" | "admin";
+      role: "boss" | "operator" | "admin";
       accessTokenExpiresAt: string;
       refreshTokenExpiresAt: string;
       idleExpiresAt: string;
@@ -406,7 +523,7 @@ describe("admin router", () => {
       login: "boss@example.com",
       password: "correct-horse-battery",
     });
-    expect(textAfterSubmit).toContain("Вход: manager (admin-account-7).");
+    expect(textAfterSubmit).toContain("Вход: operator (admin-account-7).");
     expect(textAfterSubmit).toContain("Создание магазинов каталога");
 
     await act(async () => {
@@ -422,7 +539,7 @@ describe("admin router", () => {
 
     const textAfterLateRefresh = collectText(renderer.toJSON()).join(" ");
 
-    expect(textAfterLateRefresh).toContain("Вход: manager (admin-account-7).");
+    expect(textAfterLateRefresh).toContain("Вход: operator (admin-account-7).");
     expect(textAfterLateRefresh).toContain("Создание магазинов каталога");
     expect(textAfterLateRefresh).not.toContain("Вход: admin (ignored-refresh-account).");
   });

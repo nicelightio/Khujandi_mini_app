@@ -11,7 +11,7 @@ export type AdminAccessModule = {
 
 export const createAdminAccessModule = (prisma: AdminAccessPrismaProvider): AdminAccessModule => {
   const repository = new PrismaAdminAccessRepository(prisma);
-  const service = new AdminAccessService(repository);
+  const service = new AdminAccessService(repository, repository);
   const controller = new AdminAccessController(service);
 
   return {

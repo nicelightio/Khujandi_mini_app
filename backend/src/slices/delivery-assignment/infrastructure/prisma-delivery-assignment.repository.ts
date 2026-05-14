@@ -2,8 +2,16 @@ import type {
   CreateDeliveryAssignmentAuditInput,
   CreateDeliveryAssignmentEventInput,
   CreateDeliveryAssignmentStatusHistoryInput,
+  CreateDeliveryAssignmentCourierStaffInput,
+  CreateDeliveryAssignmentCourierStaffRatingAdjustmentInput,
+  DeactivateDeliveryAssignmentCourierStaffInput,
   DeliveryAssignmentArtifactsRecord,
   DeliveryAssignmentAuditRecord,
+  DeliveryAssignmentCourierStaffIdentityRecord,
+  DeliveryAssignmentCourierStaffLifecycleEventRecord,
+  DeliveryAssignmentCourierStaffRatingAdjustmentRecord,
+  DeliveryAssignmentCourierStaffRecord,
+  DeliveryAssignmentCourierStaffRepository,
   DeliveryAssignmentCourierRecord,
   DeliveryAssignmentOfferKind,
   DeliveryAssignmentOfferRecord,
@@ -19,6 +27,8 @@ import type {
   PersistBroadcastDeliveryAssignmentOffersInput,
   PersistManualDeliveryAssignmentOfferInput,
   PersistDeliveryAssignmentInput,
+  ReactivateDeliveryAssignmentCourierStaffInput,
+  RecordDeliveryAssignmentCourierStaffLifecycleEventInput,
 } from "../domain/delivery-assignment.types";
 
 type DeliveryAssignmentOrderFindUniqueArgs = {
@@ -34,9 +44,27 @@ type DeliveryAssignmentOrderFindUniqueArgs = {
   };
 };
 
+type DeliveryAssignmentOrderFindManyArgs = {
+  where: {
+    courierId: {
+      in: string[];
+    };
+    isDeleted: false;
+  };
+  select: {
+    id: true;
+    courierId: true;
+    status: true;
+    isDeleted: true;
+    createdAt?: true;
+    updatedAt?: true;
+  };
+};
+
 type DeliveryAssignmentCourierFindUniqueArgs = {
   where: {
-    id: string;
+    id?: string;
+    telegramId?: string;
   };
   select: {
     id: true;
@@ -47,7 +75,35 @@ type DeliveryAssignmentCourierFindUniqueArgs = {
     autoOfferEnabled: true;
     ratingScore: true;
     name: true;
+    staffDeactivatedAt: true;
   };
+};
+
+type DeliveryAssignmentCourierStaffFindUniqueArgs = {
+  where: {
+    id?: string;
+    telegramId?: string;
+  };
+  select: Record<string, true>;
+};
+
+type DeliveryAssignmentCourierPrismaRecord = Omit<
+  DeliveryAssignmentCourierRecord,
+  "role"
+> & {
+  role: string;
+};
+
+type DeliveryAssignmentCourierStaffPrismaRecord = DeliveryAssignmentCourierPrismaRecord & {
+  staffNickname: string | null;
+  staffCreatedAt: Date | null;
+  staffCreatedByAdminAccountId: string | null;
+  staffDeactivatedAt: Date | null;
+  staffDeactivatedByAdminAccountId: string | null;
+  staffReactivatedAt: Date | null;
+  staffReactivatedByAdminAccountId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 type DeliveryAssignmentCourierUpdateArgs = {
@@ -61,8 +117,32 @@ type DeliveryAssignmentCourierUpdateArgs = {
     ratingScore?: {
       decrement: number;
     };
+    staffDeactivatedAt?: Date | null;
+    staffDeactivatedByAdminAccountId?: string | null;
+    staffReactivatedAt?: Date | null;
+    staffReactivatedByAdminAccountId?: string | null;
   };
-  select: DeliveryAssignmentCourierFindUniqueArgs["select"];
+  select: DeliveryAssignmentCourierFindUniqueArgs["select"] | Record<string, true>;
+};
+
+type DeliveryAssignmentCourierCreateArgs = {
+  data: {
+    telegramId: string;
+    role: "COURIER";
+    name: string;
+    staffNickname: string;
+    isActive: false;
+    acceptingOrdersUntil: null;
+    autoOfferEnabled: false;
+    ratingScore: 0;
+    staffCreatedAt: Date;
+    staffCreatedByAdminAccountId: string;
+    staffDeactivatedAt: null;
+    staffDeactivatedByAdminAccountId: null;
+    staffReactivatedAt: null;
+    staffReactivatedByAdminAccountId: null;
+  };
+  select: Record<string, true>;
 };
 
 type DeliveryAssignmentCourierFindManyArgs = {
@@ -84,7 +164,7 @@ type DeliveryAssignmentCourierFindManyArgs = {
       }
     | {
         role: {
-          in: Array<"BOSS" | "MANAGER" | "OPERATOR" | "ADMIN">;
+          in: Array<"BOSS" | "OPERATOR" | "ADMIN">;
         };
         isActive: true;
       };
@@ -166,6 +246,19 @@ type DeliveryAssignmentStatusHistoryCreateArgs = {
   data: CreateDeliveryAssignmentStatusHistoryInput;
 };
 
+type DeliveryAssignmentStatusHistoryFindManyArgs = {
+  where: {
+    orderId?: {
+      in: string[];
+    };
+    changedByUserId?: {
+      in: string[];
+    };
+    newStatus?: DeliveryAssignmentOrderStatus;
+  };
+  select: Record<string, true>;
+};
+
 type DeliveryAssignmentOrderUpdateArgs = {
   where: {
     id: string;
@@ -226,6 +319,49 @@ type DeliveryAssignmentEventFindManyArgs = {
   };
 };
 
+type DeliveryAssignmentCourierStaffLifecycleEventCreateArgs = {
+  data: {
+    courierUserId: string;
+    actorAdminAccountId: string;
+    action: "CREATED" | "DEACTIVATED" | "REACTIVATED" | "NICKNAME_UPDATED";
+    previousNickname: string | null;
+    newNickname: string | null;
+    reason: string | null;
+    createdAt: Date;
+  };
+};
+
+type DeliveryAssignmentCourierStaffLifecycleEventFindManyArgs = {
+  where: {
+    courierUserId: {
+      in: string[];
+    };
+  };
+  select?: Record<string, true>;
+  orderBy?: {
+    createdAt: "desc";
+  };
+};
+
+type DeliveryAssignmentCourierStaffRatingAdjustmentCreateArgs = {
+  data: {
+    courierUserId: string;
+    actorAdminAccountId: string;
+    delta: -1 | 1;
+    reason: string | null;
+    createdAt: Date;
+  };
+};
+
+type DeliveryAssignmentCourierStaffRatingAdjustmentFindManyArgs = {
+  where: {
+    courierUserId: {
+      in: string[];
+    };
+  };
+  select?: Record<string, true>;
+};
+
 type DeliveryAssignmentStatusHistoryRecord = CreateDeliveryAssignmentStatusHistoryInput & {
   id: bigint;
 };
@@ -238,14 +374,21 @@ type DeliveryAssignmentEventRecord = CreateDeliveryAssignmentEventInput & {
 export type DeliveryAssignmentPrismaClientLike = {
   order: {
     findUnique(args: DeliveryAssignmentOrderFindUniqueArgs): Promise<DeliveryAssignmentOrderRecord | null>;
+    findMany?(args: DeliveryAssignmentOrderFindManyArgs): Promise<Array<DeliveryAssignmentOrderRecord & {
+      createdAt?: Date;
+    }>>;
     update(args: DeliveryAssignmentOrderUpdateArgs): Promise<DeliveryAssignmentOrderRecord>;
     updateMany?(args: DeliveryAssignmentOrderUpdateManyArgs): Promise<{ count: number }>;
     findFirst?(args: DeliveryAssignmentBusyOrderFindFirstArgs): Promise<{ id: string } | null>;
   };
   user: {
-    findUnique(args: DeliveryAssignmentCourierFindUniqueArgs): Promise<DeliveryAssignmentCourierRecord | null>;
-    findMany?(args: DeliveryAssignmentCourierFindManyArgs): Promise<DeliveryAssignmentCourierRecord[]>;
-    update?(args: DeliveryAssignmentCourierUpdateArgs): Promise<DeliveryAssignmentCourierRecord>;
+    findUnique(args: DeliveryAssignmentCourierFindUniqueArgs): Promise<DeliveryAssignmentCourierPrismaRecord | null>;
+    findUnique(args: DeliveryAssignmentCourierStaffFindUniqueArgs): Promise<DeliveryAssignmentCourierStaffPrismaRecord | null>;
+    findMany?(args: DeliveryAssignmentCourierFindManyArgs): Promise<DeliveryAssignmentCourierPrismaRecord[]>;
+    create?(args: DeliveryAssignmentCourierCreateArgs): Promise<DeliveryAssignmentCourierStaffPrismaRecord>;
+    update?(
+      args: DeliveryAssignmentCourierUpdateArgs,
+    ): Promise<DeliveryAssignmentCourierPrismaRecord | DeliveryAssignmentCourierStaffPrismaRecord>;
   };
   assignmentOffer?: {
     findUnique?(args: DeliveryAssignmentOfferFindUniqueArgs): Promise<{
@@ -279,6 +422,10 @@ export type DeliveryAssignmentPrismaClientLike = {
   };
   orderStatusHistory: {
     create(args: DeliveryAssignmentStatusHistoryCreateArgs): Promise<DeliveryAssignmentStatusHistoryRecord>;
+    findMany?(args: DeliveryAssignmentStatusHistoryFindManyArgs): Promise<Array<Pick<
+      DeliveryAssignmentStatusHistoryRecord,
+      "orderId" | "changedByUserId" | "newStatus" | "changedAt"
+    >>>;
   };
   deliveryAssignmentAudit: {
     create(args: DeliveryAssignmentAuditCreateArgs): Promise<DeliveryAssignmentAuditRecord>;
@@ -286,6 +433,22 @@ export type DeliveryAssignmentPrismaClientLike = {
   event: {
     create(args: DeliveryAssignmentEventCreateArgs): Promise<DeliveryAssignmentEventRecord>;
     findMany?(args: DeliveryAssignmentEventFindManyArgs): Promise<DeliveryAssignmentEventRecord[]>;
+  };
+  courierStaffLifecycleEvent?: {
+    create(
+      args: DeliveryAssignmentCourierStaffLifecycleEventCreateArgs,
+    ): Promise<Omit<DeliveryAssignmentCourierStaffLifecycleEventRecord, "action"> & { action: string }>;
+    findMany?(
+      args: DeliveryAssignmentCourierStaffLifecycleEventFindManyArgs,
+    ): Promise<Array<Omit<DeliveryAssignmentCourierStaffLifecycleEventRecord, "action"> & { action: string }>>;
+  };
+  courierStaffRatingAdjustment?: {
+    create(
+      args: DeliveryAssignmentCourierStaffRatingAdjustmentCreateArgs,
+    ): Promise<DeliveryAssignmentCourierStaffRatingAdjustmentRecord>;
+    findMany?(
+      args: DeliveryAssignmentCourierStaffRatingAdjustmentFindManyArgs,
+    ): Promise<DeliveryAssignmentCourierStaffRatingAdjustmentRecord[]>;
   };
 };
 
@@ -308,6 +471,14 @@ const mapOfferKind = (kind: string): DeliveryAssignmentOfferKind =>
 const mapOfferStatus = (status: string): DeliveryAssignmentOfferStatus =>
   status.toLowerCase() as DeliveryAssignmentOfferStatus;
 
+const mapStaffLifecycleAction = (action: string) =>
+  action.toLowerCase() as DeliveryAssignmentCourierStaffLifecycleEventRecord["action"];
+
+const toStaffLifecycleAction = (
+  action: DeliveryAssignmentCourierStaffLifecycleEventRecord["action"],
+): "CREATED" | "DEACTIVATED" | "REACTIVATED" | "NICKNAME_UPDATED" =>
+  action.toUpperCase() as "CREATED" | "DEACTIVATED" | "REACTIVATED" | "NICKNAME_UPDATED";
+
 const selectCourierFields = {
   id: true,
   telegramId: true,
@@ -317,6 +488,20 @@ const selectCourierFields = {
   autoOfferEnabled: true,
   ratingScore: true,
   name: true,
+  staffDeactivatedAt: true,
+} as const;
+
+const selectCourierStaffFields = {
+  ...selectCourierFields,
+  staffNickname: true,
+  staffCreatedAt: true,
+  staffCreatedByAdminAccountId: true,
+  staffDeactivatedAt: true,
+  staffDeactivatedByAdminAccountId: true,
+  staffReactivatedAt: true,
+  staffReactivatedByAdminAccountId: true,
+  createdAt: true,
+  updatedAt: true,
 } as const;
 
 const BUSY_COURIER_ORDER_STATUSES = [
@@ -326,7 +511,8 @@ const BUSY_COURIER_ORDER_STATUSES = [
   "DELIVERED",
 ] as const;
 
-export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRepository {
+export class PrismaDeliveryAssignmentRepository
+  implements DeliveryAssignmentRepository, DeliveryAssignmentCourierStaffRepository {
   constructor(private readonly prisma: DeliveryAssignmentPrismaProvider) {}
 
   async findOrderById(orderId: string): Promise<DeliveryAssignmentOrderRecord | null> {
@@ -359,7 +545,7 @@ export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRep
         id: courierId,
       },
       select: selectCourierFields,
-    });
+    }) as DeliveryAssignmentCourierPrismaRecord | null;
 
     if (courier === null) {
       return null;
@@ -369,6 +555,149 @@ export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRep
       ...courier,
       role: mapUserRole(courier.role),
     };
+  }
+
+  async findCourierStaffById(
+    courierUserId: string,
+  ): Promise<DeliveryAssignmentCourierStaffIdentityRecord | null> {
+    const courier = (await this.prisma.client.user.findUnique({
+      where: {
+        id: courierUserId,
+      },
+      select: selectCourierStaffFields,
+    })) as DeliveryAssignmentCourierStaffPrismaRecord | null;
+
+    return courier === null ? null : this.mapCourierStaffIdentity(courier);
+  }
+
+  async findCourierStaffByTelegramUserId(
+    telegramId: string,
+  ): Promise<DeliveryAssignmentCourierStaffIdentityRecord | null> {
+    const courier = (await this.prisma.client.user.findUnique({
+      where: {
+        telegramId,
+      },
+      select: selectCourierStaffFields,
+    })) as DeliveryAssignmentCourierStaffPrismaRecord | null;
+
+    return courier === null ? null : this.mapCourierStaffIdentity(courier);
+  }
+
+  async createCourierStaff(
+    input: CreateDeliveryAssignmentCourierStaffInput,
+  ): Promise<DeliveryAssignmentCourierStaffRecord> {
+    if (this.prisma.client.user.create === undefined) {
+      throw new Error("Prisma user.create is required for courier staff creation");
+    }
+
+    const courier = (await this.prisma.client.user.create({
+      data: {
+        telegramId: input.telegramId,
+        role: "COURIER",
+        name: input.nickname,
+        staffNickname: input.nickname,
+        isActive: false,
+        acceptingOrdersUntil: null,
+        autoOfferEnabled: false,
+        ratingScore: 0,
+        staffCreatedAt: input.createdAt,
+        staffCreatedByAdminAccountId: input.actorAdminAccountId,
+        staffDeactivatedAt: null,
+        staffDeactivatedByAdminAccountId: null,
+        staffReactivatedAt: null,
+        staffReactivatedByAdminAccountId: null,
+      },
+      select: selectCourierStaffFields,
+    })) as DeliveryAssignmentCourierStaffPrismaRecord;
+
+    return this.toCourierStaffRecord(courier);
+  }
+
+  async deactivateCourierStaff(
+    input: DeactivateDeliveryAssignmentCourierStaffInput,
+  ): Promise<DeliveryAssignmentCourierStaffRecord> {
+    if (this.prisma.client.user.update === undefined) {
+      throw new Error("Prisma user.update is required for courier staff deactivation");
+    }
+
+    const courier = (await this.prisma.client.user.update({
+      where: {
+        id: input.courierUserId,
+      },
+      data: {
+        staffDeactivatedAt: input.deactivatedAt,
+        staffDeactivatedByAdminAccountId: input.actorAdminAccountId,
+      },
+      select: selectCourierStaffFields,
+    })) as DeliveryAssignmentCourierStaffPrismaRecord;
+
+    return this.toCourierStaffRecord(courier);
+  }
+
+  async reactivateCourierStaff(
+    input: ReactivateDeliveryAssignmentCourierStaffInput,
+  ): Promise<DeliveryAssignmentCourierStaffRecord> {
+    if (this.prisma.client.user.update === undefined) {
+      throw new Error("Prisma user.update is required for courier staff reactivation");
+    }
+
+    const courier = (await this.prisma.client.user.update({
+      where: {
+        id: input.courierUserId,
+      },
+      data: {
+        staffDeactivatedAt: null,
+        staffDeactivatedByAdminAccountId: null,
+        staffReactivatedAt: input.reactivatedAt,
+        staffReactivatedByAdminAccountId: input.actorAdminAccountId,
+      },
+      select: selectCourierStaffFields,
+    })) as DeliveryAssignmentCourierStaffPrismaRecord;
+
+    return this.toCourierStaffRecord(courier);
+  }
+
+  async recordCourierStaffLifecycleEvent(
+    input: RecordDeliveryAssignmentCourierStaffLifecycleEventInput,
+  ): Promise<DeliveryAssignmentCourierStaffLifecycleEventRecord> {
+    if (this.prisma.client.courierStaffLifecycleEvent?.create === undefined) {
+      throw new Error("Prisma courierStaffLifecycleEvent.create is required for courier staff lifecycle events");
+    }
+
+    const event = await this.prisma.client.courierStaffLifecycleEvent.create({
+      data: {
+        courierUserId: input.courierUserId,
+        actorAdminAccountId: input.actorAdminAccountId,
+        action: toStaffLifecycleAction(input.action),
+        previousNickname: input.previousNickname ?? null,
+        newNickname: input.newNickname ?? null,
+        reason: input.reason ?? null,
+        createdAt: input.createdAt,
+      },
+    });
+
+    return {
+      ...event,
+      action: mapStaffLifecycleAction(event.action),
+    };
+  }
+
+  async recordCourierStaffRatingAdjustment(
+    input: CreateDeliveryAssignmentCourierStaffRatingAdjustmentInput,
+  ): Promise<DeliveryAssignmentCourierStaffRatingAdjustmentRecord> {
+    if (this.prisma.client.courierStaffRatingAdjustment?.create === undefined) {
+      throw new Error("Prisma courierStaffRatingAdjustment.create is required for courier staff rating adjustments");
+    }
+
+    return this.prisma.client.courierStaffRatingAdjustment.create({
+      data: {
+        courierUserId: input.courierUserId,
+        actorAdminAccountId: input.actorAdminAccountId,
+        delta: input.delta,
+        reason: input.reason ?? null,
+        createdAt: input.createdAt,
+      },
+    });
   }
 
   async findAutoOfferCandidateCouriers(now: Date): Promise<DeliveryAssignmentCourierRecord[]> {
@@ -417,7 +746,7 @@ export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRep
           acceptingOrdersUntil: null,
         },
         select: selectCourierFields,
-      }),
+      }) as DeliveryAssignmentCourierPrismaRecord,
     );
   }
 
@@ -439,7 +768,7 @@ export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRep
           acceptingOrdersUntil,
         },
         select: selectCourierFields,
-      }),
+      }) as DeliveryAssignmentCourierPrismaRecord,
     );
   }
 
@@ -460,7 +789,7 @@ export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRep
           autoOfferEnabled: enabled,
         },
         select: selectCourierFields,
-      }),
+      }) as DeliveryAssignmentCourierPrismaRecord,
     );
   }
 
@@ -1264,11 +1593,52 @@ export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRep
   }
 
   private mapCourier(
-    courier: DeliveryAssignmentCourierRecord,
+    courier: DeliveryAssignmentCourierPrismaRecord,
   ): DeliveryAssignmentCourierRecord {
     return {
       ...courier,
       role: mapUserRole(courier.role),
+    };
+  }
+
+  private mapCourierStaffIdentity(
+    courier: DeliveryAssignmentCourierStaffPrismaRecord,
+  ): DeliveryAssignmentCourierStaffIdentityRecord {
+    return {
+      id: courier.id,
+      telegramId: courier.telegramId,
+      role: mapUserRole(courier.role),
+      nickname: courier.staffNickname,
+      fallbackDisplayName: courier.name,
+      workActive: courier.isActive,
+      acceptingOrdersUntil: courier.acceptingOrdersUntil,
+      autoOfferEnabled: courier.autoOfferEnabled,
+      ratingScore: courier.ratingScore,
+      lifecycle: {
+        staffCreatedAt: courier.staffCreatedAt,
+        staffCreatedByAdminAccountId: courier.staffCreatedByAdminAccountId,
+        staffDeactivatedAt: courier.staffDeactivatedAt,
+        staffDeactivatedByAdminAccountId: courier.staffDeactivatedByAdminAccountId,
+        staffReactivatedAt: courier.staffReactivatedAt,
+        staffReactivatedByAdminAccountId: courier.staffReactivatedByAdminAccountId,
+      },
+      createdAt: courier.createdAt,
+      updatedAt: courier.updatedAt,
+    };
+  }
+
+  private toCourierStaffRecord(
+    courier: DeliveryAssignmentCourierStaffPrismaRecord,
+  ): DeliveryAssignmentCourierStaffRecord {
+    const mapped = this.mapCourierStaffIdentity(courier);
+
+    if (mapped.role !== "courier") {
+      throw new Error("Persisted user is not a courier staff record.");
+    }
+
+    return {
+      ...mapped,
+      role: "courier",
     };
   }
 
@@ -1282,7 +1652,7 @@ export class PrismaDeliveryAssignmentRepository implements DeliveryAssignmentRep
     const users = await client.user.findMany({
       where: {
         role: {
-          in: ["BOSS", "MANAGER", "OPERATOR", "ADMIN"],
+          in: ["BOSS", "OPERATOR", "ADMIN"],
         },
         isActive: true,
       },

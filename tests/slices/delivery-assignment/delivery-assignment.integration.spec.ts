@@ -144,6 +144,7 @@ describe("delivery-assignment module integration", () => {
         autoOfferEnabled: true,
         ratingScore: true,
         name: true,
+        staffDeactivatedAt: true,
       },
     });
     expect(orderUpdateMany).toHaveBeenCalledWith({
@@ -1160,13 +1161,13 @@ describe("delivery-assignment module integration", () => {
         orderId: "order-1",
         courierId: "courier-1",
         actor: {
-          userId: "boss-1",
-          role: "boss",
+          userId: "seller-1",
+          role: "seller",
         },
       }),
     ).rejects.toEqual(
       new AppError("FORBIDDEN", "User role cannot directly assign couriers", 403, {
-        role: "boss",
+        role: "seller",
       }),
     );
 

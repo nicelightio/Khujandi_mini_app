@@ -14,6 +14,7 @@ status: active
 - `FT-005` order tracking and events polling
 - `FT-006` operational cancellation and manual refund tracking
 - `FT-016` operator orders monitoring, courier availability and auto-offer
+- `FT-019` Staff panel delivery-staff metrics for couriers and operators
 
 ## Success metrics
 
@@ -22,6 +23,7 @@ status: active
 - Все валидные переходы статусов отражаются в истории и событиях.
 - Polling SLA p95 <= 10 секунд подтверждается на MVP-нагрузке.
 - Отмена и ручной refund прозрачно фиксируются в заказе и аудите.
+- Staff panel показывает delivery-staff metrics без изменения order lifecycle ownership.
 
 ## Acceptance criteria
 

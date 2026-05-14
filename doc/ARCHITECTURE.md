@@ -78,6 +78,7 @@ _Источник требований: `doc/PRD.md`_
 
 - Отдельный login/password auth-контур.
 - Основные slices: `admin-access`, `delivery-assignment`, `delivery-tracking`, `order-cancellation`; operator panel живет в этом contour и потребляет эти slices без отдельного тяжелого CRM слоя.
+- `Staff panel` живет в этом же contour как admin/boss-only surface для операторов и курьеров; он потребляет `admin-access`, `delivery-assignment`, `delivery-tracking` и `reviews-feedback`, но не вводит отдельный shared CRM слой и не меняет ownership delivery lifecycle.
 - Политики безопасности MVP:
   - пароль >= 12 символов;
   - 5 неудачных попыток за 15 минут -> блокировка 30 минут;

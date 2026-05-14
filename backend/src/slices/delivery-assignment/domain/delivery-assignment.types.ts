@@ -1,10 +1,10 @@
 export type DeliveryAssignmentOrderId = string;
 export type DeliveryAssignmentUserId = string;
+export type DeliveryAssignmentAdminAccountId = string;
 export type DeliveryAssignmentRevision = string;
 
 export type DeliveryAssignmentUserRole =
   | "boss"
-  | "manager"
   | "operator"
   | "admin"
   | "seller"
@@ -30,6 +30,22 @@ export type DeliveryAssignmentOfferStatus =
   | "expired"
   | "cancelled";
 
+export type DeliveryAssignmentStaffLifecycleAction =
+  | "created"
+  | "deactivated"
+  | "reactivated"
+  | "nickname_updated";
+export type DeliveryAssignmentStaffRatingAdjustmentDelta = -1 | 1;
+export type DeliveryAssignmentStaffPanelActorRole = Extract<
+  DeliveryAssignmentUserRole,
+  "boss" | "operator" | "admin"
+>;
+
+export type DeliveryAssignmentStaffPanelActor = {
+  adminAccountId: DeliveryAssignmentAdminAccountId;
+  role: DeliveryAssignmentStaffPanelActorRole;
+};
+
 export type DeliveryAssignmentOrderRecord = {
   id: DeliveryAssignmentOrderId;
   courierId: DeliveryAssignmentUserId | null;
@@ -52,6 +68,225 @@ export type DeliveryAssignmentCourierRecord = {
   autoOfferEnabled: boolean;
   ratingScore: number;
   name: string;
+  staffDeactivatedAt?: Date | null;
+};
+
+export type DeliveryAssignmentCourierStaffLifecycleMetadata = {
+  staffCreatedAt: Date | null;
+  staffCreatedByAdminAccountId: DeliveryAssignmentAdminAccountId | null;
+  staffDeactivatedAt: Date | null;
+  staffDeactivatedByAdminAccountId: DeliveryAssignmentAdminAccountId | null;
+  staffReactivatedAt: Date | null;
+  staffReactivatedByAdminAccountId: DeliveryAssignmentAdminAccountId | null;
+};
+
+export type DeliveryAssignmentCourierStaffRecord = {
+  id: DeliveryAssignmentUserId;
+  telegramId: string;
+  role: Extract<DeliveryAssignmentUserRole, "courier">;
+  nickname: string | null;
+  fallbackDisplayName: string;
+  workActive: boolean;
+  acceptingOrdersUntil: Date | null;
+  autoOfferEnabled: boolean;
+  ratingScore: number;
+  lifecycle: DeliveryAssignmentCourierStaffLifecycleMetadata;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type DeliveryAssignmentCourierStaffIdentityRecord = Omit<
+  DeliveryAssignmentCourierStaffRecord,
+  "role"
+> & {
+  role: DeliveryAssignmentUserRole;
+};
+
+export type DeliveryAssignmentCourierStaffLifecycleEventRecord = {
+  id: bigint;
+  courierUserId: DeliveryAssignmentUserId;
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  action: DeliveryAssignmentStaffLifecycleAction;
+  previousNickname: string | null;
+  newNickname: string | null;
+  reason: string | null;
+  createdAt: Date;
+};
+
+export type DeliveryAssignmentCourierStaffRatingAdjustmentRecord = {
+  id: bigint;
+  courierUserId: DeliveryAssignmentUserId;
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  delta: DeliveryAssignmentStaffRatingAdjustmentDelta;
+  reason: string | null;
+  createdAt: Date;
+};
+
+export type DeliveryAssignmentCourierAverageClientReviewRatingInput = {
+  courierUserId: DeliveryAssignmentUserId;
+  averageRating: number | null;
+  reviewCount: number;
+};
+
+export type DeliveryAssignmentCourierStaffTableMetricRow = {
+  courierUserId: DeliveryAssignmentUserId;
+  nickname: string | null;
+  telegramUserId: string;
+  activeStatus: "active" | "soft_deleted";
+  deliveredOrdersCount: number;
+  manualRatingAdjustment: number;
+  automaticPenalties: number;
+  courierOrderRating: number;
+  courierAverageReviewRating: number | null;
+  courierClientReviewCount: number;
+  unsuccessfulOrdersCount: number;
+  unsuccessfulPercent: number;
+};
+
+export type DeliveryAssignmentCourierProblemReviewRatingInput = {
+  courierUserId: DeliveryAssignmentUserId;
+  orderId: DeliveryAssignmentOrderId;
+  rating: number;
+  createdAt: Date;
+};
+
+export type DeliveryAssignmentCourierStaffCardLifecycleHistoryItem = {
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  action: DeliveryAssignmentStaffLifecycleAction;
+  previousNickname: string | null;
+  newNickname: string | null;
+  reason: string | null;
+  createdAt: Date;
+};
+
+export type DeliveryAssignmentCourierStaffCardRatingAdjustmentHistoryItem = {
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  delta: DeliveryAssignmentStaffRatingAdjustmentDelta;
+  reason: string | null;
+  createdAt: Date;
+};
+
+export type DeliveryAssignmentCourierStaffCardOrderProblemReason =
+  | "unfinished"
+  | "future_failed"
+  | "client_rating_1";
+
+export type DeliveryAssignmentCourierStaffCardOrder = {
+  orderId: DeliveryAssignmentOrderId;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  clientReviewRating: number | null;
+  problemReasons: DeliveryAssignmentCourierStaffCardOrderProblemReason[];
+};
+
+export type DeliveryAssignmentCourierStaffCardReadModel = {
+  courierUserId: DeliveryAssignmentUserId;
+  nickname: string | null;
+  telegramUserId: string;
+  activeStatus: "active" | "soft_deleted";
+  addedByAdminAccountId: DeliveryAssignmentAdminAccountId | null;
+  addedAt: Date | null;
+  deactivatedByAdminAccountId: DeliveryAssignmentAdminAccountId | null;
+  deactivatedAt: Date | null;
+  reactivatedByAdminAccountId: DeliveryAssignmentAdminAccountId | null;
+  reactivatedAt: Date | null;
+  lifecycleHistory: DeliveryAssignmentCourierStaffCardLifecycleHistoryItem[];
+  deactivationHistory: DeliveryAssignmentCourierStaffCardLifecycleHistoryItem[];
+  reactivationHistory: DeliveryAssignmentCourierStaffCardLifecycleHistoryItem[];
+  manualRatingAdjustmentHistory: DeliveryAssignmentCourierStaffCardRatingAdjustmentHistoryItem[];
+  deliveredOrdersCount: number;
+  manualRatingAdjustment: number;
+  automaticPenalties: number;
+  courierOrderRating: number;
+  courierAverageReviewRating: number | null;
+  courierClientReviewCount: number;
+  unsuccessfulOrdersCount: number;
+  unsuccessfulPercent: number;
+  lastOrders: DeliveryAssignmentCourierStaffCardOrder[];
+  problemOrders: DeliveryAssignmentCourierStaffCardOrder[];
+};
+
+export type CreateDeliveryAssignmentCourierStaffInput = {
+  telegramId: string;
+  nickname: string;
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  createdAt: Date;
+};
+
+export type DeactivateDeliveryAssignmentCourierStaffInput = {
+  courierUserId: DeliveryAssignmentUserId;
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  deactivatedAt: Date;
+};
+
+export type ReactivateDeliveryAssignmentCourierStaffInput = {
+  courierUserId: DeliveryAssignmentUserId;
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  reactivatedAt: Date;
+};
+
+export type RecordDeliveryAssignmentCourierStaffLifecycleEventInput = {
+  courierUserId: DeliveryAssignmentUserId;
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  action: DeliveryAssignmentStaffLifecycleAction;
+  previousNickname?: string | null;
+  newNickname?: string | null;
+  reason?: string | null;
+  createdAt: Date;
+};
+
+export type CreateDeliveryAssignmentCourierStaffRatingAdjustmentInput = {
+  courierUserId: DeliveryAssignmentUserId;
+  actorAdminAccountId: DeliveryAssignmentAdminAccountId;
+  delta: DeliveryAssignmentStaffRatingAdjustmentDelta;
+  reason?: string | null;
+  createdAt: Date;
+};
+
+export type CreateDeliveryAssignmentCourierStaffCommandInput = {
+  actor: DeliveryAssignmentStaffPanelActor;
+  telegramUserId: string;
+  nickname: string;
+  now?: Date;
+};
+
+export type CreateDeliveryAssignmentCourierStaffCommandResult = {
+  courier: DeliveryAssignmentCourierStaffRecord;
+};
+
+export type DeactivateDeliveryAssignmentCourierStaffCommandInput = {
+  actor: DeliveryAssignmentStaffPanelActor;
+  courierUserId: DeliveryAssignmentUserId;
+  reason?: string | null;
+  now?: Date;
+};
+
+export type DeactivateDeliveryAssignmentCourierStaffCommandResult = {
+  courier: DeliveryAssignmentCourierStaffRecord;
+};
+
+export type ReactivateDeliveryAssignmentCourierStaffCommandInput = {
+  actor: DeliveryAssignmentStaffPanelActor;
+  courierUserId: DeliveryAssignmentUserId;
+  reason?: string | null;
+  now?: Date;
+};
+
+export type ReactivateDeliveryAssignmentCourierStaffCommandResult = {
+  courier: DeliveryAssignmentCourierStaffRecord;
+};
+
+export type AdjustDeliveryAssignmentCourierStaffRatingCommandInput = {
+  actor: DeliveryAssignmentStaffPanelActor;
+  courierUserId: DeliveryAssignmentUserId;
+  delta: DeliveryAssignmentStaffRatingAdjustmentDelta;
+  reason?: string | null;
+  now?: Date;
+};
+
+export type AdjustDeliveryAssignmentCourierStaffRatingCommandResult = {
+  adjustment: DeliveryAssignmentCourierStaffRatingAdjustmentRecord;
 };
 
 export type DeliveryAssignmentCourierAvailabilityRecord = {
@@ -245,7 +480,7 @@ export type DeliveryAssignmentOperatorNotificationTarget = {
   userId: DeliveryAssignmentUserId;
   telegramId: string;
   name: string;
-  role: Extract<DeliveryAssignmentUserRole, "boss" | "manager" | "operator" | "admin">;
+  role: Extract<DeliveryAssignmentUserRole, "boss" | "operator" | "admin">;
 };
 
 export type DeliveryAssignmentOfferTimeoutEvaluationArtifacts = {
@@ -395,4 +630,28 @@ export interface DeliveryAssignmentRepository {
   assignCourier(
     input: PersistDeliveryAssignmentInput,
   ): Promise<DeliveryAssignmentArtifactsRecord | null>;
+}
+
+export interface DeliveryAssignmentCourierStaffRepository {
+  findCourierStaffById(
+    courierUserId: DeliveryAssignmentUserId,
+  ): Promise<DeliveryAssignmentCourierStaffIdentityRecord | null>;
+  findCourierStaffByTelegramUserId(
+    telegramId: string,
+  ): Promise<DeliveryAssignmentCourierStaffIdentityRecord | null>;
+  createCourierStaff(
+    input: CreateDeliveryAssignmentCourierStaffInput,
+  ): Promise<DeliveryAssignmentCourierStaffRecord>;
+  deactivateCourierStaff(
+    input: DeactivateDeliveryAssignmentCourierStaffInput,
+  ): Promise<DeliveryAssignmentCourierStaffRecord>;
+  reactivateCourierStaff(
+    input: ReactivateDeliveryAssignmentCourierStaffInput,
+  ): Promise<DeliveryAssignmentCourierStaffRecord>;
+  recordCourierStaffLifecycleEvent(
+    input: RecordDeliveryAssignmentCourierStaffLifecycleEventInput,
+  ): Promise<DeliveryAssignmentCourierStaffLifecycleEventRecord>;
+  recordCourierStaffRatingAdjustment(
+    input: CreateDeliveryAssignmentCourierStaffRatingAdjustmentInput,
+  ): Promise<DeliveryAssignmentCourierStaffRatingAdjustmentRecord>;
 }

@@ -25,6 +25,7 @@ type ClaimTestCourier = {
   autoOfferEnabled: boolean;
   ratingScore: number;
   name: string;
+  staffDeactivatedAt?: Date | null;
 };
 
 type ClaimTestOffer = {
@@ -442,6 +443,32 @@ describe("delivery-assignment courier claim", () => {
     );
     expect(busyPrisma.client.order.updateMany).not.toHaveBeenCalled();
     expect(busyPrisma.events).toHaveLength(0);
+  });
+
+  it("rejects staff-deactivated courier before claim persistence", async () => {
+    const staffDeactivatedAt = new Date("2026-05-14T10:00:00.000Z");
+    const prisma = createClaimPrismaProvider({
+      orders: [baseOrder()],
+      couriers: [baseCourier({ staffDeactivatedAt })],
+      offers: [baseOffer()],
+    });
+    const module = createDeliveryAssignmentModule(prisma.provider);
+
+    await expect(
+      module.controller.claimOffer({
+        offerId: "offer-claim-1",
+        courierId: "courier-1",
+      }),
+    ).rejects.toEqual(
+      new AppError("COURIER_UNAVAILABLE", "Courier is not active and free for claim", 409, {
+        courierId: "courier-1",
+        active: false,
+        free: true,
+      }),
+    );
+
+    expect(prisma.client.order.updateMany).not.toHaveBeenCalled();
+    expect(prisma.events).toHaveLength(0);
   });
 
   it("parses Telegram claim callbacks and delegates duplicate callbacks to the service boundary", async () => {
