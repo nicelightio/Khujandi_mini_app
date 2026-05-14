@@ -872,19 +872,19 @@ body[data-root-contour="admin-web"] textarea {
 }
 
 [data-admin-assignment="orders-table"] th:nth-child(1) {
-  width: 28%;
+  width: 27%;
 }
 
 [data-admin-assignment="orders-table"] th:nth-child(2) {
-  width: 22%;
+  width: 20%;
 }
 
 [data-admin-assignment="orders-table"] th:nth-child(3) {
-  width: 24%;
+  width: 23%;
 }
 
 [data-admin-assignment="orders-table"] th:nth-child(4) {
-  width: 26%;
+  width: 30%;
 }
 
 [data-admin-assignment="orders-table"] td {
@@ -950,25 +950,34 @@ body[data-root-contour="admin-web"] textarea {
   gap: 3px;
   justify-items: start;
   min-width: 0;
-  min-height: 48px;
-  padding: 8px 10px;
+  min-height: 52px;
+  padding: 9px 11px;
+  border-radius: 10px;
   text-align: left;
   white-space: normal;
 }
 
+[data-admin-assignment="action-cells"] button span {
+  font-size: 0.88rem;
+  line-height: 1.18;
+}
+
 [data-admin-assignment="action-cells"] button:disabled {
   cursor: not-allowed;
-  opacity: 0.72;
+  opacity: 0.68;
 }
 
 [data-admin-assignment="action-cells"] strong {
   color: var(--admin-text-soft);
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  line-height: 1.25;
 }
 
 [data-admin-assignment="history-toggle"] {
   grid-column: 1 / -1;
+  min-height: 42px;
+  justify-content: start;
 }
 
 [data-admin-assignment="history-table"] {

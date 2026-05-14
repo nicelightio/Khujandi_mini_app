@@ -26,6 +26,7 @@ status: final
 - `История` is no longer a separate table column; the history toggle lives inside the actions cell.
 - Courier attention block keeps `role="alert"` but is visually compact: header + count + order chips, without blinking the whole block.
 - Mobile/narrow CSS turns order rows into per-order card blocks with full-width action buttons and visible touch targets.
+- Follow-up polish replaced long action labels with compact visible labels, kept full labels in `aria-label`, and made action buttons rectangular so they do not collapse into pill/circle shapes at the staging operator viewport.
 
 ## Files inspected
 

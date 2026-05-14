@@ -12,6 +12,13 @@ type AdminAssignmentPageProps = {
   onConfirmStatusChange: (orderId: string, nextStatus: AdminOperatorDeliveryOrderStatus) => void;
 };
 
+const compactActionLabels: Record<string, string> = {
+  targeted_offer: "Персональное",
+  broadcast_offer: "Массовое",
+  status_control: "Статус",
+  bot_chat: "Чат",
+};
+
 export const AdminAssignmentPage = ({
   viewModel,
   onSortChange,
@@ -150,6 +157,7 @@ export const AdminAssignmentPage = ({
                             disabled={!action.isEnabled}
                             data-admin-action-cell={action.key}
                             title={action.detailLabel}
+                            aria-label={`${action.label}: ${action.stateLabel}`}
                             onClick={() => {
                               if (action.key === "targeted_offer") {
                                 onCreateTargetedOffer(order.orderId);
@@ -160,7 +168,7 @@ export const AdminAssignmentPage = ({
                               }
                             }}
                           >
-                            <span>{action.label}</span>
+                            <span>{compactActionLabels[action.key] ?? action.label}</span>
                             <strong>{action.stateLabel}</strong>
                           </button>
                         ))}

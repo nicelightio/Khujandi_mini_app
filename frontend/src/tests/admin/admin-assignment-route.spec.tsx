@@ -266,12 +266,24 @@ describe("admin assignment route", () => {
     expect(text).toContain("Время назначения");
     expect(text).toContain("Сообщения");
     expect(text).not.toContain("Время последнего сообщения");
-    expect(text).toContain("Персональное предложение");
-    expect(text).toContain("Массовое предложение");
-    expect(text).toContain("Управление статусом");
-    expect(text).toContain("Чат в боте");
+    expect(text).toContain("Персональное");
+    expect(text).toContain("Массовое");
+    expect(text).toContain("Чат");
     expect(text).toContain("Создать ожидающее предложение");
     expect(text).toContain("Среда еще не включена");
+
+    const actionButtons = renderer.root.findAll(
+      (node) => node.type === "button" && typeof node.props["data-admin-action-cell"] === "string",
+    );
+
+    expect(actionButtons.map((button) => button.props["aria-label"])).toEqual(
+      expect.arrayContaining([
+        "Персональное предложение: Создать ожидающее предложение",
+        "Массовое предложение: Запустить явно",
+        "Управление статусом: Завершить заказ -> Завершен",
+        "Чат в боте: Среда еще не включена",
+      ]),
+    );
   });
 
   it("does not render the old direct assignment CTA as the default action", async () => {
