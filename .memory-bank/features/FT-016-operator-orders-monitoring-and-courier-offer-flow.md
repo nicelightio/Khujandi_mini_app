@@ -11,7 +11,7 @@ status: active
 ## Product decisions
 
 - KISS: no Redis, queues, GPS, map dashboard or complex dispatch optimization.
-- `operator` is the manager role; `admin` includes all operator capabilities.
+- `operator` is the operations role; `admin` includes all operator capabilities.
 - Panel is desktop-first.
 - Auto-offer is disabled by default.
 - Privacy/PII hardening beyond existing auth/RBAC is not expanded in MVP.

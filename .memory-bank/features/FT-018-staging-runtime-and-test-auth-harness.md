@@ -127,7 +127,7 @@ Baseline personas:
 - `client_alina`: customer Mini App session for browse/cart/checkout/status.
 - `seller_plov`: Telegram-linked seller owning one seed shop.
 - `admin_boss`: admin-web session with `BOSS`/`ADMIN` capability.
-- `operator_manager`: admin-web session with operator/manager capability when multi-admin runtime support exists.
+- `operator`: admin-web session with operator capability when multi-admin runtime support exists.
 - `courier_7`: courier test identity for assignment/tracking runtime checks.
 
 Persona records must be seeded data, not request body authority.

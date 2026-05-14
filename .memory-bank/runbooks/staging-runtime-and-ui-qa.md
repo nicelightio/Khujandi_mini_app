@@ -233,7 +233,7 @@ Route checklist:
 Persona note:
 
 - Treat `GET /api/v1/test/personas` as the source of truth for the deployed runtime.
-- `operator_manager` is not guaranteed; if the endpoint reports it as unsupported, use `admin_boss` for admin/operator web checks and record operator-specific browser coverage as not applicable for that runtime.
+- `operator` is not guaranteed; if the endpoint reports it as unsupported, use `admin_boss` for admin/operator web checks and record operator-specific browser coverage as not applicable for that runtime.
 
 ## Evidence Split
 

@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
+import { adminOrigin } from "../catalog/catalog.runtime.test-helpers";
 
 const testToken = "test-runtime-token";
 
@@ -136,13 +137,74 @@ describe("dev runtime staging reset and seed endpoints", () => {
         },
         checkoutPayment: {
           users: 3,
-          orders: 2,
+          orders: 3,
           sessions: 0,
         },
       });
       expect(runtime.checkoutPaymentState.orders.map((order) => order.id)).toEqual([
         "test-order-created-1001",
         "test-order-delivered-2001",
+        "test-order-cancellable-3001",
+      ]);
+
+      const sessionResponse = await client.request({
+        path: "/api/v1/test/session",
+        headers: {
+          "x-e2e-test-token": testToken,
+        },
+        body: {
+          persona: "admin_boss",
+        },
+      });
+      expect(sessionResponse.status).toBe(200);
+
+      const operatorOrdersResponse = await client.request({
+        path: "/api/v1/admin/operator/delivery/orders",
+        method: "GET",
+        origin: adminOrigin,
+      });
+      expect(operatorOrdersResponse.status).toBe(200);
+
+      const operatorOrders = (operatorOrdersResponse.body as { orders: Array<{ orderId: string; history: Array<{
+        status: string;
+        previousStatus: string;
+        actor: { role: string; name: string };
+      }> }> }).orders;
+      const createdOrder = operatorOrders.find((order) => order.orderId === "test-order-created-1001");
+      const deliveredOrder = operatorOrders.find((order) => order.orderId === "test-order-delivered-2001");
+      const cancellableOrder = operatorOrders.find(
+        (order) => order.orderId === "test-order-cancellable-3001",
+      );
+
+      expect(createdOrder?.history).toEqual([
+        expect.objectContaining({
+          status: "CREATED",
+          previousStatus: "CREATED",
+          actor: expect.objectContaining({
+            role: "system",
+            name: "Staging seed",
+          }),
+        }),
+      ]);
+      expect(deliveredOrder?.history.map((history) => history.status)).toEqual([
+        "ASSIGNED",
+        "PICKED_UP",
+        "IN_PROGRESS",
+        "DELIVERED",
+      ]);
+      expect(deliveredOrder?.history[0]).toEqual(
+        expect.objectContaining({
+          previousStatus: "CREATED",
+          actor: expect.objectContaining({
+            role: "courier",
+            name: "Courier 7",
+          }),
+        }),
+      );
+      expect(cancellableOrder?.history.map((history) => history.status)).toEqual([
+        "ASSIGNED",
+        "PICKED_UP",
+        "IN_PROGRESS",
       ]);
 
       const resetResponse = await client.request({

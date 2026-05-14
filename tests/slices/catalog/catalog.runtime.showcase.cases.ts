@@ -216,16 +216,16 @@ export const registerCatalogRuntimeShowcaseCases = () => {
       expect(anonymousResponse.status).toBe(401);
       expect(runtime.catalogState.favoriteShops).toHaveLength(0);
 
-      runtime.prisma.state.account.role = "MANAGER";
-      const managerClient = runtime.createClient();
-      await loginAdmin(managerClient);
+      runtime.prisma.state.account.role = "OPERATOR";
+      const operatorClient = runtime.createClient();
+      await loginAdmin(operatorClient);
 
-      const managerResponse = await managerClient.request({
+      const operatorResponse = await operatorClient.request({
         path: `/api/v1/admin/catalog/showcase/shops/${shop.id}`,
         origin: adminOrigin,
       });
 
-      expect(managerResponse.status).toBe(403);
+      expect(operatorResponse.status).toBe(403);
       expect(runtime.catalogState.favoriteShops).toHaveLength(0);
 
       runtime.prisma.state.account.role = "ADMIN";

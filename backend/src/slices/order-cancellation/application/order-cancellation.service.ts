@@ -12,9 +12,9 @@ import type {
 } from "../domain/order-cancellation.types";
 import { AppError } from "../../../shared/errors/app-error";
 
-const ALLOWED_ADMIN_ROLE = "admin";
+const ALLOWED_ADMIN_CANCELLATION_ROLES = new Set(["boss", "admin"] as const);
 const ALLOWED_COURIER_ROLE = "courier";
-const ALLOWED_REFUND_OPERATOR_ROLES = new Set(["boss", "manager", "admin"] as const);
+const ALLOWED_REFUND_OPERATOR_ROLES = new Set(["boss", "operator", "admin"] as const);
 const COURIER_UNAVAILABLE_REASON_CODE = "COURIER_UNAVAILABLE";
 
 const ADMIN_CANCELLABLE_STATUSES = new Set<OrderCancellationOrderStatus>([
@@ -47,7 +47,10 @@ export class OrderCancellationService {
       throw new AppError("AUTH_REQUIRED", "Cancellation requires an authenticated operator", 401);
     }
 
-    if (actor.role !== ALLOWED_ADMIN_ROLE && actor.role !== ALLOWED_COURIER_ROLE) {
+    if (
+      !ALLOWED_ADMIN_CANCELLATION_ROLES.has(actor.role as "boss" | "admin") &&
+      actor.role !== ALLOWED_COURIER_ROLE
+    ) {
       throw new AppError("FORBIDDEN", "User role cannot cancel orders", 403, {
         role: actor.role,
       });
@@ -66,7 +69,7 @@ export class OrderCancellationService {
     this.assertCancellableOrder(order, input.orderId);
 
     const cancellation =
-      actor.role === ALLOWED_ADMIN_ROLE
+      ALLOWED_ADMIN_CANCELLATION_ROLES.has(actor.role as "boss" | "admin")
         ? this.resolveAdminCancellation(order, input.orderId)
         : this.resolveCourierCancellation(order, input.orderId, actor.userId, reasonCode);
 
@@ -128,7 +131,7 @@ export class OrderCancellationService {
       throw new AppError("AUTH_REQUIRED", "Refund tracking requires an authenticated operator", 401);
     }
 
-    if (!ALLOWED_REFUND_OPERATOR_ROLES.has(actor.role as "boss" | "manager" | "admin")) {
+    if (!ALLOWED_REFUND_OPERATOR_ROLES.has(actor.role as "boss" | "operator" | "admin")) {
       throw new AppError("FORBIDDEN", "User role cannot update refund tracking", 403, {
         role: actor.role,
       });

@@ -10,7 +10,7 @@ describe("admin auth api", () => {
       status: 200,
       json: async () => ({
         adminAccountId: "admin-account-7",
-        role: "manager",
+        role: "operator",
         accessTokenExpiresAt: "2026-04-05T10:15:00.000Z",
         refreshTokenExpiresAt: "2026-04-08T10:00:00.000Z",
         idleExpiresAt: "2026-04-05T10:30:00.000Z",
@@ -19,12 +19,12 @@ describe("admin auth api", () => {
 
     await expect(
       createAdminAuthApi({ fetch: fetchMock }).login({
-        login: "ops.manager",
+        login: "ops.operator",
         password: "correct-horse-battery",
       }),
     ).resolves.toEqual({
       adminAccountId: "admin-account-7",
-      role: "manager",
+      role: "operator",
       accessTokenExpiresAt: "2026-04-05T10:15:00.000Z",
       refreshTokenExpiresAt: "2026-04-08T10:00:00.000Z",
       idleExpiresAt: "2026-04-05T10:30:00.000Z",
@@ -37,7 +37,7 @@ describe("admin auth api", () => {
       },
       credentials: "include",
       body: JSON.stringify({
-        login: "ops.manager",
+        login: "ops.operator",
         password: "correct-horse-battery",
       }),
     });
@@ -90,7 +90,7 @@ describe("admin auth api", () => {
 
     await expect(
       createAdminAuthApi({ fetch: fetchMock }).login({
-        login: "ops.manager",
+        login: "ops.operator",
         password: "wrong-password",
       }),
     ).rejects.toEqual(

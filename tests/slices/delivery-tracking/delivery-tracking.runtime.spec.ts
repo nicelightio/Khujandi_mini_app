@@ -61,7 +61,7 @@ const checkoutOrder = async (client: RuntimeCookieSessionClient) => {
 
 const loginAdmin = async (
   runtime: Awaited<ReturnType<typeof startDevApiServer>>,
-  role: "ADMIN" | "BOSS" | "MANAGER" = "ADMIN",
+  role: "ADMIN" | "BOSS" | "OPERATOR" = "ADMIN",
 ) => {
   runtime.prisma.state.account.login = "admin@example.com";
   runtime.prisma.state.account.role = role;
@@ -370,7 +370,7 @@ describe("delivery-tracking mounted runtime events", () => {
     }
   });
 
-  it("normalizes authenticated manager into operator status command capability only", async () => {
+  it("allows authenticated operator status command capability directly", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",
       port: 0,
@@ -381,9 +381,9 @@ describe("delivery-tracking mounted runtime events", () => {
     try {
       runtime.checkoutPaymentState.orders.push(
         {
-          id: "order-delivered-manager-3010",
+          id: "order-delivered-operator-3010",
           shopId: "shop-demo-1",
-          shopNameSnapshot: "Manager Delivered Shop",
+          shopNameSnapshot: "Operator Delivered Shop",
           sellerId: "seller-demo-1",
           clientId: "client-demo-1",
           courierId: "courier-8",
@@ -392,7 +392,7 @@ describe("delivery-tracking mounted runtime events", () => {
           deliveryFeeMinor: 1500,
           totalAmountMinor: 15500,
           paymentProvider: "demo-provider",
-          paymentProviderTxId: "demo-payment-delivered-manager-3010",
+          paymentProviderTxId: "demo-payment-delivered-operator-3010",
           telegramPaymentChargeId: null,
           providerPaymentChargeId: null,
           paymentStatus: "PAID",
@@ -401,9 +401,9 @@ describe("delivery-tracking mounted runtime events", () => {
           isDeleted: false,
         },
         {
-          id: "order-picked-up-manager-3011",
+          id: "order-picked-up-operator-3011",
           shopId: "shop-demo-1",
-          shopNameSnapshot: "Manager Picked Shop",
+          shopNameSnapshot: "Operator Picked Shop",
           sellerId: "seller-demo-1",
           clientId: "client-demo-1",
           courierId: "courier-8",
@@ -412,7 +412,7 @@ describe("delivery-tracking mounted runtime events", () => {
           deliveryFeeMinor: 1500,
           totalAmountMinor: 15500,
           paymentProvider: "demo-provider",
-          paymentProviderTxId: "demo-payment-picked-up-manager-3011",
+          paymentProviderTxId: "demo-payment-picked-up-operator-3011",
           telegramPaymentChargeId: null,
           providerPaymentChargeId: null,
           paymentStatus: "PAID",
@@ -442,24 +442,24 @@ describe("delivery-tracking mounted runtime events", () => {
         },
       );
 
-      const manager = await loginAdmin(runtime, "MANAGER");
-      const managerStatusResponse = await manager.request({
-        path: "/api/v1/admin/operator/delivery/orders/order-delivered-manager-3010/status",
+      const operator = await loginAdmin(runtime, "OPERATOR");
+      const operatorStatusResponse = await operator.request({
+        path: "/api/v1/admin/operator/delivery/orders/order-delivered-operator-3010/status",
         origin: adminOrigin,
         body: {
           nextStatus: "COMPLETED",
         },
       });
 
-      expect(managerStatusResponse.status).toBe(200);
-      expect(managerStatusResponse.body).toMatchObject({
-        orderId: "order-delivered-manager-3010",
+      expect(operatorStatusResponse.status).toBe(200);
+      expect(operatorStatusResponse.body).toMatchObject({
+        orderId: "order-delivered-operator-3010",
         status: "COMPLETED",
         revision: expect.any(String),
       });
 
-      const invalidStatusResponse = await manager.request({
-        path: "/api/v1/admin/operator/delivery/orders/order-picked-up-manager-3011/status",
+      const invalidStatusResponse = await operator.request({
+        path: "/api/v1/admin/operator/delivery/orders/order-picked-up-operator-3011/status",
         origin: adminOrigin,
         body: {
           nextStatus: "COMPLETED",
@@ -468,14 +468,14 @@ describe("delivery-tracking mounted runtime events", () => {
 
       expect(invalidStatusResponse.status).toBe(409);
 
-      const readResponse = await manager.request({
+      const readResponse = await operator.request({
         path: "/api/v1/admin/operator/delivery/orders",
         method: "GET",
         origin: adminOrigin,
       });
       expect(readResponse.status).toBe(200);
       const rows = (readResponse.body as { orders: Array<Record<string, unknown>> }).orders;
-      const completedRow = rows.find((row) => row.orderId === "order-delivered-manager-3010");
+      const completedRow = rows.find((row) => row.orderId === "order-delivered-operator-3010");
       expect(completedRow?.history).toEqual([
         expect.objectContaining({
           status: "COMPLETED",
@@ -497,9 +497,14 @@ describe("delivery-tracking mounted runtime events", () => {
         },
       });
 
-      expect(bossStatusResponse.status).toBe(403);
+      expect(bossStatusResponse.status).toBe(200);
+      expect(bossStatusResponse.body).toMatchObject({
+        orderId: "order-delivered-boss-3012",
+        status: "COMPLETED",
+        revision: expect.any(String),
+      });
       expect(runtime.checkoutPaymentState.orders.find((order) => order.id === "order-delivered-boss-3012")?.status).toBe(
-        "DELIVERED",
+        "COMPLETED",
       );
     } finally {
       await runtime.stop();

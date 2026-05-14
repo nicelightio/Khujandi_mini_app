@@ -208,7 +208,7 @@ Available persona keys:
 - `client_alina`: customer Mini App workflow.
 - `seller_plov`: seller-owned storefront/status workflow.
 - `admin_boss`: admin/operator web workflow.
-- `operator_manager`: controlled unsupported unless the deployed runtime exposes it through `GET /api/v1/test/personas`.
+- `operator`: controlled unsupported unless the deployed runtime exposes it through `GET /api/v1/test/personas`.
 - `courier_7`: courier runtime workflow, not real Telegram verification.
 
 The response must not include cookie values. Browser/Playwright should keep `Set-Cookie` headers in its context.

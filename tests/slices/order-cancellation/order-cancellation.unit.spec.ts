@@ -186,6 +186,66 @@ describe("order-cancellation service", () => {
     );
   });
 
+  it("treats boss as admin-equivalent for cancellation", async () => {
+    const findOrderById = jest.fn().mockResolvedValue({
+      id: "order-1",
+      courierId: "courier-1",
+      status: "IN_PROGRESS",
+      paymentStatus: "PAID",
+      refundStatus: "NOT_REQUIRED",
+      refundNote: null,
+      cancelledByUserId: null,
+      cancellationReasonCode: null,
+      cancelledAt: null,
+      updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+      isDeleted: false,
+    });
+    const recordCancellation = jest.fn().mockResolvedValue(await createRepository().recordCancellation({
+      orderId: "order-1",
+      actor: {
+        userId: "boss-1",
+        role: "boss",
+      },
+      oldStatus: "IN_PROGRESS",
+      newStatus: "CANCELLED_BY_ADMIN",
+      reasonCode: "OPS_DELAY",
+      refundStatus: "PENDING_MANUAL",
+      refundNote: null,
+      cancelledAt: new Date("2026-04-03T10:05:00.000Z"),
+    }));
+    const service = new OrderCancellationService({
+      ...createRepository(),
+      findOrderById,
+      recordCancellation,
+    });
+
+    await expect(
+      service.cancelOrder({
+        orderId: "order-1",
+        actor: {
+          userId: "boss-1",
+          role: "boss",
+        },
+        reasonCode: "OPS_DELAY",
+      }),
+    ).resolves.toEqual({
+      orderId: "order-1",
+      status: "CANCELLED_BY_ADMIN",
+      refundStatus: "PENDING_MANUAL",
+      updatedAt: new Date("2026-04-03T10:05:00.000Z"),
+      revision: "103",
+    });
+    expect(recordCancellation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: {
+          userId: "boss-1",
+          role: "boss",
+        },
+        newStatus: "CANCELLED_BY_ADMIN",
+      }),
+    );
+  });
+
   it("cancels an order for the assigned courier only in the unavailable-case", async () => {
     const findOrderById = jest.fn().mockResolvedValue({
       id: "order-1",
@@ -382,8 +442,8 @@ describe("order-cancellation service", () => {
       await createRepository().recordRefundUpdate({
         orderId: "order-1",
         actor: {
-          userId: "manager-1",
-          role: "manager",
+          userId: "operator-1",
+          role: "operator",
         },
         refundStatus: "DONE",
         refundNote: "  Cash returned offline at pickup desk.  ",
@@ -398,8 +458,8 @@ describe("order-cancellation service", () => {
     const input: AuthorizedOrderRefundUpdateInput = {
       orderId: "order-1",
       actor: {
-        userId: "manager-1",
-        role: "manager",
+        userId: "operator-1",
+        role: "operator",
       },
       refundStatus: "DONE",
       refundNote: "  Cash returned offline at pickup desk.  ",
@@ -417,8 +477,8 @@ describe("order-cancellation service", () => {
       expect.objectContaining({
         orderId: "order-1",
         actor: {
-          userId: "manager-1",
-          role: "manager",
+          userId: "operator-1",
+          role: "operator",
         },
         refundStatus: "DONE",
         refundNote: "Cash returned offline at pickup desk.",

@@ -13,7 +13,6 @@ export type CheckoutPaymentSessionId = string;
 export type CheckoutPaymentSessionTokenHash = string;
 export type CheckoutPaymentUserRole =
   | "boss"
-  | "manager"
   | "operator"
   | "admin"
   | "seller"

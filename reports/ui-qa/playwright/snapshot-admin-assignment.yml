@@ -1,0 +1,132 @@
+- generic [ref=e61]:
+  - banner [ref=e62]:
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - paragraph [ref=e65]: Khujandi
+        - heading "Панель управления" [level=1] [ref=e66]
+        - paragraph [ref=e67]: Операционные инструменты для доставки, защищенных сессий и создания магазинов.
+      - navigation "Разделы админки" [ref=e68]:
+        - link "Главная" [ref=e69] [cursor=pointer]:
+          - /url: /admin
+        - link "Назначения" [ref=e70] [cursor=pointer]:
+          - /url: /admin/orders/assignment
+        - link "Отмены" [ref=e71] [cursor=pointer]:
+          - /url: /admin/orders/cancellation
+        - link "Магазины" [ref=e72] [cursor=pointer]:
+          - /url: /admin/catalog/shops/provision
+    - generic [ref=e73]:
+      - paragraph [ref=e74]: "Вход: boss (admin-account-1)."
+      - paragraph [ref=e75]: Время простоя контролируется серверной границей до 2026-05-13T13:48:52.525Z.
+      - button "Выйти" [ref=e76] [cursor=pointer]
+  - main [ref=e77]:
+    - generic [ref=e78]:
+      - paragraph [ref=e79]: Веб-админка
+      - heading "Операторские заказы доставки" [level=1] [ref=e80]
+    - generic [ref=e81]:
+      - generic [ref=e82]:
+        - generic [ref=e83]: Операторское окно только для чтения
+        - paragraph [ref=e84]: "Загружено заказов из операторской модели чтения: 2."
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: Окно
+            - strong [ref=e88]: Сегодня и предыдущие 3 дня / 10 мая, 05:00 - 13 мая, 18:18
+          - generic [ref=e89]:
+            - generic [ref=e90]: Сформировано
+            - strong [ref=e91]: Сформировано 13 мая, 18:18
+          - generic [ref=e92]:
+            - generic [ref=e93]: Курсор статуса
+            - strong [ref=e94]: Ревизия 0
+      - generic [ref=e95]:
+        - generic [ref=e96]: Операции доставки
+        - alert [ref=e97]:
+          - strong [ref=e98]: Внимание к курьерам
+          - list [ref=e99]:
+            - listitem [ref=e100]:
+              - strong [ref=e101]: test-order-created-1001
+              - generic [ref=e102]: Нет принявшего курьера
+              - generic [ref=e103]: Без курьера
+        - generic "Сортировка заказов доставки" [ref=e104]:
+          - button "Срочность" [pressed] [ref=e105] [cursor=pointer]
+          - button "Время создания" [ref=e106] [cursor=pointer]
+          - button "Статус" [ref=e107] [cursor=pointer]
+          - button "Курьер" [ref=e108] [cursor=pointer]
+          - button "Время назначения" [ref=e109] [cursor=pointer]
+          - button "Сообщения" [ref=e110] [cursor=pointer]
+        - table [ref=e112]:
+          - rowgroup [ref=e113]:
+            - row "Заказ Срочность Статус Курьер Назначен / принят Последнее сообщение Действия История" [ref=e114]:
+              - columnheader "Заказ" [ref=e115]
+              - columnheader "Срочность" [ref=e116]
+              - columnheader "Статус" [ref=e117]
+              - columnheader "Курьер" [ref=e118]
+              - columnheader "Назначен / принят" [ref=e119]
+              - columnheader "Последнее сообщение" [ref=e120]
+              - columnheader "Действия" [ref=e121]
+              - columnheader "История" [ref=e122]
+          - rowgroup [ref=e123]:
+            - row "test-order-created-1001 Плов в парке Сомони / 45 TJS Создан 13 мая, 18:15 Без курьера Создан 0 Нет принявшего курьера Нет Назначен Не записано Принят Не записано Сообщений пока нет Сообщения пока нет Защищенные действия для test-order-created-1001 Показать историю" [ref=e124]:
+              - cell "test-order-created-1001 Плов в парке Сомони / 45 TJS Создан 13 мая, 18:15" [ref=e125]:
+                - strong [ref=e126]: test-order-created-1001
+                - generic [ref=e127]: Плов в парке Сомони / 45 TJS
+                - generic [ref=e128]: Создан 13 мая, 18:15
+              - cell "Без курьера" [ref=e129]:
+                - generic [ref=e130]: Без курьера
+              - cell "Создан 0" [ref=e131]:
+                - strong [ref=e132]: Создан
+                - generic [ref=e133]: "0"
+              - cell "Нет принявшего курьера Нет" [ref=e134]:
+                - strong [ref=e135]: Нет принявшего курьера
+                - generic [ref=e136]: Нет
+              - cell "Назначен Не записано Принят Не записано" [ref=e137]:
+                - generic [ref=e138]: Назначен Не записано
+                - generic [ref=e139]: Принят Не записано
+              - cell "Сообщений пока нет Сообщения пока нет" [ref=e140]:
+                - strong [ref=e141]: Сообщений пока нет
+                - generic [ref=e142]: Сообщения пока нет
+              - cell "Защищенные действия для test-order-created-1001" [ref=e143]:
+                - generic "Защищенные действия для test-order-created-1001" [ref=e144]:
+                  - button "Персональное предложение Создать ожидающее предложение" [ref=e145] [cursor=pointer]
+                  - button "Массовое предложение Запустить явно" [ref=e148] [cursor=pointer]
+                  - button "Управление статусом Серверная команда еще не включена" [disabled] [ref=e151]
+                  - button "Чат в боте Среда еще не включена" [disabled] [ref=e154]
+              - cell "Показать историю" [ref=e157]:
+                - button "Показать историю" [ref=e158] [cursor=pointer]
+            - row "test-order-delivered-2001 Плов в парке Сомони / 83 TJS Создан 13 мая, 18:15 Требует закрытия Доставлен 0 Courier 7 / tg 70007 Текущий Назначен Не записано Принят Не записано Сообщений пока нет Сообщения пока нет Защищенные действия для test-order-delivered-2001 Показать историю" [ref=e159]:
+              - cell "test-order-delivered-2001 Плов в парке Сомони / 83 TJS Создан 13 мая, 18:15" [ref=e160]:
+                - strong [ref=e161]: test-order-delivered-2001
+                - generic [ref=e162]: Плов в парке Сомони / 83 TJS
+                - generic [ref=e163]: Создан 13 мая, 18:15
+              - cell "Требует закрытия" [ref=e164]:
+                - generic [ref=e165]: Требует закрытия
+              - cell "Доставлен 0" [ref=e166]:
+                - strong [ref=e167]: Доставлен
+                - generic [ref=e168]: "0"
+              - cell "Courier 7 / tg 70007 Текущий" [ref=e169]:
+                - strong [ref=e170]: Courier 7 / tg 70007
+                - generic [ref=e171]: Текущий
+              - cell "Назначен Не записано Принят Не записано" [ref=e172]:
+                - generic [ref=e173]: Назначен Не записано
+                - generic [ref=e174]: Принят Не записано
+              - cell "Сообщений пока нет Сообщения пока нет" [ref=e175]:
+                - strong [ref=e176]: Сообщений пока нет
+                - generic [ref=e177]: Сообщения пока нет
+              - cell "Защищенные действия для test-order-delivered-2001" [ref=e178]:
+                - generic "Защищенные действия для test-order-delivered-2001" [ref=e179]:
+                  - button "Персональное предложение Серверная команда еще не включена" [disabled] [ref=e180]
+                  - button "Массовое предложение Серверная команда еще не включена" [disabled] [ref=e183]
+                  - button "Управление статусом Завершить заказ -> Завершен" [ref=e186] [cursor=pointer]
+                  - button "Чат в боте Среда еще не включена" [disabled] [ref=e189]
+              - cell "Показать историю" [ref=e192]:
+                - button "Показать историю" [ref=e193] [cursor=pointer]
+    - generic [ref=e195]:
+      - paragraph [ref=e196]: DEBUG MODE
+      - list [ref=e197]:
+        - listitem [ref=e198]: "Path: /admin/orders/assignment"
+        - listitem [ref=e199]: "Telegram runtime: unavailable"
+        - listitem [ref=e200]: "Shell ready: false"
+        - listitem [ref=e201]: "Theme: unknown"
+        - listitem [ref=e202]: "Viewport stable height: none"
+        - listitem [ref=e203]: "Bottom action layout: inline"
+      - text: Keyboard test field
+      - textbox "Keyboard test field" [ref=e204]:
+        - /placeholder: Tap here to test the keyboard

@@ -102,7 +102,7 @@ Allowed persona keys:
 - `client_alina`
 - `seller_plov`
 - `admin_boss`
-- `operator_manager`
+- `operator`
 - `courier_7`
 
 The endpoint MUST ignore or reject arbitrary identity fields such as `telegramId`, `userId`, `role`, `shopId`, `adminAccountId` and `password`.
@@ -112,7 +112,7 @@ Session behavior:
 - `client_alina` creates a `checkout-payment` Mini App HttpOnly cookie session.
 - `seller_plov` creates a Mini App HttpOnly cookie session and relies on seeded `catalog` seller binding for seller access.
 - `admin_boss` creates an `admin-access` HttpOnly cookie session.
-- `operator_manager` creates an `admin-access` HttpOnly cookie session when the runtime supports that role as a distinct seeded account.
+- `operator` creates an `admin-access` HttpOnly cookie session when the runtime supports that role as a distinct seeded account.
 - `courier_7` creates only the narrow test identity/session needed for runtime checks; it must not pretend to be real Telegram transport verification.
 
 Response:

@@ -10,7 +10,7 @@ import type { DevApiRouteHandler, DevApiRouteInput, RuntimeHttpResult } from "..
 import { json, readJsonBody, serializeCookie } from "../http-runtime";
 import { isStagingTestHarnessEnabled, validateTestRuntimeToken } from "./test-runtime-guards";
 
-type PersonaKey = "client_alina" | "seller_plov" | "admin_boss" | "operator_manager" | "courier_7";
+type PersonaKey = "client_alina" | "seller_plov" | "admin_boss" | "operator" | "courier_7";
 
 type PersonaMetadata = {
   key: PersonaKey;
@@ -77,7 +77,7 @@ const isPersonaKey = (value: string): value is PersonaKey =>
   value === "client_alina" ||
   value === "seller_plov" ||
   value === "admin_boss" ||
-  value === "operator_manager" ||
+  value === "operator" ||
   value === "courier_7";
 
 const assertNoIdentityOverride = (body: Record<string, unknown>): void => {

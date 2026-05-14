@@ -84,7 +84,7 @@ If Playwright browser runtime is unavailable, browser smoke is `BLOCKED/NOT RUN`
 | Cart composition -> checkout -> mock paid order | `client_alina` | staging e2e with mock payment |
 | Customer order status polling | `client_alina` | staging e2e over event/polling contract |
 | Seller owned shop/status workflow | `seller_plov` | UI + server-side ownership session path |
-| Admin/operator panel | `admin_boss` or `operator_manager` | UI + admin session path |
+| Admin/operator panel | `admin_boss` or `operator` | UI + admin session path |
 | Negative no-session states | none/reset cookies | controlled auth UX |
 
 ## Trust Boundary Split

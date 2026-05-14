@@ -37,7 +37,7 @@ export type ReviewsFeedbackUserFindUniqueArgs = {
 export type ReviewsFeedbackAdminFindManyArgs = {
   where: {
     role: {
-      in: ["BOSS", "MANAGER", "ADMIN"];
+      in: ["BOSS", "OPERATOR", "ADMIN"];
     };
     isActive: true;
   };

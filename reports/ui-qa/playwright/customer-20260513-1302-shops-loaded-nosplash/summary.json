@@ -1,0 +1,5 @@
+{
+  "screenshot": "reports/ui-qa/playwright/customer-20260513-1302-shops-loaded-nosplash/shops-list-loaded-no-splash.png",
+  "splashCount": 0,
+  "body": "Каталог\n\n2 магазина доступны для просмотра.\n\nADMIN INTERFACES\n\nАдминка приложения\n\nВсе операционные панели собраны на основной странице админки.\n\nОткрыть админку\nhttps://tgmeal.natureonzoom.win/admin\nПлов в парке Сомони\nПлов зарвода 45.00 TJS\nПлов обычный 38.00 TJS\nБобоча самбуса\nСамбуса рубленная говядина 12.00 TJS\nСамбуса фарш 7.00 TJS\n\nDEBUG MODE\n\nPath: /shops\nTelegram runtime: available\nShell ready: true\nTheme: light\nViewport stable height: 844\nBottom action layout: keyboard-safe\nKeyboard test field"
+}

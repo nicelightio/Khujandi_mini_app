@@ -42,6 +42,7 @@ type AdminRefundUpdateSubmitResult = {
 };
 
 type AdminOrderCancellationRouteProps = {
+  orderId?: string | null;
   api?: AdminOrderCancellationApi;
   loadBootstrap?: () => Promise<AdminOrderCancellationBootstrap>;
   submitCancellation?: (input: AdminOrderCancellationSubmitInput) => Promise<AdminOrderCancellationSubmitResult>;
@@ -86,9 +87,23 @@ const formatRefundStatus = (refundStatus: AdminRefundStatus): string => {
   }
 };
 
-const defaultBootstrap: AdminOrderCancellationBootstrap = {
-  orderId: "order-in-progress-2004",
-  orderLabel: "Заказ #2004",
+const defaultOrderId = "order-in-progress-2004";
+
+const toOrderLabel = (orderId: string): string => {
+  const numericSuffix = orderId.match(/(?:^|[-_])(\d{3,})$/u)?.[1];
+
+  return numericSuffix === undefined ? `Заказ ${orderId}` : `Заказ #${numericSuffix}`;
+};
+
+const normalizeOrderId = (orderId: string | null | undefined): string | null => {
+  const trimmed = orderId?.trim() ?? "";
+
+  return trimmed.length === 0 ? null : trimmed;
+};
+
+const createDefaultBootstrap = (orderId: string): AdminOrderCancellationBootstrap => ({
+  orderId,
+  orderLabel: toOrderLabel(orderId),
   orderStatusLabel: `Текущее состояние заказа: ${formatOrderStatus("IN_PROGRESS")}. Серверная проверка разрешенных ролей остается вне этой страницы.`,
   statusLabel: "Страница отмены готова для подключения команд и видимой обратной связи по состоянию возврата.",
   refundStatus: "PENDING_MANUAL",
@@ -108,9 +123,10 @@ const defaultBootstrap: AdminOrderCancellationBootstrap = {
       detail: "Разрешенный сценарий, когда курьер недоступен",
     },
   ],
-};
+});
 
-const loadDefaultBootstrap = async (): Promise<AdminOrderCancellationBootstrap> => defaultBootstrap;
+const loadDefaultBootstrap = async (orderId: string): Promise<AdminOrderCancellationBootstrap> =>
+  createDefaultBootstrap(orderId);
 
 const toRefundStatusLabel = (refundStatus: AdminRefundStatus) => {
   switch (refundStatus) {
@@ -186,8 +202,9 @@ const toRefundConfirmationMessage = (result: {
   `Результат возврата "${formatRefundStatus(result.refundStatus)}" записан для ${result.orderId}. Ревизия ${result.revision} готова для последующего опроса.`;
 
 export const AdminOrderCancellationRoute = ({
+  orderId,
   api,
-  loadBootstrap = loadDefaultBootstrap,
+  loadBootstrap,
   submitCancellation,
   submitRefundUpdate,
 }: AdminOrderCancellationRouteProps) => {
@@ -198,6 +215,7 @@ export const AdminOrderCancellationRoute = ({
   const submitRefundUpdateRef = useRef(submitRefundUpdate);
   const [bootstrap, setBootstrap] = useState<AdminOrderCancellationBootstrap | null>(null);
   const [viewModel, setViewModel] = useState(createLoadingAdminOrderCancellationViewModel);
+  const resolvedOrderId = normalizeOrderId(orderId) ?? defaultOrderId;
 
   useEffect(() => {
     submitCancellationRef.current = submitCancellation;
@@ -210,7 +228,10 @@ export const AdminOrderCancellationRoute = ({
   useEffect(() => {
     let isActive = true;
 
-    void loadBootstrap().then((nextBootstrap) => {
+    const nextBootstrapPromise =
+      loadBootstrap === undefined ? loadDefaultBootstrap(resolvedOrderId) : loadBootstrap();
+
+    void nextBootstrapPromise.then((nextBootstrap) => {
       if (!isActive) {
         return;
       }
@@ -222,7 +243,7 @@ export const AdminOrderCancellationRoute = ({
     return () => {
       isActive = false;
     };
-  }, [loadBootstrap]);
+  }, [loadBootstrap, resolvedOrderId]);
 
   const handleReasonChange = (reasonCode: string) => {
     if (bootstrap === null) {

@@ -91,7 +91,7 @@ export class PrismaReviewsFeedbackRepository implements ReviewsFeedbackRepositor
     const users = await this.prisma.client.user.findMany({
       where: {
         role: {
-          in: ["BOSS", "MANAGER", "ADMIN"],
+          in: ["BOSS", "OPERATOR", "ADMIN"],
         },
         isActive: true,
       },

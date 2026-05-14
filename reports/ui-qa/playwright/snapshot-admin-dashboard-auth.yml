@@ -1,0 +1,62 @@
+- generic [ref=e17]:
+  - banner [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - paragraph [ref=e21]: Khujandi
+        - heading "Панель управления" [level=1] [ref=e22]
+        - paragraph [ref=e23]: Операционные инструменты для доставки, защищенных сессий и создания магазинов.
+      - navigation "Разделы админки" [ref=e24]:
+        - link "Главная" [ref=e25] [cursor=pointer]:
+          - /url: /admin
+        - link "Назначения" [ref=e26] [cursor=pointer]:
+          - /url: /admin/orders/assignment
+        - link "Отмены" [ref=e27] [cursor=pointer]:
+          - /url: /admin/orders/cancellation
+        - link "Магазины" [ref=e28] [cursor=pointer]:
+          - /url: /admin/catalog/shops/provision
+    - generic [ref=e29]:
+      - paragraph [ref=e30]: "Вход: boss (admin-account-1)."
+      - paragraph [ref=e31]: Время простоя контролируется серверной границей до 2026-05-13T13:47:43.139Z.
+      - button "Выйти" [ref=e32] [cursor=pointer]
+  - main [ref=e33]:
+    - generic [ref=e34]:
+      - paragraph [ref=e35]: Веб-админка
+      - heading "Главная админки" [level=1] [ref=e36]
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - generic [ref=e39]: Главная страница
+        - heading "Все доступные интерфейсы" [level=2] [ref=e40]
+        - paragraph [ref=e41]: Эта страница собирает операционные панели приложения в одной админке.
+      - region "Ссылки админки" [ref=e42]:
+        - link "Назначение курьеров Распределение заказов и курьеров" [ref=e43] [cursor=pointer]:
+          - /url: /admin/orders/assignment
+          - strong [ref=e44]: Назначение курьеров
+          - generic [ref=e45]: Распределение заказов и курьеров
+        - link "Отмена и возвраты Операционная отмена и ручной возврат" [ref=e46] [cursor=pointer]:
+          - /url: /admin/orders/cancellation
+          - strong [ref=e47]: Отмена и возвраты
+          - generic [ref=e48]: Операционная отмена и ручной возврат
+        - link "Создание магазинов Создание магазинов и привязка продавцов" [ref=e49] [cursor=pointer]:
+          - /url: /admin/catalog/shops/provision
+          - strong [ref=e50]: Создание магазинов
+          - generic [ref=e51]: Создание магазинов и привязка продавцов
+        - link "Слежение за курьером Безопасный для клиента статус заказа и доставки" [ref=e52] [cursor=pointer]:
+          - /url: /tracking
+          - strong [ref=e53]: Слежение за курьером
+          - generic [ref=e54]: Безопасный для клиента статус заказа и доставки
+        - link "Панель магазина Статусы WORKING / NOT_WORKING" [ref=e55] [cursor=pointer]:
+          - /url: /seller/shops/status
+          - strong [ref=e56]: Панель магазина
+          - generic [ref=e57]: Статусы WORKING / NOT_WORKING
+    - generic [ref=e59]:
+      - paragraph [ref=e60]: DEBUG MODE
+      - list [ref=e61]:
+        - listitem [ref=e62]: "Path: /admin"
+        - listitem [ref=e63]: "Telegram runtime: unavailable"
+        - listitem [ref=e64]: "Shell ready: false"
+        - listitem [ref=e65]: "Theme: unknown"
+        - listitem [ref=e66]: "Viewport stable height: none"
+        - listitem [ref=e67]: "Bottom action layout: inline"
+      - text: Keyboard test field
+      - textbox "Keyboard test field" [ref=e68]:
+        - /placeholder: Tap here to test the keyboard

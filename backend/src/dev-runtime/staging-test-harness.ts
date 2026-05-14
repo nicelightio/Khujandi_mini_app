@@ -7,6 +7,21 @@ import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 
 type OperationalRuntimeReset = {
   resetRuntimeState: () => void;
+  seedOrderStatusHistory: (seeds: Array<{
+    orderId: string;
+    createdAtOffsetMs: number;
+    updatedAtOffsetMs: number;
+    assignedAtOffsetMs?: number | null;
+    history: Array<{
+      orderId: string;
+      oldStatus: string;
+      newStatus: string;
+      changedByUserId: string;
+      changedByRole?: string;
+      changedByName?: string;
+      changedAtOffsetMs: number;
+    }>;
+  }>) => void;
   getCurrentEventCursor: () => string;
 };
 
@@ -69,8 +84,11 @@ const resetCatalogState = (target: CatalogRuntimeState): void => {
 const resetAdminAccessState = (target: AdminAccessRuntimeState): void => {
   const baseline = createAdminAccessRuntimeState();
   target.account = baseline.account;
+  target.operatorAccounts.splice(0, target.operatorAccounts.length);
   target.sessions.splice(0, target.sessions.length);
   target.audits.splice(0, target.audits.length);
+  target.operatorStaffLifecycleEvents.splice(0, target.operatorStaffLifecycleEvents.length);
+  target.operatorStaffRatingAdjustments.splice(0, target.operatorStaffRatingAdjustments.length);
 };
 
 const resetCheckoutPaymentState = (target: CheckoutPaymentRuntimeState): void => {
@@ -165,8 +183,129 @@ const seedOperatorOrders = (dependencies: StagingTestHarnessDependencies): void 
       refundNote: null,
       isDeleted: false,
     },
+    {
+      id: "test-order-cancellable-3001",
+      shopId: "shop-1",
+      shopNameSnapshot: "Плов в парке Сомони",
+      sellerId: "seller-runtime-1",
+      clientId: seedUsers.clientAlina.id,
+      courierId: seedUsers.courier7.id,
+      status: "IN_PROGRESS",
+      itemsTotalMinor: 6100,
+      deliveryFeeMinor: 0,
+      totalAmountMinor: 6100,
+      paymentProvider: "mock",
+      paymentProviderTxId: "test-payment-cancellable-3001",
+      telegramPaymentChargeId: null,
+      providerPaymentChargeId: null,
+      paymentStatus: "PAID",
+      refundStatus: "NOT_REQUIRED",
+      refundNote: null,
+      isDeleted: false,
+    },
   );
-  dependencies.checkoutPaymentState.nextOrderId = 3;
+  dependencies.checkoutPaymentState.nextOrderId = 4;
+};
+
+const seedOperatorOrderStatusHistory = (dependencies: StagingTestHarnessDependencies): void => {
+  dependencies.operationalRuntime.seedOrderStatusHistory([
+    {
+      orderId: "test-order-created-1001",
+      createdAtOffsetMs: -8 * 60_000,
+      updatedAtOffsetMs: -8 * 60_000,
+      assignedAtOffsetMs: null,
+      history: [
+        {
+          orderId: "test-order-created-1001",
+          oldStatus: "CREATED",
+          newStatus: "CREATED",
+          changedByUserId: "staging-system",
+          changedByRole: "system",
+          changedByName: "Staging seed",
+          changedAtOffsetMs: -8 * 60_000,
+        },
+      ],
+    },
+    {
+      orderId: "test-order-delivered-2001",
+      createdAtOffsetMs: -48 * 60_000,
+      updatedAtOffsetMs: -8 * 60_000,
+      assignedAtOffsetMs: -42 * 60_000,
+      history: [
+        {
+          orderId: "test-order-delivered-2001",
+          oldStatus: "CREATED",
+          newStatus: "ASSIGNED",
+          changedByUserId: seedUsers.courier7.id,
+          changedByRole: "courier",
+          changedByName: seedUsers.courier7.name,
+          changedAtOffsetMs: -42 * 60_000,
+        },
+        {
+          orderId: "test-order-delivered-2001",
+          oldStatus: "ASSIGNED",
+          newStatus: "PICKED_UP",
+          changedByUserId: seedUsers.courier7.id,
+          changedByRole: "courier",
+          changedByName: seedUsers.courier7.name,
+          changedAtOffsetMs: -35 * 60_000,
+        },
+        {
+          orderId: "test-order-delivered-2001",
+          oldStatus: "PICKED_UP",
+          newStatus: "IN_PROGRESS",
+          changedByUserId: seedUsers.courier7.id,
+          changedByRole: "courier",
+          changedByName: seedUsers.courier7.name,
+          changedAtOffsetMs: -22 * 60_000,
+        },
+        {
+          orderId: "test-order-delivered-2001",
+          oldStatus: "IN_PROGRESS",
+          newStatus: "DELIVERED",
+          changedByUserId: seedUsers.courier7.id,
+          changedByRole: "courier",
+          changedByName: seedUsers.courier7.name,
+          changedAtOffsetMs: -8 * 60_000,
+        },
+      ],
+    },
+    {
+      orderId: "test-order-cancellable-3001",
+      createdAtOffsetMs: -30 * 60_000,
+      updatedAtOffsetMs: -10 * 60_000,
+      assignedAtOffsetMs: -26 * 60_000,
+      history: [
+        {
+          orderId: "test-order-cancellable-3001",
+          oldStatus: "CREATED",
+          newStatus: "ASSIGNED",
+          changedByUserId: seedUsers.courier7.id,
+          changedByRole: "courier",
+          changedByName: seedUsers.courier7.name,
+          changedAtOffsetMs: -26 * 60_000,
+        },
+        {
+          orderId: "test-order-cancellable-3001",
+          oldStatus: "ASSIGNED",
+          newStatus: "PICKED_UP",
+          changedByUserId: seedUsers.courier7.id,
+          changedByRole: "courier",
+          changedByName: seedUsers.courier7.name,
+          changedAtOffsetMs: -18 * 60_000,
+        },
+        {
+          orderId: "test-order-cancellable-3001",
+          oldStatus: "PICKED_UP",
+          newStatus: "IN_PROGRESS",
+          changedByUserId: seedUsers.courier7.id,
+          changedByRole: "courier",
+          changedByName: seedUsers.courier7.name,
+          changedAtOffsetMs: -10 * 60_000,
+        },
+      ],
+    },
+  ]);
 };
 
 const summarizeReset = (dependencies: StagingTestHarnessDependencies) => ({
@@ -264,11 +403,16 @@ export const createStagingTestHarness = (dependencies: StagingTestHarnessDepende
       ensureUser(dependencies.checkoutPaymentState, seedUsers.clientAlina);
     }
 
-    if (scenario === "operator_orders" || scenario === "delivery_happy_path") {
+    const seedsOperatorOrders = scenario === "operator_orders" || scenario === "delivery_happy_path";
+
+    if (seedsOperatorOrders) {
       seedOperatorOrders(dependencies);
     }
 
     dependencies.operationalRuntime.resetRuntimeState();
+    if (seedsOperatorOrders) {
+      seedOperatorOrderStatusHistory(dependencies);
+    }
     dependencies.saveCatalogState(dependencies.catalogState);
     dependencies.saveAdminAccessState(dependencies.adminAccessState);
 

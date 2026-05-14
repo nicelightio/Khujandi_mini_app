@@ -65,7 +65,7 @@ status: active
 - `REQ-008` drift: `PICKED_UP` is missing and courier can complete; target says courier stops at `DELIVERED`, operator/admin closes `COMPLETED`.
 - `REQ-035` drift: existing admin assignment page is not the desktop-first operator monitoring panel.
 - `REQ-036` drift: courier availability fields/menu, auto-offer participation, assignment offers, atomic claim, timeout and `DELAYED` escalation are missing.
-- Role drift: Prisma `UserRole` has `ADMIN`/`MANAGER` but no `OPERATOR`; spec says `operator` role and `admin` includes operator capability. Minimal resolution: add `OPERATOR` while preserving `ADMIN` behavior; treat existing `MANAGER` only if a later policy explicitly maps it.
+- Role drift: historical implementations used both `MANAGER` and `OPERATOR`; current role policy keeps only canonical `OPERATOR`, while `ADMIN` and `BOSS` include operator capability where admin-web features allow it.
 - Cursor drift: normative boundary says opaque string cursor; current Prisma repository parses numeric event ids. Minimal resolution: preserve numeric event-id runtime while adding compatibility tests and not exposing numeric assumptions to consumers; only change persistence cursor storage if a future SSE/WS task requires it.
 
 ## Execution Phases And TASK Cards

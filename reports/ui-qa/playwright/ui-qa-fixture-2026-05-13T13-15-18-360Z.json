@@ -1,0 +1,69 @@
+{
+  "task": "TASK-FT018-05",
+  "command": "api-smoke",
+  "baseUrl": "https://staging-tgmeal.natureonzoom.win/",
+  "scenario": "operator_orders",
+  "persona": "admin_boss",
+  "apiWorkflow": {
+    "health": {
+      "ok": true,
+      "appEnv": "staging",
+      "nodeEnv": "staging",
+      "debug": true,
+      "paymentProvider": "mock",
+      "e2eTestMode": true,
+      "version": "dev"
+    },
+    "reset": {
+      "ok": true
+    },
+    "seed": {
+      "scenario": "operator_orders",
+      "summaryKeys": [
+        "catalog",
+        "checkoutPayment",
+        "ok",
+        "operational",
+        "scenario"
+      ]
+    },
+    "personas": {
+      "keys": [
+        "client_alina",
+        "seller_plov",
+        "admin_boss",
+        "courier_7"
+      ]
+    },
+    "session": {
+      "persona": "admin_boss",
+      "contour": "admin-web",
+      "role": "admin",
+      "transport": "httpOnlyCookie",
+      "expiresAt": "2026-05-16T13:15:18.223Z",
+      "cookieSummary": [
+        {
+          "name": "khujandi_admin_access_token",
+          "domain": "staging-tgmeal.natureonzoom.win",
+          "path": "/",
+          "httpOnly": true,
+          "secure": true,
+          "sameSite": "Lax"
+        },
+        {
+          "name": "khujandi_admin_refresh_token",
+          "domain": "staging-tgmeal.natureonzoom.win",
+          "path": "/",
+          "httpOnly": true,
+          "secure": true,
+          "sameSite": "Lax"
+        }
+      ]
+    }
+  },
+  "browserSmoke": {
+    "status": "NOT_RUN",
+    "reason": "Command was api-smoke; browser smoke not requested."
+  },
+  "trustBoundaryNotice": "Staging UI QA with fixed-persona sessions does not prove Telegram HMAC/replay/WebView correctness or real payment provider trust."
+}

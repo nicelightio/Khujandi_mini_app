@@ -8,6 +8,7 @@ import {
 import type { RuntimeServerOptions } from "./dev-api-server.types";
 import { createDevApiRuntime } from "./modules/dev-api-runtime";
 import { handleAdminOrderOperationRoutes } from "./routes/admin-order-operations.routes";
+import { handleAdminStaffRoutes } from "./routes/admin-staff.routes";
 import { handleCatalogRoutes } from "./routes/catalog.routes";
 import { handleHealthRoutes } from "./routes/health.routes";
 import { handleMiniAppRoutes } from "./routes/mini-app.routes";
@@ -55,6 +56,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
       (await handleTestSessionRoutes(routeInput)) ??
       (await handleMiniAppRoutes(routeInput)) ??
       (await handleCatalogRoutes(routeInput)) ??
+      (await handleAdminStaffRoutes(routeInput)) ??
       (await handleAdminOrderOperationRoutes(routeInput)) ??
       notFound();
 

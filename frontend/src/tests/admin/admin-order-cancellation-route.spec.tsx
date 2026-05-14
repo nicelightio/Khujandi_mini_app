@@ -87,12 +87,14 @@ describe("admin order cancellation route", () => {
   const renderRoute = async (
     submitCancellation?: Parameters<typeof AdminOrderCancellationRoute>[0]["submitCancellation"],
     submitRefundUpdate?: Parameters<typeof AdminOrderCancellationRoute>[0]["submitRefundUpdate"],
+    orderId?: string,
   ): Promise<ReactTestRenderer> => {
     let renderer!: ReactTestRenderer;
 
     await act(async () => {
       renderer = create(
         <AdminOrderCancellationRoute
+          orderId={orderId}
           loadBootstrap={async () => bootstrap}
           submitCancellation={submitCancellation}
           submitRefundUpdate={submitRefundUpdate}
@@ -119,6 +121,37 @@ describe("admin order cancellation route", () => {
     expect(renderer.root.findAllByType("select")[0].props.value).toBe("OPS_DELAY");
     expect(renderer.root.findAllByType("button")[0].props.disabled).toBe(false);
     expect(renderer.root.findAllByType("button")[1].props.disabled).toBe(true);
+  });
+
+  it("uses an explicit route order id when no fixture bootstrap is supplied", async () => {
+    const submitCancellation = jest.fn().mockResolvedValue({
+      confirmationMessage: "Отмена записана для seed-заказа.",
+    });
+    let renderer!: ReactTestRenderer;
+
+    await act(async () => {
+      renderer = create(
+        <AdminOrderCancellationRoute
+          orderId=" test-order-cancellable-3001 "
+          submitCancellation={submitCancellation}
+        />,
+      );
+      await flushPromises();
+    });
+
+    expect(collectText(renderer.toJSON()).join(" ")).toContain("Заказ #3001");
+
+    await act(async () => {
+      renderer.root.findAllByType("form")[0].props.onSubmit({
+        preventDefault: jest.fn(),
+      });
+      await flushPromises();
+    });
+
+    expect(submitCancellation).toHaveBeenCalledWith({
+      orderId: "test-order-cancellable-3001",
+      reasonCode: "OPS_DELAY",
+    });
   });
 
   it("updates the selected reason before submit", async () => {

@@ -97,7 +97,7 @@ Raw `initData` передаётся на `POST /auth/telegram`. Backend пров
 
 ## Модель данных (в общих чертах)
 
-- **users** — единая таблица пользователей, `telegram_id` как ключ; роли: `boss/operator/admin/seller/courier/client`; `manager` — business label для `operator`.
+- **users** — единая таблица пользователей, `telegram_id` как ключ; роли: `boss/operator/admin/seller/courier/client`; отдельной роли `manager` нет.
 - Профили 1:1: **clients_profile**, **couriers_profile**, **admins_profile**, **sellers_profile**.  
 - **shops**, **products**, **orders**, **order_status_history**, **reviews**, **events**.
 

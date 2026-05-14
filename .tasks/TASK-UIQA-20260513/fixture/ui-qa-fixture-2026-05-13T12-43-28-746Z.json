@@ -1,0 +1,61 @@
+{
+  "task": "TASK-FT018-05",
+  "command": "api-smoke",
+  "baseUrl": "https://staging-tgmeal.natureonzoom.win/",
+  "scenario": "checkout_happy",
+  "persona": "client_alina",
+  "apiWorkflow": {
+    "health": {
+      "ok": true,
+      "appEnv": "staging",
+      "nodeEnv": "staging",
+      "debug": true,
+      "paymentProvider": "mock",
+      "e2eTestMode": true,
+      "version": "dev"
+    },
+    "reset": {
+      "ok": true
+    },
+    "seed": {
+      "scenario": "checkout_happy",
+      "summaryKeys": [
+        "catalog",
+        "checkoutPayment",
+        "ok",
+        "operational",
+        "scenario"
+      ]
+    },
+    "personas": {
+      "keys": [
+        "client_alina",
+        "seller_plov",
+        "admin_boss",
+        "courier_7"
+      ]
+    },
+    "session": {
+      "persona": "client_alina",
+      "contour": "mini-app",
+      "role": "client",
+      "transport": "httpOnlyCookie",
+      "expiresAt": "2026-05-16T12:43:28.681Z",
+      "cookieSummary": [
+        {
+          "name": "khujandi_mini_app_session",
+          "domain": "staging-tgmeal.natureonzoom.win",
+          "path": "/",
+          "httpOnly": true,
+          "secure": false,
+          "sameSite": "Lax"
+        }
+      ]
+    }
+  },
+  "browserSmoke": {
+    "status": "NOT_RUN",
+    "reason": "Command was api-smoke; browser smoke not requested."
+  },
+  "trustBoundaryNotice": "Staging UI QA with fixed-persona sessions does not prove Telegram HMAC/replay/WebView correctness or real payment provider trust."
+}

@@ -1,4 +1,4 @@
-export type AdminAuthRole = "boss" | "manager" | "admin";
+export type AdminAuthRole = "boss" | "operator" | "admin";
 
 export type AdminAuthSession = {
   adminAccountId: string;
@@ -107,7 +107,7 @@ const toSession = (value: unknown): AdminAuthSession => {
 
   if (
     adminAccountId === null ||
-    (role !== "boss" && role !== "manager" && role !== "admin") ||
+    (role !== "boss" && role !== "operator" && role !== "admin") ||
     accessTokenExpiresAt === null ||
     refreshTokenExpiresAt === null ||
     idleExpiresAt === null

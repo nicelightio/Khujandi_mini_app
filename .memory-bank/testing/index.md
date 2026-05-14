@@ -69,3 +69,4 @@ status: active
 - Production-like runtime must prove `/api/v1/test/*` is absent or `404`.
 - Staging test routes require `E2E_TEST_MODE=TRUE`, `NODE_ENV !== "production"` and `X-E2E-Test-Token`.
 - Browser UI QA evidence must be recorded separately from Telegram raw `initData`, replay, expired `auth_date`, WebView and real payment provider evidence.
+- `TASK-UIQA-20260513` defines the current all-flow Playwright/UI QA plan and first staged run: customer mini-app, seller status, admin auth/provisioning, operator assignment, cancellation/refund, negative auth and trust-boundary notes. Reports live in `reports/ui-qa/20260513-1800-customer-mini-app-staging.md`, `reports/ui-qa/20260513-1811-seller-web-catalog-status.md`, `reports/ui-qa/20260513-1821-admin-web-staging.md`; summary lives in `.tasks/TASK-UIQA-20260513/summary.md`.

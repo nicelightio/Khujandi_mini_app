@@ -4,6 +4,7 @@ import { RootRouter } from "./root-router";
 import { StartupSplashGate } from "./startup-splash";
 import "../shared/styles/webview-shell.css";
 import "../admin/styles/admin-theme.css";
+import "../seller/styles/seller-theme.css";
 import "../slices/catalog/styles/catalog-storefront.css";
 
 const rootElement = document.getElementById("root");

@@ -1,0 +1,20 @@
+{
+  "baseUrl": "https://staging-tgmeal.natureonzoom.win",
+  "statusHref": "/tracking?orderId=order-runtime-1&cursor=0",
+  "metadata": "Заказ order-runtime-1 готов к отслеживанию с revision 0.",
+  "trackingBody": "ХУДЖАНДИ\nОтслеживание заказа\n\nТекущий статус: CREATED.\n\nЗаказ оплачен и ожидает назначения курьера\n\nМы подтвердили оплату. Операционная команда назначит курьера, когда заказ будет готов к доставке.\n\nOrder: order-runtime-1\n\nПрименено обновлений: 0.\n\nCursor: 0\n\nПоследняя revision: пока нет.\n\nPolling consumer хранит opaque cursor, а state-machine остается на backend/bot command boundary.\n\nDEBUG MODE\n\nPath: /tracking\nTelegram runtime: available\nShell ready: true\nTheme: light\nViewport stable height: 844\nBottom action layout: keyboard-safe\nKeyboard test field",
+  "screenshots": [
+    "reports/ui-qa/playwright/customer-20260513-1257-downstream/01-checkout-ready-handoff-workaround.png",
+    "reports/ui-qa/playwright/customer-20260513-1257-downstream/02-checkout-success-handoff-workaround.png",
+    "reports/ui-qa/playwright/customer-20260513-1257-downstream/03-tracking-created-handoff-workaround.png"
+  ],
+  "consoleEvents": [],
+  "networkIssues": [
+    {
+      "status": "FAILED",
+      "url": "https://staging-tgmeal.natureonzoom.win/cdn-cgi/rum?",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "method": "diagnostic workaround: documented sessionStorage composition handoff because storefront checkout CTA is hidden"
+}

@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e4]
+    - generic [ref=e13]: Худжанди
+  - main [ref=e16]:
+    - generic [ref=e17]:
+      - paragraph [ref=e18]: Веб-админка
+      - heading "Вход в админку" [level=1] [ref=e19]
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - paragraph [ref=e22]: Защищенный вход для оператора
+        - paragraph [ref=e23]: Отдельная авторизация по логину и паролю для админки изолирована от авторизации Telegram Mini App.
+        - paragraph [ref=e24]: Используйте заранее созданную админ-учетку. Авторизация админки отделена от авторизации Telegram Mini App.
+        - paragraph [ref=e26]: Защищенные разделы ведут сюда, пока нет действующей admin-access сессии.
+        - paragraph [ref=e27]: "Запрошенный путь: /admin"
+        - generic [ref=e28]:
+          - generic [ref=e29]
+          - generic [ref=e33]
+          - generic [ref=e37]
+      - generic [ref=e41]:
+        - group "Вход под созданной учеткой" [ref=e42]:
+          - generic [ref=e43]: Вход под созданной учеткой
+          - generic [ref=e44]
+          - generic [ref=e46]
+        - button "Войти" [disabled] [ref=e48]
+    - generic [ref=e50]:
+      - paragraph [ref=e51]: DEBUG MODE
+      - list [ref=e52]:
+        - listitem [ref=e53]: "Path: /admin"
+        - listitem [ref=e54]: "Telegram runtime: unavailable"
+        - listitem [ref=e55]: "Shell ready: false"
+        - listitem [ref=e56]: "Theme: unknown"
+        - listitem [ref=e57]: "Viewport stable height: none"
+        - listitem [ref=e58]: "Bottom action layout: inline"
+      - text: Keyboard test field
+      - textbox "Keyboard test field" [ref=e59]:
+        - /placeholder: Tap here to test the keyboard

@@ -1,0 +1,127 @@
+- generic [ref=e61]:
+  - banner [ref=e62]:
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - paragraph [ref=e65]: Khujandi
+        - heading "Панель управления" [level=1] [ref=e66]
+        - paragraph [ref=e67]: Операционные инструменты для доставки, защищенных сессий и создания магазинов.
+      - navigation "Разделы админки" [ref=e68]:
+        - link "Главная" [ref=e69] [cursor=pointer]:
+          - /url: /admin
+        - link "Назначения" [ref=e70] [cursor=pointer]:
+          - /url: /admin/orders/assignment
+        - link "Отмены" [ref=e71] [cursor=pointer]:
+          - /url: /admin/orders/cancellation
+        - link "Магазины" [ref=e72] [cursor=pointer]:
+          - /url: /admin/catalog/shops/provision
+    - generic [ref=e73]:
+      - paragraph [ref=e74]: "Вход: boss (admin-account-1)."
+      - paragraph [ref=e75]: Время простоя контролируется серверной границей до 2026-05-13T13:48:37.093Z.
+      - button "Выйти" [ref=e76] [cursor=pointer]
+  - main [ref=e77]:
+    - generic [ref=e78]:
+      - paragraph [ref=e79]: Веб-админка
+      - heading "Создание магазинов каталога" [level=1] [ref=e80]
+    - generic [ref=e81]:
+      - generic [ref=e82]:
+        - generic [ref=e83]: Статус создания
+        - heading "Созданные магазины сразу готовы для продавца." [level=2] [ref=e84]
+        - paragraph [ref=e85]: Создание магазина поднимает долговечную витрину-заготовку, привязывает продавца из Telegram и выдает публичные пути.
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - generic [ref=e88]: Список из среды выполнения
+            - strong [ref=e89]: "Видно: 2"
+          - generic [ref=e90]:
+            - generic [ref=e91]: Начальная видимость
+            - strong [ref=e92]:
+              - generic [ref=e93]: Работает
+          - generic [ref=e94]:
+            - generic [ref=e95]: Привязка продавца
+            - strong [ref=e96]: Ожидает
+          - generic [ref=e97]:
+            - generic [ref=e98]: Стартовый контент
+            - strong [ref=e99]: Страницы меню и товары
+      - generic [ref=e100]:
+        - group "Рабочая область создания" [ref=e101]:
+          - generic [ref=e102]: Рабочая область создания
+          - generic [ref=e103]:
+            - text: ID продавца
+            - textbox "ID продавца" [ref=e104]
+          - generic [ref=e105]:
+            - text: Telegram ID продавца
+            - textbox "Telegram ID продавца" [ref=e106]
+          - generic [ref=e107]:
+            - text: Название магазина
+            - textbox "Название магазина" [ref=e108]
+          - generic [ref=e109]:
+            - text: Описание
+            - textbox "Описание" [ref=e110]
+          - generic [ref=e111]:
+            - text: URL картинки шапки
+            - textbox "URL картинки шапки" [ref=e112]
+          - generic [ref=e113]:
+            - text: URL фоновой картинки
+            - textbox "URL фоновой картинки" [ref=e114]
+          - generic [ref=e115]:
+            - text: Начальная видимость
+            - combobox "Начальная видимость" [ref=e116]:
+              - option "WORKING" [selected]
+              - option "NOT_WORKING"
+        - button "Создать магазин" [ref=e117] [cursor=pointer]
+      - generic [ref=e118]:
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - text: Среда каталога
+            - heading "Созданные магазины" [level=2] [ref=e121]
+          - generic [ref=e122]: "Магазинов: 2"
+        - list [ref=e123]:
+          - listitem [ref=e124]:
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - text: Магазин
+                - heading "Плов в парке Сомони" [level=3] [ref=e127]
+              - generic [ref=e128]: Работает
+            - generic [ref=e129]:
+              - generic [ref=e130]:
+                - term [ref=e131]: Продавец
+                - definition [ref=e132]: seller-runtime-1
+              - generic [ref=e133]:
+                - term [ref=e134]: Telegram
+                - definition [ref=e135]: "920001"
+            - generic "Публичные пути storefront для Плов в парке Сомони" [ref=e136]:
+              - link "plov-v-parke-somoni" [ref=e137] [cursor=pointer]:
+                - /url: /shops/plov-v-parke-somoni
+              - link "seller-runtime-11" [ref=e138] [cursor=pointer]:
+                - /url: /shops/seller-runtime-11
+            - paragraph [ref=e139]: plov-v-parke-somoni / seller-runtime-11
+          - listitem [ref=e140]:
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - text: Магазин
+                - heading "Бобоча самбуса" [level=3] [ref=e143]
+              - generic [ref=e144]: Работает
+            - generic [ref=e145]:
+              - generic [ref=e146]:
+                - term [ref=e147]: Продавец
+                - definition [ref=e148]: seller-runtime-2
+              - generic [ref=e149]:
+                - term [ref=e150]: Telegram
+                - definition [ref=e151]: Не привязан
+            - generic "Публичные пути storefront для Бобоча самбуса" [ref=e152]:
+              - link "bobocha-sambusa" [ref=e153] [cursor=pointer]:
+                - /url: /shops/bobocha-sambusa
+              - link "seller-runtime-21" [ref=e154] [cursor=pointer]:
+                - /url: /shops/seller-runtime-21
+            - paragraph [ref=e155]: bobocha-sambusa / seller-runtime-21
+    - generic [ref=e157]:
+      - paragraph [ref=e158]: DEBUG MODE
+      - list [ref=e159]:
+        - listitem [ref=e160]: "Path: /admin/catalog/shops/provision"
+        - listitem [ref=e161]: "Telegram runtime: unavailable"
+        - listitem [ref=e162]: "Shell ready: false"
+        - listitem [ref=e163]: "Theme: unknown"
+        - listitem [ref=e164]: "Viewport stable height: none"
+        - listitem [ref=e165]: "Bottom action layout: inline"
+      - text: Keyboard test field
+      - textbox "Keyboard test field" [ref=e166]:
+        - /placeholder: Tap here to test the keyboard

@@ -17,7 +17,7 @@ export type AdminSessionState =
   | {
       status: "authenticated";
       adminAccountId: string;
-      role: "boss" | "manager" | "admin";
+      role: "boss" | "operator" | "admin";
       actorLabel: string;
       idleTimeoutLabel: string;
     };
@@ -47,7 +47,7 @@ export const createRestoringAdminSessionState = (): RestoringAdminSessionState =
 
 type CreateAuthenticatedAdminSessionStateInput = {
   adminAccountId?: string;
-  role?: "boss" | "manager" | "admin";
+  role?: "boss" | "operator" | "admin";
   idleExpiresAt?: string;
 };
 

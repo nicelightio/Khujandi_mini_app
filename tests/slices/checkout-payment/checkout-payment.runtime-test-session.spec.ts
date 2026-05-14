@@ -296,7 +296,7 @@ describe("dev runtime fixed-persona test sessions", () => {
           "x-e2e-test-token": testToken,
         },
         body: {
-          persona: "operator_manager",
+          persona: "operator",
         },
       });
       const identityOverrideResponse = await client.request({
@@ -323,7 +323,7 @@ describe("dev runtime fixed-persona test sessions", () => {
         error: {
           code: "VALIDATION_ERROR",
           details: {
-            persona: "operator_manager",
+            persona: "operator",
           },
         },
       });

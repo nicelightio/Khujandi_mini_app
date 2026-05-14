@@ -1,0 +1,11 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e4]
+    - generic [ref=e13]: Худжанди
+  - region "Language selection" [ref=e17]:
+    - heading "Выберите язык" [level=1] [ref=e18]
+    - paragraph [ref=e19]: Выберите язык, чтобы продолжить.
+    - generic [ref=e20]:
+      - button "Русский" [ref=e21]
+      - button "English" [ref=e22]
+      - button "Тоҷикӣ" [ref=e23]

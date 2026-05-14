@@ -1,0 +1,62 @@
+{
+  "baseUrl": "https://staging-tgmeal.natureonzoom.win",
+  "scenario": "checkout_happy",
+  "persona": "seller_plov",
+  "shop": {
+    "id": "shop-1",
+    "name": "Плов в парке Сомони",
+    "publicPath": "plov-v-parke-somoni"
+  },
+  "hiddenPublicListContainsShop": false,
+  "restoredPublicListContainsShop": true,
+  "ownerNotWorking": {
+    "url": "https://staging-tgmeal.natureonzoom.win/shops/plov-v-parke-somoni",
+    "bodyTextSample": "Seller edit mode is active on the shared storefront tree.\n\nTelegram initData missing on storefront route.\n\nВернуться\n\nSELLER STOREFRONT\n\nПлов в парке Сомони\n\nFresh menu, quick pickup, and the latest dishes in one mobile storefront.\n\nEdit storefront\nSeller edit mode is active on the shared storefront tree.\n\nClick or long press the existing shop, menu, or product blocks to edit them.\n\nLegacy\nAdd menu page\n\nCOMPATIBILITY\n\nLegacy products without a menu page\n\nThese existing products remain editable until they are reassigned to a real menu page.\n\nПлов зарвода\n45.00 TJS\nПлов обычный\n38.00 TJS\nShow effects\n\nDEBUG LOGS\n\nStorefront diagnostics\nCopy logs\n\nDEBUG MODE\n\nPath: /shops/plov-v-parke-somoni\nTelegram runtime: available\nShell ready: true\nTheme: light\nViewport stable height: 844\nBottom action layout: keyboard-safe\nKeyboard test field",
+    "h1": [
+      "Плов в парке Сомони"
+    ],
+    "statusChips": [
+      "Seller edit mode is active on the shared storefront tree."
+    ],
+    "canEdit": "true",
+    "visibleButtons": [
+      "Edit storefront",
+      "Legacy",
+      "Add menu page",
+      "Show effects",
+      "Copy logs"
+    ],
+    "dangerControls": []
+  },
+  "publicNotWorking": {
+    "url": "https://staging-tgmeal.natureonzoom.win/shops/plov-v-parke-somoni",
+    "bodyTextSample": "ХУДЖАНДИ\nКаталог\n\nСейчас не удалось загрузить каталог.\n\nStorefront was not found.\n\nADMIN INTERFACES\n\nАдминка приложения\n\nВсе операционные панели собраны на основной странице админки.\n\nОткрыть админку\nhttps://tgmeal.natureonzoom.win/admin\n\nDEBUG MODE\n\nPath: /shops/plov-v-parke-somoni\nTelegram runtime: available\nShell ready: true\nTheme: light\nViewport stable height: 844\nBottom action layout: keyboard-safe\nKeyboard test field",
+    "h1": [
+      "Каталог"
+    ],
+    "statusChips": [],
+    "canEdit": null,
+    "visibleButtons": [],
+    "dangerControls": []
+  },
+  "publicWorking": {
+    "url": "https://staging-tgmeal.natureonzoom.win/shops/plov-v-parke-somoni",
+    "bodyTextSample": "Browse-only storefront. Seller edit mode stays hidden until ownership is confirmed server-side.\n\nTelegram initData missing on storefront route.\n\nВернуться\n\nSTOREFRONT\n\nПлов в парке Сомони\n\nFresh menu, quick pickup, and the latest dishes in one mobile storefront.\n\nПлов зарвода\n45.00 TJS\nПлов обычный\n38.00 TJS\n\nDEBUG LOGS\n\nStorefront diagnostics\nCopy logs\n\nDEBUG MODE\n\nPath: /shops/plov-v-parke-somoni\nTelegram runtime: available\nShell ready: true\nTheme: light\nViewport stable height: 844\nBottom action layout: keyboard-safe\nKeyboard test field",
+    "h1": [
+      "Плов в парке Сомони"
+    ],
+    "statusChips": [
+      "Browse-only storefront. Seller edit mode stays hidden until ownership is confirmed server-side."
+    ],
+    "canEdit": "false",
+    "visibleButtons": [
+      "Copy logs"
+    ],
+    "dangerControls": []
+  },
+  "screenshots": [
+    "reports/ui-qa/playwright/seller-20260513-1325-visibility-flow/01-owner-not-working-language-set.png",
+    "reports/ui-qa/playwright/seller-20260513-1325-visibility-flow/02-public-not-working-language-set.png",
+    "reports/ui-qa/playwright/seller-20260513-1325-visibility-flow/03-public-working-language-set.png"
+  ]
+}

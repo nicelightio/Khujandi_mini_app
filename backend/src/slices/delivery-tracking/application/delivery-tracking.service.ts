@@ -12,7 +12,7 @@ import type {
 import { AppError } from "../../../shared/errors/app-error";
 
 const ALLOWED_TRACKING_ROLE = "courier";
-const ALLOWED_OPERATOR_TRACKING_ROLES = new Set(["operator", "admin"]);
+const ALLOWED_OPERATOR_TRACKING_ROLES = new Set(["boss", "operator", "admin"]);
 const NOOP_DELIVERY_TRACKING_NOTIFIER: DeliveryTrackingNotifier = {
   async notifyStatusChanged() {
     return undefined;

@@ -50,8 +50,8 @@ export const registerOrderCancellationRefundCases = () => {
     const auditCreate = jest.fn().mockResolvedValue({
       id: 301n,
       orderId: "order-3",
-      actorUserId: "manager-1",
-      actorRole: "MANAGER",
+      actorUserId: "operator-1",
+      actorRole: "OPERATOR",
       action: "refund_updated",
       reasonCode: "SHOP_UNAVAILABLE",
       refundStatus: "DONE",
@@ -70,7 +70,7 @@ export const registerOrderCancellationRefundCases = () => {
         status: "CANCELLED_BY_ADMIN",
         refundStatus: "DONE",
         refundNote: "Cash returned offline",
-        updatedByUserId: "manager-1",
+        updatedByUserId: "operator-1",
         updatedAt: "2026-04-03T10:15:00.000Z",
       },
       createdAt: new Date("2026-04-03T10:15:00.000Z"),
@@ -97,8 +97,8 @@ export const registerOrderCancellationRefundCases = () => {
       module.controller.recordRefundUpdate({
         orderId: "order-3",
         actor: {
-          userId: "manager-1",
-          role: "manager",
+          userId: "operator-1",
+          role: "operator",
         },
         refundStatus: "DONE",
         refundNote: "  Cash returned offline  ",
@@ -125,8 +125,8 @@ export const registerOrderCancellationRefundCases = () => {
     expect(auditCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         orderId: "order-3",
-        actorUserId: "manager-1",
-        actorRole: "MANAGER",
+        actorUserId: "operator-1",
+        actorRole: "OPERATOR",
         action: "refund_updated",
         reasonCode: "SHOP_UNAVAILABLE",
         refundStatus: "DONE",
@@ -145,7 +145,7 @@ export const registerOrderCancellationRefundCases = () => {
           status: "CANCELLED_BY_ADMIN",
           refundStatus: "DONE",
           refundNote: "Cash returned offline",
-          updatedByUserId: "manager-1",
+          updatedByUserId: "operator-1",
           updatedAt: "2026-04-03T10:15:00.000Z",
         },
       },
@@ -284,8 +284,8 @@ export const registerOrderCancellationRefundCases = () => {
       .mockResolvedValueOnce({
         id: 404n,
         orderId: "order-5",
-        actorUserId: "manager-3",
-        actorRole: "MANAGER",
+        actorUserId: "operator-3",
+        actorRole: "OPERATOR",
         action: "refund_updated",
         reasonCode: "SHOP_UNAVAILABLE",
         refundStatus: "DONE",
@@ -323,7 +323,7 @@ export const registerOrderCancellationRefundCases = () => {
           status: "CANCELLED_BY_ADMIN",
           refundStatus: "DONE",
           refundNote: "Cash returned to the client",
-          updatedByUserId: "manager-3",
+          updatedByUserId: "operator-3",
           updatedAt: "2026-04-03T12:10:00.000Z",
         },
         createdAt: new Date("2026-04-03T12:10:00.000Z"),
@@ -367,8 +367,8 @@ export const registerOrderCancellationRefundCases = () => {
       module.controller.recordRefundUpdate({
         orderId: "order-5",
         actor: {
-          userId: "manager-3",
-          role: "manager",
+          userId: "operator-3",
+          role: "operator",
         },
         refundStatus: "DONE",
         refundNote: " Cash returned to the client ",
@@ -425,7 +425,7 @@ export const registerOrderCancellationRefundCases = () => {
       2,
       expect.objectContaining({
         data: expect.objectContaining({
-          actorUserId: "manager-3",
+          actorUserId: "operator-3",
           reasonCode: "SHOP_UNAVAILABLE",
           refundStatus: "DONE",
           refundNote: "Cash returned to the client",
@@ -459,7 +459,7 @@ export const registerOrderCancellationRefundCases = () => {
           status: "CANCELLED_BY_ADMIN",
           refundStatus: "DONE",
           refundNote: "Cash returned to the client",
-          updatedByUserId: "manager-3",
+          updatedByUserId: "operator-3",
           updatedAt: "2026-04-03T12:10:00.000Z",
         },
       },
@@ -519,8 +519,8 @@ export const registerOrderCancellationRefundCases = () => {
     const auditCreate = jest.fn().mockResolvedValue({
       id: 501n,
       orderId: "order-6",
-      actorUserId: "manager-1",
-      actorRole: "MANAGER",
+      actorUserId: "operator-1",
+      actorRole: "OPERATOR",
       action: "refund_updated",
       reasonCode: "SHOP_UNAVAILABLE",
       refundStatus: "DONE",
@@ -539,7 +539,7 @@ export const registerOrderCancellationRefundCases = () => {
         status: "CANCELLED_BY_ADMIN",
         refundStatus: "DONE",
         refundNote: "Cash returned offline",
-        updatedByUserId: "manager-1",
+        updatedByUserId: "operator-1",
         updatedAt: "2026-04-03T13:10:00.000Z",
       },
       createdAt: new Date("2026-04-03T13:10:00.000Z"),
@@ -566,8 +566,8 @@ export const registerOrderCancellationRefundCases = () => {
       module.controller.recordRefundUpdate({
         orderId: "order-6",
         actor: {
-          userId: "manager-1",
-          role: "manager",
+          userId: "operator-1",
+          role: "operator",
         },
         refundStatus: "DONE",
         refundNote: "Cash returned offline",

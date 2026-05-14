@@ -1,10 +1,7 @@
 import { AppError } from "../../shared/errors/app-error";
 import { json, readJsonBody } from "../http-runtime";
 import type { DevApiRouteHandler } from "../dev-api-server.types";
-import type {
-  DeliveryTrackingOrderStatus,
-  DeliveryTrackingUserRole,
-} from "../../slices/delivery-tracking/domain/delivery-tracking.types";
+import type { DeliveryTrackingOrderStatus } from "../../slices/delivery-tracking/domain/delivery-tracking.types";
 
 const DELIVERY_TRACKING_STATUS_VALUES = new Set<string>([
   "CREATED",
@@ -17,22 +14,6 @@ const DELIVERY_TRACKING_STATUS_VALUES = new Set<string>([
   "CANCELLED_BY_ADMIN",
   "CANCELLED_BY_COURIER_UNAVAILABLE",
 ]);
-
-const toOperatorStatusCommandRole = (role: DeliveryTrackingUserRole): DeliveryTrackingUserRole => {
-  if (role === "manager") {
-    return "operator";
-  }
-
-  return role;
-};
-
-const toDeliveryAssignmentOperatorRole = (role: DeliveryTrackingUserRole): DeliveryTrackingUserRole => {
-  if (role === "manager") {
-    return "operator";
-  }
-
-  return role;
-};
 
 export const handleAdminOrderOperationRoutes: DevApiRouteHandler = async ({ request, url, method, context }) => {
   const { operationalModules, resolveProtectedAdminSession } = context;
@@ -85,7 +66,7 @@ export const handleAdminOrderOperationRoutes: DevApiRouteHandler = async ({ requ
           nextStatus: nextStatus as DeliveryTrackingOrderStatus,
           actor: {
             userId: session.adminAccountId,
-            role: toOperatorStatusCommandRole(session.role),
+            role: session.role,
             name: session.adminAccountId,
           },
         }),
@@ -149,7 +130,7 @@ export const handleAdminOrderOperationRoutes: DevApiRouteHandler = async ({ requ
           orderId,
           actor: {
             userId: session.adminAccountId,
-            role: toDeliveryAssignmentOperatorRole(session.role),
+            role: session.role,
           },
         }),
         "POST,OPTIONS",
@@ -181,7 +162,7 @@ export const handleAdminOrderOperationRoutes: DevApiRouteHandler = async ({ requ
           courierId: String(body.courierId ?? ""),
           actor: {
             userId: session.adminAccountId,
-            role: toDeliveryAssignmentOperatorRole(session.role),
+            role: session.role,
           },
         }),
         "POST,OPTIONS",
@@ -250,7 +231,7 @@ export const handleAdminOrderOperationRoutes: DevApiRouteHandler = async ({ requ
           courierId: String(body.courierId ?? ""),
           actor: {
             userId: session.adminAccountId,
-            role: toDeliveryAssignmentOperatorRole(session.role),
+            role: session.role,
           },
           override: body.confirmDirectAssignmentOverride === true ? { confirmed: true } : null,
         }),

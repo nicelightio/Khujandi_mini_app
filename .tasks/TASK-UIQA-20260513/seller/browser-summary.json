@@ -1,0 +1,153 @@
+{
+  "baseUrl": "https://staging-tgmeal.natureonzoom.win",
+  "scenario": "checkout_happy",
+  "persona": "seller_plov",
+  "session": {
+    "persona": "seller_plov",
+    "contour": "mini-app",
+    "role": "seller",
+    "transport": "httpOnlyCookie",
+    "cookieSummary": [
+      {
+        "name": "khujandi_mini_app_session",
+        "domain": "staging-tgmeal.natureonzoom.win",
+        "path": "/",
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "Lax"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "name": "seller status page loaded",
+      "url": "https://staging-tgmeal.natureonzoom.win/seller/shops/status",
+      "ownedShopCount": 1,
+      "shop": {
+        "id": "shop-1",
+        "name": "Плов в парке Сомони",
+        "status": "WORKING"
+      },
+      "publicPath": "plov-v-parke-somoni",
+      "dangerControls": []
+    },
+    {
+      "name": "toggle to NOT_WORKING",
+      "apiStatus": {
+        "statusCode": 200,
+        "shop": {
+          "id": "shop-1",
+          "sellerId": "seller-runtime-1",
+          "primaryPublicPath": "seller-runtime-11",
+          "secondaryPublicPath": "plov-v-parke-somoni",
+          "name": "Плов в парке Сомони",
+          "description": null,
+          "headerImageUrl": null,
+          "backgroundImageUrl": null,
+          "status": "NOT_WORKING",
+          "renameCount": 0,
+          "requiresManualRenameReview": false,
+          "isDeleted": false
+        }
+      }
+    },
+    {
+      "name": "owner storefront while NOT_WORKING",
+      "facts": {
+        "url": "https://staging-tgmeal.natureonzoom.win/shops/plov-v-parke-somoni",
+        "title": "Khujandi Mini App",
+        "bodyTextSample": "ХУДЖАНДИ\nВыберите язык\n\nВыберите язык, чтобы продолжить.\n\nРусскийEnglishТоҷикӣ",
+        "visibleButtons": [
+          "Русский",
+          "English",
+          "Тоҷикӣ"
+        ]
+      },
+      "dangerControls": []
+    },
+    {
+      "name": "public visibility while NOT_WORKING",
+      "publicList": {
+        "statusCode": 200,
+        "containsShopId": false,
+        "containsName": false,
+        "count": 1
+      },
+      "page": {
+        "url": "https://staging-tgmeal.natureonzoom.win/shops/plov-v-parke-somoni",
+        "title": "Khujandi Mini App",
+        "bodyTextSample": "ХУДЖАНДИ\nВыберите язык\n\nВыберите язык, чтобы продолжить.\n\nРусскийEnglishТоҷикӣ",
+        "visibleButtons": [
+          "Русский",
+          "English",
+          "Тоҷикӣ"
+        ]
+      }
+    },
+    {
+      "name": "restore to WORKING",
+      "apiStatus": {
+        "statusCode": 200,
+        "shop": {
+          "id": "shop-1",
+          "sellerId": "seller-runtime-1",
+          "primaryPublicPath": "seller-runtime-11",
+          "secondaryPublicPath": "plov-v-parke-somoni",
+          "name": "Плов в парке Сомони",
+          "description": null,
+          "headerImageUrl": null,
+          "backgroundImageUrl": null,
+          "status": "WORKING",
+          "renameCount": 0,
+          "requiresManualRenameReview": false,
+          "isDeleted": false
+        }
+      },
+      "publicList": {
+        "statusCode": 200,
+        "containsShopId": true,
+        "containsName": true,
+        "count": 2
+      },
+      "publicPage": {
+        "url": "https://staging-tgmeal.natureonzoom.win/shops/plov-v-parke-somoni",
+        "title": "Khujandi Mini App",
+        "bodyTextSample": "ХУДЖАНДИ\nВыберите язык\n\nВыберите язык, чтобы продолжить.\n\nРусскийEnglishТоҷикӣ",
+        "visibleButtons": [
+          "Русский",
+          "English",
+          "Тоҷикӣ"
+        ]
+      }
+    }
+  ],
+  "findingsEvidence": {
+    "statusPageInitial": {
+      "url": "https://staging-tgmeal.natureonzoom.win/seller/shops/status",
+      "title": "Khujandi Mini App",
+      "bodyTextSample": "ХУДЖАНДИ\n\nSeller Web\n\nShop status control\n\nChoose one owned shop and toggle WORKING or NOT_WORKING without opening a second storefront.\n\nThis contour stays narrow and separate from the shared storefront tree.\n\nSeller access reuses the Telegram-linked session family. No separate seller password exists.\n\nOwned shop\nПлов в парке Сомони (WORKING)\nVisibility status\nWORKING\nNOT_WORKING\nSave status\n\nDEBUG MODE\n\nPath: /seller/shops/status\nTelegram runtime: unavailable\nShell ready: false\nTheme: unknown\nViewport stable height: none\nBottom action layout: inline\nKeyboard test field",
+      "visibleButtons": [
+        "Save status"
+      ]
+    },
+    "initialStatus": "WORKING",
+    "firstTarget": "NOT_WORKING",
+    "restoredStatus": "WORKING",
+    "publicPath": "plov-v-parke-somoni",
+    "publicHiddenContainsName": false,
+    "publicRestoredContainsName": true,
+    "publicHiddenBodySample": "ХУДЖАНДИ\nВыберите язык\n\nВыберите язык, чтобы продолжить.\n\nРусскийEnglishТоҷикӣ",
+    "publicRestoredBodySample": "ХУДЖАНДИ\nВыберите язык\n\nВыберите язык, чтобы продолжить.\n\nРусскийEnglishТоҷикӣ",
+    "ownerHiddenBodySample": "ХУДЖАНДИ\nВыберите язык\n\nВыберите язык, чтобы продолжить.\n\nРусскийEnglishТоҷикӣ"
+  },
+  "consoleMessages": [],
+  "failedResponses": [],
+  "screenshots": [
+    "reports/ui-qa/playwright/seller-20260513-1310-status-flow/01-seller-status-loaded.png",
+    "reports/ui-qa/playwright/seller-20260513-1310-status-flow/02-status-not_working.png",
+    "reports/ui-qa/playwright/seller-20260513-1310-status-flow/03-owner-storefront-not_working.png",
+    "reports/ui-qa/playwright/seller-20260513-1310-status-flow/04-public-storefront-not_working.png",
+    "reports/ui-qa/playwright/seller-20260513-1310-status-flow/05-status-restored-working.png",
+    "reports/ui-qa/playwright/seller-20260513-1310-status-flow/06-public-storefront-restored-working.png"
+  ]
+}

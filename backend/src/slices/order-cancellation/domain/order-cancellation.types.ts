@@ -3,7 +3,6 @@ export type OrderCancellationUserId = string;
 export type OrderCancellationRevision = string;
 export type OrderCancellationUserRole =
   | "boss"
-  | "manager"
   | "operator"
   | "admin"
   | "seller"

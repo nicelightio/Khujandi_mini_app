@@ -370,7 +370,6 @@
 [data-catalog-storefront="shop"][data-can-edit="false"] [data-storefront-tabs="wrap"],
 [data-catalog-storefront="shop"][data-can-edit="false"] [data-storefront-menu="heading"],
 [data-catalog-storefront="shop"][data-can-edit="false"] [data-storefront-menu="panel"] > p,
-[data-catalog-storefront="shop"][data-can-edit="false"] [data-storefront-cart="summary"],
 [data-catalog-storefront="shop"][data-can-edit="false"] [data-storefront-fx="dock"] {
   display: none;
 }

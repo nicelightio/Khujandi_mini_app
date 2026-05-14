@@ -1098,7 +1098,7 @@ describe("reviews-feedback module integration", () => {
     expect(userFindMany).toHaveBeenCalledWith({
       where: {
         role: {
-          in: ["BOSS", "MANAGER", "ADMIN"],
+          in: ["BOSS", "OPERATOR", "ADMIN"],
         },
         isActive: true,
       },
@@ -1171,11 +1171,11 @@ describe("reviews-feedback module integration", () => {
       });
     const userFindMany = jest.fn().mockResolvedValue([
       {
-        id: "manager-1",
+        id: "operator-1",
         telegramId: "90003",
-        role: "MANAGER",
+        role: "OPERATOR",
         isActive: true,
-        name: "Manager One",
+        name: "Operator One",
       },
       {
         id: "admin-1",

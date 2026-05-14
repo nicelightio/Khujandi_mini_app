@@ -1,0 +1,74 @@
+{
+  "route": "/shops/seller-runtime-11",
+  "productName": "Плов зарвода",
+  "screenshot": "reports/ui-qa/playwright/customer-20260513-1258-storefront-blocker/storefront-after-add-no-visible-checkout.png",
+  "data": {
+    "cardSelected": "true",
+    "inlineCounter": {
+      "text": "-1+",
+      "display": "flex",
+      "visibility": "visible",
+      "opacity": "1",
+      "rect": {
+        "x": 155,
+        "y": 137.71875,
+        "width": 113.1875,
+        "height": 40
+      }
+    },
+    "summary": {
+      "text": "Order draftПлов в парке СомониCheckout readyПлов зарвода45.00 TJS-1+RemovePreview total45.00 TJSContinue to checkout",
+      "display": "none",
+      "visibility": "visible",
+      "opacity": "1",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "item": {
+      "text": "Плов зарвода45.00 TJS-1+Remove",
+      "display": "grid",
+      "visibility": "visible",
+      "opacity": "1",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "ready": {
+      "text": "Checkout ready",
+      "display": "block",
+      "visibility": "visible",
+      "opacity": "1",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "checkout": {
+      "text": "Continue to checkout",
+      "display": "inline-block",
+      "visibility": "visible",
+      "opacity": "1",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "disabled": false
+    },
+    "visibleButtonTexts": [
+      "-",
+      "+",
+      "Copy logs"
+    ]
+  }
+}

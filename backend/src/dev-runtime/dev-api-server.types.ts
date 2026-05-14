@@ -9,6 +9,10 @@ import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 import type { createOperationalRuntimeModules } from "./order-ops-runtime";
 import type { RuntimeCheckoutPaymentProvider } from "./payment-provider-runtime";
 import type { RuntimeMode } from "./runtime-mode";
+import type { PrismaAdminAccessOperatorStaffMetricsReader } from "../slices/admin-access/infrastructure/prisma-operator-staff-metrics.reader";
+import type { PrismaCourierStaffMetricsReader } from "../slices/delivery-assignment/infrastructure/prisma-courier-staff-metrics.reader";
+import type { PrismaOperatorStaffMetricsReader } from "../slices/delivery-tracking/infrastructure/prisma-operator-staff-metrics.reader";
+import type { PrismaReviewsFeedbackStaffMetricsReader } from "../slices/reviews-feedback/infrastructure/prisma-staff-metrics.reader";
 
 export type RuntimeServerOptions = {
   host?: string;
@@ -54,6 +58,12 @@ export type DevApiRouteContext = {
   checkoutPaymentState: CheckoutPaymentRuntimeState;
   catalogState: CatalogRuntimeState;
   operationalModules: ReturnType<typeof createOperationalRuntimeModules>;
+  staffPanelReaders: {
+    adminAccessOperatorStaffMetricsReader: PrismaAdminAccessOperatorStaffMetricsReader;
+    courierStaffMetricsReader: PrismaCourierStaffMetricsReader;
+    operatorStaffMetricsReader: PrismaOperatorStaffMetricsReader;
+    reviewsFeedbackStaffMetricsReader: PrismaReviewsFeedbackStaffMetricsReader;
+  };
   isDebugEnabled: boolean;
   runtimeMode: RuntimeMode;
   checkoutPaymentProvider: RuntimeCheckoutPaymentProvider;

@@ -1,0 +1,97 @@
+- generic [ref=e61]:
+  - banner [ref=e62]:
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - paragraph [ref=e65]: Khujandi
+        - heading "Панель управления" [level=1] [ref=e66]
+        - paragraph [ref=e67]: Операционные инструменты для доставки, защищенных сессий и создания магазинов.
+      - navigation "Разделы админки" [ref=e68]:
+        - link "Главная" [ref=e69] [cursor=pointer]:
+          - /url: /admin
+        - link "Назначения" [ref=e70] [cursor=pointer]:
+          - /url: /admin/orders/assignment
+        - link "Отмены" [ref=e71] [cursor=pointer]:
+          - /url: /admin/orders/cancellation
+        - link "Магазины" [ref=e72] [cursor=pointer]:
+          - /url: /admin/catalog/shops/provision
+    - generic [ref=e73]:
+      - paragraph [ref=e74]: "Вход: boss (admin-account-1)."
+      - paragraph [ref=e75]: Время простоя контролируется серверной границей до 2026-05-13T13:49:51.582Z.
+      - button "Выйти" [ref=e76] [cursor=pointer]
+  - main [ref=e77]:
+    - generic [ref=e78]:
+      - paragraph [ref=e79]: Веб-админка
+      - heading "Отмена заказа и учет возврата" [level=1] [ref=e80]
+    - generic [ref=e81]:
+      - generic [ref=e82]:
+        - generic [ref=e83]: Статус отмены
+        - paragraph [ref=e84]: Страница отмены готова для подключения команд и видимой обратной связи по состоянию возврата.
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: Заказ
+            - strong [ref=e88]: "Заказ #2004"
+          - generic [ref=e89]:
+            - generic [ref=e90]: Текущее состояние
+            - strong [ref=e91]:
+              - generic [ref=e92]: "Текущее состояние заказа: В доставке. Серверная проверка разрешенных ролей остается вне этой страницы."
+          - generic [ref=e93]:
+            - generic [ref=e94]: Состояние возврата
+            - strong [ref=e95]:
+              - generic [ref=e96]: Ожидает ручного возврата
+        - paragraph [ref=e97]:
+          - text: "Состояние возврата:"
+          - strong [ref=e98]:
+            - generic [ref=e99]: Ожидает ручного возврата
+        - paragraph [ref=e100]: Платные отмены должны сразу показывать ожидание ручного возврата, пока оператор не запишет результат.
+        - paragraph [ref=e101]: Состояние возврата отображается здесь, чтобы админка показывала явный операторский учет до подключения среды выполнения.
+        - paragraph [ref=e102]: Логин и сессия админки управляются отдельно через границу admin-access.
+      - generic [ref=e103]:
+        - 'group "Заказ #2004" [ref=e104]':
+          - generic [ref=e105]: "Заказ #2004"
+          - generic [ref=e106]:
+            - text: Причина отмены
+            - combobox "Причина отмены" [ref=e107]:
+              - option "Операционная задержка - Операционная отмена от администратора" [selected]
+              - option "Курьер недоступен - Разрешенный сценарий, когда курьер недоступен"
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - strong [ref=e110]: Операционная задержка
+            - generic [ref=e111]: Операционная отмена от администратора
+            - generic [ref=e112]: OPS_DELAY
+          - generic [ref=e113]:
+            - strong [ref=e114]: Курьер недоступен
+            - generic [ref=e115]: Разрешенный сценарий, когда курьер недоступен
+            - generic [ref=e116]: COURIER_UNAVAILABLE
+        - button "Отправить отмену" [ref=e117] [cursor=pointer]
+      - generic [ref=e118]:
+        - group "Ручной учет возврата" [ref=e119]:
+          - generic [ref=e120]: Ручной учет возврата
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - generic [ref=e123]: Видимое состояние
+              - strong [ref=e124]:
+                - generic [ref=e125]: Ожидает ручного возврата
+            - generic [ref=e126]:
+              - generic [ref=e127]: Заметка оператора
+              - strong [ref=e128]: Не записана
+          - generic [ref=e129]:
+            - text: Результат возврата
+            - combobox "Результат возврата" [ref=e130]:
+              - option "Возврат выполнен вручную" [selected]
+              - option "Возврат отклонен после ручной проверки"
+          - generic [ref=e131]:
+            - text: Заметка по возврату
+            - textbox "Заметка по возврату" [ref=e132]
+        - button "Записать результат возврата" [disabled] [ref=e133]
+    - generic [ref=e135]:
+      - paragraph [ref=e136]: DEBUG MODE
+      - list [ref=e137]:
+        - listitem [ref=e138]: "Path: /admin/orders/cancellation"
+        - listitem [ref=e139]: "Telegram runtime: unavailable"
+        - listitem [ref=e140]: "Shell ready: false"
+        - listitem [ref=e141]: "Theme: unknown"
+        - listitem [ref=e142]: "Viewport stable height: none"
+        - listitem [ref=e143]: "Bottom action layout: inline"
+      - text: Keyboard test field
+      - textbox "Keyboard test field" [ref=e144]:
+        - /placeholder: Tap here to test the keyboard

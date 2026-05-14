@@ -67,7 +67,7 @@ _Источник требований: `doc/PRD.md`_
 ## 3. RBAC (канонические коды ролей)
 
 Системные роли в контрактах:
-`boss`, `operator`, `admin`, `seller`, `courier`, `client`; `manager` is a business label for `operator`, and `admin` includes operator capabilities.
+`boss`, `operator`, `admin`, `seller`, `courier`, `client`; there is no separate `manager` role, and `admin` includes operator capabilities.
 
 Принципы:
 - Проверка роли обязательна для всех write-операций.

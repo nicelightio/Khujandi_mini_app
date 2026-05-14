@@ -36,32 +36,32 @@ export const registerCatalogRuntimeProvisioningCases = () => {
       });
       expect(runtime.catalogState.shops.some((shop) => shop.name === "Anonymous Shop")).toBe(false);
 
-      runtime.prisma.state.account.role = "MANAGER";
-      const managerClient = runtime.createClient();
-      await loginAdmin(managerClient);
+      runtime.prisma.state.account.role = "OPERATOR";
+      const operatorClient = runtime.createClient();
+      await loginAdmin(operatorClient);
 
-      const managerResponse = await managerClient.request({
+      const operatorResponse = await operatorClient.request({
         path: "/api/v1/admin/catalog/shops/provision",
         origin: adminOrigin,
         body: {
-          sellerId: "seller-manager",
-          telegramId: "seller-telegram-manager",
-          name: "Manager Shop",
+          sellerId: "seller-operator",
+          telegramId: "seller-telegram-operator",
+          name: "Operator Shop",
         },
       });
 
-      expect(managerResponse.status).toBe(403);
-      expect(managerResponse.body).toEqual({
+      expect(operatorResponse.status).toBe(403);
+      expect(operatorResponse.body).toEqual({
         error: {
           code: "FORBIDDEN",
           message: "User role cannot provision seller shops",
           details: {
-            role: "manager",
+            role: "operator",
           },
         },
         trace_id: "trace-catalog-runtime",
       });
-      expect(runtime.catalogState.shops.some((shop) => shop.name === "Manager Shop")).toBe(false);
+      expect(runtime.catalogState.shops.some((shop) => shop.name === "Operator Shop")).toBe(false);
 
       runtime.prisma.state.account.role = "BOSS";
       const client = runtime.createClient();
