@@ -136,6 +136,16 @@ describe("checkout-payment route", () => {
         bottom: 0,
         left: 0,
       },
+      capabilities: {
+        supportsEnhancedShell: false,
+        supportsKeyboardSafeBottomActions: initData !== null,
+        supportsNativeChrome: false,
+      },
+    }),
+    getRuntimeCapabilities: jest.fn().mockReturnValue({
+      supportsEnhancedShell: false,
+      supportsKeyboardSafeBottomActions: initData !== null,
+      supportsNativeChrome: false,
     }),
     onEvent: jest.fn().mockReturnValue(() => undefined),
     setBackButtonVisible: jest.fn(),

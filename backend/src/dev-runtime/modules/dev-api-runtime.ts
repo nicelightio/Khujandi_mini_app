@@ -28,6 +28,8 @@ import {
 import { resolveRuntimeCheckoutPaymentProvider } from "../payment-provider-runtime";
 import { parseRuntimeBooleanFlag, resolveRuntimeMode } from "../runtime-mode";
 import { createStagingTestHarness } from "../staging-test-harness";
+import { createTelegramBotApiClient } from "../telegram-bot-api";
+import { createTelegramBotRuntime, startTelegramBotPolling } from "../telegram-bot-runtime";
 
 export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const allowedOrigins = options.allowedOrigins ?? ["https://admin.example", "http://127.0.0.1:5173", "http://localhost:5173"];
@@ -63,6 +65,10 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const catalogModule = createCatalogModule(catalogPrisma);
   const checkoutPaymentState = checkoutPaymentPrisma.state;
   ensureOperationalRuntimeBaseline(checkoutPaymentState);
+  const telegramBotApiClient = createTelegramBotApiClient({
+    token: options.telegramBotToken ?? process.env.TELEGRAM_BOT_TOKEN,
+  });
+  const telegramDispatcher = options.telegramMessageDispatcher ?? telegramBotApiClient;
   const isDebugEnabled = runtimeMode.debug;
   const checkoutPaymentModule = createCheckoutPaymentModule(
     checkoutPaymentPrisma,
@@ -116,6 +122,13 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   });
   const operationalModules = createOperationalRuntimeModules(checkoutPaymentState, {
     now: options.now,
+    telegramDispatcher,
+  });
+  const telegramBotRuntime = createTelegramBotRuntime({
+    deliveryAssignmentModule: operationalModules.deliveryAssignmentModule,
+    deliveryTrackingModule: operationalModules.deliveryTrackingModule,
+    dispatcher: telegramDispatcher,
+    callbackResponder: telegramBotApiClient,
   });
   const stagingTestHarness = createStagingTestHarness({
     adminAccessState: prisma.state,
@@ -165,6 +178,9 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
       checkoutPaymentState,
       catalogState,
       operationalModules,
+      telegramBotRuntime,
+      isTelegramBotApiEnabled: telegramBotApiClient.isEnabled,
+      telegramWebhookSecret: options.telegramWebhookSecret ?? process.env.TELEGRAM_WEBHOOK_SECRET,
       staffPanelReaders: {
         adminAccessOperatorStaffMetricsReader,
         courierStaffMetricsReader: operationalModules.staffMetrics.courierStaffMetricsReader,
@@ -178,6 +194,12 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
       resolveProtectedAdminSession,
       resolveDebugStorefrontAccess,
     },
+    startTelegramBotPolling: () => startTelegramBotPolling({
+      apiClient: telegramBotApiClient,
+      runtime: telegramBotRuntime,
+      intervalMs: options.telegramBotPollIntervalMs,
+    }),
+    isTelegramBotApiEnabled: telegramBotApiClient.isEnabled,
     dispose: () => {
       adminPersistence.close();
       adminPersistence.cleanup();

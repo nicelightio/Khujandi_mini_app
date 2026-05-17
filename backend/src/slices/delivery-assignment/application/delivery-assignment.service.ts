@@ -66,6 +66,10 @@ export class DeliveryAssignmentService {
     return this.repository.findCourierById(courierId);
   }
 
+  findCourierStaffByTelegramUserId(telegramId: string) {
+    return this.getCourierStaffRepository().findCourierStaffByTelegramUserId(telegramId.trim());
+  }
+
   async createCourierStaff(
     input: CreateDeliveryAssignmentCourierStaffCommandInput,
   ): Promise<CreateDeliveryAssignmentCourierStaffCommandResult> {
@@ -776,7 +780,7 @@ export class DeliveryAssignmentService {
       throw new AppError("CONFLICT", "Order cannot be claimed from the current state", 409, {
         orderId,
         currentStatus: order.status,
-        expectedStatus: ["CREATED", "DELAYED"],
+        expectedStatus: "CREATED,DELAYED",
       });
     }
 
@@ -802,7 +806,7 @@ export class DeliveryAssignmentService {
       throw new AppError("CONFLICT", "Manual offer can only be created for CREATED or DELAYED orders", 409, {
         orderId,
         currentStatus: order.status,
-        expectedStatus: ["CREATED", "DELAYED"],
+        expectedStatus: "CREATED,DELAYED",
       });
     }
   }
@@ -825,7 +829,7 @@ export class DeliveryAssignmentService {
     if (this.isCourierStaffDeactivated(courier)) {
       throw new AppError("COURIER_STAFF_INACTIVE", "Courier staff is deactivated", 409, {
         courierId,
-        staffDeactivatedAt: courier.staffDeactivatedAt,
+        staffDeactivatedAt: courier.staffDeactivatedAt?.toISOString() ?? null,
       });
     }
   }

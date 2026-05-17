@@ -20,7 +20,7 @@ export const buildShopUpdatedEvent = (shop: {
   name: string;
   renameCount: number;
   requiresManualRenameReview: boolean;
-  updatedAt: Date;
+  updatedAt?: Date;
 }) =>
   createCatalogEventPayload({
     type: "catalog.shop.updated",
@@ -42,7 +42,7 @@ export const buildMenuPageCreatedEvent = (menuPage: {
   shopId: string;
   position: number;
   name: string;
-  createdAt: Date;
+  createdAt?: Date;
   shop: {
     sellerId: string;
   };
@@ -66,7 +66,7 @@ export const buildMenuPageUpdatedEvent = (menuPage: {
   shopId: string;
   position: number;
   name: string;
-  updatedAt: Date;
+  updatedAt?: Date;
   shop: {
     sellerId: string;
   };
@@ -91,7 +91,7 @@ export const buildProductCreatedEvent = (product: {
   menuPageId: string | null;
   name: string;
   priceMinor: number;
-  createdAt: Date;
+  createdAt?: Date;
   shop: {
     sellerId: string;
   };
@@ -117,7 +117,7 @@ export const buildProductUpdatedEvent = (product: {
   menuPageId: string | null;
   name: string;
   priceMinor: number;
-  updatedAt: Date;
+  updatedAt?: Date;
   shop: {
     sellerId: string;
   };

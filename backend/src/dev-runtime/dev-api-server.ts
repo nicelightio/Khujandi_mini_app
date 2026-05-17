@@ -12,6 +12,7 @@ import { handleAdminStaffRoutes } from "./routes/admin-staff.routes";
 import { handleCatalogRoutes } from "./routes/catalog.routes";
 import { handleHealthRoutes } from "./routes/health.routes";
 import { handleMiniAppRoutes } from "./routes/mini-app.routes";
+import { handleTelegramBotRoutes } from "./routes/telegram-bot.routes";
 import { handleTestSessionRoutes } from "./routes/test-session.routes";
 import { handleTestStateRoutes } from "./routes/test-state.routes";
 
@@ -54,6 +55,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
       (await handleHealthRoutes(routeInput)) ??
       (await handleTestStateRoutes(routeInput)) ??
       (await handleTestSessionRoutes(routeInput)) ??
+      (await handleTelegramBotRoutes(routeInput)) ??
       (await handleMiniAppRoutes(routeInput)) ??
       (await handleCatalogRoutes(routeInput)) ??
       (await handleAdminStaffRoutes(routeInput)) ??
@@ -70,6 +72,10 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
 
   const address = server.address() as AddressInfo;
   const baseUrl = `http://${host}:${address.port}`;
+  const telegramPolling =
+    options.telegramBotPollingEnabled === true && runtime.isTelegramBotApiEnabled
+      ? runtime.startTelegramBotPolling()
+      : null;
 
   return {
     baseUrl,
@@ -81,6 +87,7 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
     checkoutPaymentState: runtime.checkoutPaymentState,
     createClient: () => createRuntimeCookieSessionClient(baseUrl),
     stop: async () => {
+      telegramPolling?.stop();
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {
           if (error !== undefined && error !== null) {

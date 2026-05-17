@@ -9,6 +9,8 @@ import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 import type { createOperationalRuntimeModules } from "./order-ops-runtime";
 import type { RuntimeCheckoutPaymentProvider } from "./payment-provider-runtime";
 import type { RuntimeMode } from "./runtime-mode";
+import type { TelegramBotMessageDispatcher } from "../integrations/telegram-bot/telegram-bot-delivery-assignment.notifier";
+import type { TelegramBotRuntime } from "./telegram-bot-runtime";
 import type { PrismaAdminAccessOperatorStaffMetricsReader } from "../slices/admin-access/infrastructure/prisma-operator-staff-metrics.reader";
 import type { PrismaCourierStaffMetricsReader } from "../slices/delivery-assignment/infrastructure/prisma-courier-staff-metrics.reader";
 import type { PrismaOperatorStaffMetricsReader } from "../slices/delivery-tracking/infrastructure/prisma-operator-staff-metrics.reader";
@@ -21,6 +23,10 @@ export type RuntimeServerOptions = {
   adminDatabasePath?: string;
   catalogDatabasePath?: string;
   telegramBotToken?: string;
+  telegramBotPollingEnabled?: boolean;
+  telegramBotPollIntervalMs?: number;
+  telegramWebhookSecret?: string;
+  telegramMessageDispatcher?: TelegramBotMessageDispatcher;
   paymentProvider?: string;
   nodeEnv?: string;
   appEnv?: string;
@@ -58,6 +64,9 @@ export type DevApiRouteContext = {
   checkoutPaymentState: CheckoutPaymentRuntimeState;
   catalogState: CatalogRuntimeState;
   operationalModules: ReturnType<typeof createOperationalRuntimeModules>;
+  telegramBotRuntime: TelegramBotRuntime;
+  isTelegramBotApiEnabled: boolean;
+  telegramWebhookSecret?: string;
   staffPanelReaders: {
     adminAccessOperatorStaffMetricsReader: PrismaAdminAccessOperatorStaffMetricsReader;
     courierStaffMetricsReader: PrismaCourierStaffMetricsReader;

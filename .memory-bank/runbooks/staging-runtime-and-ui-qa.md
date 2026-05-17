@@ -102,9 +102,13 @@ E2E_TEST_TOKEN=replace-with-secret-outside-docs
 ADMIN_DB_PATH=/var/lib/khujandi-staging/admin-access-runtime.sqlite
 CATALOG_DB_PATH=/var/lib/khujandi-staging/catalog-runtime.sqlite
 TELEGRAM_BOT_TOKEN=test-bot-token
+TELEGRAM_BOT_POLLING=FALSE
+TELEGRAM_WEBHOOK_SECRET=optional-webhook-secret-outside-docs
 ```
 
 Never put `E2E_TEST_TOKEN`, real Telegram bot token, `DATABASE_URL` or other secrets into Memory Bank.
+
+For real staging courier-bot smoke, replace `TELEGRAM_BOT_TOKEN` in ignored env with the staging bot token and set `TELEGRAM_BOT_POLLING=TRUE`. Polling is disabled by default and must remain explicitly env-gated; do not enable it in production accidentally. The runtime also exposes `POST /api/v1/telegram/webhook`; when a real Telegram token is configured, `TELEGRAM_WEBHOOK_SECRET` is required for webhook ingress and must match Telegram `secret_token`.
 
 ## Server Deploy Outline
 

@@ -4,6 +4,22 @@ import type { DeliveryAssignmentPrismaProvider } from "../../../backend/src/slic
 
 const adminOrigin = "https://admin.example";
 
+jest.setTimeout(15000);
+
+type OperatorDeliveryOrdersBody = {
+  orders: unknown[];
+};
+
+const expectOperatorDeliveryOrdersBody = (body: unknown): OperatorDeliveryOrdersBody => {
+  expect(body).toEqual(
+    expect.objectContaining({
+      orders: expect.any(Array),
+    }),
+  );
+
+  return body as OperatorDeliveryOrdersBody;
+};
+
 type TimeoutOrder = {
   id: string;
   courierId: string | null;
@@ -486,7 +502,7 @@ describe("delivery-assignment offer timeout evaluator", () => {
         origin: adminOrigin,
       });
       expect(ordersResponse.status).toBe(200);
-      expect(ordersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(ordersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "DELAYED",

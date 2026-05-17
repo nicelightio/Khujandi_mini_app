@@ -51,6 +51,8 @@ describe("catalog page storefront edit events", () => {
             },
             access: {
               canEdit: true,
+              currentTelegramId: null,
+              authDebugLabel: null,
               statusLabel: "Seller edit mode is active on the shared storefront tree.",
               activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
             },
@@ -79,6 +81,7 @@ describe("catalog page storefront edit events", () => {
             errorMessage: null,
             isSaving: false,
             editor: null,
+            debugLogs: [],
           },
           onActivateEditor,
         }),
@@ -122,6 +125,8 @@ describe("catalog page storefront edit events", () => {
             },
             access: {
               canEdit: true,
+              currentTelegramId: null,
+              authDebugLabel: null,
               statusLabel: "Seller edit mode is active on the shared storefront tree.",
               activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
             },
@@ -135,6 +140,7 @@ describe("catalog page storefront edit events", () => {
             errorMessage: null,
             isSaving: false,
             editor: null,
+            debugLogs: [],
           },
           onActivateEditor,
         }),

@@ -64,6 +64,8 @@ const forbiddenIdentityFields = [
   "password",
 ];
 
+const formatAllowlist = (values: readonly string[]): string => values.join(",");
+
 const miniAppSessionTtlMs = 3 * 24 * 60 * 60 * 1000;
 const miniAppSessionCookieName = "khujandi_mini_app_session";
 const adminAccessCookieName = "khujandi_admin_access_token";
@@ -85,7 +87,8 @@ const assertNoIdentityOverride = (body: Record<string, unknown>): void => {
 
   if (rejectedFields.length > 0) {
     throw new AppError("VALIDATION_ERROR", "Fixed persona session does not accept identity fields", 400, {
-      rejectedFields,
+      rejectedFields: formatAllowlist(rejectedFields),
+      rejectedFieldCount: rejectedFields.length,
     });
   }
 };
@@ -224,7 +227,8 @@ const createSessionForPersona = async (
   if (!supportedPersonaKeys.has(persona)) {
     throw new AppError("VALIDATION_ERROR", "Persona is not supported by current runtime", 400, {
       persona,
-      allowedPersonas: supportedPersonas.map((supportedPersona) => supportedPersona.key),
+      allowedPersonas: formatAllowlist(supportedPersonas.map((supportedPersona) => supportedPersona.key)),
+      allowedPersonaCount: supportedPersonas.length,
     });
   }
 
@@ -269,7 +273,8 @@ export const handleTestSessionRoutes: DevApiRouteHandler = async (input) => {
     if (!isPersonaKey(persona)) {
       throw new AppError("VALIDATION_ERROR", "Persona is invalid", 400, {
         persona,
-        allowedPersonas: supportedPersonas.map((supportedPersona) => supportedPersona.key),
+        allowedPersonas: formatAllowlist(supportedPersonas.map((supportedPersona) => supportedPersona.key)),
+        allowedPersonaCount: supportedPersonas.length,
       });
     }
 

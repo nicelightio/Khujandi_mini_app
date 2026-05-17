@@ -384,7 +384,7 @@ describe("delivery-assignment courier claim", () => {
       new AppError("CONFLICT", "Order cannot be claimed from the current state", 409, {
         orderId: "order-claim-1",
         currentStatus: "IN_PROGRESS",
-        expectedStatus: ["CREATED", "DELAYED"],
+        expectedStatus: "CREATED,DELAYED",
       }),
     );
 

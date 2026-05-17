@@ -1164,6 +1164,7 @@ describe("delivery-assignment module integration", () => {
           userId: "seller-1",
           role: "seller",
         },
+        override: { confirmed: true },
       }),
     ).rejects.toEqual(
       new AppError("FORBIDDEN", "User role cannot directly assign couriers", 403, {

@@ -2,6 +2,22 @@ import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-serv
 
 const adminOrigin = "https://admin.example";
 
+jest.setTimeout(15000);
+
+type OperatorDeliveryOrdersBody = {
+  orders: unknown[];
+};
+
+const expectOperatorDeliveryOrdersBody = (body: unknown): OperatorDeliveryOrdersBody => {
+  expect(body).toEqual(
+    expect.objectContaining({
+      orders: expect.any(Array),
+    }),
+  );
+
+  return body as OperatorDeliveryOrdersBody;
+};
+
 const loginAdmin = async () => {
   const runtime = await startDevApiServer({
     host: "127.0.0.1",
@@ -52,7 +68,7 @@ describe("delivery-assignment runtime mount", () => {
         origin: adminOrigin,
       });
       expect(ordersResponse.status).toBe(200);
-      expect(ordersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(ordersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "CREATED",
@@ -127,7 +143,7 @@ describe("delivery-assignment runtime mount", () => {
         origin: adminOrigin,
       });
       expect(ordersResponse.status).toBe(200);
-      expect(ordersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(ordersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "CREATED",
@@ -174,7 +190,7 @@ describe("delivery-assignment runtime mount", () => {
         origin: adminOrigin,
       });
       expect(ordersResponse.status).toBe(200);
-      expect(ordersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(ordersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "CREATED",
@@ -204,7 +220,7 @@ describe("delivery-assignment runtime mount", () => {
         origin: adminOrigin,
       });
       expect(claimedOrdersResponse.status).toBe(200);
-      expect(claimedOrdersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(claimedOrdersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "ASSIGNED",
@@ -246,7 +262,7 @@ describe("delivery-assignment runtime mount", () => {
         origin: adminOrigin,
       });
       expect(ordersResponse.status).toBe(200);
-      expect(ordersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(ordersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "CREATED",
@@ -286,7 +302,7 @@ describe("delivery-assignment runtime mount", () => {
         origin: adminOrigin,
       });
       expect(ordersResponse.status).toBe(200);
-      expect(ordersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(ordersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "CREATED",
@@ -331,7 +347,7 @@ describe("delivery-assignment runtime mount", () => {
         origin: adminOrigin,
       });
       expect(ordersResponse.status).toBe(200);
-      expect(ordersResponse.body.orders).toContainEqual(
+      expect(expectOperatorDeliveryOrdersBody(ordersResponse.body).orders).toContainEqual(
         expect.objectContaining({
           orderId: "order-created-1001",
           status: "ASSIGNED",

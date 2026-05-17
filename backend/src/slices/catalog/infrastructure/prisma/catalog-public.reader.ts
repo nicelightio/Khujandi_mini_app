@@ -108,8 +108,8 @@ export class CatalogPublicReader {
     });
   }
 
-  listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]> {
-    return this.prisma.product.findMany({
+  async listPublicProductsByShop(shopId: ShopId): Promise<CatalogProduct[]> {
+    const products = await this.prisma.product.findMany({
       where: {
         shopId,
         isDeleted: false,
@@ -128,5 +128,15 @@ export class CatalogPublicReader {
         priceMinor: true,
       },
     });
+
+    return products.map((product) => ({
+      id: product.id,
+      shopId: product.shopId,
+      menuPageId: product.menuPageId,
+      name: product.name,
+      description: product.description ?? null,
+      imageUrl: product.imageUrl ?? null,
+      priceMinor: product.priceMinor,
+    }));
   }
 }

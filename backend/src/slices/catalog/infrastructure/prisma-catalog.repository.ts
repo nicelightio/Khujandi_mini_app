@@ -10,9 +10,9 @@ import type {
   CreateSellerProductInput,
   CreateSellerShopBindingInput,
   MenuPageId,
+  PersistProvisionSellerShopInput,
   ProductId,
   ProvisionedSellerShop,
-  ProvisionSellerShopInput,
   ProvisioningTemplateBlueprint,
   SellerCatalogMenuPage,
   SellerCatalogProduct,
@@ -143,7 +143,7 @@ export class PrismaCatalogRepository implements CatalogRepository {
   }
 
   provisionSellerShop(
-    input: ProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint },
+    input: PersistProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint },
   ): Promise<ProvisionedSellerShop> {
     return this.provisioningWriter.provisionSellerShop(input);
   }

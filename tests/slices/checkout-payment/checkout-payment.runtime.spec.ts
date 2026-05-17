@@ -42,6 +42,25 @@ const stalePriceComposition = {
   },
 };
 
+type CreatedCheckoutBody = {
+  orderId: string;
+  revision: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+function assertCreatedCheckoutBody(body: unknown): asserts body is CreatedCheckoutBody {
+  expect(isRecord(body)).toBe(true);
+
+  if (!isRecord(body)) {
+    throw new Error("Expected checkout response body to be an object");
+  }
+
+  expect(typeof body.orderId).toBe("string");
+  expect(typeof body.revision).toBe("string");
+}
+
 describe("checkout-payment mounted runtime", () => {
   it("accepts explicit PAYMENT_PROVIDER=mock with staging guard and keeps checkout idempotent", async () => {
     const runtime = await startDevApiServer({
@@ -140,6 +159,7 @@ describe("checkout-payment mounted runtime", () => {
         updated_at: expect.any(String),
         revision: expect.any(String),
       });
+      assertCreatedCheckoutBody(checkoutResponse.body);
       expect(checkoutResponse.body.revision).not.toBe(checkoutResponse.body.orderId);
       expect(runtime.checkoutPaymentState.orders).toHaveLength(initialOrderCount + 1);
       expect(runtime.checkoutPaymentState.orders.at(-1)).toMatchObject({
@@ -155,7 +175,7 @@ describe("checkout-payment mounted runtime", () => {
         paymentStatus: "PAID",
         refundStatus: "NOT_REQUIRED",
       });
-      const createdOrderBody = checkoutResponse.body as { orderId: string };
+      const createdOrderBody = checkoutResponse.body;
 
       const duplicateCheckoutResponse = await client.request({
         path: "/api/v1/orders/checkout",

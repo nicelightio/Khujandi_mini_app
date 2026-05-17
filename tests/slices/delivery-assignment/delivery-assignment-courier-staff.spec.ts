@@ -407,13 +407,13 @@ describe("delivery-assignment courier staff operational deactivation", () => {
     await expect(service.startCourierWork("courier-user-1", now)).rejects.toEqual(
       new AppError("COURIER_STAFF_INACTIVE", "Courier staff is deactivated", 409, {
         courierId: "courier-user-1",
-        staffDeactivatedAt: deactivatedOperationalCourier.staffDeactivatedAt,
+        staffDeactivatedAt: deactivatedOperationalCourier.staffDeactivatedAt?.toISOString() ?? null,
       }),
     );
     await expect(service.stopCourierWorkAfter("courier-user-1", now)).rejects.toEqual(
       new AppError("COURIER_STAFF_INACTIVE", "Courier staff is deactivated", 409, {
         courierId: "courier-user-1",
-        staffDeactivatedAt: deactivatedOperationalCourier.staffDeactivatedAt,
+        staffDeactivatedAt: deactivatedOperationalCourier.staffDeactivatedAt?.toISOString() ?? null,
       }),
     );
     await expect(
@@ -421,7 +421,7 @@ describe("delivery-assignment courier staff operational deactivation", () => {
     ).rejects.toEqual(
       new AppError("COURIER_STAFF_INACTIVE", "Courier staff is deactivated", 409, {
         courierId: "courier-user-1",
-        staffDeactivatedAt: deactivatedOperationalCourier.staffDeactivatedAt,
+        staffDeactivatedAt: deactivatedOperationalCourier.staffDeactivatedAt?.toISOString() ?? null,
       }),
     );
 

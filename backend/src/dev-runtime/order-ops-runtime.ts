@@ -1,10 +1,30 @@
 import { createDeliveryAssignmentModule } from "../slices/delivery-assignment/presentation/delivery-assignment.module";
 import { PrismaCourierStaffMetricsReader } from "../slices/delivery-assignment/infrastructure/prisma-courier-staff-metrics.reader";
-import type { DeliveryAssignmentOrderStatus } from "../slices/delivery-assignment/domain/delivery-assignment.types";
+import type {
+  DeliveryAssignmentEventRecord,
+  DeliveryAssignmentOrderRecord,
+  DeliveryAssignmentOrderStatus,
+  DeliveryAssignmentStatusHistoryRecord,
+} from "../slices/delivery-assignment/domain/delivery-assignment.types";
+import type {
+  DeliveryTrackingOrderRecord,
+  DeliveryTrackingOrderStatus,
+  DeliveryTrackingStatusHistoryRecord,
+} from "../slices/delivery-tracking/domain/delivery-tracking.types";
+import type {
+  OrderCancellationEventRecord,
+  OrderCancellationOrderRecord,
+  OrderCancellationPaymentStatus,
+  OrderCancellationRefundStatus,
+  OrderCancellationStatusHistoryRecord,
+} from "../slices/order-cancellation/domain/order-cancellation.types";
 import { createDeliveryTrackingModule } from "../slices/delivery-tracking/presentation/delivery-tracking.module";
 import { PrismaOperatorStaffMetricsReader } from "../slices/delivery-tracking/infrastructure/prisma-operator-staff-metrics.reader";
 import { createOrderCancellationModule } from "../slices/order-cancellation/presentation/order-cancellation.module";
 import { PrismaReviewsFeedbackStaffMetricsReader } from "../slices/reviews-feedback/infrastructure/prisma-staff-metrics.reader";
+import { TelegramBotDeliveryAssignmentNotifier, type TelegramBotMessageDispatcher } from "../integrations/telegram-bot/telegram-bot-delivery-assignment.notifier";
+import { TelegramBotDeliveryTrackingHarness } from "../integrations/telegram-bot/telegram-bot-delivery-tracking.harness";
+import { TelegramBotDeliveryTrackingNotifier } from "../integrations/telegram-bot/telegram-bot-delivery-tracking.notifier";
 import type { CheckoutPaymentOrderRecord, CheckoutPaymentUserRecord } from "../slices/checkout-payment/domain/checkout-payment.types";
 import type { DeliveryAssignmentPrismaProvider } from "../slices/delivery-assignment/infrastructure/prisma-delivery-assignment.repository";
 import type { DeliveryTrackingPrismaProvider } from "../slices/delivery-tracking/infrastructure/prisma-delivery-tracking.repository";
@@ -86,6 +106,20 @@ type RuntimeStatusHistoryRecord = {
   changedByName?: string;
   changedAt: Date;
 };
+
+const ORDER_CANCELLATION_PAYMENT_STATUSES = new Set<OrderCancellationPaymentStatus>([
+  "PAID",
+  "FAILED",
+  "CANCELED",
+  "PENDING",
+]);
+
+const ORDER_CANCELLATION_REFUND_STATUSES = new Set<OrderCancellationRefundStatus>([
+  "NOT_REQUIRED",
+  "PENDING_MANUAL",
+  "DONE",
+  "REJECTED",
+]);
 
 type RuntimeAssignmentOfferRecord = {
   id: string;
@@ -320,7 +354,7 @@ const toAssignmentOrderRecord = (
   runtimeState: OperationalRuntimeState,
   orderId: string,
   nowFactory: () => Date,
-) => {
+): DeliveryAssignmentOrderRecord | null => {
   const resolved = findOrder(state, runtimeState, orderId, nowFactory);
 
   if (resolved === null) {
@@ -336,15 +370,37 @@ const toAssignmentOrderRecord = (
   };
 };
 
+const toTrackingOrderRecord = (
+  state: CheckoutPaymentRuntimeState,
+  runtimeState: OperationalRuntimeState,
+  orderId: string,
+  nowFactory: () => Date,
+): DeliveryTrackingOrderRecord | null => toAssignmentOrderRecord(state, runtimeState, orderId, nowFactory);
+
+const isOrderCancellationPaymentStatus = (
+  status: string,
+): status is OrderCancellationPaymentStatus => ORDER_CANCELLATION_PAYMENT_STATUSES.has(status as OrderCancellationPaymentStatus);
+
+const isOrderCancellationRefundStatus = (
+  status: string,
+): status is OrderCancellationRefundStatus => ORDER_CANCELLATION_REFUND_STATUSES.has(status as OrderCancellationRefundStatus);
+
 const toCancellationOrderRecord = (
   state: CheckoutPaymentRuntimeState,
   runtimeState: OperationalRuntimeState,
   orderId: string,
   nowFactory: () => Date,
-) => {
+): OrderCancellationOrderRecord | null => {
   const resolved = findOrder(state, runtimeState, orderId, nowFactory);
 
   if (resolved === null) {
+    return null;
+  }
+
+  if (
+    !isOrderCancellationPaymentStatus(resolved.order.paymentStatus) ||
+    !isOrderCancellationRefundStatus(resolved.order.refundStatus)
+  ) {
     return null;
   }
 
@@ -362,6 +418,111 @@ const toCancellationOrderRecord = (
     isDeleted: resolved.order.isDeleted,
   };
 };
+
+const toDeliveryAssignmentStatusHistoryRecord = (
+  history: RuntimeStatusHistoryRecord,
+): DeliveryAssignmentStatusHistoryRecord => ({
+  id: history.id,
+  orderId: history.orderId,
+  oldStatus: history.oldStatus as DeliveryAssignmentOrderStatus,
+  newStatus: history.newStatus as DeliveryAssignmentOrderStatus,
+  changedByUserId: history.changedByUserId,
+  changedAt: cloneDate(history.changedAt) as Date,
+});
+
+const toOrderCancellationStatusHistoryRecord = (
+  history: RuntimeStatusHistoryRecord,
+): OrderCancellationStatusHistoryRecord => ({
+  id: history.id,
+  orderId: history.orderId,
+  oldStatus: history.oldStatus as OrderCancellationStatusHistoryRecord["oldStatus"],
+  newStatus: history.newStatus as OrderCancellationStatusHistoryRecord["newStatus"],
+  changedByUserId: history.changedByUserId,
+  changedAt: cloneDate(history.changedAt) as Date,
+});
+
+const toDeliveryTrackingStatusHistoryRecord = (
+  history: RuntimeStatusHistoryRecord,
+): DeliveryTrackingStatusHistoryRecord => ({
+  id: history.id,
+  orderId: history.orderId,
+  oldStatus: history.oldStatus as DeliveryTrackingOrderStatus,
+  newStatus: history.newStatus as DeliveryTrackingOrderStatus,
+  changedByUserId: history.changedByUserId,
+  changedByRole:
+    history.changedByRole === undefined
+      ? null
+      : (history.changedByRole as DeliveryTrackingStatusHistoryRecord["changedByRole"]),
+  changedByName: history.changedByName ?? null,
+  changedAt: cloneDate(history.changedAt) as Date,
+});
+
+const toDeliveryAssignmentEventRecord = (event: RuntimeEventRecord): DeliveryAssignmentEventRecord => ({
+  id: event.id,
+  type: event.type as DeliveryAssignmentEventRecord["type"],
+  entity: "order",
+  entityId: event.entityId,
+  payload: event.payload as DeliveryAssignmentEventRecord["payload"],
+  createdAt: cloneDate(event.createdAt) as Date,
+});
+
+const toOrderCancellationEventRecord = (event: RuntimeEventRecord): OrderCancellationEventRecord => {
+  if (event.type === "order.refund_updated") {
+    return {
+      id: event.id,
+      type: "order.refund_updated",
+      entity: "order",
+      entityId: event.entityId,
+      payload: event.payload as Extract<OrderCancellationEventRecord, { type: "order.refund_updated" }>["payload"],
+      createdAt: cloneDate(event.createdAt) as Date,
+    };
+  }
+
+  return {
+    id: event.id,
+    type: "order.cancelled",
+    entity: "order",
+    entityId: event.entityId,
+    payload: event.payload as Extract<OrderCancellationEventRecord, { type: "order.cancelled" }>["payload"],
+    createdAt: cloneDate(event.createdAt) as Date,
+  };
+};
+
+const toDeliveryTrackingPersistedEventRecord = (
+  event: RuntimeEventRecord,
+): Awaited<ReturnType<DeliveryTrackingPrismaProvider["client"]["event"]["create"]>> => ({
+  id: event.id,
+  type: event.type,
+  entity: event.entity,
+  entityId: event.entityId,
+  payload: {
+    orderId: String(event.payload.orderId ?? event.entityId),
+    previousStatus:
+      typeof event.payload.previousStatus === "string"
+        ? event.payload.previousStatus
+        : typeof event.payload.oldStatus === "string"
+          ? event.payload.oldStatus
+          : undefined,
+    oldStatus: typeof event.payload.oldStatus === "string" ? event.payload.oldStatus : undefined,
+    status:
+      typeof event.payload.status === "string"
+        ? event.payload.status
+        : typeof event.payload.newStatus === "string"
+          ? event.payload.newStatus
+          : undefined,
+    newStatus: typeof event.payload.newStatus === "string" ? event.payload.newStatus : undefined,
+    changedByUserId:
+      typeof event.payload.changedByUserId === "string" ? event.payload.changedByUserId : undefined,
+    changedByRole: typeof event.payload.changedByRole === "string" ? event.payload.changedByRole : undefined,
+    changedByName: typeof event.payload.changedByName === "string" ? event.payload.changedByName : undefined,
+    courierId: typeof event.payload.courierId === "string" ? event.payload.courierId : undefined,
+    assignedByUserId:
+      typeof event.payload.assignedByUserId === "string" ? event.payload.assignedByUserId : undefined,
+    updatedAt:
+      typeof event.payload.updatedAt === "string" ? event.payload.updatedAt : event.createdAt.toISOString(),
+  },
+  createdAt: cloneDate(event.createdAt) as Date,
+});
 
 const createOperationalRuntimeState = (
   state: CheckoutPaymentRuntimeState,
@@ -612,6 +773,7 @@ export const createOperationalRuntimeModules = (
   state: CheckoutPaymentRuntimeState,
   options: {
     now?: () => Date;
+    telegramDispatcher?: TelegramBotMessageDispatcher;
   } = {},
 ) => {
   const nowFactory = options.now ?? (() => new Date());
@@ -971,7 +1133,7 @@ export const createOperationalRuntimeModules = (
       },
     },
     orderStatusHistory: {
-      create: async ({ data }) => createRuntimeStatusHistory(runtimeState, data),
+      create: async ({ data }) => toDeliveryAssignmentStatusHistoryRecord(createRuntimeStatusHistory(runtimeState, data)),
       findMany: async ({ where }) =>
         runtimeState.statusHistory
           .filter((history) => {
@@ -1006,7 +1168,7 @@ export const createOperationalRuntimeModules = (
       }),
     },
     event: {
-      create: async ({ data }) => createRuntimeEvent(runtimeState, nowFactory, data),
+      create: async ({ data }) => toDeliveryAssignmentEventRecord(createRuntimeEvent(runtimeState, nowFactory, data)),
       findMany: async ({ where }) =>
         runtimeState.events.filter((event) => {
           if (where.entity !== undefined && event.entity !== where.entity) {
@@ -1022,7 +1184,8 @@ export const createOperationalRuntimeModules = (
           }
 
           return true;
-        }) as never,
+        })
+          .map((event) => toDeliveryAssignmentEventRecord(event)),
     },
     courierStaffLifecycleEvent: {
       create: async ({ data }) => {
@@ -1129,7 +1292,7 @@ export const createOperationalRuntimeModules = (
       },
     },
     orderStatusHistory: {
-      create: async ({ data }) => createRuntimeStatusHistory(runtimeState, data),
+      create: async ({ data }) => toOrderCancellationStatusHistoryRecord(createRuntimeStatusHistory(runtimeState, data)),
     },
     orderCancellationAudit: {
       create: async ({ data }) => ({
@@ -1138,14 +1301,14 @@ export const createOperationalRuntimeModules = (
       }),
     },
     event: {
-      create: async ({ data }) => createRuntimeEvent(runtimeState, nowFactory, data),
+      create: async ({ data }) => toOrderCancellationEventRecord(createRuntimeEvent(runtimeState, nowFactory, data)),
     },
     $transaction: async (callback) => callback(orderCancellationClient),
   };
 
   const deliveryTrackingClient: DeliveryTrackingPrismaProvider["client"] = {
     order: {
-      findUnique: async ({ where }) => toAssignmentOrderRecord(state, runtimeState, where.id, nowFactory),
+      findUnique: async ({ where }) => toTrackingOrderRecord(state, runtimeState, where.id, nowFactory),
       update: async ({ where, data }) => {
         const resolved = findOrder(state, runtimeState, where.id, nowFactory);
 
@@ -1155,11 +1318,11 @@ export const createOperationalRuntimeModules = (
 
         resolved.order.status = data.status;
         resolved.metadata.updatedAt = nowFactory();
-        return toAssignmentOrderRecord(state, runtimeState, where.id, nowFactory)!;
+        return toTrackingOrderRecord(state, runtimeState, where.id, nowFactory)!;
       },
     },
     orderStatusHistory: {
-      create: async ({ data }) => createRuntimeStatusHistory(runtimeState, data),
+      create: async ({ data }) => toDeliveryTrackingStatusHistoryRecord(createRuntimeStatusHistory(runtimeState, data)),
     },
     event: {
       create: async ({ data }) => {
@@ -1186,9 +1349,12 @@ export const createOperationalRuntimeModules = (
           }
         }
 
-        return event;
+        return toDeliveryTrackingPersistedEventRecord(event);
       },
-      findMany: async ({ where }) => runtimeState.events.filter((event) => event.id > where.id.gt) as never,
+      findMany: async ({ where }) =>
+        runtimeState.events
+          .filter((event) => event.id > where.id.gt)
+          .map((event) => toDeliveryTrackingPersistedEventRecord(event)),
     },
     user: {
       findUnique: async ({ where }) => {
@@ -1256,12 +1422,22 @@ export const createOperationalRuntimeModules = (
   });
 
   return {
-    deliveryAssignmentModule: createDeliveryAssignmentModule({
-      client: deliveryAssignmentClient,
-    }),
-    deliveryTrackingModule: createDeliveryTrackingModule({
-      client: deliveryTrackingClient,
-    }),
+    deliveryAssignmentModule: createDeliveryAssignmentModule(
+      {
+        client: deliveryAssignmentClient,
+      },
+      options.telegramDispatcher === undefined
+        ? undefined
+        : new TelegramBotDeliveryAssignmentNotifier(options.telegramDispatcher),
+    ),
+    deliveryTrackingModule: createDeliveryTrackingModule(
+      {
+        client: deliveryTrackingClient,
+      },
+      options.telegramDispatcher === undefined
+        ? undefined
+        : new TelegramBotDeliveryTrackingNotifier(new TelegramBotDeliveryTrackingHarness(options.telegramDispatcher)),
+    ),
     orderCancellationModule: createOrderCancellationModule({
       client: orderCancellationClient,
     }),

@@ -10,7 +10,7 @@
     "build:frontend": "vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:catalog": "jest --config jest.config.cjs",
+    "test:catalog": "jest --config jest.config.cjs tests/slices/catalog frontend/src/tests/slices/catalog",
     "test:catalog:unit": "jest --config jest.config.cjs tests/slices/catalog/catalog.unit.spec.ts",
     "test:catalog:integration": "jest --config jest.config.cjs tests/slices/catalog/catalog.integration.spec.ts",
     "test:catalog:runtime": "jest --config jest.config.cjs tests/slices/catalog/catalog.runtime.integration.spec.ts",

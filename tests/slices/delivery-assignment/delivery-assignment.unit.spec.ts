@@ -68,6 +68,55 @@ const createRepository = (): DeliveryAssignmentRepository => ({
     },
     revision: "0",
   }),
+  claimOffer: async () => ({
+    order: {
+      id: "order-1",
+      courierId: "courier-1",
+      status: "ASSIGNED",
+      updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+      isDeleted: false,
+    },
+    offer: {
+      id: "offer-1",
+      orderId: "order-1",
+      targetCourierId: "courier-1",
+      kind: "manual",
+      status: "claimed",
+      createdAt: new Date("2026-04-03T09:55:00.000Z"),
+      updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+    },
+    statusHistory: {
+      id: 1n,
+      orderId: "order-1",
+      oldStatus: "CREATED",
+      newStatus: "ASSIGNED",
+      changedByUserId: "courier-1",
+      changedAt: new Date("2026-04-03T10:00:00.000Z"),
+    },
+    audit: {
+      id: 2n,
+      orderId: "order-1",
+      adminUserId: "courier-1",
+      courierUserId: "courier-1",
+      action: "assigned",
+      createdAt: new Date("2026-04-03T10:00:00.000Z"),
+    },
+    event: {
+      id: 3n,
+      type: "order.assigned",
+      entity: "order",
+      entityId: "order-1",
+      payload: {
+        orderId: "order-1",
+        courierId: "courier-1",
+        assignedByUserId: "courier-1",
+        status: "ASSIGNED",
+        updatedAt: "2026-04-03T10:00:00.000Z",
+      },
+      createdAt: new Date("2026-04-03T10:00:00.000Z"),
+    },
+    revision: "3",
+  }),
   assignCourier: async () => ({
     order: {
       id: "order-1",
@@ -300,6 +349,12 @@ describe("delivery-assignment service", () => {
       chatId: "10001",
       text: "Order order-1 has been assigned to you. Status: ASSIGNED. Courier: Courier One.",
       dedupeKey: "order.assigned:order-1:3",
+      buttons: [
+        {
+          label: "Забрал заказ",
+          callbackData: "delivery-tracking:order-1:PICKED_UP",
+        },
+      ],
     });
   });
 
@@ -328,6 +383,12 @@ describe("delivery-assignment service", () => {
       chatId: "10001",
       text: "Order order-1 is offered to you. Current status: CREATED. Courier: Courier One.",
       dedupeKey: "order.offer_created:offer-1:4",
+      buttons: [
+        {
+          label: "Принять заказ",
+          callbackData: "delivery-assignment-courier-claim:offer-1:courier-1",
+        },
+      ],
     });
   });
 
@@ -356,6 +417,12 @@ describe("delivery-assignment service", () => {
       chatId: "10001",
       text: "Reminder: order order-1 is still waiting for your claim. Current status: CREATED. Courier: Courier One.",
       dedupeKey: "order.offer_repeated:offer-1:5",
+      buttons: [
+        {
+          label: "Принять заказ",
+          callbackData: "delivery-assignment-courier-claim:offer-1:courier-1",
+        },
+      ],
     });
   });
 
@@ -1291,6 +1358,7 @@ describe("delivery-assignment service", () => {
         orderId: "order-1",
         courierId: "courier-1",
         actor: null,
+        override: null,
       }),
     ).rejects.toEqual(
       new AppError("AUTH_REQUIRED", "Direct assignment override requires an authenticated operator", 401),
@@ -1345,6 +1413,7 @@ describe("delivery-assignment service", () => {
           userId: "seller-1",
           role: "seller",
         },
+        override: { confirmed: true },
       }),
     ).rejects.toEqual(
       new AppError("FORBIDDEN", "User role cannot directly assign couriers", 403, {

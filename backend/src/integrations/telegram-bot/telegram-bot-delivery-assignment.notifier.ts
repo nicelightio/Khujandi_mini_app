@@ -5,11 +5,17 @@ import type {
   DeliveryAssignmentNotificationInput,
   DeliveryAssignmentNotifier,
 } from "../../slices/delivery-assignment/domain/delivery-assignment.types";
+import { buildCourierClaimCallbackData } from "./telegram-bot-delivery-assignment-claim.harness";
+import { buildDeliveryTrackingCallbackData } from "./telegram-bot-delivery-tracking.harness";
 
 export type TelegramBotSendMessageInput = {
   chatId: string;
   text: string;
   dedupeKey: string;
+  buttons?: Array<{
+    label: string;
+    callbackData: string;
+  }>;
 };
 
 export interface TelegramBotMessageDispatcher {
@@ -52,6 +58,15 @@ export class TelegramBotDeliveryAssignmentNotifier implements DeliveryAssignment
       chatId: input.courierTelegramId,
       text: buildOrderAssignedMessage(input),
       dedupeKey: `order.assigned:${input.orderId}:${input.revision}`,
+      buttons: [
+        {
+          label: "Забрал заказ",
+          callbackData: buildDeliveryTrackingCallbackData({
+            orderId: input.orderId,
+            nextStatus: "PICKED_UP",
+          }),
+        },
+      ],
     });
   }
 
@@ -60,6 +75,15 @@ export class TelegramBotDeliveryAssignmentNotifier implements DeliveryAssignment
       chatId: input.courierTelegramId,
       text: buildOfferCreatedMessage(input),
       dedupeKey: `order.offer_created:${input.offerId}:${input.revision}`,
+      buttons: [
+        {
+          label: "Принять заказ",
+          callbackData: buildCourierClaimCallbackData({
+            offerId: input.offerId,
+            courierId: input.targetCourierId,
+          }),
+        },
+      ],
     });
   }
 
@@ -68,6 +92,15 @@ export class TelegramBotDeliveryAssignmentNotifier implements DeliveryAssignment
       chatId: input.courierTelegramId,
       text: buildOfferRepeatedMessage(input),
       dedupeKey: `order.offer_repeated:${input.offerId}:${input.revision}`,
+      buttons: [
+        {
+          label: "Принять заказ",
+          callbackData: buildCourierClaimCallbackData({
+            offerId: input.offerId,
+            courierId: input.targetCourierId,
+          }),
+        },
+      ],
     });
   }
 

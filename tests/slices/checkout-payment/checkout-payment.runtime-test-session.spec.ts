@@ -332,7 +332,8 @@ describe("dev runtime fixed-persona test sessions", () => {
         error: {
           code: "VALIDATION_ERROR",
           details: {
-            rejectedFields: ["telegramId", "role", "password"],
+            rejectedFields: "telegramId,role,password",
+            rejectedFieldCount: 3,
           },
         },
       });

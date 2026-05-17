@@ -1436,6 +1436,7 @@ export class PrismaDeliveryAssignmentRepository
             },
             order: {
               ...persistedOrder,
+              courierId: null,
               status: mapOrderStatus(persistedOrder.status) as "CREATED" | "DELAYED",
             },
             timeoutEvent,
@@ -1481,6 +1482,7 @@ export class PrismaDeliveryAssignmentRepository
           offer,
           order: {
             ...order,
+            courierId: null,
             status: mapOrderStatus(order.status) as "CREATED" | "DELAYED",
           },
           courier: courier === null ? null : this.mapCourier(courier),

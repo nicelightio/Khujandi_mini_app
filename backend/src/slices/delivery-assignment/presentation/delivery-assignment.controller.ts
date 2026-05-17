@@ -23,6 +23,10 @@ export class DeliveryAssignmentController {
     return this.service.findCourierById(courierId);
   }
 
+  getCourierStaffByTelegramUserId(telegramId: string) {
+    return this.service.findCourierStaffByTelegramUserId(telegramId);
+  }
+
   assignCourierOverride(input: AssignDeliveryOrderOverrideInput): Promise<DeliveryAssignmentCommandResult> {
     return this.service.assignCourierOverride(input);
   }

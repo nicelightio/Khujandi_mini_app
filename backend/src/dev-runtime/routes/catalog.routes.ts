@@ -8,6 +8,10 @@ import { resolveMiniAppAuthenticatedUser } from "../checkout-payment-runtime";
 import { json, readJsonBody } from "../http-runtime";
 import type { DevApiRouteHandler } from "../dev-api-server.types";
 import { logStorefrontDebug, summarizeMediaValue } from "../utils/debug-storefront";
+import type {
+  ProvisionSellerShopInput,
+  UpdateSellerShopInput,
+} from "../../slices/catalog/domain/catalog.types";
 
 export const handleCatalogRoutes: DevApiRouteHandler = async ({ request, url, method, context }) => {
   const {
@@ -153,7 +157,7 @@ export const handleCatalogRoutes: DevApiRouteHandler = async ({ request, url, me
       const ownedShop = access.shop;
       const body = await readJsonBody(request);
       const hasField = (field: string): boolean => Object.prototype.hasOwnProperty.call(body, field);
-      const updateInput = {
+      const updateInput: UpdateSellerShopInput = {
         name: hasField("name") ? String(body.name ?? "") : ownedShop.name,
         description: hasField("description")
           ? body.description == null
@@ -468,7 +472,7 @@ export const handleCatalogRoutes: DevApiRouteHandler = async ({ request, url, me
         now: options.now,
       });
       const body = await readJsonBody(request);
-      const provisioned = await catalogModule.controller.provisionShop({
+      const provisionInput: ProvisionSellerShopInput = {
         sellerId: String(body.sellerId ?? ""),
         telegramId: String(body.telegramId ?? ""),
         name: String(body.name ?? ""),
@@ -479,7 +483,8 @@ export const handleCatalogRoutes: DevApiRouteHandler = async ({ request, url, me
           body.status === "WORKING" || body.status === "NOT_WORKING"
             ? body.status
             : undefined,
-      });
+      };
+      const provisioned = await catalogModule.controller.provisionShop(provisionInput);
       return json(201, provisioned, "POST,OPTIONS");
     } catch (error) {
       if (error instanceof AppError) {

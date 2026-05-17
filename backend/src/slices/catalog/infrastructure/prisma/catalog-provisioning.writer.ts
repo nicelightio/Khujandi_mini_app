@@ -1,8 +1,8 @@
 import type {
   CreateProvisionedShopInput,
+  PersistProvisionSellerShopInput,
   CreateSellerShopBindingInput,
   ProvisionedSellerShop,
-  ProvisionSellerShopInput,
   ProvisioningTemplateBlueprint,
   SellerCatalogMenuPage,
   SellerCatalogShop,
@@ -99,7 +99,7 @@ export class CatalogProvisioningWriter {
   }
 
   provisionSellerShop(
-    input: ProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint },
+    input: PersistProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint },
   ): Promise<ProvisionedSellerShop> {
     const transactionalPrisma = this.prisma as CatalogPrismaTransactionalClientLike;
 

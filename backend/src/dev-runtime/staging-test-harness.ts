@@ -34,6 +34,8 @@ type StagingTestHarnessDependencies = {
   operationalRuntime: OperationalRuntimeReset;
 };
 
+const formatAllowlist = (values: readonly string[]): string => values.join(",");
+
 const seedUsers = {
   clientAlina: {
     id: "test-client-alina",
@@ -350,7 +352,8 @@ export const createStagingTestHarness = (dependencies: StagingTestHarnessDepende
     if (scope !== "all") {
       throw new AppError("VALIDATION_ERROR", "Reset scope is invalid", 400, {
         scope,
-        allowedScopes: ["all"],
+        allowedScopes: "all",
+        allowedScopeCount: 1,
       });
     }
 
@@ -377,7 +380,8 @@ export const createStagingTestHarness = (dependencies: StagingTestHarnessDepende
     if (!allowedScenarios.includes(scenario)) {
       throw new AppError("VALIDATION_ERROR", "Seed scenario is invalid", 400, {
         scenario,
-        allowedScenarios,
+        allowedScenarios: formatAllowlist(allowedScenarios),
+        allowedScenarioCount: allowedScenarios.length,
       });
     }
 

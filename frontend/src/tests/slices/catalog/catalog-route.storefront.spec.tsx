@@ -1,6 +1,7 @@
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { LanguageContextProvider, type LanguageContextValue } from "../../../app/language-context";
-import { CatalogRoute, type CatalogStorefrontData } from "../../../slices/catalog/routes/catalog-route";
+import { CatalogRoute } from "../../../slices/catalog/routes/catalog-route";
+import type { CatalogStorefrontData } from "../../../slices/catalog/model/storefront";
 import type { SupportedLanguage } from "../../../shared/i18n/languages";
 
 const collectText = (node: unknown): string[] => {
@@ -87,6 +88,8 @@ describe("catalog route storefront editing", () => {
         renameReviewNote: null,
       },
       canEdit: true,
+      currentTelegramId: null,
+      authDebugLabel: null,
       accessStatusLabel: "Seller edit mode is active on the shared storefront tree.",
       activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
       menuPages: [
@@ -105,6 +108,7 @@ describe("catalog route storefront editing", () => {
         },
       ],
       unpagedProducts: [],
+      debugLogs: [],
     };
 
     const persistStorefrontEdit = jest.fn().mockImplementation(async () => {
@@ -201,6 +205,8 @@ describe("catalog route storefront editing", () => {
         renameReviewNote: null,
       },
       canEdit: false,
+      currentTelegramId: null,
+      authDebugLabel: null,
       accessStatusLabel: "Browse-only storefront. Seller edit mode stays hidden until ownership is confirmed server-side.",
       activationHint: null,
       menuPages: [
@@ -219,6 +225,7 @@ describe("catalog route storefront editing", () => {
         },
       ],
       unpagedProducts: [],
+      debugLogs: [],
     };
 
     let renderer!: ReactTestRenderer;
@@ -250,6 +257,8 @@ describe("catalog route storefront editing", () => {
         renameReviewNote: null,
       },
       canEdit: true,
+      currentTelegramId: null,
+      authDebugLabel: null,
       accessStatusLabel: "Seller edit mode is active on the shared storefront tree.",
       activationHint: "Click or long press the existing shop, menu, or product blocks to edit them.",
       menuPages: [],
@@ -263,6 +272,7 @@ describe("catalog route storefront editing", () => {
           menuPageId: null,
         },
       ],
+      debugLogs: [],
     };
 
     const persistStorefrontEdit = jest.fn().mockImplementation(async () => {

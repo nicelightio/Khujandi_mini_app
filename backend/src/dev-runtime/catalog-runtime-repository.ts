@@ -10,8 +10,8 @@ import type {
   CreateSellerMenuPageInput,
   CreateSellerProductInput,
   CreateSellerShopBindingInput,
+  PersistProvisionSellerShopInput,
   ProvisionedSellerShop,
-  ProvisionSellerShopInput,
   ProvisioningTemplateBlueprint,
   SellerCatalogMenuPage,
   SellerCatalogProduct,
@@ -22,7 +22,7 @@ import type {
   UpdateSellerProductInput,
   UpdateSellerShopInput,
 } from "../slices/catalog/domain/catalog.types";
-import { getPreferredPublicPath } from "../slices/catalog/domain/shop-public-paths";
+import { buildUniqueShopPublicPaths, getPreferredPublicPath } from "../slices/catalog/domain/shop-public-paths";
 import {
   cloneBinding,
   cloneCatalogState,
@@ -74,29 +74,32 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   }
 
   async getStartShowcase(): Promise<StartShowcase> {
-    const favoriteShops: StartShowcase["favoriteShops"] = (this.state.favoriteShops ?? [])
+    const favoriteShops: StartShowcase["favoriteShops"] = [];
+
+    for (const reference of (this.state.favoriteShops ?? [])
       .filter((reference) => reference.isActive)
-      .sort((left, right) => left.sortOrder - right.sortOrder)
-      .map((reference) => {
-        const shop = this.state.shops.find((candidate) => candidate.id === reference.shopId);
+      .sort((left, right) => left.sortOrder - right.sortOrder)) {
+      const shop = this.state.shops.find((candidate) => candidate.id === reference.shopId);
 
-        if (shop === undefined || shop.isDeleted || shop.status !== "WORKING") {
-          return null;
-        }
+      if (shop === undefined || shop.isDeleted || shop.status !== "WORKING") {
+        continue;
+      }
 
-        return {
-          id: shop.id,
-          name: shop.name,
-          publicPath: getPreferredPublicPath(shop),
-          description: shop.description,
-          headerImageUrl: shop.headerImageUrl,
-          backgroundImageUrl: shop.backgroundImageUrl,
-          status: shop.status,
-          sortOrder: reference.sortOrder,
-        };
-      })
-      .filter((shop): shop is StartShowcase["favoriteShops"][number] => shop !== null)
-      .slice(0, 3);
+      favoriteShops.push({
+        id: shop.id,
+        name: shop.name,
+        publicPath: getPreferredPublicPath(shop),
+        description: shop.description,
+        headerImageUrl: shop.headerImageUrl,
+        backgroundImageUrl: shop.backgroundImageUrl,
+        status: shop.status,
+        sortOrder: reference.sortOrder,
+      });
+
+      if (favoriteShops.length >= 3) {
+        break;
+      }
+    }
 
     const popularTodayProducts: StartShowcase["popularTodayProducts"] = (this.state.showcaseProducts ?? [])
       .filter((reference) => reference.isActive)
@@ -239,7 +242,23 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       throw createUniqueConstraintError();
     }
 
-    if (hasPublicPathConflict(this.state.shops, input)) {
+    const publicPaths =
+      typeof input.primaryPublicPath === "string" &&
+      input.primaryPublicPath.length > 0 &&
+      typeof input.secondaryPublicPath === "string" &&
+      input.secondaryPublicPath.length > 0
+        ? {
+            primaryPublicPath: input.primaryPublicPath,
+            secondaryPublicPath: input.secondaryPublicPath,
+          }
+        : buildUniqueShopPublicPaths({
+            sellerId: input.sellerId,
+            shopName: input.name,
+            existingPublicPaths: await this.listAllPublicPaths(),
+            existingSellerPrimaryPublicPaths: await this.listSellerPrimaryPublicPaths(input.sellerId),
+          });
+
+    if (hasPublicPathConflict(this.state.shops, publicPaths)) {
       throw createUniqueConstraintError();
     }
 
@@ -247,8 +266,8 @@ export class InMemoryCatalogRepository implements CatalogRepository {
       id: `shop-runtime-${this.state.nextShopId++}`,
       sellerId: input.sellerId,
       name: input.name,
-      primaryPublicPath: input.primaryPublicPath,
-      secondaryPublicPath: input.secondaryPublicPath,
+      primaryPublicPath: publicPaths.primaryPublicPath,
+      secondaryPublicPath: publicPaths.secondaryPublicPath,
       description: input.description ?? null,
       headerImageUrl: input.headerImageUrl ?? null,
       backgroundImageUrl: input.backgroundImageUrl ?? null,
@@ -426,7 +445,9 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return cloneBinding(binding);
   }
 
-  async provisionSellerShop(input: ProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint }): Promise<ProvisionedSellerShop> {
+  async provisionSellerShop(
+    input: PersistProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint },
+  ): Promise<ProvisionedSellerShop> {
     const duplicateShop = hasSellerShopNameConflict(this.state.shops, input);
 
     if (duplicateShop) {

@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { AppShell } from "../../../app/app-shell";
 import { PageShell } from "../../../shared/ui/page-shell";
@@ -32,36 +31,34 @@ describe("page shell", () => {
 
     act(() => {
       renderer = create(
-        createElement(
-          AppShell,
-          {
-            telegramBridge: createTelegramWebAppBridge({
-              Telegram: {
-                WebApp: {
-                  viewportStableHeight: 680,
-                  isVersionAtLeast: () => true,
-                  onEvent: (_event, _handler) => undefined,
-                  offEvent: (_event, _handler) => undefined,
-                  disableVerticalSwipes: () => undefined,
-                  enableVerticalSwipes: () => undefined,
-                  BackButton: {
-                    show: () => undefined,
-                    hide: () => undefined,
-                  },
+        <AppShell
+          telegramBridge={createTelegramWebAppBridge({
+            Telegram: {
+              WebApp: {
+                viewportStableHeight: 680,
+                isVersionAtLeast: () => true,
+                onEvent: (_event, _handler) => undefined,
+                offEvent: (_event, _handler) => undefined,
+                disableVerticalSwipes: () => undefined,
+                enableVerticalSwipes: () => undefined,
+                BackButton: {
+                  show: () => undefined,
+                  hide: () => undefined,
                 },
               },
-            }),
-          },
-          createElement(
-            PageShell,
-            {
-              title: "Checkout",
-              actionLabel: "Continue to payment",
-              bottomAction: createElement("button", { type: "button" }, "Continue to payment"),
             },
-            createElement("section", null, createElement("p", null, "Body content")),
-          ),
-        ),
+          })}
+        >
+          <PageShell
+            title="Checkout"
+            actionLabel="Continue to payment"
+            bottomAction={<button type="button">Continue to payment</button>}
+          >
+            <section>
+              <p>Body content</p>
+            </section>
+          </PageShell>
+        </AppShell>,
       );
     });
 
@@ -80,29 +77,24 @@ describe("page shell", () => {
 
     act(() => {
       renderer = create(
-        createElement(
-          AppShell,
-          {
-            telegramBridge: createTelegramWebAppBridge({
-              Telegram: {
-                WebApp: {
-                  viewportStableHeight: null,
-                  isVersionAtLeast: () => false,
-                  onEvent: (_event, _handler) => undefined,
-                  offEvent: (_event, _handler) => undefined,
-                },
+        <AppShell
+          telegramBridge={createTelegramWebAppBridge({
+            Telegram: {
+              WebApp: {
+                viewportStableHeight: null,
+                isVersionAtLeast: () => false,
+                onEvent: (_event, _handler) => undefined,
+                offEvent: (_event, _handler) => undefined,
               },
-            }),
-          },
-          createElement(
-            PageShell,
-            {
-              title: "Checkout",
-              bottomAction: createElement("button", { type: "button" }, "Continue to payment"),
             },
-            createElement("section", null, createElement("p", null, "Body content")),
-          ),
-        ),
+          })}
+        >
+          <PageShell title="Checkout" bottomAction={<button type="button">Continue to payment</button>}>
+            <section>
+              <p>Body content</p>
+            </section>
+          </PageShell>
+        </AppShell>,
       );
     });
 

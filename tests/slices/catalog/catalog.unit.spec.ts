@@ -2,6 +2,7 @@ import { CatalogService } from "../../../backend/src/slices/catalog/application/
 import {
   buildProvisioningTemplateBlueprint,
   type CatalogRepository,
+  type SellerCatalogShop,
 } from "../../../backend/src/slices/catalog/domain/catalog.types";
 import { AppError } from "../../../backend/src/shared/errors/app-error";
 
@@ -14,6 +15,22 @@ const withWriteEvent = <TRecord>(record: TRecord) => ({
     payload: {},
     createdAt: "2026-04-10T10:00:00.000Z",
   },
+});
+
+const persistedShop = (overrides: Partial<SellerCatalogShop> = {}): SellerCatalogShop => ({
+  id: "shop-1",
+  sellerId: "seller-1",
+  name: "Bakery",
+  primaryPublicPath: "seller-11",
+  secondaryPublicPath: "bakery",
+  description: null,
+  headerImageUrl: null,
+  backgroundImageUrl: null,
+  status: "WORKING",
+  renameCount: 0,
+  requiresManualRenameReview: false,
+  isDeleted: false,
+  ...overrides,
 });
 
 const createRepository = (): CatalogRepository => ({
@@ -32,6 +49,8 @@ const createRepository = (): CatalogRepository => ({
   listPublicProductsByShop: async () => [],
   listAdminProvisionedShops: async () => [],
   listSellerBindingsByTelegramId: async () => [],
+  listSellerMenuPagesByShop: async () => [],
+  listSellerProductsByShop: async () => [],
   findShopById: async () => null,
   findShopByPublicPath: async () => null,
   createShop: async () => {
@@ -247,13 +266,15 @@ describe("catalog service", () => {
           telegramId: "telegram-1",
         },
       ],
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Hidden From Public",
         description: null,
         headerImageUrl: null,
         backgroundImageUrl: null,
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "bakery",
         status: "NOT_WORKING",
         renameCount: 0,
         requiresManualRenameReview: false,
@@ -269,6 +290,8 @@ describe("catalog service", () => {
         description: null,
         headerImageUrl: null,
         backgroundImageUrl: null,
+        primaryPublicPath: "seller-11",
+        secondaryPublicPath: "bakery",
         status: "NOT_WORKING",
         renameCount: 0,
         requiresManualRenameReview: false,
@@ -298,7 +321,7 @@ describe("catalog service", () => {
           telegramId: "telegram-1",
         },
       ],
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-drifted",
         name: "Drifted Shop",
@@ -336,7 +359,7 @@ describe("catalog service", () => {
     }));
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Old name",
@@ -387,7 +410,7 @@ describe("catalog service", () => {
     }));
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Current name",
@@ -445,7 +468,7 @@ describe("catalog service", () => {
     }));
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Current name",
@@ -635,7 +658,7 @@ describe("catalog service", () => {
     }));
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Current name",
@@ -663,7 +686,7 @@ describe("catalog service", () => {
     const updateShop = jest.fn().mockRejectedValue(Object.assign(new Error("Unique constraint failed"), { code: "P2002" }));
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Current name",
@@ -691,7 +714,7 @@ describe("catalog service", () => {
     const updateShop = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-2",
         name: "Current name",
@@ -733,7 +756,7 @@ describe("catalog service", () => {
     }));
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Bakery",
@@ -799,7 +822,7 @@ describe("catalog service", () => {
     }));
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Bakery",
@@ -912,7 +935,7 @@ describe("catalog service", () => {
     const createProduct = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-1",
         sellerId: "seller-1",
         name: "Bakery",
@@ -956,7 +979,7 @@ describe("catalog service", () => {
     const createProduct = jest.fn();
     const service = new CatalogService({
       ...createRepository(),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-2",
         sellerId: "seller-2",
         name: "Foreign shop",
@@ -1034,7 +1057,7 @@ describe("catalog service", () => {
         isDeleted: false,
         sellerId: "seller-1",
       }),
-      findShopById: async () => ({
+      findShopById: async () => persistedShop({
         id: "shop-2",
         sellerId: "seller-2",
         name: "Foreign shop",

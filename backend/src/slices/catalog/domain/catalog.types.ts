@@ -178,13 +178,13 @@ export type ProvisionSellerShopInput = {
   sellerId: SellerId;
   telegramId: string;
   name: string;
-  primaryPublicPath: string;
-  secondaryPublicPath: string;
   description?: string | null;
   headerImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   status?: ShopStatus;
 };
+
+export type PersistProvisionSellerShopInput = ProvisionSellerShopInput & ShopPublicPaths;
 
 export type CreateSellerMenuPageInput = {
   shopId: ShopId;
@@ -286,7 +286,7 @@ export interface CatalogRepository {
   updateMenuPage(menuPageId: MenuPageId, input: UpdateSellerMenuPageInput): Promise<CatalogWriteResult<SellerCatalogMenuPage>>;
   findProductById(productId: ProductId): Promise<SellerCatalogProduct | null>;
   createSellerShopBinding(input: CreateSellerShopBindingInput): Promise<SellerShopBinding>;
-  provisionSellerShop(input: ProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint }): Promise<ProvisionedSellerShop>;
+  provisionSellerShop(input: PersistProvisionSellerShopInput & { blueprint: ProvisioningTemplateBlueprint }): Promise<ProvisionedSellerShop>;
   createProduct(input: CreateSellerProductInput): Promise<CatalogWriteResult<SellerCatalogProduct>>;
   updateProduct(productId: ProductId, input: UpdateSellerProductInput): Promise<CatalogWriteResult<SellerCatalogProduct>>;
   addShowcaseProduct(productId: ProductId): Promise<void>;
