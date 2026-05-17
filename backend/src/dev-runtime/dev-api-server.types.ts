@@ -4,6 +4,7 @@ import type { resolveProtectedAdminRouteSession } from "../slices/admin-access/p
 import type { CatalogModule } from "../slices/catalog/presentation/catalog.module";
 import type { CheckoutPaymentCompositionDraft, CheckoutPaymentStatus } from "../slices/checkout-payment/domain/checkout-payment.types";
 import type { CheckoutPaymentModule } from "../slices/checkout-payment/presentation/checkout-payment.module";
+import type { ReviewsFeedbackModule } from "../slices/reviews-feedback/presentation/reviews-feedback.module";
 import type { CatalogRuntimeState } from "./catalog-runtime-state";
 import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 import type { createOperationalRuntimeModules } from "./order-ops-runtime";
@@ -55,6 +56,11 @@ export type DebugStorefrontAccess = {
   bypassApplied: boolean;
 };
 
+export type DevApiOperationalModules = ReturnType<typeof createOperationalRuntimeModules> & {
+  reviewsFeedbackModule: ReviewsFeedbackModule;
+  startCompletedReviewPrompts: (orderId: string, revision: string) => Promise<void>;
+};
+
 export type DevApiRouteContext = {
   options: RuntimeServerOptions;
   allowedOrigins: string[];
@@ -63,7 +69,7 @@ export type DevApiRouteContext = {
   checkoutPaymentModule: CheckoutPaymentModule;
   checkoutPaymentState: CheckoutPaymentRuntimeState;
   catalogState: CatalogRuntimeState;
-  operationalModules: ReturnType<typeof createOperationalRuntimeModules>;
+  operationalModules: DevApiOperationalModules;
   telegramBotRuntime: TelegramBotRuntime;
   isTelegramBotApiEnabled: boolean;
   telegramWebhookSecret?: string;

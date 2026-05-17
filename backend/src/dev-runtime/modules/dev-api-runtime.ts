@@ -7,6 +7,13 @@ import {
 } from "../../slices/admin-access/presentation/admin-auth-http";
 import { createCatalogModule } from "../../slices/catalog/presentation/catalog.module";
 import { createCheckoutPaymentModule } from "../../slices/checkout-payment/presentation/checkout-payment.module";
+import { createReviewsFeedbackModule } from "../../slices/reviews-feedback/presentation/reviews-feedback.module";
+import { TelegramBotReviewsFeedbackFlow } from "../../integrations/telegram-bot/telegram-bot-reviews-feedback.flow";
+import {
+  TelegramBotNegativeReviewAlertHarness,
+  TelegramBotReviewsFeedbackHarness,
+} from "../../integrations/telegram-bot/telegram-bot-reviews-feedback.harness";
+import { TelegramBotReviewsFeedbackNotifier } from "../../integrations/telegram-bot/telegram-bot-reviews-feedback.notifier";
 import {
   createAdminAccessRuntimePrisma,
   devRuntimeAdminPasswordHashing,
@@ -26,6 +33,7 @@ import {
   ensureOperationalRuntimeBaseline,
 } from "../order-ops-runtime";
 import { resolveRuntimeCheckoutPaymentProvider } from "../payment-provider-runtime";
+import { createInMemoryReviewsFeedbackPrisma } from "../reviews-feedback-runtime";
 import { parseRuntimeBooleanFlag, resolveRuntimeMode } from "../runtime-mode";
 import { createStagingTestHarness } from "../staging-test-harness";
 import { createTelegramBotApiClient } from "../telegram-bot-api";
@@ -65,10 +73,25 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   const catalogModule = createCatalogModule(catalogPrisma);
   const checkoutPaymentState = checkoutPaymentPrisma.state;
   ensureOperationalRuntimeBaseline(checkoutPaymentState);
+  const reviewsFeedbackRuntime = createInMemoryReviewsFeedbackPrisma(checkoutPaymentState, { now: options.now });
   const telegramBotApiClient = createTelegramBotApiClient({
     token: options.telegramBotToken ?? process.env.TELEGRAM_BOT_TOKEN,
   });
   const telegramDispatcher = options.telegramMessageDispatcher ?? telegramBotApiClient;
+  const reviewsFeedbackModule = createReviewsFeedbackModule(
+    reviewsFeedbackRuntime.prisma,
+    new TelegramBotReviewsFeedbackNotifier(
+      new TelegramBotNegativeReviewAlertHarness(telegramDispatcher),
+    ),
+  );
+  const reviewsFeedbackFlow = new TelegramBotReviewsFeedbackFlow(
+    reviewsFeedbackModule.service,
+    new TelegramBotReviewsFeedbackHarness(telegramDispatcher),
+    {
+      client_to_courier: ["ON_TIME", "RUDE"],
+      courier_to_client: ["ON_TIME", "RUDE"],
+    },
+  );
   const isDebugEnabled = runtimeMode.debug;
   const checkoutPaymentModule = createCheckoutPaymentModule(
     checkoutPaymentPrisma,
@@ -120,15 +143,42 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
     traceIdFactory: () => "trace-admin-runtime",
     now: options.now,
   });
-  const operationalModules = createOperationalRuntimeModules(checkoutPaymentState, {
+  const operationalModulesBase = createOperationalRuntimeModules(checkoutPaymentState, {
     now: options.now,
     telegramDispatcher,
   });
+  const operationalModules = {
+    ...operationalModulesBase,
+    reviewsFeedbackModule,
+    startCompletedReviewPrompts: async (orderId: string, revision: string) => {
+      const order = checkoutPaymentState.orders.find((candidate) => candidate.id === orderId);
+
+      if (order === undefined || order.status !== "COMPLETED" || order.courierId === null) {
+        return;
+      }
+
+      await Promise.all([
+        reviewsFeedbackFlow.startFlow({
+          orderId,
+          actor: { userId: order.courierId, role: "courier" },
+          revision,
+        }),
+        reviewsFeedbackFlow.startFlow({
+          orderId,
+          actor: { userId: order.clientId, role: "client" },
+          revision,
+        }),
+      ]);
+    },
+  };
   const telegramBotRuntime = createTelegramBotRuntime({
     deliveryAssignmentModule: operationalModules.deliveryAssignmentModule,
     deliveryTrackingModule: operationalModules.deliveryTrackingModule,
     dispatcher: telegramDispatcher,
     callbackResponder: telegramBotApiClient,
+    reviewsFeedbackFlow,
+    resolveReviewActorByTelegramId: reviewsFeedbackRuntime.findUserByTelegramId,
+    findActiveReviewCommentDraft: reviewsFeedbackRuntime.findActiveCommentDraftByActor,
   });
   const stagingTestHarness = createStagingTestHarness({
     adminAccessState: prisma.state,

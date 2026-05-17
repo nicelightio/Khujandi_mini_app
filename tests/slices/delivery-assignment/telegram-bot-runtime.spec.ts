@@ -151,6 +151,107 @@ describe("staging Telegram bot runtime ingress", () => {
     }
   });
 
+  it("starts completed-order review prompts and accepts duplicate-safe courier/client reviews", async () => {
+    const { runtime, sentMessages } = await createRuntime();
+
+    const findMessage = (chatId: string, dedupePrefix: string) => {
+      const message = sentMessages.find(
+        (candidate) => candidate.chatId === chatId && candidate.dedupeKey.startsWith(dedupePrefix),
+      );
+      expect(message).toBeDefined();
+      return message as TelegramBotSendMessageInput;
+    };
+    const clickButton = (chatId: number, callbackData: string, updateId: number) =>
+      postTelegramUpdate(runtime.createClient(), {
+        update_id: updateId,
+        callback_query: {
+          id: `callback-review-${updateId}`,
+          from: { id: chatId },
+          message: { chat: { id: chatId } },
+          data: callbackData,
+        },
+      });
+
+    try {
+      const admin = await loginAdmin(runtime);
+      const trackedOrder = runtime.checkoutPaymentState.orders.find((order) => order.id === "order-in-progress-2004");
+      expect(trackedOrder).toBeDefined();
+      trackedOrder!.status = "DELIVERED";
+
+      const completedResponse = await admin.request({
+        path: "/api/v1/admin/operator/delivery/orders/order-in-progress-2004/status",
+        origin: adminOrigin,
+        body: {
+          nextStatus: "COMPLETED",
+        },
+      });
+
+      expect(completedResponse.status).toBe(200);
+      expect(findMessage("70007", "review.stepper:order-in-progress-2004:courier_to_client:rating")).toEqual(
+        expect.objectContaining({ text: expect.stringContaining("courier -> client") }),
+      );
+      expect(findMessage("80001", "review.stepper:order-in-progress-2004:client_to_courier:rating")).toEqual(
+        expect.objectContaining({ text: expect.stringContaining("client -> courier") }),
+      );
+
+      const courierRating = findMessage(
+        "70007",
+        "review.stepper:order-in-progress-2004:courier_to_client:rating",
+      ).buttons?.find((button) => button.label === "5")?.callbackData;
+      expect(courierRating).toBeDefined();
+      expect(await clickButton(70007, courierRating!, 20)).toEqual(
+        expect.objectContaining({ status: 200, body: { ok: true, action: "review_prompt" } }),
+      );
+      const courierReason = findMessage(
+        "70007",
+        "review.stepper:order-in-progress-2004:courier_to_client:reason_code",
+      ).buttons?.find((button) => button.label === "ON_TIME")?.callbackData;
+      expect(courierReason).toBeDefined();
+      expect(await clickButton(70007, courierReason!, 21)).toEqual(
+        expect.objectContaining({ status: 200, body: { ok: true, action: "review_prompt" } }),
+      );
+      const courierSkip = findMessage(
+        "70007",
+        "review.stepper:order-in-progress-2004:courier_to_client:comment",
+      ).buttons?.[0]?.callbackData;
+      expect(courierSkip).toBeDefined();
+      expect(await clickButton(70007, courierSkip!, 22)).toEqual(
+        expect.objectContaining({ status: 200, body: { ok: true, action: "review_submitted" } }),
+      );
+
+      const clientRating = findMessage(
+        "80001",
+        "review.stepper:order-in-progress-2004:client_to_courier:rating",
+      ).buttons?.find((button) => button.label === "4")?.callbackData;
+      expect(clientRating).toBeDefined();
+      await clickButton(80001, clientRating!, 23);
+      const clientReason = findMessage(
+        "80001",
+        "review.stepper:order-in-progress-2004:client_to_courier:reason_code",
+      ).buttons?.find((button) => button.label === "ON_TIME")?.callbackData;
+      expect(clientReason).toBeDefined();
+      await clickButton(80001, clientReason!, 24);
+      const commentResponse = await postTelegramUpdate(runtime.createClient(), {
+        update_id: 25,
+        message: {
+          chat: { id: 80001 },
+          from: { id: 80001 },
+          text: "Спасибо за доставку",
+        },
+      });
+      expect(commentResponse).toEqual(expect.objectContaining({ status: 200, body: { ok: true, action: "review_submitted" } }));
+
+      expect(await clickButton(80001, clientReason!, 26)).toEqual(
+        expect.objectContaining({ status: 200, body: { ok: true, action: "review_ignored" } }),
+      );
+      await expect(
+        runtime.operationalModules.reviewsFeedbackModule.service.listReviewsByOrderId("order-in-progress-2004"),
+      ).resolves.toHaveLength(2);
+    } finally {
+      await runtime.stop();
+    }
+  });
+
   it("sends offer buttons, claims by Telegram actor lookup, and progresses courier statuses", async () => {
     const { runtime, sentMessages } = await createRuntime();
 

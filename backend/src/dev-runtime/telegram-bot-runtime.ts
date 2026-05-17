@@ -10,6 +10,12 @@ import type { DeliveryTrackingModule } from "../slices/delivery-tracking/present
 import type { DeliveryAssignmentCourierAvailabilityRecord } from "../slices/delivery-assignment/domain/delivery-assignment.types";
 import type { TelegramBotMessageDispatcher } from "../integrations/telegram-bot/telegram-bot-delivery-assignment.notifier";
 import type { TelegramBotApiClient, TelegramBotApiUpdate } from "./telegram-bot-api";
+import type { TelegramBotReviewsFeedbackFlow } from "../integrations/telegram-bot/telegram-bot-reviews-feedback.flow";
+import { parseReviewStepperCallbackData } from "../integrations/telegram-bot/telegram-bot-reviews-feedback.harness";
+import type {
+  ReviewsFeedbackActor,
+  ReviewsFeedbackDirection,
+} from "../slices/reviews-feedback/domain/reviews-feedback.types";
 
 export type TelegramBotRuntimeResult = {
   ok: boolean;
@@ -76,6 +82,11 @@ export const createTelegramBotRuntime = (input: {
   deliveryTrackingModule: DeliveryTrackingModule;
   dispatcher: TelegramBotMessageDispatcher;
   callbackResponder?: Pick<TelegramBotApiClient, "answerCallbackQuery">;
+  reviewsFeedbackFlow?: TelegramBotReviewsFeedbackFlow;
+  resolveReviewActorByTelegramId?: (telegramId: string) => ReviewsFeedbackActor | null;
+  findActiveReviewCommentDraft?: (
+    actor: ReviewsFeedbackActor,
+  ) => { orderId: string; direction: ReviewsFeedbackDirection } | null;
 }): TelegramBotRuntime => {
   const resolveCourierByTelegramId = async (telegramId: string) => {
     const courier = await input.deliveryAssignmentModule.controller.getCourierStaffByTelegramUserId(telegramId);
@@ -116,6 +127,29 @@ export const createTelegramBotRuntime = (input: {
     async handleUpdate(update) {
       const messageText = update.message?.text?.trim();
 
+      if (messageText !== undefined && !COURIER_MENU_TEXTS.has(messageText) && input.reviewsFeedbackFlow !== undefined) {
+        const telegramId = toTelegramId(update.message?.from?.id);
+
+        if (telegramId !== null) {
+          const actor = input.resolveReviewActorByTelegramId?.(telegramId) ?? null;
+          const draft = actor === null ? null : input.findActiveReviewCommentDraft?.(actor) ?? null;
+
+          if (actor !== null && draft !== null) {
+            const result = await input.reviewsFeedbackFlow.handleComment({
+              actor,
+              orderId: draft.orderId,
+              direction: draft.direction,
+              comment: messageText,
+            });
+
+            return {
+              ok: true,
+              action: result.type === "submitted" ? "review_submitted" : "review_ignored",
+            };
+          }
+        }
+      }
+
       if (messageText !== undefined && COURIER_MENU_TEXTS.has(messageText)) {
         const telegramId = toTelegramId(update.message?.from?.id);
         const chatId = toTelegramId(update.message?.chat?.id);
@@ -147,6 +181,29 @@ export const createTelegramBotRuntime = (input: {
 
       if (telegramId === null || chatId === null) {
         throw new AppError("TELEGRAM_ACTOR_MISSING", "Telegram callback lacks actor or chat id", 400);
+      }
+
+      const reviewIntent = parseReviewStepperCallbackData(callbackData);
+
+      if (reviewIntent !== null && input.reviewsFeedbackFlow !== undefined) {
+        const actor = input.resolveReviewActorByTelegramId?.(telegramId) ?? null;
+
+        if (actor === null) {
+          throw new AppError("FORBIDDEN", "Telegram user is not an active review actor", 403);
+        }
+
+        const result = await input.reviewsFeedbackFlow.handleCallback({
+          actor,
+          callbackData,
+        });
+        await answerCallback(
+          callbackQueryId,
+          result.type === "submitted" ? "Отзыв сохранен" : result.type === "prompt" ? "Готово" : "Отзыв не изменен",
+        );
+        return {
+          ok: true,
+          action: result.type === "submitted" ? "review_submitted" : result.type === "prompt" ? "review_prompt" : "review_ignored",
+        };
       }
 
       try {

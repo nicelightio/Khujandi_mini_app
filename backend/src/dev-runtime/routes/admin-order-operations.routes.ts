@@ -59,19 +59,21 @@ export const handleAdminOrderOperationRoutes: DevApiRouteHandler = async ({ requ
         });
       }
 
-      return json(
-        200,
-        await operationalModules.deliveryTrackingModule.controller.recordOperatorStatusTransition({
-          orderId,
-          nextStatus: nextStatus as DeliveryTrackingOrderStatus,
-          actor: {
-            userId: session.adminAccountId,
-            role: session.role,
-            name: session.adminAccountId,
-          },
-        }),
-        "POST,OPTIONS",
-      );
+      const result = await operationalModules.deliveryTrackingModule.controller.recordOperatorStatusTransition({
+        orderId,
+        nextStatus: nextStatus as DeliveryTrackingOrderStatus,
+        actor: {
+          userId: session.adminAccountId,
+          role: session.role,
+          name: session.adminAccountId,
+        },
+      });
+
+      if (nextStatus === "COMPLETED") {
+        await operationalModules.startCompletedReviewPrompts(orderId, result.revision);
+      }
+
+      return json(200, result, "POST,OPTIONS");
     } catch (error) {
       if (error instanceof AppError) {
         return json(error.statusCode, error.toPayload("trace-operator-status-runtime"), "POST,OPTIONS");
