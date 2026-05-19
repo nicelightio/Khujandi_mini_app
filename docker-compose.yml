@@ -14,10 +14,10 @@ services:
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
       ADMIN_ALLOWED_ORIGINS: ${ADMIN_ALLOWED_ORIGINS:-https://tgmeal.natureonzoom.win}
       DATABASE_URL: ${DATABASE_URL:-postgresql://tgmeal:CHANGE_ME@host.docker.internal:5432/tgmeal?schema=public}
-      ADMIN_DB_PATH: ${ADMIN_DB_PATH:-/var/lib/khujandi/admin-access-runtime.sqlite}
-      CATALOG_DB_PATH: ${CATALOG_DB_PATH:-/var/lib/khujandi/catalog-runtime.sqlite}
-      CHECKOUT_PAYMENT_DB_PATH: ${CHECKOUT_PAYMENT_DB_PATH:-/var/lib/khujandi/checkout-payment-runtime.sqlite}
-      OPERATIONAL_RUNTIME_DB_PATH: ${OPERATIONAL_RUNTIME_DB_PATH:-/var/lib/khujandi/operational-runtime.sqlite}
+      ADMIN_DB_PATH: ${ADMIN_DB_PATH:-${TGMEAL_RUNTIME_DIR:-/var/lib/khujandi}/admin-access-runtime.sqlite}
+      CATALOG_DB_PATH: ${CATALOG_DB_PATH:-${TGMEAL_RUNTIME_DIR:-/var/lib/khujandi}/catalog-runtime.sqlite}
+      CHECKOUT_PAYMENT_DB_PATH: ${CHECKOUT_PAYMENT_DB_PATH:-${TGMEAL_RUNTIME_DIR:-/var/lib/khujandi}/checkout-payment-runtime.sqlite}
+      OPERATIONAL_RUNTIME_DB_PATH: ${OPERATIONAL_RUNTIME_DB_PATH:-${TGMEAL_RUNTIME_DIR:-/var/lib/khujandi}/operational-runtime.sqlite}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-test-bot-token}
       TELEGRAM_BOT_POLLING: ${TELEGRAM_BOT_POLLING:-FALSE}
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
