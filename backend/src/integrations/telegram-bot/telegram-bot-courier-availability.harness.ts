@@ -53,8 +53,38 @@ export interface CourierAvailabilityServiceBoundary {
   ): Promise<DeliveryAssignmentCourierAvailabilityRecord>;
 }
 
-const CALLBACK_PREFIX = "delivery-assignment-courier-availability";
+const CALLBACK_PREFIX = "da-ca";
+const LEGACY_CALLBACK_PREFIX = "delivery-assignment-courier-availability";
 const COURIER_MENU_TEXT = "Курьер";
+const TELEGRAM_CALLBACK_DATA_LIMIT_BYTES = 64;
+
+const callbackTypeToWire = (type: CourierAvailabilityServiceIntent["type"]): string => {
+  if (type === "start_work") {
+    return "sw";
+  }
+
+  if (type === "stop_after_5_minutes") {
+    return "s5";
+  }
+
+  return "ao";
+};
+
+const callbackTypeFromWire = (type: string): CourierAvailabilityServiceIntent["type"] | null => {
+  if (type === "sw" || type === "start_work") {
+    return "start_work";
+  }
+
+  if (type === "s5" || type === "stop_after_5_minutes") {
+    return "stop_after_5_minutes";
+  }
+
+  if (type === "ao" || type === "set_auto_offer") {
+    return "set_auto_offer";
+  }
+
+  return null;
+};
 
 const encodeSegment = (value: string): string => encodeURIComponent(value);
 
@@ -63,13 +93,19 @@ const decodeSegment = (value: string): string => decodeURIComponent(value);
 export const buildCourierAvailabilityCallbackData = (
   intent: CourierAvailabilityServiceIntent,
 ): string => {
-  const base = [CALLBACK_PREFIX, intent.type, encodeSegment(intent.courierId)];
+  const base = [CALLBACK_PREFIX, callbackTypeToWire(intent.type), encodeSegment(intent.courierId)];
 
   if (intent.type === "set_auto_offer") {
     base.push(intent.enabled ? "on" : "off");
   }
 
-  return base.join(":");
+  const callbackData = base.join(":");
+
+  if (Buffer.byteLength(callbackData, "utf8") > TELEGRAM_CALLBACK_DATA_LIMIT_BYTES) {
+    throw new Error("Courier availability callback data exceeds Telegram limit");
+  }
+
+  return callbackData;
 };
 
 export const parseCourierAvailabilityCallbackData = (
@@ -78,7 +114,7 @@ export const parseCourierAvailabilityCallbackData = (
   const [prefix, type, encodedCourierId, enabledValue, ...extra] = value.split(":");
 
   if (
-    prefix !== CALLBACK_PREFIX ||
+    (prefix !== CALLBACK_PREFIX && prefix !== LEGACY_CALLBACK_PREFIX) ||
     extra.length > 0 ||
     typeof encodedCourierId !== "string" ||
     encodedCourierId.length === 0
@@ -92,23 +128,25 @@ export const parseCourierAvailabilityCallbackData = (
     return null;
   }
 
-  if (type === "start_work") {
+  const normalizedType = callbackTypeFromWire(type ?? "");
+
+  if (normalizedType === "start_work") {
     return {
-      type,
+      type: normalizedType,
       courierId,
     };
   }
 
-  if (type === "stop_after_5_minutes") {
+  if (normalizedType === "stop_after_5_minutes") {
     return {
-      type,
+      type: normalizedType,
       courierId,
     };
   }
 
-  if (type === "set_auto_offer" && (enabledValue === "on" || enabledValue === "off")) {
+  if (normalizedType === "set_auto_offer" && (enabledValue === "on" || enabledValue === "off")) {
     return {
-      type,
+      type: normalizedType,
       courierId,
       enabled: enabledValue === "on",
     };

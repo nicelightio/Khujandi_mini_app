@@ -188,18 +188,15 @@ describe("delivery-assignment service", () => {
       buttons: [
         {
           label: "Выйти на работу",
-          callbackData:
-            "delivery-assignment-courier-availability:start_work:courier-1",
+          callbackData: "da-ca:sw:courier-1",
         },
         {
           label: "Завершить прием заказов через 5 минут",
-          callbackData:
-            "delivery-assignment-courier-availability:stop_after_5_minutes:courier-1",
+          callbackData: "da-ca:s5:courier-1",
         },
         {
           label: "Автоматически принимать заказы: OFF",
-          callbackData:
-            "delivery-assignment-courier-availability:set_auto_offer:courier-1:on",
+          callbackData: "da-ca:ao:courier-1:on",
         },
       ],
     });
@@ -229,8 +226,7 @@ describe("delivery-assignment service", () => {
         buttons: expect.arrayContaining([
           {
             label: "Автоматически принимать заказы: ON",
-            callbackData:
-              "delivery-assignment-courier-availability:set_auto_offer:courier-1:off",
+            callbackData: "da-ca:ao:courier-1:off",
           },
         ]),
       }),
@@ -252,7 +248,7 @@ describe("delivery-assignment service", () => {
 
     expect(
       parseCourierAvailabilityCallbackData(
-        "delivery-assignment-courier-availability:set_auto_offer:courier-1:on",
+        "da-ca:ao:courier-1:on",
       ),
     ).toEqual({
       type: "set_auto_offer",
@@ -266,6 +262,15 @@ describe("delivery-assignment service", () => {
         "delivery-assignment-courier-availability:set_auto_offer:courier-1:maybe",
       ),
     ).toBeNull();
+    expect(
+      parseCourierAvailabilityCallbackData(
+        "delivery-assignment-courier-availability:set_auto_offer:courier-1:on",
+      ),
+    ).toEqual({
+      type: "set_auto_offer",
+      courierId: "courier-1",
+      enabled: true,
+    });
   });
 
   it("delegates parsed courier availability intents to the existing service boundary", async () => {
@@ -318,7 +323,7 @@ describe("delivery-assignment service", () => {
 
     expect(
       harness.parseCourierAvailabilityAction(
-        "delivery-assignment-courier-availability:stop_after_5_minutes:courier-1",
+        "da-ca:s5:courier-1",
       ),
     ).toEqual({
       type: "stop_after_5_minutes",
