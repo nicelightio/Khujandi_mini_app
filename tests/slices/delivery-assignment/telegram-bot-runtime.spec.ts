@@ -1,5 +1,11 @@
 import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
+import {
+  startTelegramBotPolling,
+  type TelegramBotRuntimeLogRecord,
+} from "../../../backend/src/dev-runtime/telegram-bot-runtime";
 import type { TelegramBotSendMessageInput } from "../../../backend/src/integrations/telegram-bot/telegram-bot-delivery-assignment.notifier";
+import type { TelegramBotApiClient } from "../../../backend/src/dev-runtime/telegram-bot-api";
+import { AppError } from "../../../backend/src/shared/errors/app-error";
 
 const adminOrigin = "https://admin.example";
 
@@ -56,6 +62,59 @@ const lastMessage = (messages: TelegramBotSendMessageInput[]) => {
 };
 
 describe("staging Telegram bot runtime ingress", () => {
+  it("logs polling update failures with sanitized actor metadata", async () => {
+    const info: TelegramBotRuntimeLogRecord[] = [];
+    const warn: TelegramBotRuntimeLogRecord[] = [];
+    const apiClient: TelegramBotApiClient = {
+      isEnabled: true,
+      sendMessage: jest.fn(),
+      answerCallbackQuery: jest.fn(),
+      getUpdates: jest.fn(async () => [
+        {
+          update_id: 42,
+          message: {
+            chat: { id: 5281851429 },
+            from: { id: 5281851429 },
+            text: "/start",
+          },
+        },
+      ]),
+    };
+    const polling = startTelegramBotPolling({
+      apiClient,
+      runtime: {
+        handleUpdate: jest.fn(async () => {
+          throw new AppError("COURIER_NOT_FOUND", "Telegram user is not an active courier", 403);
+        }),
+      },
+      intervalMs: 60000,
+      logger: {
+        info: (record) => info.push(record),
+        warn: (record) => warn.push(record),
+      },
+    });
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(info).toContainEqual({ event: "telegram.polling.started" });
+      expect(warn).toContainEqual(
+        expect.objectContaining({
+          event: "telegram.polling.update_failed",
+          updateId: 42,
+          updateKind: "message",
+          actorRef: "***1429",
+          code: "COURIER_NOT_FOUND",
+          errorName: "AppError",
+        }),
+      );
+      expect(JSON.stringify(warn)).not.toContain("5281851429");
+      expect(JSON.stringify(warn)).not.toContain("/start");
+    } finally {
+      polling.stop();
+    }
+  });
+
   it("rejects unsigned webhook ingress when a real Telegram token is configured", async () => {
     const runtime = await startDevApiServer({
       host: "127.0.0.1",

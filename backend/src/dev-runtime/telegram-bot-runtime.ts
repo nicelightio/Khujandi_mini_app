@@ -28,6 +28,23 @@ export type TelegramBotRuntime = {
   handleUpdate(update: TelegramBotApiUpdate): Promise<TelegramBotRuntimeResult>;
 };
 
+export type TelegramBotRuntimeLogRecord = {
+  event: string;
+  updateId?: number;
+  updateKind?: "message" | "callback_query" | "unknown";
+  actorRef?: string;
+  action?: string;
+  ok?: boolean;
+  code?: string;
+  errorName?: string;
+  errorMessage?: string;
+};
+
+export type TelegramBotRuntimeLogger = {
+  info(record: TelegramBotRuntimeLogRecord): void;
+  warn(record: TelegramBotRuntimeLogRecord): void;
+};
+
 const COURIER_MENU_TEXTS = new Set(["/start", "Курьер", "курьер"]);
 
 const toTelegramId = (value: number | string | undefined): string | null => {
@@ -75,6 +92,66 @@ const callbackErrorText = (error: unknown): string => {
   }
 
   return "Действие временно недоступно";
+};
+
+const defaultTelegramRuntimeLogger: TelegramBotRuntimeLogger = {
+  info: (record) => {
+    console.info(JSON.stringify({ scope: "telegram-bot-runtime", ...record }));
+  },
+  warn: (record) => {
+    console.warn(JSON.stringify({ scope: "telegram-bot-runtime", ...record }));
+  },
+};
+
+const redactTelegramId = (value: number | string | undefined): string | undefined => {
+  const normalized = toTelegramId(value);
+
+  if (normalized === null) {
+    return undefined;
+  }
+
+  return `***${normalized.slice(-4)}`;
+};
+
+const classifyUpdate = (update: TelegramBotApiUpdate): Pick<TelegramBotRuntimeLogRecord, "updateKind" | "actorRef"> => {
+  if (update.message !== undefined) {
+    return {
+      updateKind: "message",
+      actorRef: redactTelegramId(update.message.from?.id),
+    };
+  }
+
+  if (update.callback_query !== undefined) {
+    return {
+      updateKind: "callback_query",
+      actorRef: redactTelegramId(update.callback_query.from?.id),
+    };
+  }
+
+  return {
+    updateKind: "unknown",
+  };
+};
+
+const toSafeErrorLog = (error: unknown): Pick<TelegramBotRuntimeLogRecord, "code" | "errorName" | "errorMessage"> => {
+  if (error instanceof AppError) {
+    return {
+      code: error.code,
+      errorName: "AppError",
+      errorMessage: error.message,
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      errorName: error.name,
+      errorMessage: error.message.slice(0, 240),
+    };
+  }
+
+  return {
+    errorName: typeof error,
+  };
 };
 
 export const createTelegramBotRuntime = (input: {
@@ -298,12 +375,14 @@ export const startTelegramBotPolling = (input: {
   apiClient: TelegramBotApiClient;
   runtime: TelegramBotRuntime;
   intervalMs?: number;
+  logger?: TelegramBotRuntimeLogger;
 }) => {
   let stopped = false;
   let running = false;
   let offset: number | undefined;
   let timer: ReturnType<typeof setTimeout> | null = null;
   const intervalMs = input.intervalMs ?? 2000;
+  const logger = input.logger ?? defaultTelegramRuntimeLogger;
 
   const schedule = () => {
     if (stopped) {
@@ -331,22 +410,52 @@ export const startTelegramBotPolling = (input: {
       });
 
       for (const update of updates) {
-        offset = update.update_id + 1;
+        const logContext = {
+          updateId: update.update_id,
+          ...classifyUpdate(update),
+        };
 
         try {
-          await input.runtime.handleUpdate(update);
-        } catch {
+          const result = await input.runtime.handleUpdate(update);
+          const record = {
+            event: "telegram.polling.update_processed",
+            ...logContext,
+            ok: result.ok,
+            action: result.action,
+            code: result.code,
+          };
+
+          if (result.ok) {
+            logger.info(record);
+          } else {
+            logger.warn(record);
+          }
+        } catch (error) {
           // A single noisy update must not stop the staging polling loop.
+          logger.warn({
+            event: "telegram.polling.update_failed",
+            ...logContext,
+            ...toSafeErrorLog(error),
+          });
+        } finally {
+          offset = update.update_id + 1;
         }
       }
-    } catch {
+    } catch (error) {
       // Telegram transport errors are retried by the next poll.
+      logger.warn({
+        event: "telegram.polling.transport_failed",
+        ...toSafeErrorLog(error),
+      });
     } finally {
       running = false;
       schedule();
     }
   };
 
+  logger.info({
+    event: "telegram.polling.started",
+  });
   void tick();
 
   return {

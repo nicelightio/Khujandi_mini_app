@@ -110,6 +110,8 @@ Never put `E2E_TEST_TOKEN`, real Telegram bot token, `DATABASE_URL` or other sec
 
 For real staging courier-bot smoke, replace `TELEGRAM_BOT_TOKEN` in ignored env with the staging bot token and set `TELEGRAM_BOT_POLLING=TRUE`. Polling is disabled by default and must remain explicitly env-gated; do not enable it in production accidentally. The runtime also exposes `POST /api/v1/telegram/webhook`; when a real Telegram token is configured, `TELEGRAM_WEBHOOK_SECRET` is required for webhook ingress and must match Telegram `secret_token`.
 
+Staging bot polling writes sanitized runtime telemetry to container stdout: polling start, update id, update kind, redacted Telegram actor suffix, action, controlled error code and transport/runtime failure class. It must not log bot tokens, full Telegram ids, callback payloads, message text, cookies or test tokens. Use `docker logs tgmeal-staging-api-1` after a courier sends `/start` or `Курьер` to verify whether the update reached runtime and whether it resolved to `courier_menu`, `COURIER_NOT_FOUND`, `telegram.polling.transport_failed` or another controlled outcome.
+
 ## Server Deploy Outline
 
 Server staging should reuse the current Compose/Traefik deploy pattern, but must parameterize production-specific names.
