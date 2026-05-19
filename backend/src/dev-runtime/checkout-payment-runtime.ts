@@ -25,7 +25,7 @@ export type CheckoutPaymentRuntimeState = {
   nextOrderId: number;
 };
 
-const createCheckoutPaymentRuntimeState = (): CheckoutPaymentRuntimeState => ({
+export const createCheckoutPaymentRuntimeState = (): CheckoutPaymentRuntimeState => ({
   orders: [],
   users: [],
   sessions: [],
@@ -35,10 +35,39 @@ const createCheckoutPaymentRuntimeState = (): CheckoutPaymentRuntimeState => ({
   nextOrderId: 1,
 });
 
-export const createInMemoryCheckoutPaymentPrisma = (): CheckoutPaymentPrismaProvider & {
+const cloneDate = (value: Date | null): Date | null => (value === null ? null : new Date(value));
+
+export const cloneCheckoutPaymentRuntimeState = (
+  state: CheckoutPaymentRuntimeState,
+): CheckoutPaymentRuntimeState => ({
+  orders: state.orders.map((order) => ({ ...order })),
+  users: state.users.map((user) => ({ ...user })),
+  sessions: state.sessions.map((session) => ({
+    ...session,
+    expiresAt: new Date(session.expiresAt),
+    revokedAt: cloneDate(session.revokedAt),
+    lastUsedAt: new Date(session.lastUsedAt),
+    createdAt: new Date(session.createdAt),
+  })),
+  replayGuards: state.replayGuards.map((replayGuard) => ({
+    ...replayGuard,
+    expiresAt: new Date(replayGuard.expiresAt),
+  })),
+  nextUserId: state.nextUserId,
+  nextSessionId: state.nextSessionId,
+  nextOrderId: state.nextOrderId,
+});
+
+export const createInMemoryCheckoutPaymentPrisma = (
+  initialState: CheckoutPaymentRuntimeState = createCheckoutPaymentRuntimeState(),
+  options: { persist?: (state: CheckoutPaymentRuntimeState) => void } = {},
+): CheckoutPaymentPrismaProvider & {
   state: CheckoutPaymentRuntimeState;
 } => {
-  const state = createCheckoutPaymentRuntimeState();
+  const state = cloneCheckoutPaymentRuntimeState(initialState);
+  const persistState = (): void => {
+    options.persist?.(cloneCheckoutPaymentRuntimeState(state));
+  };
 
   const client: CheckoutPaymentPrismaProvider["client"] = {
     order: {
@@ -50,6 +79,7 @@ export const createInMemoryCheckoutPaymentPrisma = (): CheckoutPaymentPrismaProv
           ...data,
         };
         state.orders.push(order);
+        persistState();
         return { ...order };
       },
     },
@@ -62,6 +92,7 @@ export const createInMemoryCheckoutPaymentPrisma = (): CheckoutPaymentPrismaProv
           existingUser.username = update.username;
           existingUser.language = update.language;
           existingUser.isActive = update.isActive;
+          persistState();
           return { ...existingUser };
         }
 
@@ -75,6 +106,7 @@ export const createInMemoryCheckoutPaymentPrisma = (): CheckoutPaymentPrismaProv
           isActive: create.isActive,
         };
         state.users.push(user);
+        persistState();
         return { ...user };
       },
       update: async ({ where, data }) => {
@@ -85,6 +117,7 @@ export const createInMemoryCheckoutPaymentPrisma = (): CheckoutPaymentPrismaProv
         }
 
         user.language = data.language;
+        persistState();
         return { ...user };
       },
     },
@@ -103,6 +136,7 @@ export const createInMemoryCheckoutPaymentPrisma = (): CheckoutPaymentPrismaProv
           expiresAt: new Date(data.expiresAt),
         };
         state.replayGuards.push(replay);
+        persistState();
         return replay;
       },
     },
@@ -118,6 +152,7 @@ export const createInMemoryCheckoutPaymentPrisma = (): CheckoutPaymentPrismaProv
           createdAt: new Date(),
         };
         state.sessions.push(session);
+        persistState();
         return {
           id: session.id,
           userId: session.userId,

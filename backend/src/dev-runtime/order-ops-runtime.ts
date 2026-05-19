@@ -31,7 +31,7 @@ import type { DeliveryTrackingPrismaProvider } from "../slices/delivery-tracking
 import type { OrderCancellationPrismaProvider } from "../slices/order-cancellation/infrastructure/prisma-order-cancellation.repository";
 import type { CheckoutPaymentRuntimeState } from "./checkout-payment-runtime";
 
-type RuntimeOrderMetadata = {
+export type RuntimeOrderMetadata = {
   createdAt: Date;
   updatedAt: Date;
   assignedAt: Date | null;
@@ -40,7 +40,7 @@ type RuntimeOrderMetadata = {
   cancelledAt: Date | null;
 };
 
-type OperationalRuntimeState = {
+export type OperationalRuntimeState = {
   orderMetadata: Map<string, RuntimeOrderMetadata>;
   courierAvailability: Map<string, RuntimeCourierAvailabilityRecord>;
   assignmentOffers: RuntimeAssignmentOfferRecord[];
@@ -69,7 +69,7 @@ type RuntimeOrderStatusHistorySeed = {
   history: RuntimeStatusHistorySeed[];
 };
 
-type RuntimeCourierAvailabilityRecord = {
+export type RuntimeCourierAvailabilityRecord = {
   acceptingOrdersUntil: Date | null;
   autoOfferEnabled: boolean;
   ratingScore: number;
@@ -87,7 +87,7 @@ type RuntimeStaffUserRecord = CheckoutPaymentUserRecord & {
   updatedAt?: Date;
 };
 
-type RuntimeEventRecord = {
+export type RuntimeEventRecord = {
   id: bigint;
   type: string;
   entity: string;
@@ -96,7 +96,7 @@ type RuntimeEventRecord = {
   createdAt: Date;
 };
 
-type RuntimeStatusHistoryRecord = {
+export type RuntimeStatusHistoryRecord = {
   id: bigint;
   orderId: string;
   oldStatus: string;
@@ -121,7 +121,7 @@ const ORDER_CANCELLATION_REFUND_STATUSES = new Set<OrderCancellationRefundStatus
   "REJECTED",
 ]);
 
-type RuntimeAssignmentOfferRecord = {
+export type RuntimeAssignmentOfferRecord = {
   id: string;
   orderId: string;
   targetCourierId: string | null;
@@ -131,7 +131,7 @@ type RuntimeAssignmentOfferRecord = {
   updatedAt: Date;
 };
 
-type RuntimeCourierStaffLifecycleEventRecord = {
+export type RuntimeCourierStaffLifecycleEventRecord = {
   id: bigint;
   courierUserId: string;
   actorAdminAccountId: string;
@@ -142,7 +142,7 @@ type RuntimeCourierStaffLifecycleEventRecord = {
   createdAt: Date;
 };
 
-type RuntimeCourierStaffRatingAdjustmentRecord = {
+export type RuntimeCourierStaffRatingAdjustmentRecord = {
   id: bigint;
   courierUserId: string;
   actorAdminAccountId: string;
@@ -552,6 +552,67 @@ const createOperationalRuntimeState = (
   return runtimeState;
 };
 
+const cloneOperationalRuntimeState = (state: OperationalRuntimeState): OperationalRuntimeState => ({
+  orderMetadata: new Map(
+    [...state.orderMetadata.entries()].map(([orderId, metadata]) => [
+      orderId,
+      {
+        createdAt: cloneDate(metadata.createdAt) as Date,
+        updatedAt: cloneDate(metadata.updatedAt) as Date,
+        assignedAt: cloneDate(metadata.assignedAt),
+        cancelledByUserId: metadata.cancelledByUserId,
+        cancellationReasonCode: metadata.cancellationReasonCode,
+        cancelledAt: cloneDate(metadata.cancelledAt),
+      },
+    ]),
+  ),
+  courierAvailability: new Map(
+    [...state.courierAvailability.entries()].map(([userId, availability]) => [
+      userId,
+      {
+        acceptingOrdersUntil: cloneDate(availability.acceptingOrdersUntil),
+        autoOfferEnabled: availability.autoOfferEnabled,
+        ratingScore: availability.ratingScore,
+      },
+    ]),
+  ),
+  assignmentOffers: state.assignmentOffers.map((offer) => ({
+    ...offer,
+    createdAt: cloneDate(offer.createdAt) as Date,
+    updatedAt: cloneDate(offer.updatedAt) as Date,
+  })),
+  statusHistory: state.statusHistory.map((history) => ({
+    ...history,
+    id: BigInt(history.id),
+    changedAt: cloneDate(history.changedAt) as Date,
+  })),
+  events: state.events.map((event) => ({
+    ...event,
+    id: BigInt(event.id),
+    payload: { ...event.payload },
+    createdAt: cloneDate(event.createdAt) as Date,
+  })),
+  courierStaffLifecycleEvents: state.courierStaffLifecycleEvents.map((event) => ({
+    ...event,
+    id: BigInt(event.id),
+    createdAt: cloneDate(event.createdAt) as Date,
+  })),
+  courierStaffRatingAdjustments: state.courierStaffRatingAdjustments.map((adjustment) => ({
+    ...adjustment,
+    id: BigInt(adjustment.id),
+    createdAt: cloneDate(adjustment.createdAt) as Date,
+  })),
+  nextAssignmentOfferId: BigInt(state.nextAssignmentOfferId),
+  nextStatusHistoryId: BigInt(state.nextStatusHistoryId),
+  nextAssignmentAuditId: BigInt(state.nextAssignmentAuditId),
+  nextCancellationAuditId: BigInt(state.nextCancellationAuditId),
+  nextEventId: BigInt(state.nextEventId),
+  nextCourierStaffLifecycleEventId: BigInt(state.nextCourierStaffLifecycleEventId),
+  nextCourierStaffRatingAdjustmentId: BigInt(state.nextCourierStaffRatingAdjustmentId),
+});
+
+export const cloneOperationalRuntimeStateForPersistence = cloneOperationalRuntimeState;
+
 const ensureCourierAvailability = (
   runtimeState: OperationalRuntimeState,
   userId: string,
@@ -774,10 +835,26 @@ export const createOperationalRuntimeModules = (
   options: {
     now?: () => Date;
     telegramDispatcher?: TelegramBotMessageDispatcher;
+    initialOperationalState?: OperationalRuntimeState;
+    persistOperationalState?: (state: OperationalRuntimeState) => void;
+    persistCheckoutPaymentState?: (state: CheckoutPaymentRuntimeState) => void;
   } = {},
 ) => {
   const nowFactory = options.now ?? (() => new Date());
-  const runtimeState = createOperationalRuntimeState(state, nowFactory);
+  const runtimeState =
+    options.initialOperationalState === undefined
+      ? createOperationalRuntimeState(state, nowFactory)
+      : cloneOperationalRuntimeState(options.initialOperationalState);
+  const persistCheckoutPaymentState = (): void => {
+    options.persistCheckoutPaymentState?.(state);
+  };
+  const persistOperationalState = (): void => {
+    options.persistOperationalState?.(cloneOperationalRuntimeState(runtimeState));
+  };
+  const persistRuntimeState = (): void => {
+    persistCheckoutPaymentState();
+    persistOperationalState();
+  };
 
   const listOperatorDeliveryOrders = () => {
     const now = nowFactory();
@@ -901,6 +978,7 @@ export const createOperationalRuntimeModules = (
         resolved.order.status = data.status;
         resolved.metadata.updatedAt = nowFactory();
         resolved.metadata.assignedAt = resolved.metadata.updatedAt;
+        persistRuntimeState();
 
         return toAssignmentOrderRecord(state, runtimeState, where.id, nowFactory)!;
       },
@@ -936,6 +1014,7 @@ export const createOperationalRuntimeModules = (
         if (data.status === "ASSIGNED") {
           resolved.metadata.assignedAt = resolved.metadata.updatedAt;
         }
+        persistRuntimeState();
 
         return { count: 1 };
       },
@@ -1020,6 +1099,7 @@ export const createOperationalRuntimeModules = (
         };
         state.users.push(user);
         const availability = ensureCourierAvailability(runtimeState, user.id);
+        persistRuntimeState();
 
         return toRuntimeCourierUserPrismaRecord(user, availability);
       },
@@ -1062,6 +1142,7 @@ export const createOperationalRuntimeModules = (
           runtimeUser.staffReactivatedByAdminAccountId = data.staffReactivatedByAdminAccountId ?? null;
         }
         runtimeUser.updatedAt = nowFactory();
+        persistRuntimeState();
 
         return toRuntimeCourierUserPrismaRecord(user, availability);
       },
@@ -1096,14 +1177,17 @@ export const createOperationalRuntimeModules = (
 
           return true;
         }),
-      create: async ({ data }) =>
-        createRuntimeAssignmentOffer(runtimeState, nowFactory, {
+      create: async ({ data }) => {
+        const offer = createRuntimeAssignmentOffer(runtimeState, nowFactory, {
           orderId: data.orderId,
           targetCourierId: data.targetCourierId,
           kind: data.kind,
           status: data.status,
           createdAt: data.createdAt,
-        }),
+        });
+        persistOperationalState();
+        return offer;
+      },
       updateMany: async ({ where, data }) => {
         let count = 0;
 
@@ -1129,11 +1213,19 @@ export const createOperationalRuntimeModules = (
           count += 1;
         }
 
+        if (count > 0) {
+          persistOperationalState();
+        }
+
         return { count };
       },
     },
     orderStatusHistory: {
-      create: async ({ data }) => toDeliveryAssignmentStatusHistoryRecord(createRuntimeStatusHistory(runtimeState, data)),
+      create: async ({ data }) => {
+        const statusHistory = createRuntimeStatusHistory(runtimeState, data);
+        persistOperationalState();
+        return toDeliveryAssignmentStatusHistoryRecord(statusHistory);
+      },
       findMany: async ({ where }) =>
         runtimeState.statusHistory
           .filter((history) => {
@@ -1162,13 +1254,21 @@ export const createOperationalRuntimeModules = (
           })),
     },
     deliveryAssignmentAudit: {
-      create: async ({ data }) => ({
-        id: runtimeState.nextAssignmentAuditId++,
-        ...data,
-      }),
+      create: async ({ data }) => {
+        const record = {
+          id: runtimeState.nextAssignmentAuditId++,
+          ...data,
+        };
+        persistOperationalState();
+        return record;
+      },
     },
     event: {
-      create: async ({ data }) => toDeliveryAssignmentEventRecord(createRuntimeEvent(runtimeState, nowFactory, data)),
+      create: async ({ data }) => {
+        const event = createRuntimeEvent(runtimeState, nowFactory, data);
+        persistOperationalState();
+        return toDeliveryAssignmentEventRecord(event);
+      },
       findMany: async ({ where }) =>
         runtimeState.events.filter((event) => {
           if (where.entity !== undefined && event.entity !== where.entity) {
@@ -1200,6 +1300,7 @@ export const createOperationalRuntimeModules = (
           createdAt: new Date(data.createdAt),
         };
         runtimeState.courierStaffLifecycleEvents.push(record);
+        persistOperationalState();
 
         return { ...record };
       },
@@ -1220,6 +1321,7 @@ export const createOperationalRuntimeModules = (
           createdAt: new Date(data.createdAt),
         };
         runtimeState.courierStaffRatingAdjustments.push(record);
+        persistOperationalState();
 
         return { ...record };
       },
@@ -1254,6 +1356,7 @@ export const createOperationalRuntimeModules = (
         }
 
         resolved.metadata.updatedAt = nowFactory();
+        persistRuntimeState();
         return toCancellationOrderRecord(state, runtimeState, where.id, nowFactory)!;
       },
       updateMany: async ({ where, data }) => {
@@ -1288,20 +1391,33 @@ export const createOperationalRuntimeModules = (
         }
 
         resolved.metadata.updatedAt = nowFactory();
+        persistRuntimeState();
         return { count: 1 };
       },
     },
     orderStatusHistory: {
-      create: async ({ data }) => toOrderCancellationStatusHistoryRecord(createRuntimeStatusHistory(runtimeState, data)),
+      create: async ({ data }) => {
+        const statusHistory = createRuntimeStatusHistory(runtimeState, data);
+        persistOperationalState();
+        return toOrderCancellationStatusHistoryRecord(statusHistory);
+      },
     },
     orderCancellationAudit: {
-      create: async ({ data }) => ({
-        id: runtimeState.nextCancellationAuditId++,
-        ...data,
-      }),
+      create: async ({ data }) => {
+        const record = {
+          id: runtimeState.nextCancellationAuditId++,
+          ...data,
+        };
+        persistOperationalState();
+        return record;
+      },
     },
     event: {
-      create: async ({ data }) => toOrderCancellationEventRecord(createRuntimeEvent(runtimeState, nowFactory, data)),
+      create: async ({ data }) => {
+        const event = createRuntimeEvent(runtimeState, nowFactory, data);
+        persistOperationalState();
+        return toOrderCancellationEventRecord(event);
+      },
     },
     $transaction: async (callback) => callback(orderCancellationClient),
   };
@@ -1318,11 +1434,16 @@ export const createOperationalRuntimeModules = (
 
         resolved.order.status = data.status;
         resolved.metadata.updatedAt = nowFactory();
+        persistRuntimeState();
         return toTrackingOrderRecord(state, runtimeState, where.id, nowFactory)!;
       },
     },
     orderStatusHistory: {
-      create: async ({ data }) => toDeliveryTrackingStatusHistoryRecord(createRuntimeStatusHistory(runtimeState, data)),
+      create: async ({ data }) => {
+        const statusHistory = createRuntimeStatusHistory(runtimeState, data);
+        persistOperationalState();
+        return toDeliveryTrackingStatusHistoryRecord(statusHistory);
+      },
     },
     event: {
       create: async ({ data }) => {
@@ -1349,6 +1470,7 @@ export const createOperationalRuntimeModules = (
           }
         }
 
+        persistOperationalState();
         return toDeliveryTrackingPersistedEventRecord(event);
       },
       findMany: async ({ where }) =>
@@ -1443,11 +1565,14 @@ export const createOperationalRuntimeModules = (
     }),
     resetRuntimeState: () => {
       resetOperationalRuntimeState(runtimeState, state, nowFactory);
+      persistRuntimeState();
     },
     seedOrderStatusHistory: (seeds: RuntimeOrderStatusHistorySeed[]) => {
       seedRuntimeOrderStatusHistory(runtimeState, state, nowFactory, seeds);
+      persistOperationalState();
     },
     getCurrentEventCursor: () => (runtimeState.nextEventId - 1n).toString(),
+    saveRuntimeState: persistRuntimeState,
     listOperatorDeliveryOrders,
     staffMetrics: {
       courierStaffMetricsReader,

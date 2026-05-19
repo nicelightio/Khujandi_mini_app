@@ -6,7 +6,14 @@ import { adminOrigin } from "../catalog/catalog.runtime.test-helpers";
 
 const testToken = "test-runtime-token";
 
-const startStagingRuntime = async (paths?: { adminDatabasePath?: string; catalogDatabasePath?: string }) =>
+jest.setTimeout(20000);
+
+const startStagingRuntime = async (paths?: {
+  adminDatabasePath?: string;
+  catalogDatabasePath?: string;
+  checkoutPaymentDatabasePath?: string;
+  operationalRuntimeDatabasePath?: string;
+}) =>
   startDevApiServer({
     host: "127.0.0.1",
     port: 0,
@@ -340,6 +347,94 @@ describe("dev runtime staging reset and seed endpoints", () => {
       expect(existsSync(sentinelPath)).toBe(true);
     } finally {
       await runtime.stop();
+      rmSync(temporaryDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("persists and clears checkout/operational staging state through reset and seed", async () => {
+    const temporaryDirectory = mkdtempSync(join(tmpdir(), "khujandi-staging-runtime-state-"));
+    const paths = {
+      checkoutPaymentDatabasePath: join(temporaryDirectory, "checkout-payment-runtime.sqlite"),
+      operationalRuntimeDatabasePath: join(temporaryDirectory, "operational-runtime.sqlite"),
+    };
+    let runtime: Awaited<ReturnType<typeof startDevApiServer>> | null = await startStagingRuntime(paths);
+
+    try {
+      const client = runtime.createClient();
+      const seedResponse = await client.request({
+        path: "/api/v1/test/seed",
+        headers: {
+          "x-e2e-test-token": testToken,
+        },
+        body: {
+          scenario: "operator_orders",
+        },
+      });
+      expect(seedResponse.status).toBe(200);
+      expect(runtime.checkoutPaymentState.orders.map((order) => order.id)).toEqual([
+        "test-order-created-1001",
+        "test-order-delivered-2001",
+        "test-order-cancellable-3001",
+      ]);
+
+      await runtime.stop();
+      runtime = await startStagingRuntime(paths);
+
+      expect(runtime.checkoutPaymentState.orders.map((order) => order.id)).toEqual([
+        "test-order-created-1001",
+        "test-order-delivered-2001",
+        "test-order-cancellable-3001",
+      ]);
+
+      const resetResponse = await runtime.createClient().request({
+        path: "/api/v1/test/reset",
+        headers: {
+          "x-e2e-test-token": testToken,
+        },
+        body: {
+          scope: "all",
+        },
+      });
+      expect(resetResponse.status).toBe(200);
+      expect(resetResponse.body).toMatchObject({
+        checkoutPayment: {
+          users: 0,
+          orders: 0,
+          sessions: 0,
+        },
+      });
+
+      await runtime.stop();
+      runtime = await startStagingRuntime(paths);
+
+      expect(runtime.checkoutPaymentState.users).toHaveLength(0);
+      expect(runtime.checkoutPaymentState.orders).toHaveLength(0);
+
+      const adminClient = runtime.createClient();
+      const adminSessionResponse = await adminClient.request({
+        path: "/api/v1/test/session",
+        headers: {
+          "x-e2e-test-token": testToken,
+        },
+        body: {
+          persona: "admin_boss",
+        },
+      });
+      expect(adminSessionResponse.status).toBe(200);
+
+      const operatorOrdersResponse = await adminClient.request({
+        path: "/api/v1/admin/operator/delivery/orders",
+        method: "GET",
+        origin: adminOrigin,
+      });
+      expect(operatorOrdersResponse.status).toBe(200);
+      expect(operatorOrdersResponse.body).toMatchObject({
+        orders: [],
+      });
+    } finally {
+      if (runtime !== null) {
+        await runtime.stop();
+      }
       rmSync(temporaryDirectory, { recursive: true, force: true });
     }
   });

@@ -23,6 +23,7 @@ type OperationalRuntimeReset = {
     }>;
   }>) => void;
   getCurrentEventCursor: () => string;
+  saveRuntimeState?: () => void;
 };
 
 type StagingTestHarnessDependencies = {
@@ -361,6 +362,7 @@ export const createStagingTestHarness = (dependencies: StagingTestHarnessDepende
     resetAdminAccessState(dependencies.adminAccessState);
     resetCheckoutPaymentState(dependencies.checkoutPaymentState);
     dependencies.operationalRuntime.resetRuntimeState();
+    dependencies.operationalRuntime.saveRuntimeState?.();
     dependencies.saveCatalogState(dependencies.catalogState);
     dependencies.saveAdminAccessState(dependencies.adminAccessState);
 
@@ -417,6 +419,7 @@ export const createStagingTestHarness = (dependencies: StagingTestHarnessDepende
     if (seedsOperatorOrders) {
       seedOperatorOrderStatusHistory(dependencies);
     }
+    dependencies.operationalRuntime.saveRuntimeState?.();
     dependencies.saveCatalogState(dependencies.catalogState);
     dependencies.saveAdminAccessState(dependencies.adminAccessState);
 

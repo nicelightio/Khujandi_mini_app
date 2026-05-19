@@ -37,6 +37,12 @@ const runtime = await startDevApiServer({
   catalogDatabasePath:
     process.env.CATALOG_DB_PATH ??
     resolve(defaultRuntimeDirectory, isStagingRuntime ? "catalog-runtime.sqlite" : "dev-catalog-runtime.sqlite"),
+  checkoutPaymentDatabasePath:
+    process.env.CHECKOUT_PAYMENT_DB_PATH ??
+    resolve(defaultRuntimeDirectory, isStagingRuntime ? "checkout-payment-runtime.sqlite" : "dev-checkout-payment-runtime.sqlite"),
+  operationalRuntimeDatabasePath:
+    process.env.OPERATIONAL_RUNTIME_DB_PATH ??
+    resolve(defaultRuntimeDirectory, isStagingRuntime ? "operational-runtime.sqlite" : "dev-operational-runtime.sqlite"),
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
   telegramBotPollingEnabled: parseRuntimeBooleanFlag(process.env.TELEGRAM_BOT_POLLING),
   telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,

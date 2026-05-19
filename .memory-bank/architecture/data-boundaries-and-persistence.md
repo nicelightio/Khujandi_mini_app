@@ -28,6 +28,7 @@ status: active
 - Starter menu pages/products, созданные provisioning flow, являются обычными durable `catalog` записями, а не скрытым demo bootstrap state.
 - Payment identity и anti-replay markers (`payment_provider_tx_id`, `telegram_payment_charge_id`, `provider_payment_charge_id`, invoice/payment reference) должны иметь явную persistence policy и DB-level uniqueness там, где это применимо.
 - Session/security persistence отделяется по чувствительности данных: session identifiers не попадают в JS-readable persistent storage baseline, а non-sensitive client preferences имеют explicit fallback policy.
+- Non-production `dev-runtime` server profiles persist runtime checkout/payment state and operational delivery state through isolated SQLite JSON-state files when explicit runtime paths are configured. This durability is for staging/local/test server profiles and does not replace the target production Prisma/PostgreSQL persistence model.
 
 ## Catalog start showcase reference persistence
 

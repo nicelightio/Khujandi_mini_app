@@ -27,11 +27,13 @@ import {
   createInMemoryCheckoutPaymentPrisma,
   resolveMiniAppAuthenticatedUser,
 } from "../checkout-payment-runtime";
+import { createCheckoutPaymentStatePersistence } from "../checkout-payment-runtime-persistence";
 import type { RuntimeServerOptions } from "../dev-api-server.types";
 import {
   createOperationalRuntimeModules,
   ensureOperationalRuntimeBaseline,
 } from "../order-ops-runtime";
+import { createOperationalRuntimeStatePersistence } from "../order-ops-runtime-persistence";
 import { resolveRuntimeCheckoutPaymentProvider } from "../payment-provider-runtime";
 import { createInMemoryReviewsFeedbackPrisma } from "../reviews-feedback-runtime";
 import { parseRuntimeBooleanFlag, resolveRuntimeMode } from "../runtime-mode";
@@ -60,7 +62,19 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
       adminPersistence.saveState(nextState);
     },
   });
-  const checkoutPaymentPrisma = createInMemoryCheckoutPaymentPrisma();
+  const checkoutPaymentDatabasePath = options.checkoutPaymentDatabasePath ?? process.env.CHECKOUT_PAYMENT_DB_PATH;
+  const checkoutPaymentPersistence =
+    checkoutPaymentDatabasePath === undefined
+      ? null
+      : createCheckoutPaymentStatePersistence(checkoutPaymentDatabasePath);
+  const checkoutPaymentPrisma = createInMemoryCheckoutPaymentPrisma(
+    checkoutPaymentPersistence?.loadState(),
+    {
+      persist: (nextState) => {
+        checkoutPaymentPersistence?.saveState(nextState);
+      },
+    },
+  );
   const adminAccessModule = createAdminAccessModule(prisma);
   const adminAccessOperatorStaffMetricsReader = new PrismaAdminAccessOperatorStaffMetricsReader(prisma as never);
   const catalogPersistence = resolveCatalogDatabasePersistence(options.catalogDatabasePath);
@@ -72,7 +86,9 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
   });
   const catalogModule = createCatalogModule(catalogPrisma);
   const checkoutPaymentState = checkoutPaymentPrisma.state;
-  ensureOperationalRuntimeBaseline(checkoutPaymentState);
+  if (checkoutPaymentPersistence === null) {
+    ensureOperationalRuntimeBaseline(checkoutPaymentState);
+  }
   const reviewsFeedbackRuntime = createInMemoryReviewsFeedbackPrisma(checkoutPaymentState, { now: options.now });
   const telegramBotApiClient = createTelegramBotApiClient({
     token: options.telegramBotToken ?? process.env.TELEGRAM_BOT_TOKEN,
@@ -143,9 +159,21 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
     traceIdFactory: () => "trace-admin-runtime",
     now: options.now,
   });
+  const operationalRuntimeDatabasePath = options.operationalRuntimeDatabasePath ?? process.env.OPERATIONAL_RUNTIME_DB_PATH;
+  const operationalRuntimePersistence =
+    operationalRuntimeDatabasePath === undefined
+      ? null
+      : createOperationalRuntimeStatePersistence(operationalRuntimeDatabasePath);
   const operationalModulesBase = createOperationalRuntimeModules(checkoutPaymentState, {
     now: options.now,
     telegramDispatcher,
+    initialOperationalState: operationalRuntimePersistence?.loadState() ?? undefined,
+    persistOperationalState: (nextState) => {
+      operationalRuntimePersistence?.saveState(nextState);
+    },
+    persistCheckoutPaymentState: (nextState) => {
+      checkoutPaymentPersistence?.saveState(nextState);
+    },
   });
   const operationalModules = {
     ...operationalModulesBase,
@@ -216,6 +244,8 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
     prisma,
     catalogModule,
     catalogDatabasePath: catalogPersistence.databasePath,
+    checkoutPaymentDatabasePath: checkoutPaymentPersistence?.databasePath,
+    operationalRuntimeDatabasePath: operationalRuntimePersistence?.databasePath,
     catalogState,
     checkoutPaymentState,
     adminAuthHandler,
@@ -253,8 +283,12 @@ export const createDevApiRuntime = (options: RuntimeServerOptions) => {
     dispose: () => {
       adminPersistence.close();
       adminPersistence.cleanup();
+      checkoutPaymentPersistence?.close();
+      checkoutPaymentPersistence?.cleanup();
       catalogPersistence.close();
       catalogPersistence.cleanup();
+      operationalRuntimePersistence?.close();
+      operationalRuntimePersistence?.cleanup();
     },
   };
 };

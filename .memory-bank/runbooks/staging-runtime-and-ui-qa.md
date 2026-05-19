@@ -44,6 +44,8 @@ HOST=127.0.0.1 PORT=3001 \
 ADMIN_ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173 \
 ADMIN_DB_PATH=$PWD/.runtime/staging/admin-access.sqlite \
 CATALOG_DB_PATH=$PWD/.runtime/staging/catalog-runtime.sqlite \
+CHECKOUT_PAYMENT_DB_PATH=$PWD/.runtime/staging/checkout-payment-runtime.sqlite \
+OPERATIONAL_RUNTIME_DB_PATH=$PWD/.runtime/staging/operational-runtime.sqlite \
 npm run dev:api
 ```
 
@@ -101,6 +103,8 @@ E2E_TEST_MODE=TRUE
 E2E_TEST_TOKEN=replace-with-secret-outside-docs
 ADMIN_DB_PATH=/var/lib/khujandi-staging/admin-access-runtime.sqlite
 CATALOG_DB_PATH=/var/lib/khujandi-staging/catalog-runtime.sqlite
+CHECKOUT_PAYMENT_DB_PATH=/var/lib/khujandi-staging/checkout-payment-runtime.sqlite
+OPERATIONAL_RUNTIME_DB_PATH=/var/lib/khujandi-staging/operational-runtime.sqlite
 TELEGRAM_BOT_TOKEN=test-bot-token
 TELEGRAM_BOT_POLLING=FALSE
 TELEGRAM_WEBHOOK_SECRET=optional-webhook-secret-outside-docs
@@ -134,11 +138,20 @@ DEPLOY_BRANCH=main \
 
 The current staging target is deployed from GitHub `main`. Use a different `DEPLOY_BRANCH` only after it is explicitly approved for staging.
 
+`Proder` direct-main staging path:
+
+1. Orchestrator explicitly asks `Proder` to update staging.
+2. `Proder` reads this runbook and deployment topology, inspects `git status`, summarizes all tracked/untracked paths, checks run, proposed commit message and staging deploy command.
+3. Orchestrator gives explicit approval for commit/push/deploy.
+4. `Proder` may run `git add -A`, commit, push to `origin/main`, then run the staging command shape above.
+5. Staging deploy still pulls from the clean GitHub checkout `/srv/tgmeal/staging/app`; local files are never copied to the server manually.
+
 Implementation must ensure:
 
 - Docker labels do not collide with production router/service/middleware names.
 - Compose volume names do not collide with production.
 - Runtime mount and SQLite paths point at the staging runtime directory, not production `/var/lib/khujandi`.
+- Checkout/payment and operational delivery runtime paths point at the same staging runtime directory as admin/catalog state.
 - Health checks target staging host.
 - Deploy script still refuses dirty checkout and non-GitHub remotes.
 - No PhotoChanger, Traefik config, production `tgmeal` containers, production volumes or production DB are modified.
@@ -271,6 +284,7 @@ Staging reset may delete or recreate only staging-owned state:
 - `.runtime/staging/*` for local host-OS profile;
 - `tgmeal_staging_runtime_data` for server staging profile;
 - in-memory runtime state.
+- configured staging SQLite runtime files for admin access, catalog, checkout/payment and operational delivery state.
 
 Staging reset must not:
 

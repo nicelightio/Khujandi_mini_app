@@ -98,6 +98,7 @@ MUST NOT без отдельного подтверждения:
 
 - Runtime SQLite state для checked-in dev/runtime API хранится в named volume `tgmeal_catalog_runtime_data` по `/var/lib/khujandi` внутри `api` container.
 - Staging runtime state must use a separate named volume and/or paths, for example `tgmeal_staging_runtime_data` and `/var/lib/khujandi-staging`.
+- Checked-in dev-runtime state files under that mounted runtime directory include admin access, catalog, checkout/payment and operational delivery runtime SQLite files. Staging must point all four paths at the staging runtime directory, not the production runtime directory.
 - `DATABASE_URL` должен указывать только на отдельную Khujandi database, если включаются Prisma migrations.
 - PhotoChanger PostgreSQL (`photochanger-pg`, host port `5432`) нельзя использовать как implicit target для Khujandi без явного создания отдельной database/user и backup/permission plan.
 

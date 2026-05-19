@@ -23,6 +23,8 @@ export type RuntimeServerOptions = {
   allowedOrigins?: string[];
   adminDatabasePath?: string;
   catalogDatabasePath?: string;
+  checkoutPaymentDatabasePath?: string;
+  operationalRuntimeDatabasePath?: string;
   telegramBotToken?: string;
   telegramBotPollingEnabled?: boolean;
   telegramBotPollIntervalMs?: number;

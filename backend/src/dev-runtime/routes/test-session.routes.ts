@@ -212,6 +212,7 @@ const createCourierMetadataSession = async (
 
   if (existingUser === undefined) {
     input.context.checkoutPaymentState.users.push({ ...fixedPersonaUsers.courier_7 });
+    input.context.operationalModules.saveRuntimeState?.();
   }
 
   const now = input.context.options.now?.() ?? new Date();

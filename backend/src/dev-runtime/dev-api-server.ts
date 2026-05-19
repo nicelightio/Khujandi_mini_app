@@ -83,6 +83,8 @@ export const startDevApiServer = async (options: RuntimeServerOptions = {}) => {
     catalogModule: runtime.catalogModule,
     operationalModules: runtime.routeContext.operationalModules,
     catalogDatabasePath: runtime.catalogDatabasePath,
+    checkoutPaymentDatabasePath: runtime.checkoutPaymentDatabasePath,
+    operationalRuntimeDatabasePath: runtime.operationalRuntimeDatabasePath,
     catalogState: runtime.catalogState,
     checkoutPaymentState: runtime.checkoutPaymentState,
     createClient: () => createRuntimeCookieSessionClient(baseUrl),

@@ -1,6 +1,11 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { startDevApiServer } from "../../../backend/src/dev-runtime/dev-api-server";
 
 const adminOrigin = "https://admin.example";
+
+jest.setTimeout(20000);
 
 const loginStaffRuntime = async (role: "ADMIN" | "BOSS" | "OPERATOR" = "ADMIN") => {
   const runtime = await startDevApiServer({
@@ -29,7 +34,164 @@ const loginStaffRuntime = async (role: "ADMIN" | "BOSS" | "OPERATOR" = "ADMIN") 
   };
 };
 
+const startPersistentStaffRuntime = async (
+  runtimeDirectory: string,
+  role: "ADMIN" | "BOSS" | "OPERATOR" = "BOSS",
+) => {
+  const runtime = await startDevApiServer({
+    host: "127.0.0.1",
+    port: 0,
+    allowedOrigins: [adminOrigin],
+    checkoutPaymentDatabasePath: join(runtimeDirectory, "checkout-payment-runtime.sqlite"),
+    operationalRuntimeDatabasePath: join(runtimeDirectory, "operational-runtime.sqlite"),
+    now: () => new Date("2026-05-20T09:00:00.000Z"),
+  });
+  runtime.prisma.state.account.login = "admin@example.com";
+  runtime.prisma.state.account.role = role;
+  const client = runtime.createClient();
+  const loginResponse = await client.request({
+    path: "/api/v1/admin/auth/login",
+    origin: adminOrigin,
+    body: {
+      login: "admin@example.com",
+      password: "super-secret-01",
+    },
+  });
+
+  expect(loginResponse.status).toBe(200);
+
+  return {
+    runtime,
+    client,
+  };
+};
+
 describe("admin Staff panel runtime routes", () => {
+  it("persists Staff-created courier identity, lifecycle, rating and bot lookup across runtime restart", async () => {
+    const runtimeDirectory = mkdtempSync(join(tmpdir(), "khujandi-nonprod-staff-runtime-"));
+    let firstRuntime: Awaited<ReturnType<typeof startDevApiServer>> | null = null;
+    let restartedRuntime: Awaited<ReturnType<typeof startDevApiServer>> | null = null;
+
+    try {
+      const first = await startPersistentStaffRuntime(runtimeDirectory, "BOSS");
+      firstRuntime = first.runtime;
+
+      const courierResponse = await first.client.request({
+        path: "/api/v1/admin/staff/couriers",
+        origin: adminOrigin,
+        body: {
+          telegram_user_id: "991234567",
+          nickname: "Persistent Courier",
+        },
+      });
+      expect(courierResponse.status).toBe(201);
+      const courierUserId = String((courierResponse.body as { courier: { id: string } }).courier.id);
+
+      const ratingResponse = await first.client.request({
+        path: `/api/v1/admin/staff/couriers/${courierUserId}/rating-adjustments`,
+        origin: adminOrigin,
+        body: {
+          delta: 1,
+          reason: "restart-safe",
+        },
+      });
+      expect(ratingResponse.status).toBe(201);
+
+      const deactivateResponse = await first.client.request({
+        path: `/api/v1/admin/staff/couriers/${courierUserId}/deactivate`,
+        origin: adminOrigin,
+        body: {
+          reason: "restart check",
+        },
+      });
+      expect(deactivateResponse.status).toBe(200);
+
+      await firstRuntime.stop();
+      firstRuntime = null;
+
+      const restarted = await startPersistentStaffRuntime(runtimeDirectory, "BOSS");
+      restartedRuntime = restarted.runtime;
+
+      const archivedList = await restarted.client.request({
+        path: "/api/v1/admin/staff/couriers?includeInactive=true",
+        method: "GET",
+        origin: adminOrigin,
+      });
+      expect(archivedList.status).toBe(200);
+      expect(archivedList.body).toEqual({
+        couriers: expect.arrayContaining([
+          expect.objectContaining({
+            courierUserId,
+            telegramUserId: "991234567",
+            nickname: "Persistent Courier",
+            activeStatus: "soft_deleted",
+            manualRatingAdjustment: 1,
+          }),
+        ]),
+      });
+
+      const courierCard = await restarted.client.request({
+        path: `/api/v1/admin/staff/couriers/${courierUserId}?includeInactive=true`,
+        method: "GET",
+        origin: adminOrigin,
+      });
+      expect(courierCard.status).toBe(200);
+      expect(courierCard.body).toEqual({
+        courier: expect.objectContaining({
+          courierUserId,
+          activeStatus: "soft_deleted",
+          manualRatingAdjustmentHistory: [
+            expect.objectContaining({
+              delta: 1,
+              reason: "restart-safe",
+            }),
+          ],
+        }),
+      });
+
+      const activeCourierResponse = await restarted.client.request({
+        path: "/api/v1/admin/staff/couriers",
+        origin: adminOrigin,
+        body: {
+          telegram_user_id: "991234568",
+          nickname: "Bot Lookup Courier",
+        },
+      });
+      expect(activeCourierResponse.status).toBe(201);
+
+      await restartedRuntime.stop();
+      restartedRuntime = null;
+
+      const botRuntime = await startPersistentStaffRuntime(runtimeDirectory, "BOSS");
+      restartedRuntime = botRuntime.runtime;
+      const botResponse = await botRuntime.client.request({
+        path: "/api/v1/telegram/webhook",
+        body: {
+          update_id: 501,
+          message: {
+            chat: { id: 991234568 },
+            from: { id: 991234568 },
+            text: "Курьер",
+          },
+        },
+      });
+
+      expect(botResponse.status).toBe(200);
+      expect(botResponse.body).toEqual({
+        ok: true,
+        action: "courier_menu",
+      });
+    } finally {
+      if (firstRuntime !== null) {
+        await firstRuntime.stop();
+      }
+      if (restartedRuntime !== null) {
+        await restartedRuntime.stop();
+      }
+      rmSync(runtimeDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("rejects operator access with the canonical error shape", async () => {
     const { runtime, client } = await loginStaffRuntime("OPERATOR");
 
