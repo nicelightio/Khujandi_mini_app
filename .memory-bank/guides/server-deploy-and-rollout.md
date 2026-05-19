@@ -43,7 +43,8 @@ status: active
 Release policy:
 
 - local development folder is for editing only;
-- all production changes go through branch -> GitHub push -> PR -> review/CI -> merge to `main`;
+- by default production changes go through branch -> GitHub push -> PR -> review/CI -> merge to `main`;
+- exception: the project-local Codex agent `Proder` may, after explicit orchestrator command and separate pre-push approval, commit local changes, push to `main`, and trigger staging/prod deploy;
 - server deploy pulls the merged GitHub commit into `/srv/tgmeal/app`;
 - never copy/build/deploy directly from `/root/projects/khujandi-mini-app/Khujandi_mini_app` or any dirty worktree.
 
@@ -53,6 +54,14 @@ Preferred automated path:
 2. GitHub Actions workflow `.github/workflows/deploy-prod.yml` connects to prod by SSH using repository/environment secrets.
 3. The workflow runs `/usr/local/bin/tgmeal-deploy` on the server.
 4. The server-side script pulls `origin/main` into `/srv/tgmeal/app` and refuses dirty/non-GitHub state.
+
+`Proder` direct-main path:
+
+1. Orchestrator asks `Proder` to update `staging` or `prod`.
+2. `Proder` summarizes `git status`, all tracked/untracked paths, checks, proposed commit message and deploy command.
+3. Orchestrator approves push/deploy.
+4. `Proder` runs `git add -A`, commits, pushes `origin main`, then runs the target deploy command.
+5. Deployment still happens from the server-side GitHub checkout, not by copying local files.
 
 Required GitHub Secrets:
 

@@ -70,7 +70,8 @@ Before meaningful implementation work:
 
 ## Where skills live (don’t confuse)
 - Codex CLI reads project skills from `.agents/skills/<name>/SKILL.md` (not from `.codex/`).
-- `.codex/` is only for project configuration (e.g. `.codex/config.toml`).
+- Codex CLI reads project custom agents from `.codex/agents/<name>.toml`.
+- `.codex/` is for project Codex configuration and local custom agents (e.g. `.codex/config.toml`, `.codex/agents/proder.toml`), not for skills.
 
 ## Orchestration protocol
 

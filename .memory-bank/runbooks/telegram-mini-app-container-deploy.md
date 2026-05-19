@@ -22,7 +22,8 @@ status: active
 - Старый Ubuntu/non-container deploy path deprecated; см. historical reference в [.memory-bank/runbooks/telegram-mini-app-test-server-deploy.md](telegram-mini-app-test-server-deploy.md).
 - Staging deploy is a separate `FT-018` profile and must follow [.memory-bank/runbooks/staging-runtime-and-ui-qa.md](staging-runtime-and-ui-qa.md); do not repurpose production `/srv/tgmeal/app`, production Compose project or production volume for staging.
 - Скрипт deploy не делает destructive cleanup и не трогает PhotoChanger/Traefik configs.
-- Production deploy NEVER runs from the active development/source folder. Единственный путь: branch -> GitHub PR -> merge/push в GitHub -> server deploy pulls the merged GitHub commit into `/srv/tgmeal/app`.
+- Production deploy NEVER runs from the active development/source folder. Обычный путь: branch -> GitHub PR -> merge/push в GitHub -> server deploy pulls the merged GitHub commit into `/srv/tgmeal/app`.
+- Локальное исключение для orchestrator-approved deploy automation: project-local Codex agent `Proder` may prepare a local commit, push to `main`, and trigger prod deploy only after an explicit orchestrator command plus a separate pre-push approval gate. This exception does not allow ad-hoc file copy/build from the development folder.
 
 ## Target layout
 
@@ -44,7 +45,7 @@ status: active
 Before any deploy, remember:
 
 - PhotoChanger is critical: do not stop/remove/recreate `photochanger-app`, `photochanger-pg`, `app_media_data`, `/opt/photochanger`.
-- GitHub is the only release source: do not deploy uncommitted worktree changes, do not copy files from `/root/projects/khujandi-mini-app/Khujandi_mini_app`, and do not build prod from a local feature branch.
+- GitHub is the only release source: do not deploy uncommitted worktree changes, do not copy files from `/root/projects/khujandi-mini-app/Khujandi_mini_app`, and do not build prod from a local feature branch. `Proder` direct deploy must still publish through `origin/main` before the server pulls it.
 - Traefik is shared public edge: do not replace it with host nginx and do not edit `/opt/traefik` during normal TgMeal deploy.
 - Never run these as part of TgMeal deploy: `docker system prune`, `docker volume rm`, `docker compose down -v`, mass cleanup under `/var/lib/docker`.
 - Do not bind TgMeal to host ports `80`, `443`, `8000`, `5432`, `9000`, `37525`.
@@ -155,7 +156,7 @@ sed -n '1,240p' /usr/local/bin/tgmeal-deploy
 
 ## 6. First deploy / update deploy
 
-Required release workflow before this command:
+Default release workflow before this command:
 
 1. Develop in a branch.
 2. Push branch to GitHub.
@@ -163,6 +164,14 @@ Required release workflow before this command:
 4. Review/check CI.
 5. Merge to `main` or otherwise update the approved deploy branch in GitHub.
 6. Only then deploy the GitHub commit to this server.
+
+`Proder` direct-main exception:
+
+1. Orchestrator explicitly asks `Proder` to update prod.
+2. `Proder` reads deploy context/runbooks, inspects `git status`, summarizes all tracked/untracked paths, checks run, proposed commit message and target deploy command.
+3. Orchestrator gives explicit approval for commit/push/deploy.
+4. `Proder` may run `git add -A`, commit, push to `origin/main`, then run `/usr/local/bin/tgmeal-deploy`.
+5. The server still deploys only the pushed GitHub commit from `/srv/tgmeal/app`; local files are never copied to prod.
 
 Normal deploy:
 
